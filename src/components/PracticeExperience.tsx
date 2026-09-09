@@ -123,7 +123,7 @@ export function PracticeExperience() {
     );
   }, [crazyLevel, xp, mistakes, history, storageReady]);
 
-  function speak(text: string, nextState: VoiceState = "waiting_for_repeat") {
+  function speak(text: string, nextState: VoiceState = "waiting_for_repeat", lang = "pt-BR") {
     if (!canSpeak) {
       setVoiceState(nextState);
       return;
@@ -131,7 +131,7 @@ export function PracticeExperience() {
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
+    utterance.lang = lang;
     utterance.rate = 0.96;
     utterance.pitch = emotion === "crazy" ? 1.12 : emotion === "calm" ? 0.95 : 1.02;
     utterance.onstart = () => setVoiceState("speaking");
@@ -188,7 +188,7 @@ export function PracticeExperience() {
 
       setVoiceState("reacting");
       window.setTimeout(() => {
-        speak(`${result.reaction}. ${result.corrected_sentence}. ${result.follow_up}`);
+        speak(`${result.reaction}. ${result.correction}. ${result.follow_up}`);
       }, 420);
     } catch {
       setErrorMessage("A analise falhou. Digite uma frase e tente de novo.");
@@ -263,7 +263,7 @@ export function PracticeExperience() {
 
   function speakCorrection() {
     if (!analysis) return;
-    speak(analysis.corrected_sentence, "waiting_for_repeat");
+    speak(analysis.corrected_sentence, "waiting_for_repeat", "en-US");
   }
 
   return (
@@ -309,7 +309,7 @@ export function PracticeExperience() {
               {transcript || "Tell me about yourself."}
             </ConversationBubble>
             <ConversationBubble label="Mr.Crazy" tone="crazy">
-              {analysis?.reaction || "I am calm. Suspiciously calm."}
+              {analysis?.reaction || "Estou calmo. Isso e raro. Aproveita."}
             </ConversationBubble>
             <CorrectionDisplay analysis={analysis} />
             <div className="action-row">
