@@ -1,8 +1,20 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { BrainCircuit, BriefcaseBusiness, Plane, Shuffle, Sparkles, UserRound } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  BookOpen,
+  BrainCircuit,
+  BriefcaseBusiness,
+  MessagesSquare,
+  Plane,
+  Rocket,
+  Shuffle,
+  Sparkles,
+  UserRound
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ConversationBubble } from "@/components/ConversationBubble";
 import { CorrectionDisplay } from "@/components/CorrectionDisplay";
@@ -13,12 +25,31 @@ import { PronunciationFeedback } from "@/components/PronunciationFeedback";
 import { RepeatButton } from "@/components/RepeatButton";
 import { SessionHeader } from "@/components/SessionHeader";
 import { VoiceButton } from "@/components/VoiceButton";
-import { clampCrazyLevel, getEmotion, type AnalysisResponse, type MistakeCategory, type VoiceState } from "@/lib/mr-crazy";
+import {
+  clampCrazyLevel,
+  getEmotion,
+  getMistakeLabel,
+  normalizeLearningLevel,
+  type AnalysisResponse,
+  type LearningLevel,
+  type MistakeCategory,
+  type VoiceState
+} from "@/lib/mr-crazy";
 
 type SessionMode = {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: LucideIcon;
+};
+
+type LevelOption = {
+  id: LearningLevel;
+  label: string;
+  description: string;
+  badge: string;
+  icon: LucideIcon;
+  placeholder: string;
+  examples: string[];
 };
 
 type PracticeHistory = {
@@ -33,24 +64,98 @@ type StoredSession = {
   xp: number;
   mistakes: MistakeCategory[];
   history: PracticeHistory[];
+  learningLevel: LearningLevel;
 };
 
 const modes: SessionMode[] = [
-  { id: "free-conversation", label: "Free conversation", icon: Sparkles },
-  { id: "work-english", label: "Work English", icon: BriefcaseBusiness },
-  { id: "job-interview", label: "Job Interview", icon: UserRound },
-  { id: "travel", label: "Travel", icon: Plane },
-  { id: "random-topic", label: "Random", icon: Shuffle }
+  { id: "free-conversation", label: "Conversa livre", icon: Sparkles },
+  { id: "work-english", label: "Trabalho", icon: BriefcaseBusiness },
+  { id: "job-interview", label: "Entrevista", icon: UserRound },
+  { id: "travel", label: "Viagem", icon: Plane },
+  { id: "random-topic", label: "Aleatório", icon: Shuffle }
 ];
 
-const examples = ["Yesterday I go to work.", "I have 22 years.", "We played-i video games.", "Tell me about yourself."];
+const levelOptions: LevelOption[] = [
+  {
+    id: "basic",
+    label: "Básico",
+    description: "Conversas fáceis do dia",
+    badge: "A1-A2",
+    icon: BookOpen,
+    placeholder: 'Como falo "eu estou cansado hoje"?',
+    examples: ['Como falo "eu estou cansado hoje"?', "Vamos conversar.", "I have 22 years.", "Yesterday I go to school."]
+  },
+  {
+    id: "intermediate",
+    label: "Intermediário",
+    description: "Rotina, trabalho e viagens",
+    badge: "B1-B2",
+    icon: MessagesSquare,
+    placeholder: "Yesterday I go to work.",
+    examples: ["Yesterday I go to work.", "We played-i video games.", "Is necessary to decide fast.", "Tell me about yourself."]
+  },
+  {
+    id: "advanced",
+    label: "Avançado",
+    description: "Argumentos e precisão",
+    badge: "C1",
+    icon: Rocket,
+    placeholder: "Quero conversar sobre trabalho remoto.",
+    examples: [
+      "Quero conversar sobre trabalho remoto.",
+      "I actually pretend to migrate the servers.",
+      "She went yesterday?",
+      "We need decide the trade-off."
+    ]
+  }
+];
+
+const openingLines = [
+  "Ô preguiçoso, bora fazer algo, né? Me manda uma frase em inglês.",
+  "Acorda, campeão da enrolação. Fala uma frase em inglês para eu corrigir.",
+  "Bora trabalhar, preguiçoso. Uma frase em inglês, sem drama.",
+  "Chega de olhar para a tela. Fala em inglês e tenta não me irritar no primeiro verbo.",
+  "Opa, preguiçoso, apareceu. Agora manda inglês antes que eu perca a paciência.",
+  "Vamos lá, gênio do depois eu faço. Me dá uma frase em inglês."
+];
+
+function getNextOpeningLine() {
+  if (typeof window === "undefined") {
+    return openingLines[0];
+  }
+
+  const storageKey = "mr-crazy-opening-index";
+  const current = Number.parseInt(window.localStorage.getItem(storageKey) ?? "-1", 10);
+  const next = Number.isFinite(current) ? (current + 1) % openingLines.length : 0;
+  window.localStorage.setItem(storageKey, String(next));
+
+  return openingLines[next];
+}
+
+function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {
+  const normalizedLang = lang.toLowerCase();
+  const languageRoot = normalizedLang.split("-")[0] ?? normalizedLang;
+  const preferredName = /(google|microsoft|luciana|francisca|antonio|maria|natural)/iu;
+
+  return (
+    voices.find((voice) => voice.lang.toLowerCase() === normalizedLang && preferredName.test(voice.name)) ??
+    voices.find((voice) => voice.lang.toLowerCase() === normalizedLang) ??
+    voices.find((voice) => voice.lang.toLowerCase().startsWith(languageRoot)) ??
+    null
+  );
+}
+
+function splitSpeechText(text: string) {
+  return text.match(/[^.!?]+[.!?]?/gu)?.map((part) => part.trim()).filter(Boolean) ?? [text];
+}
 
 function getStoredSession(): StoredSession {
   const fallback: StoredSession = {
     crazyLevel: 16,
     xp: 420,
     mistakes: [],
-    history: []
+    history: [],
+    learningLevel: "basic"
   };
 
   if (typeof window === "undefined") {
@@ -68,7 +173,8 @@ function getStoredSession(): StoredSession {
       crazyLevel: typeof parsed.crazyLevel === "number" ? parsed.crazyLevel : fallback.crazyLevel,
       xp: typeof parsed.xp === "number" ? parsed.xp : fallback.xp,
       mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes : fallback.mistakes,
-      history: Array.isArray(parsed.history) ? parsed.history.slice(0, 6) : fallback.history
+      history: Array.isArray(parsed.history) ? parsed.history.slice(0, 6) : fallback.history,
+      learningLevel: normalizeLearningLevel(parsed.learningLevel)
     };
   } catch {
     window.localStorage.removeItem("mr-crazy-session");
@@ -83,26 +189,100 @@ export function PracticeExperience() {
   const [manualText, setManualText] = useState("");
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [openingLine, setOpeningLine] = useState(openingLines[0]);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
+  const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [storageReady, setStorageReady] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const speechTokenRef = useRef(0);
+  const ptVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const enVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
 
   const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]);
+  const activeLevel = useMemo(
+    () => levelOptions.find((level) => level.id === selectedLevel) ?? levelOptions[0],
+    [selectedLevel]
+  );
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
   const hasSpeechRecognition =
     typeof window !== "undefined" && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   useEffect(() => {
+    if (!canSpeak) return;
+
+    const updateVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      ptVoiceRef.current = getStableVoice(voices, "pt-BR");
+      enVoiceRef.current = getStableVoice(voices, "en-US");
+    };
+
+    updateVoices();
+    window.speechSynthesis.addEventListener("voiceschanged", updateVoices);
+
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", updateVoices);
+  }, [canSpeak]);
+
+  const speak = useCallback((text: string, nextState: VoiceState = "waiting_for_repeat", lang = "pt-BR") => {
+    if (!canSpeak) {
+      setVoiceState(nextState);
+      return;
+    }
+
+    const synth = window.speechSynthesis;
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    const parts = splitSpeechText(text);
+    const token = speechTokenRef.current + 1;
+    const voices = synth.getVoices();
+    if (lang === "pt-BR" && !ptVoiceRef.current) {
+      ptVoiceRef.current = getStableVoice(voices, "pt-BR");
+    }
+    if (lang !== "pt-BR" && !enVoiceRef.current) {
+      enVoiceRef.current = getStableVoice(voices, "en-US");
+    }
+
+    const voice = lang === "pt-BR" ? ptVoiceRef.current : enVoiceRef.current;
+    speechTokenRef.current = token;
+
+    synth.cancel();
+    synth.resume();
+    setVoiceState("speaking");
+
+    const speakPart = (index: number) => {
+      if (speechTokenRef.current !== token) return;
+
+      if (index >= parts.length) {
+        setVoiceState(nextState);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(parts[index]);
+      utterance.lang = lang;
+      utterance.voice = voice;
+      utterance.rate = lang === "pt-BR" ? 0.98 : 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      utterance.onend = () => speakPart(index + 1);
+      utterance.onerror = () => setVoiceState(nextState);
+      synth.speak(utterance);
+    };
+
+    speakPart(0);
+  }, [canSpeak]);
+
+  useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const stored = getStoredSession();
+      setOpeningLine(getNextOpeningLine());
       setCrazyLevel(stored.crazyLevel);
       setXp(stored.xp);
       setMistakes(stored.mistakes);
       setHistory(stored.history);
+      setSelectedLevel(stored.learningLevel);
       setStorageReady(true);
     }, 0);
 
@@ -118,27 +298,11 @@ export function PracticeExperience() {
         crazyLevel,
         xp,
         mistakes,
-        history
+        history,
+        learningLevel: selectedLevel
       })
     );
-  }, [crazyLevel, xp, mistakes, history, storageReady]);
-
-  function speak(text: string, nextState: VoiceState = "waiting_for_repeat", lang = "pt-BR") {
-    if (!canSpeak) {
-      setVoiceState(nextState);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    utterance.rate = 0.96;
-    utterance.pitch = emotion === "crazy" ? 1.12 : emotion === "calm" ? 0.95 : 1.02;
-    utterance.onstart = () => setVoiceState("speaking");
-    utterance.onend = () => setVoiceState(nextState);
-    utterance.onerror = () => setVoiceState(nextState);
-    window.speechSynthesis.speak(utterance);
-  }
+  }, [crazyLevel, xp, mistakes, history, selectedLevel, storageReady]);
 
   async function analyzeSentence(sentence: string) {
     const cleanSentence = sentence.trim();
@@ -156,7 +320,8 @@ export function PracticeExperience() {
           sentence: cleanSentence,
           previousMistakes: mistakes,
           crazyLevel,
-          mode: selectedMode
+          mode: selectedMode,
+          learningLevel: selectedLevel
         })
       });
 
@@ -191,7 +356,7 @@ export function PracticeExperience() {
         speak(`${result.reaction}. ${result.correction}. ${result.follow_up}`);
       }, 420);
     } catch {
-      setErrorMessage("A analise falhou. Digite uma frase e tente de novo.");
+      setErrorMessage("A análise falhou. Digite uma frase e tente de novo.");
       setVoiceState("idle");
     }
   }
@@ -200,7 +365,7 @@ export function PracticeExperience() {
     setErrorMessage("");
 
     if (!hasSpeechRecognition) {
-      setErrorMessage("Reconhecimento de voz indisponivel neste navegador.");
+      setErrorMessage("Reconhecimento de voz indisponível neste navegador.");
       textInputRef.current?.focus();
       return;
     }
@@ -208,6 +373,7 @@ export function PracticeExperience() {
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Recognition) return;
 
+    speechTokenRef.current += 1;
     window.speechSynthesis?.cancel();
     const recognition = new Recognition();
     recognition.lang = "en-US";
@@ -230,7 +396,7 @@ export function PracticeExperience() {
     };
 
     recognition.onerror = () => {
-      setErrorMessage("Nao consegui capturar o audio. O modo texto esta pronto.");
+      setErrorMessage("Não consegui capturar o áudio. O modo texto está pronto.");
       setVoiceState("idle");
       textInputRef.current?.focus();
     };
@@ -269,9 +435,31 @@ export function PracticeExperience() {
   return (
     <AppShell>
       <main className="practice-main">
-        <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level="Level B1" />
+        <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
 
-        <section className="mode-strip" aria-label="Tipos de sessao">
+        <section className="level-strip" aria-label="Nível de inglês">
+          {levelOptions.map((level) => {
+            const Icon = level.icon;
+            return (
+              <button
+                aria-pressed={selectedLevel === level.id}
+                className={selectedLevel === level.id ? "active" : ""}
+                type="button"
+                key={level.id}
+                onClick={() => setSelectedLevel(level.id)}
+              >
+                <Icon size={17} />
+                <span>
+                  <span>{level.label}</span>
+                  <small>{level.description}</small>
+                </span>
+                <strong>{level.badge}</strong>
+              </button>
+            );
+          })}
+        </section>
+
+        <section className="mode-strip" aria-label="Tipos de sessão">
           {modes.map((mode) => {
             const Icon = mode.icon;
             return (
@@ -305,16 +493,16 @@ export function PracticeExperience() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45 }}
           >
-            <ConversationBubble label="Voce disse" tone="user">
-              {transcript || "Tell me about yourself."}
+            <ConversationBubble label="Você disse" tone="user">
+              {transcript || "Sua vez."}
             </ConversationBubble>
             <ConversationBubble label="Mr.Crazy" tone="crazy">
-              {analysis?.reaction || "Estou calmo. Isso e raro. Aproveita."}
+              {analysis?.reaction || openingLine}
             </ConversationBubble>
             <CorrectionDisplay analysis={analysis} />
             <div className="action-row">
               <ListenButton onClick={speakCorrection} disabled={!analysis} />
-              <RepeatButton onClick={startListening} disabled={voiceState === "listening"} />
+              <RepeatButton onClick={startListening} disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "analyzing"} />
             </div>
             <PronunciationFeedback score={analysis?.pronunciation_score ?? null} />
           </motion.aside>
@@ -330,12 +518,12 @@ export function PracticeExperience() {
               ref={textInputRef}
               value={manualText}
               onChange={(event) => setManualText(event.target.value)}
-              placeholder="Yesterday I go to work."
+              placeholder={activeLevel.placeholder}
             />
             <button type="submit">Analisar</button>
           </form>
           <div className="example-row" aria-label="Frases de teste">
-            {examples.map((example) => (
+            {activeLevel.examples.map((example) => (
               <button type="button" key={example} onClick={() => analyzeSentence(example)}>
                 {example}
               </button>
@@ -345,10 +533,10 @@ export function PracticeExperience() {
         </section>
 
         {history.length ? (
-          <section className="session-trail" aria-label="Ultimas correcoes">
+          <section className="session-trail" aria-label="Últimas correções">
             {history.slice(0, 3).map((item) => (
               <article key={`${item.createdAt}-${item.sentence}`}>
-                <span>{item.mistake === "none" ? "clean" : item.mistake.replaceAll("_", " ")}</span>
+                <span>{getMistakeLabel(item.mistake)}</span>
                 <p>{item.corrected}</p>
               </article>
             ))}

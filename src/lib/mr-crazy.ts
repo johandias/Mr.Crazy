@@ -17,13 +17,17 @@ export type MistakeCategory =
   | "missing_subject"
   | "question_auxiliary"
   | "preposition"
+  | "portuguese_input"
   | "none";
+
+export type LearningLevel = "basic" | "intermediate" | "advanced";
 
 export interface AnalysisRequest {
   sentence: string;
   previousMistakes?: string[];
   crazyLevel?: number;
   mode?: string;
+  learningLevel?: LearningLevel;
 }
 
 export interface AnalysisResponse {
@@ -61,13 +65,188 @@ export function getEmotion(crazyLevel: number): Emotion {
 
 export function getEmotionLabel(emotion: Emotion) {
   const labels: Record<Emotion, string> = {
-    calm: "Calm",
-    annoyed: "Annoyed",
-    irritated: "Irritated",
-    crazy: "Crazy"
+    calm: "Calmo",
+    annoyed: "Irritado",
+    irritated: "Muito irritado",
+    crazy: "Furioso"
   };
 
   return labels[emotion];
+}
+
+export function getMistakeLabel(mistake: MistakeCategory) {
+  const labels: Record<MistakeCategory, string> = {
+    past_tense: "Passado simples",
+    age_expression: "Expressão de idade",
+    pronunciation_epenthesis: "Pronúncia",
+    false_cognate: "Falso cognato",
+    missing_subject: "Sujeito ausente",
+    question_auxiliary: "Auxiliar da pergunta",
+    preposition: "Preposição",
+    portuguese_input: "Entrada em português",
+    none: "Frase correta"
+  };
+
+  return labels[mistake];
+}
+
+export function normalizeLearningLevel(value?: string): LearningLevel {
+  if (value === "basic" || value === "intermediate" || value === "advanced") {
+    return value;
+  }
+
+  return "basic";
+}
+
+function getLevelFollowUp(level: LearningLevel, sentence: string) {
+  const prompts: Record<LearningLevel, string> = {
+    basic: `Repita comigo: "${sentence}". Depois fala uma frase curta sobre seu dia.`,
+    intermediate: `Repita comigo: "${sentence}". Depois adiciona um motivo em inglês.`,
+    advanced: `Repita comigo: "${sentence}". Depois explica sua ideia em duas frases.`
+  };
+
+  return prompts[level];
+}
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[“”]/g, '"')
+    .trim();
+}
+
+function removeFinalPunctuation(value: string) {
+  return value.replace(/[.?!]+$/u, "").trim();
+}
+
+function extractTranslationRequest(sentence: string) {
+  const quoted = sentence.match(/["']([^"']+)["']/u)?.[1]?.trim();
+  if (quoted) return quoted;
+
+  const normalized = normalizeText(sentence);
+  if (!/(como|qual).*(falo|falar|fala|digo|dizer|se fala)/u.test(normalized)) {
+    return null;
+  }
+
+  const withoutQuestion = removeFinalPunctuation(sentence)
+    .replace(/^\s*como\s+(eu\s+)?(falo|falar|digo|dizer)\s+/iu, "")
+    .replace(/^\s*como\s+se\s+fala\s+/iu, "")
+    .replace(/^\s*qual\s+é\s+a\s+forma\s+de\s+dizer\s+/iu, "")
+    .replace(/\s+em\s+ingl[eê]s$/iu, "")
+    .trim();
+
+  return withoutQuestion || null;
+}
+
+function translateTopic(topic: string | null) {
+  if (!topic) return null;
+
+  const normalized = normalizeText(removeFinalPunctuation(topic));
+  const topics: Record<string, string> = {
+    trabalho: "work",
+    "trabalho remoto": "remote work",
+    viagem: "travel",
+    viagens: "travel",
+    entrevista: "job interviews",
+    estudos: "studying",
+    "meu dia": "your day",
+    rotina: "daily routine"
+  };
+
+  return topics[normalized] ?? null;
+}
+
+function translatePortuguesePhrase(phrase: string, level: LearningLevel) {
+  const cleanPhrase = removeFinalPunctuation(phrase);
+  const normalized = normalizeText(cleanPhrase);
+
+  const directTranslations: Array<{ pattern: RegExp; translation: string }> = [
+    { pattern: /^(eu\s+)?estou cansado hoje$/u, translation: "I am tired today." },
+    { pattern: /^(eu\s+)?preciso trabalhar amanha$/u, translation: "I need to work tomorrow." },
+    { pattern: /^(eu\s+)?quero praticar ingles$/u, translation: "I want to practice English." },
+    { pattern: /^vamos conversar$/u, translation: "Let's talk." },
+    { pattern: /^bom dia$/u, translation: "Good morning." },
+    { pattern: /^boa noite$/u, translation: "Good evening." },
+    { pattern: /^(eu\s+)?trabalho com atendimento$/u, translation: "I work in customer service." },
+    { pattern: /^(eu\s+)?estou aprendendo ingles$/u, translation: "I am learning English." }
+  ];
+
+  const direct = directTranslations.find((item) => item.pattern.test(normalized));
+  if (direct) return direct.translation;
+
+  const likeMatch = normalized.match(/^(eu\s+)?gosto de (.+)$/u);
+  if (likeMatch?.[2]) {
+    return `I like ${likeMatch[2]}.`;
+  }
+
+  const fallback: Record<LearningLevel, string> = {
+    basic: "I want to say this in English.",
+    intermediate: "I want to explain this in English.",
+    advanced: "I want to express this idea clearly in English."
+  };
+
+  return fallback[level];
+}
+
+function isConversationRequest(sentence: string) {
+  const normalized = normalizeText(sentence);
+  return /\b(vamos|bora|quero|podemos|pode)\b.*\b(conversar|praticar|treinar|bate papo)\b/u.test(normalized);
+}
+
+function looksPortuguese(sentence: string) {
+  const normalized = normalizeText(sentence);
+  return /\b(eu|voce|você|quero|preciso|como|falar|dizer|conversar|sobre|trabalho|hoje|amanha|amanhã|estou|sou|tenho|gosto)\b/u.test(
+    normalized
+  );
+}
+
+function getConversationPrompt(level: LearningLevel, mode?: string, sentence = "") {
+  const topicMatch = sentence.match(/\bsobre\s+(.+?)\s*[.?!]*$/iu);
+  const topic = translateTopic(topicMatch?.[1] ?? null);
+
+  if (topic) {
+    const topicPrompts: Record<LearningLevel, string> = {
+      basic: `Tell me one simple sentence about ${topic}.`,
+      intermediate: `Tell me what you think about ${topic} and give one reason.`,
+      advanced: `Give me a clear opinion about ${topic} and defend it with one example.`
+    };
+
+    return topicPrompts[level];
+  }
+
+  if (mode === "work-english") {
+    return level === "basic"
+      ? "Tell me what you did at work today."
+      : level === "intermediate"
+        ? "Tell me about a problem you solved at work this week."
+        : "Explain a difficult decision at work and the trade-off behind it.";
+  }
+
+  if (mode === "job-interview") {
+    return level === "basic"
+      ? "Tell me one strength you have."
+      : level === "intermediate"
+        ? "Tell me about a challenge you handled at work."
+        : "Tell me about a failure, what you changed, and what you learned.";
+  }
+
+  if (mode === "travel") {
+    return level === "basic"
+      ? "Ask me where the hotel is."
+      : level === "intermediate"
+        ? "Ask me how to get to the nearest subway station."
+        : "Explain a travel problem and ask for a practical solution.";
+  }
+
+  const prompts: Record<LearningLevel, string> = {
+    basic: "Tell me about your day.",
+    intermediate: "Tell me about something you did yesterday and why it mattered.",
+    advanced: "Give me your opinion about remote work and defend it with one reason."
+  };
+
+  return prompts[level];
 }
 
 export function analyzeEnglishSentence(
@@ -77,24 +256,52 @@ export function analyzeEnglishSentence(
   const sentence = request.sentence.trim();
   const lower = sentence.toLowerCase();
   const previousMistakes = request.previousMistakes ?? [];
+  const learningLevel = normalizeLearningLevel(request.learningLevel);
+  const translationPhrase = extractTranslationRequest(sentence);
+  const conversationRequested = isConversationRequest(sentence);
   let mistake_type: MistakeCategory = "none";
   let mistake_word: string | null = null;
   let correct_word: string | null = null;
   let corrected_sentence = sentence;
-  let reaction = "Ok, infelizmente voce acertou. Minha sanidade agradece, mas meu drama nao.";
-  let correction = "Nao achei erro importante nessa frase.";
-  let follow_up = `Repita comigo: "${sentence}". Depois adiciona mais um detalhe em ingles.`;
+  let reaction = "Ok, infelizmente você acertou. Minha sanidade agradece, mas meu drama não.";
+  let correction = "Não achei erro importante nessa frase.";
+  let follow_up = getLevelFollowUp(learningLevel, sentence);
   let crazy_delta = -8;
   let pronunciation_score = 91;
   let xp_delta = 18;
 
-  if (/\byesterday\s+i\s+go\b/.test(lower) || /\blast\s+\w+\s+i\s+go\b/.test(lower)) {
+  if (translationPhrase) {
+    corrected_sentence = translatePortuguesePhrase(translationPhrase, learningLevel);
+    reaction = "Finalmente uma pergunta útil, preguiçoso. Anota antes que você esqueça.";
+    correction = `Para dizer isso em inglês, use: "${corrected_sentence}"`;
+    follow_up = `Repita comigo: "${corrected_sentence}". Depois cria outra frase parecida.`;
+    crazy_delta = -4;
+    pronunciation_score = 92;
+    xp_delta = 12;
+  } else if (conversationRequested) {
+    corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
+    reaction = "Até que enfim, preguiçoso. Vamos conversar em inglês.";
+    correction = `Responda em inglês: "${corrected_sentence}"`;
+    follow_up = "Manda sua resposta. Eu corrijo sem dó.";
+    crazy_delta = -3;
+    pronunciation_score = 93;
+    xp_delta = 12;
+  } else if (looksPortuguese(sentence)) {
+    mistake_type = "portuguese_input";
+    corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
+    reaction = "Ô preguiçoso, português eu já sei. O treino aqui é em inglês.";
+    correction = `Responda em inglês: "${corrected_sentence}"`;
+    follow_up = "Se quiser tradução, pergunta: como falo isso em inglês?";
+    crazy_delta = 6;
+    pronunciation_score = 78;
+    xp_delta = 4;
+  } else if (/\byesterday\s+i\s+go\b/.test(lower) || /\blast\s+\w+\s+i\s+go\b/.test(lower)) {
     mistake_type = "past_tense";
     mistake_word = "go";
     correct_word = "went";
     corrected_sentence = sentence.replace(/\bgo\b/i, "went");
-    reaction = "Nao, voce errou feio essa, filho da mae. Era para falar WENT e voce falou GO.";
-    correction = "No passado, use WENT, nao GO.";
+    reaction = "Não, você errou feio essa, filho da mãe. Era para falar WENT e você falou GO.";
+    correction = "No passado, use WENT, não GO.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = previousMistakes.includes("past_tense") ? 15 : 12;
     pronunciation_score = 82;
@@ -104,8 +311,8 @@ export function analyzeEnglishSentence(
     mistake_word = "goed";
     correct_word = "went";
     corrected_sentence = sentence.replace(/\bgoed\b/i, "went");
-    reaction = "Nao, voce errou. GOED nao existe aqui, criatura determinada ao caos.";
-    correction = "Era para falar WENT e voce falou GOED. GO e irregular.";
+    reaction = "Não, você errou. GOED não existe aqui, criatura determinada ao caos.";
+    correction = "Era para falar WENT e você falou GOED. GO é irregular.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = previousMistakes.includes("past_tense") ? 16 : 13;
     pronunciation_score = 84;
@@ -116,8 +323,8 @@ export function analyzeEnglishSentence(
     mistake_word = "have";
     correct_word = "am";
     corrected_sentence = age ? `I am ${age} years old.` : sentence.replace(/\bi have\b/i, "I am");
-    reaction = "Nao. NAO. Voce nao possui anos como se fossem cadeiras.";
-    correction = "Era para falar I AM e voce falou I HAVE. Para idade, diga I AM ... YEARS OLD.";
+    reaction = "Não. NÃO. Você não possui anos como se fossem cadeiras.";
+    correction = "Era para falar I AM e você falou I HAVE. Para idade, diga I AM ... YEARS OLD.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 12;
     pronunciation_score = 86;
@@ -128,8 +335,8 @@ export function analyzeEnglishSentence(
     mistake_word = match;
     correct_word = match.replace(/-i$/, "");
     corrected_sentence = sentence.replace(/-i\b/gi, "");
-    reaction = "Esse i fantasma tentou fugir do laboratorio.";
-    correction = `Era para falar ${correct_word?.toUpperCase()} e voce falou ${match.toUpperCase()}. Trave a palavra na consoante final.`;
+    reaction = "Esse I no final não existe. Para de inventar vogal, preguiçoso.";
+    correction = `Era para falar ${correct_word?.toUpperCase()} e você falou ${match.toUpperCase()}. Trave a palavra na consoante final.`;
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = previousMistakes.includes("pronunciation_epenthesis") ? 14 : 11;
     pronunciation_score = 73;
@@ -139,8 +346,8 @@ export function analyzeEnglishSentence(
     mistake_word = "pretend";
     correct_word = "intend";
     corrected_sentence = sentence.replace(/\bpretend(ed|s|ing)?\b/i, "planned");
-    reaction = "Pretend e fingir. Voce estava atuando ou trabalhando?";
-    correction = "Era para falar PLANNED ou INTENDED e voce falou PRETEND. Use pretend so para fingir.";
+    reaction = "Pretend é fingir. Você estava atuando ou trabalhando?";
+    correction = "Era para falar PLANNED ou INTENDED e você falou PRETEND. Use pretend só para fingir.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 15;
     pronunciation_score = 88;
@@ -150,23 +357,50 @@ export function analyzeEnglishSentence(
     mistake_word = lower.split(" ")[0] ?? "is";
     correct_word = "it";
     corrected_sentence = `It ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`;
-    reaction = "O sujeito sumiu. Classico desaparecimento gramatical.";
-    correction = "Era para comecar com IT. Em ingles, use IT em frases como It is raining.";
+    reaction = "O sujeito sumiu. Clássico desaparecimento gramatical.";
+    correction = "Era para começar com IT. Em inglês, use IT em frases como It is raining.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 10;
     pronunciation_score = 89;
     xp_delta = 9;
   } else if (/\?$/.test(sentence) && /^(you|she|he|they|we)\s+\w+/.test(lower) && !/^(do|does|did|are|is|was|were|can|could|would|will|should|have|has|had)\b/.test(lower)) {
+    const questionMatch = lower.match(/^(you|she|he|they|we)\s+([a-z']+)/);
+    const subject = questionMatch?.[1] ?? "you";
+    const verb = questionMatch?.[2] ?? "like";
+    const rest = sentence.replace(/^\S+\s+\S+\s*/u, "").replace(/\?$/u, "").trim();
+    const pastVerbMap: Record<string, string> = {
+      went: "go",
+      had: "have",
+      made: "make",
+      did: "do",
+      saw: "see"
+    };
+    const isPast = Boolean(pastVerbMap[verb]) || verb.endsWith("ed");
+    const auxiliary = isPast ? "Did" : subject === "she" || subject === "he" ? "Does" : "Do";
+    const baseVerb = pastVerbMap[verb] ?? (isPast && verb.endsWith("ed") ? verb.replace(/ed$/u, "") : verb);
+
     mistake_type = "question_auxiliary";
     mistake_word = sentence.split(" ")[0] ?? null;
-    correct_word = "do/did";
-    corrected_sentence = `Do ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`;
+    correct_word = `${auxiliary} ${subject} ${baseVerb}`;
+    corrected_sentence = `${auxiliary} ${subject} ${baseVerb}${rest ? ` ${rest}` : ""}?`;
     reaction = "A pergunta chegou sem auxiliar. Entrou pela janela.";
-    correction = "Era para usar DO, DOES ou DID. Voce fez a pergunta so na entonacao.";
+    correction = "Era para usar DO, DOES ou DID. Você fez a pergunta só na entonação.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 9;
     pronunciation_score = 90;
     xp_delta = 9;
+  } else if (/\bneed\s+(decide|go|make|finish|start|learn|practice)\b/.test(lower)) {
+    const verb = lower.match(/\bneed\s+(decide|go|make|finish|start|learn|practice)\b/)?.[1] ?? "decide";
+    mistake_type = "preposition";
+    mistake_word = verb;
+    correct_word = `to ${verb}`;
+    corrected_sentence = sentence.replace(new RegExp(`\\bneed\\s+${verb}\\b`, "i"), `need to ${verb}`);
+    reaction = "Quase elegante, mas o TO caiu do trem.";
+    correction = `Era para falar NEED TO ${verb.toUpperCase()} e você falou NEED ${verb.toUpperCase()}.`;
+    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    crazy_delta = 10;
+    pronunciation_score = 88;
+    xp_delta = 10;
   }
 
   const nextLevel = clampCrazyLevel((request.crazyLevel ?? 14) + crazy_delta);

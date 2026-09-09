@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { analyzeEnglishSentence, type AnalysisRequest } from "@/lib/mr-crazy";
+import { analyzeEnglishSentence, normalizeLearningLevel, type AnalysisRequest } from "@/lib/mr-crazy";
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +15,8 @@ export async function POST(request: Request) {
         sentence,
         previousMistakes: Array.isArray(body.previousMistakes) ? body.previousMistakes : [],
         crazyLevel: typeof body.crazyLevel === "number" ? body.crazyLevel : 14,
-        mode: typeof body.mode === "string" ? body.mode : "free-conversation"
+        mode: typeof body.mode === "string" ? body.mode : "free-conversation",
+        learningLevel: normalizeLearningLevel(body.learningLevel)
       },
       process.env.MRCRAZY_TEST_KEY ? "test-key-ready" : "local-simulator"
     );

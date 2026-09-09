@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-const steps = ["Meet Mr.Crazy.", "He teaches English.", "He also has very little patience.", "Try not to break him."];
+const steps = ["Conheça o Mr.Crazy.", "Ele ensina inglês.", "Ele tem pouca paciência.", "Tente não quebrar a sanidade dele."];
 
 export default function OnboardingPage() {
   return (

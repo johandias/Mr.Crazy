@@ -9,7 +9,7 @@ export function SessionHeader({
   level
 }: Readonly<{ crazyLevel: number; emotion: Emotion; xp: number; level: string }>) {
   return (
-    <section className="session-header" aria-label="Resumo da sessao">
+    <section className="session-header" aria-label="Resumo da sessão">
       <CrazyMeter level={crazyLevel} emotion={emotion} />
       <div className="session-stat">
         <Gauge size={16} />

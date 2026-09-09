@@ -5,7 +5,7 @@ export default function SettingsPage() {
     <AppShell>
       <main className="secondary-main settings-main">
         <section className="secondary-hero">
-          <p className="eyebrow">Settings</p>
+          <p className="eyebrow">Configurações</p>
           <h1>Calibre o professor sem domesticar demais.</h1>
         </section>
         <form className="settings-form">
@@ -31,7 +31,7 @@ export default function SettingsPage() {
           </label>
           <label className="toggle-row">
             <input type="checkbox" />
-            Modo sem audio
+            Modo sem áudio
           </label>
         </form>
       </main>

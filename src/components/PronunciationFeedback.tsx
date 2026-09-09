@@ -1,7 +1,7 @@
 import { AudioLines } from "lucide-react";
 
 export function PronunciationFeedback({ score }: Readonly<{ score: number | null }>) {
-  const label = score === null ? "Aguardando voz" : score >= 88 ? "Agora sim." : score >= 78 ? "Melhor." : "O som ainda esta sofrendo.";
+  const label = score === null ? "Aguardando voz" : score >= 88 ? "Agora sim." : score >= 78 ? "Melhor." : "O som ainda está sofrendo.";
 
   return (
     <div className="pronunciation-feedback">

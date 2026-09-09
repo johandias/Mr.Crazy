@@ -5,15 +5,15 @@ export default function LoginPage() {
   return (
     <main className="simple-page">
       <section className="simple-panel auth-panel">
-        <p className="eyebrow">Mr.Crazy Access</p>
-        <h1>Entre para treinar ingles antes que ele perca a paciencia.</h1>
+        <p className="eyebrow">Acesso Mr.Crazy</p>
+        <h1>Entre para treinar inglês antes que ele perca a paciência.</h1>
         <label>
           Email
           <input type="email" placeholder="voce@empresa.com" />
         </label>
         <label>
           Senha
-          <input type="password" placeholder="••••••••" />
+          <input type="password" placeholder="********" />
         </label>
         <Link className="primary-link" href="/onboarding">
           <Mail size={18} />

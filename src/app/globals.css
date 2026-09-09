@@ -74,6 +74,7 @@ a {
 .icon-link,
 .session-stat,
 .crazy-meter,
+.level-strip button,
 .mode-strip button,
 .ghost-action,
 .voice-button,
@@ -184,12 +185,76 @@ a {
   border-color: rgb(209 115 56 / 80%);
 }
 
+.level-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.level-strip button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 8px 12px;
+  color: var(--muted);
+  text-align: left;
+  background: rgb(255 255 255 / 4%);
+  cursor: pointer;
+  transition: 180ms ease;
+}
+
+.level-strip button > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.level-strip button > span > span,
+.level-strip strong {
+  color: var(--text);
+  font-size: 0.94rem;
+  line-height: 1.12;
+}
+
+.level-strip small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.level-strip strong {
+  min-width: 52px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  color: #071012;
+  font-size: 0.72rem;
+  text-align: center;
+  background: rgb(244 244 243 / 82%);
+}
+
 .mode-strip {
   display: flex;
   gap: 8px;
   width: 100%;
   overflow-x: auto;
   padding-bottom: 3px;
+}
+
+.level-strip,
+.mode-strip,
+.example-row {
+  scrollbar-width: none;
+}
+
+.level-strip::-webkit-scrollbar,
+.mode-strip::-webkit-scrollbar,
+.example-row::-webkit-scrollbar {
+  display: none;
 }
 
 .mode-strip button,
@@ -207,6 +272,8 @@ a {
   transition: 180ms ease;
 }
 
+.level-strip button:hover,
+.level-strip button.active,
 .mode-strip button:hover,
 .mode-strip button.active,
 .example-row button:hover,
@@ -216,39 +283,56 @@ a {
   background: rgb(111 184 201 / 10%);
 }
 
+.level-strip button.active strong {
+  background: #d9fbff;
+}
+
 .practice-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.72fr);
+  grid-template-columns: minmax(0, 1.18fr) minmax(380px, 0.72fr);
   align-items: center;
-  gap: clamp(20px, 4vw, 56px);
+  gap: clamp(24px, 4vw, 64px);
   flex: 1;
 }
 
 .character-column {
   display: grid;
   place-items: center;
-  min-height: min(58vh, 620px);
+  min-height: min(56vh, 620px);
 }
 
 .character-stage {
   position: relative;
-  width: min(72vw, 620px);
+  width: min(64vw, 590px);
   min-width: 280px;
   aspect-ratio: 1;
+}
+
+.character-stage::before {
+  position: absolute;
+  inset: 58% 10% 15%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 60%), transparent 68%);
+  content: "";
+  filter: blur(18px);
+  opacity: 0.72;
 }
 
 .character-stage canvas {
   position: relative;
   z-index: 2;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .character-glow {
   position: absolute;
-  inset: 18%;
+  inset: 10%;
   z-index: 1;
   border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.46;
+  filter: blur(86px);
+  opacity: 0.56;
 }
 
 .character-stage.calm .character-glow {
@@ -712,12 +796,25 @@ meter {
     grid-template-columns: 1fr;
   }
 
+  .level-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .level-strip button {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .level-strip strong {
+    grid-column: 2;
+    justify-self: start;
+  }
+
   .character-column {
     min-height: 42vh;
   }
 
   .character-stage {
-    width: min(88vw, 520px);
+    width: min(86vw, 500px);
   }
 
   .conversation-panel {
@@ -780,9 +877,31 @@ meter {
     font-size: 0.9rem;
   }
 
+  .level-strip {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .level-strip button {
+    flex: 0 0 142px;
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: 50px;
+    padding: 7px 9px;
+  }
+
+  .level-strip small {
+    display: none;
+  }
+
+  .level-strip strong {
+    display: none;
+  }
+
   .character-stage {
     min-width: 0;
-    width: min(92vw, 410px);
+    width: min(92vw, 390px);
   }
 
   .character-column {
