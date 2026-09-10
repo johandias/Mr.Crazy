@@ -15,9 +15,11 @@ Abra `http://127.0.0.1:3000/practice`.
 
 A chave enviada foi configurada em `.env.local` como `MRCRAZY_TEST_KEY`. Esse arquivo fica ignorado pelo Git. Para analise online em tempo real, o backend procura `GEMINI_API_KEY`, `GOOGLE_API_KEY` ou `MRCRAZY_TEST_KEY`, sem expor o valor para o navegador. Se a API falhar, o simulador local assume a correcao.
 
-## Voz neural
+## Voz em tempo real
 
-Configure `OPENAI_API_KEY` para ativar a voz neural do Mr.Crazy. Por padrão, o app usa `gpt-4o-mini-tts` com a voz `marin`; `OPENAI_TTS_MODEL` e `OPENAI_TTS_VOICE` permitem trocar esses valores. A chave permanece somente no backend e a voz do navegador entra automaticamente como contingência.
+Com `OPENAI_API_KEY`, o site abre uma conversa de voz bidirecional por WebRTC com `gpt-realtime-2.1-mini`, voz `ballad`, transcrição `gpt-realtime-whisper`, redução de ruído `far_field` e detecção automática de turnos. O usuário fala sem apertar botões; o controle manual e a síntese do navegador continuam disponíveis como contingência.
+
+O nível escolhido na interface (básico, intermediário ou avançado) e o tema da sessão são enviados ao tutor sempre que uma nova conversa é aberta. O fallback de fala usa `gpt-4o-mini-tts` com a mesma voz `ballad`.
 
 ## Acesso
 

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     const configuredVoice = process.env.OPENAI_TTS_VOICE?.trim().toLowerCase();
-    const voice = configuredVoice && VOICES.has(configuredVoice) ? configuredVoice : "marin";
+    const voice = configuredVoice && VOICES.has(configuredVoice) ? configuredVoice : "ballad";
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: {

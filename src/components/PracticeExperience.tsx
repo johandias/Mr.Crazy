@@ -8,8 +8,11 @@ import {
   BookOpen,
   BrainCircuit,
   BriefcaseBusiness,
+  Mic,
+  MicOff,
   MessagesSquare,
   Plane,
+  Radio,
   Rocket,
   Shuffle,
   Square,
@@ -28,6 +31,11 @@ import { RepeatButton } from "@/components/RepeatButton";
 import { SessionHeader } from "@/components/SessionHeader";
 import { VoiceButton } from "@/components/VoiceButton";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
+import {
+  connectRealtime,
+  type RealtimeConnectionStatus,
+  type RealtimeController
+} from "@/lib/realtime-client";
 import { playSpeech, type SpeechSegment } from "@/lib/speech-playback";
 import {
   clampCrazyLevel,
@@ -218,9 +226,23 @@ function parseSpeechSegments(text: string, defaultLang = "pt-BR"): SpeechSegment
   return segments.length > 0 ? segments : [{ text, lang: defaultLang as "pt-BR" | "en-US" }];
 }
 
-function getCrazyBubbleText(voiceState: VoiceState, openingLine: string, analysis: AnalysisResponse | null) {
+function getCrazyBubbleText(
+  voiceState: VoiceState,
+  openingLine: string,
+  analysis: AnalysisResponse | null,
+  realtimeReply: string,
+  realtimeStatus: RealtimeConnectionStatus
+) {
+  if (realtimeStatus === "connecting") {
+    return "Preparando a conversa ao vivo...";
+  }
+
+  if (realtimeReply.trim()) {
+    return realtimeReply;
+  }
+
   if (voiceState === "listening") {
-    return "Estou ouvindo! Pode falar em inglês...";
+    return realtimeStatus === "connected" ? "Pode falar. Estou ouvindo." : "Estou ouvindo! Pode falar em inglês...";
   }
 
   if (voiceState === "transcribing") {
@@ -304,6 +326,9 @@ export function PracticeExperience() {
   const [manualText, setManualText] = useState("");
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [realtimeReply, setRealtimeReply] = useState("");
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>("connecting");
+  const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
   const [openingIndex, setOpeningIndex] = useState(0);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
   const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
@@ -322,6 +347,7 @@ export function PracticeExperience() {
   const analysisQueuedRef = useRef(false);
   const silenceTimerRef = useRef<number | null>(null);
   const introSpokenRef = useRef(false);
+  const realtimeRef = useRef<RealtimeController | null>(null);
 
   const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]);
   const activeLevel = useMemo(
@@ -334,8 +360,8 @@ export function PracticeExperience() {
   );
   const userBubble = useMemo(() => getUserBubble(voiceState, transcript), [transcript, voiceState]);
   const crazyBubbleText = useMemo(
-    () => getCrazyBubbleText(voiceState, openingLine, analysis),
-    [analysis, openingLine, voiceState]
+    () => getCrazyBubbleText(voiceState, openingLine, analysis, realtimeReply, realtimeStatus),
+    [analysis, openingLine, realtimeReply, realtimeStatus, voiceState]
   );
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
   const hasSpeechRecognition =
@@ -452,11 +478,20 @@ export function PracticeExperience() {
       cancelPlaybackRef.current?.();
       recognitionRef.current?.abort();
       recognitionRef.current = null;
+      realtimeRef.current?.disconnect();
+      realtimeRef.current = null;
     };
   }, [clearSilenceTimer]);
 
   useEffect(() => {
-    if (!storageReady || introSpokenRef.current || transcript || analysis || voiceState !== "idle") return;
+    if (
+      !storageReady ||
+      realtimeStatus !== "failed" ||
+      introSpokenRef.current ||
+      transcript ||
+      analysis ||
+      voiceState !== "idle"
+    ) return;
 
     const timeoutId = window.setTimeout(() => {
       introSpokenRef.current = true;
@@ -465,7 +500,68 @@ export function PracticeExperience() {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [analysis, openingLine, speak, storageReady, transcript, voiceState]);
+  }, [analysis, openingLine, realtimeStatus, speak, storageReady, transcript, voiceState]);
+
+  useEffect(() => {
+    if (!storageReady) return;
+
+    const abortController = new AbortController();
+    let activeController: RealtimeController | null = null;
+    const timeoutId = window.setTimeout(() => {
+      realtimeRef.current?.disconnect();
+      realtimeRef.current = null;
+      cancelSpeech();
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+      setAnalysis(null);
+      setTranscript("");
+      transcriptRef.current = "";
+      setRealtimeReply("");
+      setRealtimeStatus("connecting");
+      setMicrophoneEnabled(true);
+      setErrorMessage("");
+      setVoiceState("preparing_speech");
+
+      void connectRealtime({
+        level: selectedLevel,
+        mode: selectedMode,
+        signal: abortController.signal,
+        onStatus: setRealtimeStatus,
+        onVoiceState: setVoiceState,
+        onUserTranscript: (text, complete) => {
+          setTranscript(text);
+          transcriptRef.current = text;
+          if (complete && text.trim()) {
+            setContextHistory((current) => [...current.slice(-8), { role: "user", text: text.trim() }]);
+          }
+        },
+        onAssistantTranscript: (text, complete) => {
+          setRealtimeReply(text);
+          if (complete && text.trim()) {
+            setContextHistory((current) => [...current.slice(-8), { role: "crazy", text: text.trim() }]);
+            setXp((current) => current + 4);
+          }
+        },
+        onError: setErrorMessage
+      }).then((controller) => {
+        if (abortController.signal.aborted) {
+          controller.disconnect();
+          return;
+        }
+        activeController = controller;
+        realtimeRef.current = controller;
+      }).catch(() => {
+        if (!abortController.signal.aborted) setVoiceState("idle");
+      });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      abortController.abort();
+      activeController?.disconnect();
+      if (realtimeRef.current === activeController) realtimeRef.current = null;
+    };
+  }, [cancelSpeech, selectedLevel, selectedMode, storageReady]);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -674,7 +770,28 @@ export function PracticeExperience() {
     const sentence = manualText.trim();
     if (!sentence) return;
     setManualText("");
-    analyzeSentence(sentence);
+    submitSentence(sentence);
+  }
+
+  function submitSentence(sentence: string) {
+    if (realtimeStatus === "connected" && realtimeRef.current?.sendText(sentence)) {
+      setAnalysis(null);
+      return;
+    }
+
+    void analyzeSentence(sentence);
+  }
+
+  function toggleRealtimeMicrophone() {
+    if (realtimeStatus !== "connected" || !realtimeRef.current) return;
+    const nextEnabled = !microphoneEnabled;
+    realtimeRef.current.setMicrophoneEnabled(nextEnabled);
+    setMicrophoneEnabled(nextEnabled);
+    setVoiceState(nextEnabled ? "listening" : "idle");
+  }
+
+  function finishRealtimeTurn() {
+    realtimeRef.current?.finishTurn();
   }
 
   function resetTrainingContext() {
@@ -683,6 +800,7 @@ export function PracticeExperience() {
     recognitionRef.current = null;
     clearSilenceTimer();
     setAnalysis(null);
+    setRealtimeReply("");
     setTranscript("");
     transcriptRef.current = "";
     setContextHistory([]);
@@ -800,9 +918,53 @@ export function PracticeExperience() {
           </motion.aside>
         </section>
 
-        <section className={`practice-controls ${voiceState === "listening" ? "listening" : ""}`} aria-label="Controle de voz">
-          <VoiceButton state={voiceState} onClick={handleVoiceClick} disabled={voiceState === "analyzing" || voiceState === "speaking" || voiceState === "preparing_speech"} />
-          {voiceState === "listening" ? (
+        <section
+          className={`practice-controls ${voiceState === "listening" ? "listening" : ""} ${realtimeStatus !== "failed" ? "realtime" : ""}`}
+          aria-label="Controle de voz"
+        >
+          {realtimeStatus === "failed" ? (
+            <VoiceButton state={voiceState} onClick={handleVoiceClick} disabled={voiceState === "analyzing" || voiceState === "speaking" || voiceState === "preparing_speech"} />
+          ) : (
+            <div className={`realtime-control ${realtimeStatus}`}>
+              <div className="realtime-copy">
+                <Radio size={19} className={realtimeStatus === "connected" ? "realtime-pulse" : "spin"} />
+                <span>
+                  <strong>{realtimeStatus === "connected" ? "Conversa automática ativa" : "Conectando à voz..."}</strong>
+                  <small>
+                    {voiceState === "speaking"
+                      ? "Mr.Crazy está falando"
+                      : voiceState === "analyzing" || voiceState === "transcribing"
+                        ? "Preparando resposta"
+                        : microphoneEnabled
+                          ? "Fale quando quiser"
+                          : "Microfone pausado"}
+                  </small>
+                </span>
+              </div>
+              <div className="realtime-actions">
+                <button
+                  type="button"
+                  onClick={toggleRealtimeMicrophone}
+                  disabled={realtimeStatus !== "connected"}
+                  aria-label={microphoneEnabled ? "Pausar microfone" : "Ativar microfone"}
+                  title={microphoneEnabled ? "Pausar microfone" : "Ativar microfone"}
+                >
+                  {microphoneEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={finishRealtimeTurn}
+                  disabled={realtimeStatus !== "connected" || !microphoneEnabled || voiceState !== "listening"}
+                  aria-label="Encerrar minha fala"
+                  title="Use apenas se a pausa automática não for detectada"
+                >
+                  <Square size={17} />
+                  <span>Terminei</span>
+                </button>
+              </div>
+            </div>
+          )}
+          {realtimeStatus === "failed" && voiceState === "listening" ? (
             <button className="stop-listening-button" type="button" onClick={stopListeningAndAnalyze}>
               <Square size={18} />
               Parar e analisar
@@ -818,11 +980,11 @@ export function PracticeExperience() {
               onChange={(event) => setManualText(event.target.value)}
               placeholder={activeLevel.placeholder}
             />
-            <button type="submit">Analisar</button>
+            <button type="submit">{realtimeStatus === "connected" ? "Enviar" : "Analisar"}</button>
           </form>
           <div className="example-row" aria-label="Frases de teste">
             {activeLevel.examples.map((example) => (
-              <button type="button" key={example} onClick={() => analyzeSentence(example)}>
+              <button type="button" key={example} onClick={() => submitSentence(example)}>
                 {example}
               </button>
             ))}

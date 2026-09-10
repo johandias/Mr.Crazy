@@ -514,6 +514,100 @@ mark {
   grid-template-columns: auto auto minmax(280px, 1fr);
 }
 
+.practice-controls.realtime {
+  grid-template-columns: minmax(360px, 0.9fr) minmax(280px, 1.1fr);
+}
+
+.realtime-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 62px;
+  padding: 8px 9px 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 4%);
+}
+
+.realtime-control.connected {
+  border-color: rgb(124 173 136 / 35%);
+  background: rgb(124 173 136 / 8%);
+}
+
+.realtime-copy,
+.realtime-actions,
+.realtime-copy > span {
+  display: flex;
+  align-items: center;
+}
+
+.realtime-copy {
+  min-width: 0;
+  gap: 10px;
+  color: var(--green);
+}
+
+.realtime-copy > span {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.realtime-copy strong,
+.realtime-copy small {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime-copy strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.realtime-copy small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.realtime-actions {
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.realtime-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgb(0 0 0 / 20%);
+  cursor: pointer;
+}
+
+.realtime-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.realtime-pulse {
+  animation: realtime-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes realtime-pulse {
+  50% {
+    opacity: 0.42;
+  }
+}
+
 .voice-button {
   display: inline-flex;
   align-items: center;
@@ -865,8 +959,13 @@ meter {
     grid-template-columns: 1fr;
   }
 
+  .practice-controls.realtime {
+    grid-template-columns: 1fr;
+  }
+
   .voice-button,
   .stop-listening-button,
+  .realtime-control,
   .text-fallback {
     width: 100%;
   }
@@ -960,6 +1059,15 @@ meter {
 
   .text-fallback {
     grid-template-columns: auto 1fr auto;
+  }
+
+  .realtime-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .realtime-actions button:last-child {
+    flex: 1;
   }
 
   .text-fallback label {
