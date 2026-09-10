@@ -149,6 +149,50 @@ function splitSpeechText(text: string) {
   return text.match(/[^.!?]+[.!?]?/gu)?.map((part) => part.trim()).filter(Boolean) ?? [text];
 }
 
+function getCrazyBubbleText(voiceState: VoiceState, openingLine: string, analysis: AnalysisResponse | null) {
+  if (voiceState === "listening") {
+    return "Estou ouvindo. Fala em inglês, preguiçoso.";
+  }
+
+  if (voiceState === "transcribing") {
+    return "Peguei sua fala. Agora deixa eu ver o tamanho do estrago.";
+  }
+
+  if (voiceState === "analyzing") {
+    return "Estou analisando. Se tiver erro, eu vou achar.";
+  }
+
+  if (voiceState === "reacting") {
+    return analysis?.reaction ?? "Calma aí, estou preparando a bronca.";
+  }
+
+  if (voiceState === "speaking") {
+    return analysis?.reaction ?? "Falando...";
+  }
+
+  return analysis?.reaction ?? openingLine;
+}
+
+function getUserBubble(voiceState: VoiceState, transcript: string) {
+  const cleanTranscript = transcript.trim();
+
+  if (cleanTranscript) {
+    return {
+      label: "Você disse",
+      text: cleanTranscript
+    };
+  }
+
+  if (voiceState === "listening") {
+    return {
+      label: "Escutando",
+      text: "Pode falar agora."
+    };
+  }
+
+  return null;
+}
+
 function getStoredSession(): StoredSession {
   const fallback: StoredSession = {
     crazyLevel: 16,
@@ -206,6 +250,11 @@ export function PracticeExperience() {
   const activeLevel = useMemo(
     () => levelOptions.find((level) => level.id === selectedLevel) ?? levelOptions[0],
     [selectedLevel]
+  );
+  const userBubble = useMemo(() => getUserBubble(voiceState, transcript), [transcript, voiceState]);
+  const crazyBubbleText = useMemo(
+    () => getCrazyBubbleText(voiceState, openingLine, analysis),
+    [analysis, openingLine, voiceState]
   );
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
   const hasSpeechRecognition =
@@ -310,6 +359,7 @@ export function PracticeExperience() {
 
     setErrorMessage("");
     setTranscript(cleanSentence);
+    setAnalysis(null);
     setVoiceState("analyzing");
 
     try {
@@ -375,6 +425,8 @@ export function PracticeExperience() {
 
     speechTokenRef.current += 1;
     window.speechSynthesis?.cancel();
+    setTranscript("");
+    setAnalysis(null);
     const recognition = new Recognition();
     recognition.lang = "en-US";
     recognition.continuous = false;
@@ -397,6 +449,7 @@ export function PracticeExperience() {
 
     recognition.onerror = () => {
       setErrorMessage("Não consegui capturar o áudio. O modo texto está pronto.");
+      setTranscript("");
       setVoiceState("idle");
       textInputRef.current?.focus();
     };
@@ -493,18 +546,30 @@ export function PracticeExperience() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45 }}
           >
-            <ConversationBubble label="Você disse" tone="user">
-              {transcript || "Sua vez."}
-            </ConversationBubble>
+            {userBubble ? (
+              <ConversationBubble label={userBubble.label} tone="user">
+                {userBubble.text}
+              </ConversationBubble>
+            ) : null}
             <ConversationBubble label="Mr.Crazy" tone="crazy">
-              {analysis?.reaction || openingLine}
+              {crazyBubbleText}
             </ConversationBubble>
             <CorrectionDisplay analysis={analysis} />
-            <div className="action-row">
-              <ListenButton onClick={speakCorrection} disabled={!analysis} />
-              <RepeatButton onClick={startListening} disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "analyzing"} />
-            </div>
-            <PronunciationFeedback score={analysis?.pronunciation_score ?? null} />
+            {analysis ? (
+              <>
+                <div className="action-row">
+                  <ListenButton
+                    onClick={speakCorrection}
+                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "analyzing"}
+                  />
+                  <RepeatButton
+                    onClick={startListening}
+                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "analyzing"}
+                  />
+                </div>
+                <PronunciationFeedback score={analysis.pronunciation_score} />
+              </>
+            ) : null}
           </motion.aside>
         </section>
 

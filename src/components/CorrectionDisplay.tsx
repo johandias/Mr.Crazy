@@ -15,12 +15,7 @@ function highlightCorrection(sentence: string, word: string | null) {
 
 export function CorrectionDisplay({ analysis }: Readonly<{ analysis: AnalysisResponse | null }>) {
   if (!analysis) {
-    return (
-      <section className="correction-display empty" aria-label="Correção">
-        <span>Pronto</span>
-        <p>Aguardando resposta.</p>
-      </section>
-    );
+    return null;
   }
 
   return (

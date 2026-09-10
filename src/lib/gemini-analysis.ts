@@ -66,7 +66,8 @@ function cleanPortugueseText(value: string) {
     .replace(/\bcabaça\b/giu, "cabeça")
     .replace(/\bcabeca\b/giu, "cabeça")
     .replace(/\bpreguicoso\b/giu, "preguiçoso")
-    .replace(/\bvoce\b/giu, "você");
+    .replace(/\bvoce\b/giu, "você")
+    .replace(/\busei\s+(['"])/giu, "use: $1");
 }
 
 function asPortugueseString(value: unknown, fallback: string, maxLength = 320) {
