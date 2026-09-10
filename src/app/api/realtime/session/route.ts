@@ -24,8 +24,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Formato de sessão inválido." }, { status: 415 });
     }
 
-    const sdp = (await request.text()).trim();
-    if (!sdp || sdp.length > MAX_SDP_LENGTH || !sdp.startsWith("v=0")) {
+    const sdp = await request.text();
+    if (!sdp.trim() || sdp.length > MAX_SDP_LENGTH || !sdp.trimStart().startsWith("v=0")) {
       return NextResponse.json({ error: "Oferta WebRTC inválida." }, { status: 400 });
     }
 
@@ -51,9 +51,9 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error("OpenAI Realtime session failed", response.status, responseBody.slice(0, 500));
-      let providerError: { code?: string; param?: string; message?: string } = {};
+      let providerError: { code?: string; param?: string } = {};
       try {
-        const parsed = JSON.parse(responseBody) as { error?: { code?: string; param?: string; message?: string } };
+        const parsed = JSON.parse(responseBody) as { error?: { code?: string; param?: string } };
         providerError = parsed.error ?? {};
       } catch {
         providerError = {};
@@ -64,8 +64,7 @@ export async function POST(request: Request) {
           error: "Não foi possível abrir a conversa em tempo real.",
           providerStatus: response.status,
           providerCode: providerError.code,
-          providerParam: providerError.param,
-          providerMessage: providerError.message
+          providerParam: providerError.param
         },
         { status: 502 }
       );
