@@ -14,6 +14,7 @@ import {
   Shuffle,
   Square,
   Sparkles,
+  Volume2,
   UserRound
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -26,6 +27,7 @@ import { PronunciationFeedback } from "@/components/PronunciationFeedback";
 import { RepeatButton } from "@/components/RepeatButton";
 import { SessionHeader } from "@/components/SessionHeader";
 import { VoiceButton } from "@/components/VoiceButton";
+import { playSpeech, type SpeechSegment } from "@/lib/speech-playback";
 import {
   clampCrazyLevel,
   getEmotion,
@@ -183,31 +185,20 @@ function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {
   );
 }
 
-function splitSpeechText(text: string) {
-  return text.match(/[^.!?]+[.!?]?/gu)?.map((part) => part.trim()).filter(Boolean) ?? [text];
-}
-
-type SpeechSegment = {
-  text: string;
-  lang: "pt-BR" | "en-US";
-};
-
 function parseSpeechSegments(text: string, defaultLang = "pt-BR"): SpeechSegment[] {
   if (defaultLang === "en-US") {
-    return splitSpeechText(text).map((part) => ({ text: part, lang: "en-US" }));
+    return [{ text, lang: "en-US" }];
   }
 
   const segments: SpeechSegment[] = [];
-  const quoteRegex = /["'“]([^"'“”]+)["'”]/gu;
+  const quoteRegex = /["“]([^"“”]+)["”]/gu;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = quoteRegex.exec(text)) !== null) {
     const before = text.slice(lastIndex, match.index).trim();
     if (before) {
-      splitSpeechText(before).forEach((sentence) => {
-        if (sentence.trim()) segments.push({ text: sentence.trim(), lang: "pt-BR" });
-      });
+      segments.push({ text: before, lang: "pt-BR" });
     }
 
     const quoted = (match[1] ?? "").trim();
@@ -220,9 +211,7 @@ function parseSpeechSegments(text: string, defaultLang = "pt-BR"): SpeechSegment
 
   const after = text.slice(lastIndex).trim();
   if (after) {
-    splitSpeechText(after).forEach((sentence) => {
-      if (sentence.trim()) segments.push({ text: sentence.trim(), lang: "pt-BR" });
-    });
+    segments.push({ text: after, lang: "pt-BR" });
   }
 
   return segments.length > 0 ? segments : [{ text, lang: defaultLang as "pt-BR" | "en-US" }];
@@ -322,8 +311,9 @@ export function PracticeExperience() {
   const [errorMessage, setErrorMessage] = useState("");
   const [contextHistory, setContextHistory] = useState<ConversationTurn[]>([]);
   const [storageReady, setStorageReady] = useState(false);
+  const [speechRetry, setSpeechRetry] = useState<{ segments: SpeechSegment[]; nextState: VoiceState } | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const speechTokenRef = useRef(0);
+  const cancelPlaybackRef = useRef<(() => void) | null>(null);
   const ptVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const enVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -365,54 +355,48 @@ export function PracticeExperience() {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", updateVoices);
   }, [canSpeak]);
 
-  const speak = useCallback((text: string, nextState: VoiceState = "waiting_for_repeat", lang = "pt-BR") => {
+  const cancelSpeech = useCallback(() => {
+    cancelPlaybackRef.current?.();
+    cancelPlaybackRef.current = null;
+    setSpeechRetry(null);
+  }, []);
+
+  const speakSegments = useCallback((segments: SpeechSegment[], nextState: VoiceState) => {
+    cancelSpeech();
     if (!canSpeak) {
+      setErrorMessage("A voz não está disponível neste navegador.");
       setVoiceState(nextState);
       return;
     }
 
     const synth = window.speechSynthesis;
-    recognitionRef.current?.stop();
+    recognitionRef.current?.abort();
     recognitionRef.current = null;
-    const segments = parseSpeechSegments(text, lang);
-    const token = speechTokenRef.current + 1;
-    const voices = synth.getVoices();
-    if (!ptVoiceRef.current) {
-      ptVoiceRef.current = getStableVoice(voices, "pt-BR");
-    }
-    if (!enVoiceRef.current) {
-      enVoiceRef.current = getStableVoice(voices, "en-US");
-    }
-
-    speechTokenRef.current = token;
-
-    synth.cancel();
-    synth.resume();
-    setVoiceState("speaking");
-
-    const speakSegment = (index: number) => {
-      if (speechTokenRef.current !== token) return;
-
-      if (index >= segments.length) {
+    setErrorMessage("");
+    cancelPlaybackRef.current = playSpeech({
+      synth,
+      segments,
+      createUtterance: (text) => new SpeechSynthesisUtterance(text),
+      getVoice: (lang) => {
+        const ref = lang === "pt-BR" ? ptVoiceRef : enVoiceRef;
+        ref.current ??= getStableVoice(synth.getVoices(), lang);
+        return ref.current;
+      },
+      onState: setVoiceState,
+      onEnd: () => setVoiceState(nextState),
+      onError: (reason, remaining) => {
         setVoiceState(nextState);
-        return;
+        setSpeechRetry({ segments: remaining, nextState });
+        setErrorMessage(reason === "not-allowed" || reason === "start-timeout"
+          ? "O áudio não iniciou automaticamente. Toque em Ouvir Mr.Crazy."
+          : "Não consegui reproduzir a voz. Toque em Ouvir Mr.Crazy para tentar novamente.");
       }
+    });
+  }, [canSpeak, cancelSpeech]);
 
-      const seg = segments[index];
-      const targetVoice = seg.lang === "pt-BR" ? ptVoiceRef.current : enVoiceRef.current;
-      const utterance = new SpeechSynthesisUtterance(seg.text);
-      utterance.lang = seg.lang;
-      utterance.voice = targetVoice;
-      utterance.rate = seg.lang === "pt-BR" ? 1.02 : 0.92;
-      utterance.pitch = 1.02;
-      utterance.volume = 1;
-      utterance.onend = () => speakSegment(index + 1);
-      utterance.onerror = () => setVoiceState(nextState);
-      synth.speak(utterance);
-    };
-
-    speakSegment(0);
-  }, [canSpeak]);
+  const speak = useCallback((text: string, nextState: VoiceState = "waiting_for_repeat", lang = "pt-BR") => {
+    speakSegments(parseSpeechSegments(text, lang), nextState);
+  }, [speakSegments]);
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current === null) return;
@@ -438,15 +422,22 @@ export function PracticeExperience() {
   }, []);
 
   useEffect(() => {
-    return () => clearSilenceTimer();
+    return () => {
+      clearSilenceTimer();
+      cancelPlaybackRef.current?.();
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+    };
   }, [clearSilenceTimer]);
 
   useEffect(() => {
     if (!storageReady || introSpokenRef.current || transcript || analysis || voiceState !== "idle") return;
 
-    introSpokenRef.current = true;
-    setContextHistory((current) => (current.length ? current : [{ role: "crazy", text: openingLine }]));
-    const timeoutId = window.setTimeout(() => speak(openingLine, "idle", "pt-BR"), 600);
+    const timeoutId = window.setTimeout(() => {
+      introSpokenRef.current = true;
+      setContextHistory((current) => (current.length ? current : [{ role: "crazy", text: openingLine }]));
+      speak(openingLine, "idle", "pt-BR");
+    }, 0);
 
     return () => window.clearTimeout(timeoutId);
   }, [analysis, openingLine, speak, storageReady, transcript, voiceState]);
@@ -471,7 +462,11 @@ export function PracticeExperience() {
     const cleanSentence = sentence.trim();
     if (!cleanSentence) return;
 
+    introSpokenRef.current = true;
+    cancelSpeech();
     clearSilenceTimer();
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
     analysisQueuedRef.current = true;
     setErrorMessage("");
     setTranscript(cleanSentence);
@@ -527,10 +522,7 @@ export function PracticeExperience() {
         ].slice(0, 6)
       );
 
-      setVoiceState("reacting");
-      window.setTimeout(() => {
-        speak(`${result.reaction}. ${result.correction}. ${result.follow_up}`);
-      }, 420);
+      speak(`${result.reaction} ${result.correction} ${result.follow_up}`);
     } catch {
       setErrorMessage("A análise falhou. Digite uma frase e tente de novo.");
       setVoiceState("idle");
@@ -577,8 +569,8 @@ export function PracticeExperience() {
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Recognition) return;
 
-    speechTokenRef.current += 1;
-    window.speechSynthesis?.cancel();
+    introSpokenRef.current = true;
+    cancelSpeech();
     setTranscript("");
     transcriptRef.current = "";
     setAnalysis(null);
@@ -591,6 +583,7 @@ export function PracticeExperience() {
     recognitionRef.current = recognition;
 
     recognition.onresult = (event) => {
+      if (recognitionRef.current !== recognition) return;
       const text = Array.from(event.results)
         .map((result) => result[0]?.transcript ?? "")
         .join(" ")
@@ -606,6 +599,7 @@ export function PracticeExperience() {
     };
 
     recognition.onerror = () => {
+      if (recognitionRef.current !== recognition) return;
       setErrorMessage("Não consegui capturar o áudio. O modo texto está pronto.");
       setTranscript("");
       transcriptRef.current = "";
@@ -615,6 +609,7 @@ export function PracticeExperience() {
     };
 
     recognition.onend = () => {
+      if (recognitionRef.current !== recognition) return;
       recognitionRef.current = null;
       setVoiceState((current) => (current === "listening" ? "idle" : current));
     };
@@ -658,9 +653,8 @@ export function PracticeExperience() {
   }
 
   function resetTrainingContext() {
-    speechTokenRef.current += 1;
-    window.speechSynthesis?.cancel();
-    recognitionRef.current?.stop();
+    cancelSpeech();
+    recognitionRef.current?.abort();
     recognitionRef.current = null;
     clearSilenceTimer();
     setAnalysis(null);
@@ -754,17 +748,25 @@ export function PracticeExperience() {
             <ConversationBubble label="Mr.Crazy" tone="crazy">
               {crazyBubbleText}
             </ConversationBubble>
+            {speechRetry ? (
+              <div className="action-row">
+                <button className="ghost-action" type="button" onClick={() => speakSegments(speechRetry.segments, speechRetry.nextState)}>
+                  <Volume2 size={18} />
+                  Ouvir Mr.Crazy
+                </button>
+              </div>
+            ) : null}
             <CorrectionDisplay analysis={analysis} />
             {analysis ? (
               <>
                 <div className="action-row">
                   <ListenButton
                     onClick={speakCorrection}
-                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "analyzing"}
+                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "preparing_speech" || voiceState === "analyzing"}
                   />
                   <RepeatButton
                     onClick={startListening}
-                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "analyzing"}
+                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "preparing_speech" || voiceState === "analyzing"}
                   />
                 </div>
                 <PronunciationFeedback score={analysis.pronunciation_score} />
@@ -774,7 +776,7 @@ export function PracticeExperience() {
         </section>
 
         <section className={`practice-controls ${voiceState === "listening" ? "listening" : ""}`} aria-label="Controle de voz">
-          <VoiceButton state={voiceState} onClick={handleVoiceClick} disabled={voiceState === "analyzing" || voiceState === "speaking"} />
+          <VoiceButton state={voiceState} onClick={handleVoiceClick} disabled={voiceState === "analyzing" || voiceState === "speaking" || voiceState === "preparing_speech"} />
           {voiceState === "listening" ? (
             <button className="stop-listening-button" type="button" onClick={stopListeningAndAnalyze}>
               <Square size={18} />

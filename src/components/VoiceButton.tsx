@@ -7,6 +7,7 @@ const labels: Record<VoiceState, string> = {
   transcribing: "Transcrevendo...",
   analyzing: "Pensando...",
   reacting: "Reagindo...",
+  preparing_speech: "Preparando voz...",
   speaking: "Falando...",
   waiting_for_repeat: "Repetir frase"
 };
@@ -16,11 +17,12 @@ export function VoiceButton({
   onClick,
   disabled
 }: Readonly<{ state: VoiceState; onClick: () => void; disabled?: boolean }>) {
-  const Icon = state === "listening" ? Radio : state === "speaking" ? Volume2 : state === "analyzing" ? Loader2 : Mic;
+  const isLoading = state === "analyzing" || state === "preparing_speech";
+  const Icon = state === "listening" ? Radio : state === "speaking" ? Volume2 : isLoading ? Loader2 : Mic;
 
   return (
     <button className={`voice-button ${state}`} type="button" onClick={onClick} disabled={disabled}>
-      <Icon size={24} className={state === "analyzing" ? "spin" : ""} />
+      <Icon size={24} className={isLoading ? "spin" : ""} />
       <span>{labels[state]}</span>
     </button>
   );

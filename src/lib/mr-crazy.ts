@@ -6,6 +6,7 @@ export type VoiceState =
   | "transcribing"
   | "analyzing"
   | "reacting"
+  | "preparing_speech"
   | "speaking"
   | "waiting_for_repeat";
 
