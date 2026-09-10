@@ -196,6 +196,7 @@ ${isFreeConversation
 9. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?"):
    - correct=true, mistake_type="learning_request"
    - corrected_sentence: entregue a frase natural em ingles (ex: "I am tired today."). Nunca comece com "How do I say...".
+   - Um pedido de ajuda em portugues nao e erro: nao ridicularize, nao insulte e nao diga que o usuario falou errado.
 10. Se o usuario pedir para conversar:
    - correct=true, mistake_type="learning_request"
    - Em conversa livre, acolha o assunto em portugues e pergunte qual situacao ele quer explorar; nos outros modos, crie uma pergunta em ingles adequada ao nivel (${learningLevel}).

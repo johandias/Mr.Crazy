@@ -33,7 +33,7 @@ function buildInitialResponse(level: LearningLevel, mode: string) {
       ? "Ajude desde o começo com uma expressão curta e útil, mas primeiro descubra em português qual situação o usuário quer praticar."
       : "Converse em português até surgir um contexto natural para praticar inglês.";
 
-    return `Inicie a sessão agora com uma provocação curta em português. É conversa livre: não force uma pergunta em inglês na primeira fala. ${basicHelp}`;
+    return `Inicie a sessão agora com no máximo duas frases curtas em português e pare. É conversa livre: não force uma pergunta em inglês, não liste opções e não dê exemplos antes de o usuário responder. ${basicHelp}`;
   }
 
   return "Inicie a sessão agora. Faça uma provocação curta em português, diga em poucas palavras o foco do treino e termine com uma pergunta em inglês adequada ao nível escolhido. Não espere o usuário falar primeiro.";
