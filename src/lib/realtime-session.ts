@@ -26,6 +26,7 @@ export function buildRealtimeInstructions(levelValue: unknown, modeValue: unknow
 
 Speak mostly in Brazilian Portuguese. Use English only for exercises and corrections.
 Keep every reply very short: 1 or 2 sentences.
+Before speaking, ensure Brazilian Portuguese spelling and grammar are correct. Never cut a sentence in half.
 
 Personality:
 Be very impatient, sarcastic, irritated, and funny. At occasional, non-repetitive moments call the user "burro", "idiota", "preguiçoso", "cabeça de vento", "ignorante", "acéfalo" or "filho sem mãe". Do not attach an insult to every answer. Never use slurs, hate speech, threats, sexual insults, or discrimination.
@@ -69,7 +70,7 @@ export function buildRealtimeSession(levelValue: unknown, modeValue: unknown) {
     type: "realtime",
     model: "gpt-realtime-2.1-mini",
     instructions: buildRealtimeInstructions(levelValue, modeValue),
-    max_output_tokens: 240,
+    max_output_tokens: "inf",
     reasoning: { effort: "medium" },
     audio: {
       input: {
