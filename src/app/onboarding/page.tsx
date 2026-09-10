@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { requireAuth } from "@/lib/server-auth";
 
 const steps = ["Conheça o Mr.Crazy.", "Ele ensina inglês.", "Ele tem pouca paciência.", "Tente não quebrar a sanidade dele."];
 
-export default function OnboardingPage() {
+export default async function OnboardingPage() {
+  await requireAuth("/onboarding");
+
   return (
     <main className="simple-page">
       <section className="onboarding-steps" aria-label="Onboarding">

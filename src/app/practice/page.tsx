@@ -1,5 +1,8 @@
 import { PracticeExperience } from "@/components/PracticeExperience";
+import { requireAuth } from "@/lib/server-auth";
 
-export default function PracticePage() {
+export default async function PracticePage() {
+  await requireAuth("/practice");
+
   return <PracticeExperience />;
 }

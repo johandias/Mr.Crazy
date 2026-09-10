@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/LoginForm";
+import { redirectAuthenticated } from "@/lib/server-auth";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  await redirectAuthenticated();
+
   return (
     <main className="simple-page">
       <section className="simple-panel auth-panel">

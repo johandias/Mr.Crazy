@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
+import { isAuthenticated } from "@/lib/server-auth";
 import { analyzeEnglishSentence, normalizeLearningLevel, type AnalysisRequest } from "@/lib/mr-crazy";
 import { analyzeEnglishSentenceLive } from "@/lib/gemini-analysis";
 
 export async function POST(request: Request) {
   try {
+    if (!(await isAuthenticated())) {
+      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 401 });
+    }
+
     const body = (await request.json()) as Partial<AnalysisRequest>;
     const sentence = typeof body.sentence === "string" ? body.sentence.trim() : "";
 

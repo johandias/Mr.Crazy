@@ -1,7 +1,10 @@
 import { AppShell } from "@/components/AppShell";
 import { ProgressIndicator } from "@/components/ProgressIndicator";
+import { requireAuth } from "@/lib/server-auth";
 
-export default function ProgressPage() {
+export default async function ProgressPage() {
+  await requireAuth("/progress");
+
   return (
     <AppShell>
       <main className="secondary-main">

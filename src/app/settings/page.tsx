@@ -1,6 +1,9 @@
 import { AppShell } from "@/components/AppShell";
+import { requireAuth } from "@/lib/server-auth";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requireAuth("/settings");
+
   return (
     <AppShell>
       <main className="secondary-main settings-main">

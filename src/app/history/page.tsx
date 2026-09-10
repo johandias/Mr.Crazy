@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { requireAuth } from "@/lib/server-auth";
 
 const sessions = [
   { date: "Hoje", mode: "Conversa livre", minutes: 15, focus: "Passado simples" },
@@ -6,7 +7,9 @@ const sessions = [
   { date: "2 dias atrás", mode: "Entrevista", minutes: 18, focus: "Respostas STAR" }
 ];
 
-export default function HistoryPage() {
+export default async function HistoryPage() {
+  await requireAuth("/history");
+
   return (
     <AppShell>
       <main className="secondary-main">
