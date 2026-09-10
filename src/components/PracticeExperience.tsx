@@ -66,6 +66,7 @@ type StoredSession = {
   xp: number;
   mistakes: MistakeCategory[];
   history: PracticeHistory[];
+  contextHistory: ConversationTurn[];
   learningLevel: LearningLevel;
 };
 
@@ -166,7 +167,7 @@ function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: numb
   const briefing = getTrainingBriefing(level, mode);
   const greeting = openingGreetings[openingIndex % openingGreetings.length] ?? openingGreetings[0];
 
-  return `${greeting} Me responde em inglês: "${briefing.question}"`;
+  return `${greeting} Hoje eu vou puxar ${briefing.focus}. Eu começo a conversa: "${briefing.question}" Responde em inglês; se travar, pergunta como fala que eu te ajudo.`;
 }
 
 function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {
@@ -277,6 +278,7 @@ function getStoredSession(): StoredSession {
     xp: 420,
     mistakes: [],
     history: [],
+    contextHistory: [],
     learningLevel: "basic"
   };
 
@@ -296,6 +298,7 @@ function getStoredSession(): StoredSession {
       xp: typeof parsed.xp === "number" ? parsed.xp : fallback.xp,
       mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes : fallback.mistakes,
       history: Array.isArray(parsed.history) ? parsed.history.slice(0, 6) : fallback.history,
+      contextHistory: Array.isArray(parsed.contextHistory) ? parsed.contextHistory.slice(-10) : fallback.contextHistory,
       learningLevel: normalizeLearningLevel(parsed.learningLevel)
     };
   } catch {
@@ -426,6 +429,7 @@ export function PracticeExperience() {
       setXp(stored.xp);
       setMistakes(stored.mistakes);
       setHistory(stored.history);
+      setContextHistory(stored.contextHistory);
       setSelectedLevel(stored.learningLevel);
       setStorageReady(true);
     }, 0);
@@ -441,6 +445,7 @@ export function PracticeExperience() {
     if (!storageReady || introSpokenRef.current || transcript || analysis || voiceState !== "idle") return;
 
     introSpokenRef.current = true;
+    setContextHistory((current) => (current.length ? current : [{ role: "crazy", text: openingLine }]));
     const timeoutId = window.setTimeout(() => speak(openingLine, "idle", "pt-BR"), 600);
 
     return () => window.clearTimeout(timeoutId);
@@ -456,10 +461,11 @@ export function PracticeExperience() {
         xp,
         mistakes,
         history,
+        contextHistory,
         learningLevel: selectedLevel
       })
     );
-  }, [crazyLevel, xp, mistakes, history, selectedLevel, storageReady]);
+  }, [contextHistory, crazyLevel, xp, mistakes, history, selectedLevel, storageReady]);
 
   async function analyzeSentence(sentence: string) {
     const cleanSentence = sentence.trim();
@@ -651,6 +657,21 @@ export function PracticeExperience() {
     analyzeSentence(sentence);
   }
 
+  function resetTrainingContext() {
+    speechTokenRef.current += 1;
+    window.speechSynthesis?.cancel();
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    clearSilenceTimer();
+    setAnalysis(null);
+    setTranscript("");
+    transcriptRef.current = "";
+    setContextHistory([]);
+    setVoiceState("idle");
+    setOpeningIndex(getNextOpeningIndex());
+    introSpokenRef.current = false;
+  }
+
   function speakCorrection() {
     if (!analysis) return;
     speak(analysis.corrected_sentence, "waiting_for_repeat", "en-US");
@@ -670,7 +691,11 @@ export function PracticeExperience() {
                 className={selectedLevel === level.id ? "active" : ""}
                 type="button"
                 key={level.id}
-                onClick={() => setSelectedLevel(level.id)}
+                onClick={() => {
+                  if (selectedLevel === level.id) return;
+                  setSelectedLevel(level.id);
+                  resetTrainingContext();
+                }}
               >
                 <Icon size={17} />
                 <span>
@@ -691,7 +716,11 @@ export function PracticeExperience() {
                 className={selectedMode === mode.id ? "active" : ""}
                 type="button"
                 key={mode.id}
-                onClick={() => setSelectedMode(mode.id)}
+                onClick={() => {
+                  if (selectedMode === mode.id) return;
+                  setSelectedMode(mode.id);
+                  resetTrainingContext();
+                }}
               >
                 <Icon size={15} />
                 <span>{mode.label}</span>

@@ -140,10 +140,11 @@ function getNextConversationQuestion(level: LearningLevel, mode = "free-conversa
 
 function getLevelFollowUp(level: LearningLevel, sentence: string, mode?: string, turnCount = 0) {
   const nextQuestion = getNextConversationQuestion(level, mode, turnCount);
+  const repeatSentence = removeFinalPunctuation(sentence);
   const prompts: Record<LearningLevel, string> = {
-    basic: `Repita comigo em voz alta: "${sentence}". Agora continua a conversa: "${nextQuestion}"`,
-    intermediate: `Solta a voz e repete: "${sentence}". Depois responde com um motivo: "${nextQuestion}"`,
-    advanced: `Repita comigo para fixar o ritmo: "${sentence}". Em seguida, responde com uma ideia bem clara: "${nextQuestion}"`
+    basic: `Repita comigo em voz alta: "${repeatSentence}". Agora continua a conversa: "${nextQuestion}"`,
+    intermediate: `Solta a voz e repete: "${repeatSentence}". Depois responde com um motivo: "${nextQuestion}"`,
+    advanced: `Repita comigo para fixar o ritmo: "${repeatSentence}". Em seguida, responde com uma ideia bem clara: "${nextQuestion}"`
   };
 
   return prompts[level];

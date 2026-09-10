@@ -86,6 +86,19 @@ function asCorrectedSentence(value: unknown, fallback: string) {
   return /[.!?]\s+(or|ou)\s+/iu.test(sentence) ? fallback : sentence;
 }
 
+function asFollowUp(value: unknown, fallback: string) {
+  const followUp = asPortugueseString(value, fallback, 280);
+  if (/["'“][^"'“”]+\?["'”]/u.test(followUp)) {
+    return followUp;
+  }
+
+  const englishQuestion = followUp.match(
+    /\b((?:what|where|when|why|how|who|which|do|does|did|can|could|would|will|are|is|tell me)[^?]+\?)/iu
+  )?.[1];
+
+  return englishQuestion ? followUp.replace(englishQuestion, `"${englishQuestion}"`) : followUp;
+}
+
 function asNumber(value: unknown, fallback: number, min: number, max: number) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -170,18 +183,21 @@ ${JSON.stringify({
 
 Diretrizes de Conversacao Natural:
 1. Tom de voz falado e humano: Use portugues brasileiro vivo, fluido e com ritmo de conversa oral (evite tom engessado de manual escolar).
-2. Continuidade: Conecte seu comentário com o que foi falado antes, tornando a conversa um bate-papo real.
-3. Reacao ("reaction"): Curta, direta, cheia de personalidade e espontaneidade. Se acertou, celebre com humor e entusiasmo (ex: "Mandou bem demais!", "Sensacional, falou com propriedade!", "Aí sim, sem gaguejar!"). Se errou, reaja de forma leve, divertida e variada (ex: "Opa, quase lá!", "Calma aí, peguei você no pulo!", "Mandou bem na coragem, mas faltou um detalhe!").
-4. Explicacao ("correction"): Explique de forma prática e coloquial o ajuste em portugues, destacando o modelo correto em ingles entre aspas (ex: 'Em vez de "I have 20 years", em ingles a gente sempre usa o verbo to be: "I am 20 years old".').
-5. Proximo passo ("follow_up"): Uma instrucao animada convidando o aluno a falar em voz alta e continuar a conversa (ex: 'Repete comigo em voz alta: "I am 20 years old". Vai!').
-5. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?"):
+2. Continuidade: Leia o historico recente e responda como se voces fossem duas pessoas conversando. Nao reinicie o assunto a cada frase.
+3. Conteudo primeiro: Na "reaction", reconheca a ideia do aluno em uma frase curta antes de corrigir. Ex: se ele falou do trabalho, reaja ao trabalho; se falou de viagem, reaja a viagem.
+4. Reacao ("reaction"): Curta, direta, variada e com personalidade. Pode provocar de leve, mas sem congelar em bordao repetido.
+5. Explicacao ("correction"): Explique de forma pratica e coloquial o ajuste em portugues. Se estiver correto, diga por que soou natural ou como ficaria ainda mais nativo.
+6. Proximo passo ("follow_up"): Continue o bate-papo com uma pergunta nova em ingles, ligada ao que o aluno acabou de dizer. Quando houver erro, comece pedindo para repetir a frase corrigida e depois puxe a proxima pergunta.
+7. Evite respostas padrao como "Nao achei erro importante nessa frase" quando houver contexto. Seja especifico.
+8. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?"):
    - correct=true, mistake_type="learning_request"
    - corrected_sentence: entregue a frase natural em ingles (ex: "I am tired today."). Nunca comece com "How do I say...".
-6. Se o usuario pedir para conversar:
+9. Se o usuario pedir para conversar:
    - correct=true, mistake_type="learning_request"
    - Crie uma pergunta estimulante em ingles no campo corrected_sentence adequada ao nivel (${learningLevel}).
-7. Nunca marque como correto fragmentos de fala sem sujeito/verbo (ex: "Google yesterday" -> "I searched on Google yesterday.").
-8. O campo "corrected_sentence" deve conter apenas uma unica frase final ideal em ingles, sem alternativas com "or" ou "ou".
+10. Nunca marque como correto fragmentos de fala sem sujeito/verbo (ex: "Google yesterday" -> "I searched on Google yesterday.").
+11. O campo "corrected_sentence" deve conter apenas uma unica frase final ideal em ingles, sem alternativas com "or" ou "ou".
+12. O campo "follow_up" deve terminar com uma pergunta em ingles entre aspas para o aluno responder no proximo turno.
 
 Retorne somente JSON valido neste formato:
 {
@@ -282,7 +298,7 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
     corrected_sentence: chooseCorrectedSentence(raw, request, fallback),
     reaction: asPortugueseString(raw.reaction, fallback.reaction, 220),
     correction: asPortugueseString(raw.correction, fallback.correction, 340),
-    follow_up: asPortugueseString(raw.follow_up, fallback.follow_up, 260),
+    follow_up: asFollowUp(raw.follow_up, fallback.follow_up),
     crazy_delta,
     emotion: getEmotion(nextCrazyLevel),
     pronunciation_score: asNumber(raw.pronunciation_score, fallback.pronunciation_score, 45, 98),
