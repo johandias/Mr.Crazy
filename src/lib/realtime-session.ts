@@ -83,7 +83,7 @@ export function buildRealtimeSession(levelValue: unknown, modeValue: unknown) {
     model: "gpt-realtime-2.1-mini",
     instructions: buildRealtimeInstructions(levelValue, modeValue),
     max_output_tokens: "inf",
-    reasoning: { effort: "medium" },
+    reasoning: { effort: "high" },
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
@@ -91,13 +91,13 @@ export function buildRealtimeSession(levelValue: unknown, modeValue: unknown) {
         turn_detection: {
           type: "server_vad",
           threshold: 0.55,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
+          prefix_padding_ms: 170,
+          silence_duration_ms: 1040,
           create_response: true,
           interrupt_response: true
         }
       },
-      output: { voice: "ballad" }
+      output: { voice: "echo" }
     }
   };
 }
