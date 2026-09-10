@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
@@ -15,34 +15,38 @@ type Voxel = {
   side?: -1 | 1;
 };
 
-const emotionPalette: Record<Emotion, { base: string; hot: string; glow: string; eye: string; mouth: string }> = {
+const emotionPalette: Record<Emotion, { base: string; core: string; hot: string; glow: string; eye: string; mouth: string }> = {
   calm: {
-    base: "#76c8da",
-    hot: "#d8fbff",
-    glow: "#6fb8c9",
-    eye: "#d9fbff",
-    mouth: "#060809"
+    base: "#a9342d",
+    core: "#3f0d0c",
+    hot: "#ff9a76",
+    glow: "#e44832",
+    eye: "#ffb15c",
+    mouth: "#100303"
   },
   annoyed: {
-    base: "#d95e3a",
-    hot: "#ffc09b",
-    glow: "#ef5937",
-    eye: "#fff1bc",
-    mouth: "#090704"
+    base: "#bd392d",
+    core: "#480b09",
+    hot: "#ff8a65",
+    glow: "#f0442f",
+    eye: "#ffba58",
+    mouth: "#100202"
   },
   irritated: {
-    base: "#df4833",
-    hot: "#ffad8d",
-    glow: "#ff4f36",
-    eye: "#fff2c4",
-    mouth: "#0d0604"
+    base: "#cf3a2b",
+    core: "#520907",
+    hot: "#ff7658",
+    glow: "#ff3e2b",
+    eye: "#ffc15e",
+    mouth: "#120202"
   },
   crazy: {
-    base: "#d83a2f",
-    hot: "#ff9b83",
-    glow: "#ff3f2f",
-    eye: "#fff0ba",
-    mouth: "#120302"
+    base: "#dc3528",
+    core: "#5b0806",
+    hot: "#ff684d",
+    glow: "#ff321f",
+    eye: "#ffd06a",
+    mouth: "#150101"
   }
 };
 
@@ -53,8 +57,8 @@ function seeded(index: number) {
 
 function makeSphereVoxels() {
   const voxels: Voxel[] = [];
-  const radius = 2.04;
-  const count = 1180;
+  const radius = 2.06;
+  const count = 1480;
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
   for (let index = 0; index < count; index += 1) {
@@ -64,16 +68,114 @@ function makeSphereVoxels() {
     const theta = index * goldenAngle;
     const surfaceNoise = 1 + (seed - 0.5) * 0.026;
 
+    const x = Math.cos(theta) * ringRadius * radius * surfaceNoise;
+    const voxelY = y * radius * surfaceNoise;
+    const z = Math.sin(theta) * ringRadius * radius * surfaceNoise;
+    const absX = Math.abs(x);
+    const eyeOpening = z > 1.64 && absX > 0.3 && absX < 1.08 && voxelY > 0.12 && voxelY < 0.78;
+    const mouthOpening = z > 1.66 && absX < 0.88 && voxelY > -1.02 && voxelY < -0.4;
+
+    if (eyeOpening || mouthOpening) continue;
+
     voxels.push({
-      x: Math.cos(theta) * ringRadius * radius * surfaceNoise,
-      y: y * radius * surfaceNoise,
-      z: Math.sin(theta) * ringRadius * radius * surfaceNoise,
+      x,
+      y: voxelY,
+      z,
       seed,
-      size: 0.165 + seed * 0.034
+      size: 0.172 + seed * 0.036
     });
   }
 
   return voxels;
+}
+
+function makeEyeSocketVoxels() {
+  const voxels: Voxel[] = [];
+  let index = 0;
+
+  [-1, 1].forEach((side) => {
+    const s = side as -1 | 1;
+    for (let row = 0; row < 3; row += 1) {
+      for (let col = 0; col < 6; col += 1) {
+        if ((row === 0 || row === 2) && (col === 0 || col === 5)) continue;
+        const localX = col - 2.5;
+        const x = s * 0.68 + localX * 0.132;
+        const y = 0.59 - row * 0.145 + s * localX * 0.055;
+        voxels.push({
+          x,
+          y,
+          z: frontZ(x, y) + 0.015,
+          seed: seeded(430 + index++),
+          size: 0.16,
+          side: s
+        });
+      }
+    }
+  });
+
+  return voxels;
+}
+
+function makeMouthSocketVoxels() {
+  const voxels: Voxel[] = [];
+  const rows = [7, 9, 9, 7];
+  let index = 0;
+
+  rows.forEach((cols, row) => {
+    for (let col = 0; col < cols; col += 1) {
+      const localX = col - (cols - 1) / 2;
+      const x = localX * 0.16;
+      const y = -0.5 - row * 0.16 + Math.abs(localX) * 0.006;
+      voxels.push({
+        x,
+        y,
+        z: frontZ(x, y) + 0.015,
+        seed: seeded(760 + index++),
+        size: 0.17,
+        part: row < 2 ? "upper" : row > 2 ? "lower" : "center"
+      });
+    }
+  });
+
+  return voxels;
+}
+
+function makeTeethVoxels() {
+  const positions = [
+    [-0.36, -0.57, "upper"],
+    [-0.18, -0.61, "upper"],
+    [0, -0.58, "upper"],
+    [0.18, -0.62, "upper"],
+    [0.36, -0.56, "upper"],
+    [-0.27, -0.91, "lower"],
+    [0.28, -0.9, "lower"]
+  ] as const;
+
+  return positions.map(([x, y, part], index) => {
+    return {
+      x,
+      y,
+      z: frontZ(x, y) + 0.2,
+      seed: seeded(940 + index),
+      size: 0.105 + (index % 2) * 0.012,
+      part
+    };
+  });
+}
+
+function makeMouthGlowVoxels() {
+  return Array.from({ length: 4 }, (_, index) => {
+    const x = (index - 1.5) * 0.14;
+    const y = -0.81 - Math.abs(index - 1.5) * 0.018;
+    return {
+      x,
+      y,
+      z: frontZ(x, y) + 0.17,
+      seed: seeded(980 + index),
+      size: 0.105,
+      part: "lower" as const
+    };
+  });
 }
 
 function frontZ(x: number, y: number) {
@@ -87,23 +189,23 @@ function makeEyeVoxels(emotion: Emotion) {
   [-1, 1].forEach((side) => {
     const s = side as -1 | 1;
     if (emotion === "calm") {
-      // Olhos amendoados, expressivos e carismáticos
+      // Mesmo no nível básico, o olhar mantém a assinatura impaciente do personagem.
       const cols = 5;
-      const rows = 3;
+      const rows = 2;
       for (let row = 0; row < rows; row += 1) {
         for (let col = 0; col < cols; col += 1) {
-          if ((row === 0 || row === 2) && (col === 0 || col === cols - 1)) continue;
+          if (row === 1 && (col === 0 || col === cols - 1)) continue;
           const localX = col - (cols - 1) / 2;
-          const x = s * 0.68 + localX * 0.095;
-          const y = 0.48 - row * 0.096;
+          const x = s * 0.68 + localX * 0.12;
+          const y = 0.5 - row * 0.11 + s * localX * 0.065;
           const isCenter = row === 1 && col === 2;
 
           voxels.push({
             x,
             y,
-            z: frontZ(x, y),
+            z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: isCenter ? 0.165 : 0.145,
+            size: isCenter ? 0.19 : 0.175,
             part: isCenter ? "center" : undefined,
             side: s
           });
@@ -125,9 +227,9 @@ function makeEyeVoxels(emotion: Emotion) {
           voxels.push({
             x,
             y,
-            z: frontZ(x, y),
+            z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: 0.15,
+            size: 0.18,
             side: s
           });
         }
@@ -147,9 +249,9 @@ function makeEyeVoxels(emotion: Emotion) {
           voxels.push({
             x,
             y,
-            z: frontZ(x, y),
+            z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: emotion === "crazy" ? 0.16 : 0.155,
+            size: emotion === "crazy" ? 0.19 : 0.18,
             side: s
           });
         }
@@ -372,6 +474,7 @@ function InstancedVoxels({
   color,
   emissive,
   emissiveIntensity = 0,
+  colorVariation = 0.04,
   crazyLevel,
   voiceState,
   variant = "body"
@@ -380,6 +483,7 @@ function InstancedVoxels({
   color: string;
   emissive?: string;
   emissiveIntensity?: number;
+  colorVariation?: number;
   crazyLevel: number;
   voiceState: VoiceState;
   variant?: "body" | "eye" | "mouth" | "brow" | "debris";
@@ -388,11 +492,22 @@ function InstancedVoxels({
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const intensity = crazyLevel / 100;
 
+  useEffect(() => {
+    if (!mesh.current) return;
+
+    voxels.forEach((voxel, index) => {
+      const instanceColor = new THREE.Color(color);
+      instanceColor.offsetHSL((voxel.seed - 0.5) * 0.018, -voxel.seed * 0.025, (voxel.seed - 0.5) * colorVariation);
+      mesh.current?.setColorAt(index, instanceColor);
+    });
+    if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
+  }, [color, colorVariation, voxels]);
+
   useFrame(({ clock }) => {
     if (!mesh.current) return;
 
     const time = clock.getElapsedTime();
-    const activeDebris = Math.max(0, (crazyLevel - 12) / 88);
+    const activeDebris = Math.min(1, 0.14 + crazyLevel / 115);
 
     // Ciclo de piscada natural dos olhos (a cada ~3.8 segundos com piscadas duplas ocasionais)
     const blinkCycle = time % 3.8;
@@ -518,14 +633,15 @@ function InstancedVoxels({
   });
 
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, voxels.length]}>
+    <instancedMesh ref={mesh} args={[undefined, undefined, voxels.length]} castShadow>
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial
-        color={color}
+        color="#ffffff"
         roughness={variant === "mouth" ? 0.7 : 0.34}
         metalness={variant === "body" ? 0.16 : 0.08}
         emissive={emissive ?? color}
         emissiveIntensity={emissiveIntensity}
+        vertexColors
       />
     </instancedMesh>
   );
@@ -563,9 +679,13 @@ function CrazyScene({
   voiceState
 }: Readonly<{ crazyLevel: number; emotion: Emotion; voiceState: VoiceState }>) {
   const bodyVoxels = useMemo(() => makeSphereVoxels(), []);
+  const eyeSocketVoxels = useMemo(() => makeEyeSocketVoxels(), []);
   const eyeVoxels = useMemo(() => makeEyeVoxels(emotion), [emotion]);
   const browVoxels = useMemo(() => makeBrowVoxels(emotion), [emotion]);
+  const mouthSocketVoxels = useMemo(() => makeMouthSocketVoxels(), []);
   const mouthVoxels = useMemo(() => makeMouthVoxels(emotion), [emotion]);
+  const teethVoxels = useMemo(() => makeTeethVoxels(), []);
+  const mouthGlowVoxels = useMemo(() => makeMouthGlowVoxels(), []);
   const debrisVoxels = useMemo(() => makeDebrisVoxels(), []);
   const group = useRef<THREE.Group>(null);
   const palette = emotionPalette[emotion];
@@ -617,20 +737,33 @@ function CrazyScene({
 
   return (
     <>
-      <ambientLight intensity={0.74} />
-      <spotLight position={[0, 3.8, 5.2]} angle={0.55} penumbra={0.7} intensity={5.2} color={palette.hot} />
-      <directionalLight position={[4, 5, 5]} intensity={2.4} color="#ffffff" />
-      <pointLight position={[-3.4, -1.8, 3.8]} intensity={3.2} color={palette.glow} />
-      <pointLight position={[1.8, 0.4, 2.6]} intensity={crazyLevel > 45 ? 3.8 : 1.4} color={palette.eye} />
+      <ambientLight intensity={0.46} />
+      <spotLight castShadow position={[-2.8, 4.6, 5.8]} angle={0.48} penumbra={0.76} intensity={6.4} color={palette.hot} />
+      <directionalLight position={[4.5, 3.2, 4.8]} intensity={2.1} color="#fff4e8" />
+      <pointLight position={[-3.5, -1.5, 3.6]} intensity={2.8} color={palette.glow} />
+      <pointLight position={[2.2, 0.4, 3.7]} intensity={1.1 + crazyLevel / 52} color={palette.eye} distance={5.5} />
       <group ref={group}>
         <Aura color={palette.glow} crazyLevel={crazyLevel} voiceState={voiceState} />
+        <mesh castShadow>
+          <sphereGeometry args={[1.94, 48, 48]} />
+          <meshStandardMaterial color={palette.core} roughness={0.78} metalness={0.02} />
+        </mesh>
         <InstancedVoxels
           voxels={bodyVoxels}
           color={palette.base}
           emissive={palette.glow}
           emissiveIntensity={0.1 + crazyLevel / 900}
+          colorVariation={0.42}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
+        />
+        <InstancedVoxels
+          voxels={eyeSocketVoxels}
+          color="#090202"
+          emissive="#000000"
+          crazyLevel={crazyLevel}
+          voiceState={voiceState}
+          variant="eye"
         />
         <InstancedVoxels
           voxels={debrisVoxels}
@@ -645,7 +778,7 @@ function CrazyScene({
           voxels={eyeVoxels}
           color={palette.eye}
           emissive={palette.eye}
-          emissiveIntensity={1.35 + crazyLevel / 85}
+          emissiveIntensity={0.86 + crazyLevel / 170}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
           variant="eye"
@@ -659,15 +792,46 @@ function CrazyScene({
           variant="brow"
         />
         <InstancedVoxels
-          voxels={mouthVoxels}
+          voxels={mouthSocketVoxels}
           color={palette.mouth}
-          emissive={emotion === "calm" ? "#000000" : palette.glow}
-          emissiveIntensity={emotion === "calm" ? 0 : 0.16}
+          emissive="#210301"
+          emissiveIntensity={0.16}
+          crazyLevel={crazyLevel}
+          voiceState={voiceState}
+          variant="mouth"
+        />
+        <InstancedVoxels
+          voxels={mouthVoxels}
+          color="#70140f"
+          emissive={palette.glow}
+          emissiveIntensity={0.1 + crazyLevel / 850}
+          crazyLevel={crazyLevel}
+          voiceState={voiceState}
+          variant="mouth"
+        />
+        <InstancedVoxels
+          voxels={teethVoxels}
+          color="#ffe4ad"
+          emissive="#ffb35a"
+          emissiveIntensity={0.42 + crazyLevel / 240}
+          crazyLevel={crazyLevel}
+          voiceState={voiceState}
+          variant="mouth"
+        />
+        <InstancedVoxels
+          voxels={mouthGlowVoxels}
+          color={palette.hot}
+          emissive={palette.glow}
+          emissiveIntensity={0.8 + crazyLevel / 120}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
           variant="mouth"
         />
       </group>
+      <mesh position={[0, -2.2, -0.15]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <circleGeometry args={[2.2, 64]} />
+        <shadowMaterial transparent opacity={0.42} />
+      </mesh>
     </>
   );
 }
@@ -680,9 +844,14 @@ export function CrazyCharacter({
   return (
     <div className={`character-stage ${emotion}`}>
       <Canvas
-        camera={{ position: [0, 0, 7], fov: 39 }}
-        dpr={[1, 1.8]}
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+        camera={{ position: [0, 0.04, 8.35], fov: 39 }}
+        dpr={[1, 1.75]}
+        shadows="basic"
+        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping }}
+        onCreated={({ gl }) => {
+          gl.toneMappingExposure = 1.08;
+          gl.outputColorSpace = THREE.SRGBColorSpace;
+        }}
       >
         <CrazyScene crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
       </Canvas>
