@@ -13,7 +13,7 @@ function isPublicPath(pathname: string) {
   );
 }
 
-export async function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthenticated = await verifyAuthToken(request.cookies.get(AUTH_COOKIE_NAME)?.value);
 
