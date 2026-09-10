@@ -13,7 +13,7 @@ Abra `http://127.0.0.1:3000/practice`.
 
 ## Chave de Teste
 
-A chave enviada foi configurada em `.env.local` como `MRCRAZY_TEST_KEY`. Esse arquivo fica ignorado pelo Git. O backend usa a variavel para ativar o provedor de teste, sem expor o valor para o navegador.
+A chave enviada foi configurada em `.env.local` como `MRCRAZY_TEST_KEY`. Esse arquivo fica ignorado pelo Git. Para analise online em tempo real, o backend procura `GEMINI_API_KEY`, `GOOGLE_API_KEY` ou `MRCRAZY_TEST_KEY`, sem expor o valor para o navegador. Se a API falhar, o simulador local assume a correcao.
 
 ## Rotas
 

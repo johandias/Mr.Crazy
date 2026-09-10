@@ -17,10 +17,13 @@ export type MistakeCategory =
   | "missing_subject"
   | "question_auxiliary"
   | "preposition"
+  | "sentence_fragment"
   | "portuguese_input"
+  | "learning_request"
   | "none";
 
 export type LearningLevel = "basic" | "intermediate" | "advanced";
+export type AnalysisProvider = "local-simulator" | "test-key-ready" | "gemini-live" | "gemini-fallback";
 
 export interface AnalysisRequest {
   sentence: string;
@@ -44,7 +47,7 @@ export interface AnalysisResponse {
   emotion: Emotion;
   pronunciation_score: number;
   xp_delta: number;
-  provider: "local-simulator" | "test-key-ready";
+  provider: AnalysisProvider;
 }
 
 const emotionThresholds: Array<{ max: number; emotion: Emotion }> = [
@@ -83,7 +86,9 @@ export function getMistakeLabel(mistake: MistakeCategory) {
     missing_subject: "Sujeito ausente",
     question_auxiliary: "Auxiliar da pergunta",
     preposition: "Preposição",
+    sentence_fragment: "Frase incompleta",
     portuguese_input: "Entrada em português",
+    learning_request: "Pedido atendido",
     none: "Frase correta"
   };
 
@@ -119,6 +124,117 @@ function normalizeText(value: string) {
 
 function removeFinalPunctuation(value: string) {
   return value.replace(/[.?!]+$/u, "").trim();
+}
+
+function pickVariant(values: readonly string[]) {
+  return values[Math.floor(Math.random() * values.length)] ?? values[0];
+}
+
+const positiveReactions = [
+  "Droga, essa passou limpa. Até eu queria achar um erro, preguiçoso.",
+  "Ok, você acertou. Não se empolga, foi uma frase só.",
+  "Infelizmente para o meu entretenimento, isso está correto.",
+  "Acertou, cabeça dura. Minha irritação vai ter que esperar.",
+  "Tá bom, tá bom, essa ficou decente. Milagre gramatical registrado."
+];
+
+const positiveCorrections = [
+  "Não achei erro importante nessa frase.",
+  "A estrutura está boa para esse nível.",
+  "Essa frase funciona bem do jeito que está.",
+  "Pode usar essa frase sem assustar nenhum professor.",
+  "Gramática aceitável. O drama foi adiado."
+];
+
+const wrongIntros = [
+  "Não, preguiçoso.",
+  "Errou, cabeça dura.",
+  "Aí você me complica, campeão da bagunça.",
+  "Nada disso, gênio do improviso.",
+  "Calma aí, terror dos verbos."
+];
+
+function getPositiveReaction() {
+  return pickVariant(positiveReactions);
+}
+
+function getPositiveCorrection() {
+  return pickVariant(positiveCorrections);
+}
+
+function getWrongReaction(detail: string) {
+  return `${pickVariant(wrongIntros)} ${detail}`;
+}
+
+type FragmentFix = {
+  mistake_word: string;
+  correct_word: string;
+  corrected_sentence: string;
+  correction: string;
+};
+
+function getSentenceFragmentFix(sentence: string): FragmentFix | null {
+  const clean = removeFinalPunctuation(sentence);
+  const normalized = normalizeText(clean);
+  const words = normalized.split(/\s+/u).filter(Boolean);
+
+  if (!words.length || looksPortuguese(sentence)) {
+    return null;
+  }
+
+  const directFragments: Array<{ pattern: RegExp; fix: Omit<FragmentFix, "mistake_word"> }> = [
+    {
+      pattern: /^google yesterday$/u,
+      fix: {
+        correct_word: "I searched on Google yesterday",
+        corrected_sentence: "I searched on Google yesterday.",
+        correction:
+          'Isso é fragmento, não frase. Era para falar: "I searched on Google yesterday." Você falou: "Google yesterday."'
+      }
+    },
+    {
+      pattern: /^work yesterday$/u,
+      fix: {
+        correct_word: "I worked yesterday",
+        corrected_sentence: "I worked yesterday.",
+        correction: 'Faltou sujeito e verbo no passado. Use: "I worked yesterday."'
+      }
+    },
+    {
+      pattern: /^go (to )?(school|work) yesterday$/u,
+      fix: {
+        correct_word: "I went there yesterday",
+        corrected_sentence: "I went there yesterday.",
+        correction: 'Faltou sujeito e o verbo está no tempo errado. Use WENT para passado.'
+      }
+    }
+  ];
+
+  const direct = directFragments.find((item) => item.pattern.test(normalized));
+  if (direct) {
+    return {
+      mistake_word: clean,
+      ...direct.fix
+    };
+  }
+
+  const timeMarker = /\b(yesterday|today|tomorrow|last night|last week|this morning|tonight|ago)\b/u.test(normalized);
+  const hasSubject = /\b(i|you|he|she|we|they|it)\b/u.test(normalized);
+  const hasFiniteVerb =
+    /\b(am|are|is|was|were|have|has|had|do|does|did|will|can|could|would|should|went|worked|played|studied|searched|googled|need|want|like)\b/u.test(
+      normalized
+    );
+
+  if (words.length <= 4 && timeMarker && (!hasSubject || !hasFiniteVerb)) {
+    return {
+      mistake_word: clean,
+      correct_word: "I need a complete sentence",
+      corrected_sentence: "I need a complete sentence.",
+      correction: "Isso parece um pedaço solto de frase. Coloque sujeito, verbo e ideia completa em inglês."
+    };
+  }
+
+  return null;
 }
 
 function extractTranslationRequest(sentence: string) {
@@ -259,28 +375,52 @@ export function analyzeEnglishSentence(
   const learningLevel = normalizeLearningLevel(request.learningLevel);
   const translationPhrase = extractTranslationRequest(sentence);
   const conversationRequested = isConversationRequest(sentence);
+  const fragmentFix = getSentenceFragmentFix(sentence);
   let mistake_type: MistakeCategory = "none";
   let mistake_word: string | null = null;
   let correct_word: string | null = null;
   let corrected_sentence = sentence;
-  let reaction = "Ok, infelizmente você acertou. Minha sanidade agradece, mas meu drama não.";
-  let correction = "Não achei erro importante nessa frase.";
+  let reaction = getPositiveReaction();
+  let correction = getPositiveCorrection();
   let follow_up = getLevelFollowUp(learningLevel, sentence);
   let crazy_delta = -8;
   let pronunciation_score = 91;
   let xp_delta = 18;
 
-  if (translationPhrase) {
+  if (fragmentFix) {
+    mistake_type = "sentence_fragment";
+    mistake_word = fragmentFix.mistake_word;
+    correct_word = fragmentFix.correct_word;
+    corrected_sentence = fragmentFix.corrected_sentence;
+    reaction = getWrongReaction("Isso não é frase inteira, é um pedaço jogado na mesa.");
+    correction = fragmentFix.correction;
+    follow_up = `Repita comigo: "${corrected_sentence}". Depois cria uma frase completa parecida.`;
+    crazy_delta = previousMistakes.includes("sentence_fragment") ? 16 : 13;
+    pronunciation_score = 72;
+    xp_delta = 7;
+  } else if (translationPhrase) {
+    mistake_type = "learning_request";
     corrected_sentence = translatePortuguesePhrase(translationPhrase, learningLevel);
-    reaction = "Finalmente uma pergunta útil, preguiçoso. Anota antes que você esqueça.";
+    reaction = pickVariant([
+      "Finalmente uma pergunta útil, preguiçoso. Anota antes que você esqueça.",
+      "Boa, cabeça dura. Perguntar como fala é melhor que inventar moda.",
+      "Agora sim. Tradução pedida, caos temporariamente controlado.",
+      "Até que enfim você usou o cérebro para pedir ajuda."
+    ]);
     correction = `Para dizer isso em inglês, use: "${corrected_sentence}"`;
     follow_up = `Repita comigo: "${corrected_sentence}". Depois cria outra frase parecida.`;
     crazy_delta = -4;
     pronunciation_score = 92;
     xp_delta = 12;
   } else if (conversationRequested) {
+    mistake_type = "learning_request";
     corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
-    reaction = "Até que enfim, preguiçoso. Vamos conversar em inglês.";
+    reaction = pickVariant([
+      "Até que enfim, preguiçoso. Vamos conversar em inglês.",
+      "Boa, vamos conversar. Tenta não atropelar metade dos verbos.",
+      "Fechado. Conversa em inglês, sem fuga para o português.",
+      "Agora gostei. Bora conversar e ver onde a gramática tropeça."
+    ]);
     correction = `Responda em inglês: "${corrected_sentence}"`;
     follow_up = "Manda sua resposta. Eu corrijo sem dó.";
     crazy_delta = -3;
@@ -289,7 +429,7 @@ export function analyzeEnglishSentence(
   } else if (looksPortuguese(sentence)) {
     mistake_type = "portuguese_input";
     corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
-    reaction = "Ô preguiçoso, português eu já sei. O treino aqui é em inglês.";
+    reaction = getWrongReaction("Português eu já sei. O treino aqui é em inglês.");
     correction = `Responda em inglês: "${corrected_sentence}"`;
     follow_up = "Se quiser tradução, pergunta: como falo isso em inglês?";
     crazy_delta = 6;
@@ -300,7 +440,7 @@ export function analyzeEnglishSentence(
     mistake_word = "go";
     correct_word = "went";
     corrected_sentence = sentence.replace(/\bgo\b/i, "went");
-    reaction = "Não, você errou feio essa, filho da mãe. Era para falar WENT e você falou GO.";
+    reaction = getWrongReaction("Era para falar WENT e você falou GO.");
     correction = "No passado, use WENT, não GO.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = previousMistakes.includes("past_tense") ? 15 : 12;
@@ -311,7 +451,7 @@ export function analyzeEnglishSentence(
     mistake_word = "goed";
     correct_word = "went";
     corrected_sentence = sentence.replace(/\bgoed\b/i, "went");
-    reaction = "Não, você errou. GOED não existe aqui, criatura determinada ao caos.";
+    reaction = getWrongReaction("GOED não existe aqui. O passado de GO é WENT.");
     correction = "Era para falar WENT e você falou GOED. GO é irregular.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = previousMistakes.includes("past_tense") ? 16 : 13;
@@ -323,7 +463,7 @@ export function analyzeEnglishSentence(
     mistake_word = "have";
     correct_word = "am";
     corrected_sentence = age ? `I am ${age} years old.` : sentence.replace(/\bi have\b/i, "I am");
-    reaction = "Não. NÃO. Você não possui anos como se fossem cadeiras.";
+    reaction = getWrongReaction("Você não possui anos como se fossem cadeiras.");
     correction = "Era para falar I AM e você falou I HAVE. Para idade, diga I AM ... YEARS OLD.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 12;
@@ -335,7 +475,7 @@ export function analyzeEnglishSentence(
     mistake_word = match;
     correct_word = match.replace(/-i$/, "");
     corrected_sentence = sentence.replace(/-i\b/gi, "");
-    reaction = "Esse I no final não existe. Para de inventar vogal, preguiçoso.";
+    reaction = getWrongReaction("Esse I no final não existe. Para de inventar vogal.");
     correction = `Era para falar ${correct_word?.toUpperCase()} e você falou ${match.toUpperCase()}. Trave a palavra na consoante final.`;
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = previousMistakes.includes("pronunciation_epenthesis") ? 14 : 11;
@@ -346,7 +486,7 @@ export function analyzeEnglishSentence(
     mistake_word = "pretend";
     correct_word = "intend";
     corrected_sentence = sentence.replace(/\bpretend(ed|s|ing)?\b/i, "planned");
-    reaction = "Pretend é fingir. Você estava atuando ou trabalhando?";
+    reaction = getWrongReaction("PRETEND é fingir. Você estava atuando ou trabalhando?");
     correction = "Era para falar PLANNED ou INTENDED e você falou PRETEND. Use pretend só para fingir.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 15;
@@ -357,7 +497,7 @@ export function analyzeEnglishSentence(
     mistake_word = lower.split(" ")[0] ?? "is";
     correct_word = "it";
     corrected_sentence = `It ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`;
-    reaction = "O sujeito sumiu. Clássico desaparecimento gramatical.";
+    reaction = getWrongReaction("O sujeito sumiu. Clássico desaparecimento gramatical.");
     correction = "Era para começar com IT. Em inglês, use IT em frases como It is raining.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 10;
@@ -383,7 +523,7 @@ export function analyzeEnglishSentence(
     mistake_word = sentence.split(" ")[0] ?? null;
     correct_word = `${auxiliary} ${subject} ${baseVerb}`;
     corrected_sentence = `${auxiliary} ${subject} ${baseVerb}${rest ? ` ${rest}` : ""}?`;
-    reaction = "A pergunta chegou sem auxiliar. Entrou pela janela.";
+    reaction = getWrongReaction("A pergunta chegou sem auxiliar. Entrou pela janela.");
     correction = "Era para usar DO, DOES ou DID. Você fez a pergunta só na entonação.";
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 9;
@@ -395,7 +535,7 @@ export function analyzeEnglishSentence(
     mistake_word = verb;
     correct_word = `to ${verb}`;
     corrected_sentence = sentence.replace(new RegExp(`\\bneed\\s+${verb}\\b`, "i"), `need to ${verb}`);
-    reaction = "Quase elegante, mas o TO caiu do trem.";
+    reaction = getWrongReaction("Quase elegante, mas o TO caiu do trem.");
     correction = `Era para falar NEED TO ${verb.toUpperCase()} e você falou NEED ${verb.toUpperCase()}.`;
     follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
     crazy_delta = 10;
@@ -407,7 +547,7 @@ export function analyzeEnglishSentence(
 
   return {
     user_sentence: sentence,
-    correct: mistake_type === "none",
+    correct: mistake_type === "none" || mistake_type === "learning_request",
     mistake_type,
     mistake_word,
     correct_word,

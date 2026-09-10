@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeEnglishSentence, normalizeLearningLevel, type AnalysisRequest } from "@/lib/mr-crazy";
+import { analyzeEnglishSentenceLive } from "@/lib/gemini-analysis";
 
 export async function POST(request: Request) {
   try {
@@ -10,16 +11,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "sentence is required" }, { status: 400 });
     }
 
-    const result = analyzeEnglishSentence(
-      {
-        sentence,
-        previousMistakes: Array.isArray(body.previousMistakes) ? body.previousMistakes : [],
-        crazyLevel: typeof body.crazyLevel === "number" ? body.crazyLevel : 14,
-        mode: typeof body.mode === "string" ? body.mode : "free-conversation",
-        learningLevel: normalizeLearningLevel(body.learningLevel)
-      },
-      process.env.MRCRAZY_TEST_KEY ? "test-key-ready" : "local-simulator"
-    );
+    const analysisRequest: AnalysisRequest = {
+      sentence,
+      previousMistakes: Array.isArray(body.previousMistakes) ? body.previousMistakes : [],
+      crazyLevel: typeof body.crazyLevel === "number" ? body.crazyLevel : 14,
+      mode: typeof body.mode === "string" ? body.mode : "free-conversation",
+      learningLevel: normalizeLearningLevel(body.learningLevel)
+    };
+    const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.MRCRAZY_TEST_KEY;
+    const result = apiKey
+      ? await analyzeEnglishSentenceLive(analysisRequest, apiKey)
+      : analyzeEnglishSentence(analysisRequest, "local-simulator");
 
     return NextResponse.json(result);
   } catch {
