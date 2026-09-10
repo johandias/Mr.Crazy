@@ -659,11 +659,25 @@ mark {
   font-size: clamp(2rem, 4vw, 3.3rem);
 }
 
+.login-form {
+  display: grid;
+  gap: 14px;
+}
+
 .simple-panel label,
 .settings-form label {
   display: grid;
   gap: 8px;
   color: var(--muted);
+}
+
+.primary-link:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.auth-error {
+  grid-column: auto;
 }
 
 .primary-link {
