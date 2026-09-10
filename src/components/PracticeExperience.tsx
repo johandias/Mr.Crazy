@@ -12,6 +12,7 @@ import {
   Plane,
   Rocket,
   Shuffle,
+  Square,
   Sparkles,
   UserRound
 } from "lucide-react";
@@ -110,26 +111,61 @@ const levelOptions: LevelOption[] = [
   }
 ];
 
-const openingLines = [
-  "Ô preguiçoso, bora fazer algo, né? Me manda uma frase em inglês.",
-  "Acorda, campeão da enrolação. Fala uma frase em inglês para eu corrigir.",
-  "Bora trabalhar, preguiçoso. Uma frase em inglês, sem drama.",
-  "Chega de olhar para a tela. Fala em inglês e tenta não me irritar no primeiro verbo.",
-  "Opa, preguiçoso, apareceu. Agora manda inglês antes que eu perca a paciência.",
-  "Vamos lá, gênio do depois eu faço. Me dá uma frase em inglês."
+const openingTaunts = [
+  "Ô preguiçoso, bora fazer algo, né?",
+  "Acorda, campeão da enrolação.",
+  "Bora trabalhar, preguiçoso.",
+  "Chega de olhar para a tela.",
+  "Opa, preguiçoso, apareceu.",
+  "Vamos lá, gênio do depois eu faço."
 ];
 
-function getNextOpeningLine() {
+function getNextOpeningIndex() {
   if (typeof window === "undefined") {
-    return openingLines[0];
+    return 0;
   }
 
   const storageKey = "mr-crazy-opening-index";
   const current = Number.parseInt(window.localStorage.getItem(storageKey) ?? "-1", 10);
-  const next = Number.isFinite(current) ? (current + 1) % openingLines.length : 0;
+  const next = Number.isFinite(current) ? (current + 1) % openingTaunts.length : 0;
   window.localStorage.setItem(storageKey, String(next));
 
-  return openingLines[next];
+  return next;
+}
+
+function getTrainingBriefing(level: LearningLevel, mode: string) {
+  const byMode: Record<string, Record<LearningLevel, { focus: string; question: string }>> = {
+    "work-english": {
+      basic: { focus: "trabalho em frases simples", question: "What did you do at work today?" },
+      intermediate: { focus: "rotina de trabalho com passado e motivo", question: "What problem did you solve at work this week?" },
+      advanced: { focus: "explicar decisões de trabalho com clareza", question: "What trade-off did you handle at work recently?" }
+    },
+    "job-interview": {
+      basic: { focus: "respostas curtas de entrevista", question: "What is one strength you have?" },
+      intermediate: { focus: "respostas de entrevista com exemplo", question: "Tell me about a challenge you handled." },
+      advanced: { focus: "respostas estruturadas e precisas", question: "Tell me about a failure and what you changed after it." }
+    },
+    travel: {
+      basic: { focus: "perguntas fáceis de viagem", question: "Where is the hotel?" },
+      intermediate: { focus: "pedidos e direções em viagem", question: "How can I get to the nearest subway station?" },
+      advanced: { focus: "resolver problemas de viagem", question: "My flight was delayed. What should I do next?" }
+    }
+  };
+
+  const fallback: Record<LearningLevel, { focus: string; question: string }> = {
+    basic: { focus: "conversa básica do dia a dia", question: "What did you do yesterday?" },
+    intermediate: { focus: "conversa com passado, motivo e detalhe", question: "What did you do yesterday, and why was it important?" },
+    advanced: { focus: "opinião clara com argumento", question: "Do you think remote work improves productivity? Why?" }
+  };
+
+  return byMode[mode]?.[level] ?? fallback[level];
+}
+
+function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: number) {
+  const briefing = getTrainingBriefing(level, mode);
+  const taunt = openingTaunts[openingIndex % openingTaunts.length] ?? openingTaunts[0];
+
+  return `${taunt} Hoje o treino é ${briefing.focus}. Pergunta em inglês: "${briefing.question}" Responda em inglês e eu corrijo.`;
 }
 
 function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {
@@ -167,7 +203,7 @@ function getCrazyBubbleText(voiceState: VoiceState, openingLine: string, analysi
   }
 
   if (voiceState === "speaking") {
-    return analysis?.reaction ?? "Falando...";
+    return analysis?.reaction ?? openingLine;
   }
 
   return analysis?.reaction ?? openingLine;
@@ -233,7 +269,7 @@ export function PracticeExperience() {
   const [manualText, setManualText] = useState("");
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
-  const [openingLine, setOpeningLine] = useState(openingLines[0]);
+  const [openingIndex, setOpeningIndex] = useState(0);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
   const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
@@ -245,11 +281,19 @@ export function PracticeExperience() {
   const ptVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const enVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const transcriptRef = useRef("");
+  const analysisQueuedRef = useRef(false);
+  const silenceTimerRef = useRef<number | null>(null);
+  const introSpokenRef = useRef(false);
 
   const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]);
   const activeLevel = useMemo(
     () => levelOptions.find((level) => level.id === selectedLevel) ?? levelOptions[0],
     [selectedLevel]
+  );
+  const openingLine = useMemo(
+    () => buildOpeningLine(selectedLevel, selectedMode, openingIndex),
+    [openingIndex, selectedLevel, selectedMode]
   );
   const userBubble = useMemo(() => getUserBubble(voiceState, transcript), [transcript, voiceState]);
   const crazyBubbleText = useMemo(
@@ -323,10 +367,17 @@ export function PracticeExperience() {
     speakPart(0);
   }, [canSpeak]);
 
+  const clearSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current === null) return;
+
+    window.clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = null;
+  }, []);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const stored = getStoredSession();
-      setOpeningLine(getNextOpeningLine());
+      setOpeningIndex(getNextOpeningIndex());
       setCrazyLevel(stored.crazyLevel);
       setXp(stored.xp);
       setMistakes(stored.mistakes);
@@ -337,6 +388,19 @@ export function PracticeExperience() {
 
     return () => window.clearTimeout(timeoutId);
   }, []);
+
+  useEffect(() => {
+    return () => clearSilenceTimer();
+  }, [clearSilenceTimer]);
+
+  useEffect(() => {
+    if (!storageReady || introSpokenRef.current || transcript || analysis || voiceState !== "idle") return;
+
+    introSpokenRef.current = true;
+    const timeoutId = window.setTimeout(() => speak(openingLine, "idle", "pt-BR"), 600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [analysis, openingLine, speak, storageReady, transcript, voiceState]);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -357,8 +421,11 @@ export function PracticeExperience() {
     const cleanSentence = sentence.trim();
     if (!cleanSentence) return;
 
+    clearSilenceTimer();
+    analysisQueuedRef.current = true;
     setErrorMessage("");
     setTranscript(cleanSentence);
+    transcriptRef.current = cleanSentence;
     setAnalysis(null);
     setVoiceState("analyzing");
 
@@ -408,7 +475,35 @@ export function PracticeExperience() {
     } catch {
       setErrorMessage("A análise falhou. Digite uma frase e tente de novo.");
       setVoiceState("idle");
+    } finally {
+      analysisQueuedRef.current = false;
     }
+  }
+
+  function queueTranscriptAnalysis(candidate: string) {
+    const cleanTranscript = candidate.trim();
+
+    if (!cleanTranscript || analysisQueuedRef.current) {
+      return false;
+    }
+
+    analysisQueuedRef.current = true;
+    clearSilenceTimer();
+    recognitionRef.current?.stop();
+    setVoiceState("transcribing");
+    window.setTimeout(() => analyzeSentence(cleanTranscript), 220);
+
+    return true;
+  }
+
+  function scheduleSilenceAnalysis(candidate: string) {
+    clearSilenceTimer();
+    const cleanTranscript = candidate.trim();
+    if (!cleanTranscript) return;
+
+    silenceTimerRef.current = window.setTimeout(() => {
+      queueTranscriptAnalysis(cleanTranscript);
+    }, 2400);
   }
 
   function startListening() {
@@ -426,10 +521,13 @@ export function PracticeExperience() {
     speechTokenRef.current += 1;
     window.speechSynthesis?.cancel();
     setTranscript("");
+    transcriptRef.current = "";
     setAnalysis(null);
+    analysisQueuedRef.current = false;
+    clearSilenceTimer();
     const recognition = new Recognition();
     recognition.lang = "en-US";
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognitionRef.current = recognition;
 
@@ -439,17 +537,20 @@ export function PracticeExperience() {
         .join(" ")
         .trim();
       setTranscript(text);
+      transcriptRef.current = text;
+      scheduleSilenceAnalysis(text);
 
       const isFinal = Array.from(event.results).some((result) => result.isFinal);
       if (isFinal) {
-        setVoiceState("transcribing");
-        window.setTimeout(() => analyzeSentence(text), 260);
+        queueTranscriptAnalysis(text);
       }
     };
 
     recognition.onerror = () => {
       setErrorMessage("Não consegui capturar o áudio. O modo texto está pronto.");
       setTranscript("");
+      transcriptRef.current = "";
+      clearSilenceTimer();
       setVoiceState("idle");
       textInputRef.current?.focus();
     };
@@ -463,9 +564,26 @@ export function PracticeExperience() {
     recognition.start();
   }
 
+  function stopListeningAndAnalyze() {
+    if (voiceState !== "listening") return;
+
+    if (queueTranscriptAnalysis(transcriptRef.current)) {
+      return;
+    }
+
+    clearSilenceTimer();
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setTranscript("");
+    transcriptRef.current = "";
+    setVoiceState("idle");
+    setErrorMessage("Não ouvi nada aproveitável. Fala mais alto ou usa o modo texto.");
+    textInputRef.current?.focus();
+  }
+
   function handleVoiceClick() {
     if (voiceState === "listening") {
-      recognitionRef.current?.stop();
+      stopListeningAndAnalyze();
       return;
     }
 
@@ -573,8 +691,14 @@ export function PracticeExperience() {
           </motion.aside>
         </section>
 
-        <section className="practice-controls" aria-label="Controle de voz">
+        <section className={`practice-controls ${voiceState === "listening" ? "listening" : ""}`} aria-label="Controle de voz">
           <VoiceButton state={voiceState} onClick={handleVoiceClick} disabled={voiceState === "analyzing" || voiceState === "speaking"} />
+          {voiceState === "listening" ? (
+            <button className="stop-listening-button" type="button" onClick={stopListeningAndAnalyze}>
+              <Square size={18} />
+              Parar e analisar
+            </button>
+          ) : null}
           <form className="text-fallback" onSubmit={handleSubmit}>
             <BrainCircuit size={17} />
             <label htmlFor="manual-sentence">Modo texto</label>

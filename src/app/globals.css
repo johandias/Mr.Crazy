@@ -78,6 +78,7 @@ a {
 .mode-strip button,
 .ghost-action,
 .voice-button,
+.stop-listening-button,
 .text-fallback,
 .example-row button,
 .primary-link,
@@ -508,6 +509,10 @@ mark {
   align-items: center;
 }
 
+.practice-controls.listening {
+  grid-template-columns: auto auto minmax(280px, 1fr);
+}
+
 .voice-button {
   display: inline-flex;
   align-items: center;
@@ -520,6 +525,25 @@ mark {
   background: linear-gradient(180deg, rgb(255 255 255 / 10%), rgb(255 255 255 / 5%));
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.stop-listening-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 164px;
+  min-height: 58px;
+  padding: 0 16px;
+  color: #ffcdc4;
+  background: rgb(214 77 55 / 12%);
+  border-color: rgb(214 77 55 / 42%);
+  cursor: pointer;
+}
+
+.stop-listening-button:hover {
+  color: var(--text);
+  background: rgb(214 77 55 / 18%);
 }
 
 .voice-button:hover:not(:disabled) {
@@ -841,6 +865,7 @@ meter {
   }
 
   .voice-button,
+  .stop-listening-button,
   .text-fallback {
     width: 100%;
   }
