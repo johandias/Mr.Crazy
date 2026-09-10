@@ -25,12 +25,18 @@ export type MistakeCategory =
 export type LearningLevel = "basic" | "intermediate" | "advanced";
 export type AnalysisProvider = "local-simulator" | "test-key-ready" | "gemini-live" | "gemini-fallback";
 
+export type ConversationTurn = {
+  role: "user" | "crazy";
+  text: string;
+};
+
 export interface AnalysisRequest {
   sentence: string;
   previousMistakes?: string[];
   crazyLevel?: number;
   mode?: string;
   learningLevel?: LearningLevel;
+  contextHistory?: ConversationTurn[];
 }
 
 export interface AnalysisResponse {
@@ -103,11 +109,41 @@ export function normalizeLearningLevel(value?: string): LearningLevel {
   return "basic";
 }
 
-function getLevelFollowUp(level: LearningLevel, sentence: string) {
+function getNextConversationQuestion(level: LearningLevel, mode = "free-conversation", turnCount = 0) {
+  const questionsByMode: Record<string, Record<LearningLevel, string[]>> = {
+    "work-english": {
+      basic: ["What do you do at work?", "Do you like your job?", "What time do you start work?"],
+      intermediate: ["What was difficult at work this week?", "How did you solve that problem?", "What would you improve at work?"],
+      advanced: ["Which trade-off did you handle recently?", "How would you explain that decision to your manager?", "What would you do differently next time?"]
+    },
+    "job-interview": {
+      basic: ["What is one strength you have?", "What job do you want?", "Why do you want this role?"],
+      intermediate: ["Tell me about a challenge you handled.", "What result did you get?", "How do you work under pressure?"],
+      advanced: ["Tell me about a failure and what you changed.", "How do you influence people without authority?", "What would your previous manager say about you?"]
+    },
+    travel: {
+      basic: ["Where do you want to go?", "What do you need at the hotel?", "Do you prefer the beach or the city?"],
+      intermediate: ["What would you say if your flight was delayed?", "How would you ask for directions?", "What was your best trip and why?"],
+      advanced: ["How would you negotiate a refund politely?", "Describe a travel problem and your plan to solve it.", "What makes a trip stressful for you?"]
+    }
+  };
+
+  const fallback: Record<LearningLevel, string[]> = {
+    basic: ["What did you do today?", "What do you like to do after work?", "Who did you talk to yesterday?"],
+    intermediate: ["What happened next?", "Why was that important?", "How did you feel about it?"],
+    advanced: ["What is your opinion about that?", "What would you change if you could?", "Can you give me one concrete example?"]
+  };
+
+  const questions = questionsByMode[mode]?.[level] ?? fallback[level];
+  return questions[turnCount % questions.length] ?? questions[0];
+}
+
+function getLevelFollowUp(level: LearningLevel, sentence: string, mode?: string, turnCount = 0) {
+  const nextQuestion = getNextConversationQuestion(level, mode, turnCount);
   const prompts: Record<LearningLevel, string> = {
-    basic: `Repita comigo: "${sentence}". Depois fala uma frase curta sobre seu dia.`,
-    intermediate: `Repita comigo: "${sentence}". Depois adiciona um motivo em inglês.`,
-    advanced: `Repita comigo: "${sentence}". Depois explica sua ideia em duas frases.`
+    basic: `Repita comigo em voz alta: "${sentence}". Agora continua a conversa: "${nextQuestion}"`,
+    intermediate: `Solta a voz e repete: "${sentence}". Depois responde com um motivo: "${nextQuestion}"`,
+    advanced: `Repita comigo para fixar o ritmo: "${sentence}". Em seguida, responde com uma ideia bem clara: "${nextQuestion}"`
   };
 
   return prompts[level];
@@ -131,27 +167,30 @@ function pickVariant(values: readonly string[]) {
 }
 
 const positiveReactions = [
-  "Droga, essa passou limpa. Até eu queria achar um erro, preguiçoso.",
-  "Ok, você acertou. Não se empolga, foi uma frase só.",
-  "Infelizmente para o meu entretenimento, isso está correto.",
-  "Acertou, cabeça dura. Minha irritação vai ter que esperar.",
-  "Tá bom, tá bom, essa ficou decente. Milagre gramatical registrado."
+  "Mandou bem demais! Falou com propriedade, agora sim senti firmeza.",
+  "Boa! Nem eu consegui achar defeito nessa. Tá afiado hoje, hein!",
+  "Aí sim! Saiu límpido, natural e sem tropeço. Gostei de ver.",
+  "Perfeito! Um nativo entenderia de primeira sem piscar.",
+  "Olha só, o milagre da gramática aconteceu! Frase redondinha.",
+  "Mandou benzão! Estrutura e ritmo no ponto certo. Continua assim!"
 ];
 
 const positiveCorrections = [
-  "Não achei erro importante nessa frase.",
-  "A estrutura está boa para esse nível.",
-  "Essa frase funciona bem do jeito que está.",
-  "Pode usar essa frase sem assustar nenhum professor.",
-  "Gramática aceitável. O drama foi adiado."
+  "Estrutura impecável para essa situação.",
+  "Gramática no lugar e vocabulário natural.",
+  "Frase fluida e correta do jeito que se fala no dia a dia.",
+  "Pode soltar essa frase em qualquer conversa que vai soar super natural.",
+  "Zero ressalvas. Essa passou com louvor."
 ];
 
 const wrongIntros = [
-  "Não, preguiçoso.",
-  "Errou, cabeça dura.",
-  "Aí você me complica, campeão da bagunça.",
-  "Nada disso, gênio do improviso.",
-  "Calma aí, terror dos verbos."
+  "Opa, quase lá!",
+  "Peraí, peraí!",
+  "Calma lá!",
+  "Mandou bem na coragem, mas",
+  "Peguei você no pulo!",
+  "Não foi dessa vez, mas a gente ajusta rápido:",
+  "Quase passou batido, só que"
 ];
 
 function getPositiveReaction() {
@@ -163,7 +202,8 @@ function getPositiveCorrection() {
 }
 
 function getWrongReaction(detail: string) {
-  return `${pickVariant(wrongIntros)} ${detail}`;
+  const intro = pickVariant(wrongIntros);
+  return `${intro} ${detail}`;
 }
 
 type FragmentFix = {
@@ -189,7 +229,7 @@ function getSentenceFragmentFix(sentence: string): FragmentFix | null {
         correct_word: "I searched on Google yesterday",
         corrected_sentence: "I searched on Google yesterday.",
         correction:
-          'Isso é fragmento, não frase. Era para falar: "I searched on Google yesterday." Você falou: "Google yesterday."'
+          'Em inglês você precisa amarrar quem fez a ação! O jeito natural e completo é: "I searched on Google yesterday".'
       }
     },
     {
@@ -197,7 +237,7 @@ function getSentenceFragmentFix(sentence: string): FragmentFix | null {
       fix: {
         correct_word: "I worked yesterday",
         corrected_sentence: "I worked yesterday.",
-        correction: 'Faltou sujeito e verbo no passado. Use: "I worked yesterday."'
+        correction: 'Faltou o sujeito e colocar o verbo no passado: "I worked yesterday".'
       }
     },
     {
@@ -205,7 +245,7 @@ function getSentenceFragmentFix(sentence: string): FragmentFix | null {
       fix: {
         correct_word: "I went there yesterday",
         corrected_sentence: "I went there yesterday.",
-        correction: 'Faltou sujeito e o verbo está no tempo errado. Use WENT para passado.'
+        correction: 'Lembra que para o passado a gente troca GO por WENT: "I went there yesterday".'
       }
     }
   ];
@@ -230,7 +270,7 @@ function getSentenceFragmentFix(sentence: string): FragmentFix | null {
       mistake_word: clean,
       correct_word: "I need a complete sentence",
       corrected_sentence: "I need a complete sentence.",
-      correction: "Isso parece um pedaço solto de frase. Coloque sujeito, verbo e ideia completa em inglês."
+      correction: "Essa frase ficou pela metade! Em inglês precisa ter quem faz a ação e o verbo completo para fazer sentido."
     };
   }
 
@@ -373,6 +413,7 @@ export function analyzeEnglishSentence(
   const lower = sentence.toLowerCase();
   const previousMistakes = request.previousMistakes ?? [];
   const learningLevel = normalizeLearningLevel(request.learningLevel);
+  const turnCount = request.contextHistory?.filter((turn) => turn.role === "user").length ?? 0;
   const translationPhrase = extractTranslationRequest(sentence);
   const conversationRequested = isConversationRequest(sentence);
   const fragmentFix = getSentenceFragmentFix(sentence);
@@ -381,8 +422,8 @@ export function analyzeEnglishSentence(
   let correct_word: string | null = null;
   let corrected_sentence = sentence;
   let reaction = getPositiveReaction();
-  let correction = getPositiveCorrection();
-  let follow_up = getLevelFollowUp(learningLevel, sentence);
+  let correction = `${getPositiveCorrection()} Eu entendi sua ideia e vou puxar o próximo pedaço da conversa.`;
+  let follow_up = getLevelFollowUp(learningLevel, sentence, request.mode, turnCount);
   let crazy_delta = -8;
   let pronunciation_score = 91;
   let xp_delta = 18;
@@ -392,9 +433,9 @@ export function analyzeEnglishSentence(
     mistake_word = fragmentFix.mistake_word;
     correct_word = fragmentFix.correct_word;
     corrected_sentence = fragmentFix.corrected_sentence;
-    reaction = getWrongReaction("Isso não é frase inteira, é um pedaço jogado na mesa.");
+    reaction = getWrongReaction("Essa fala ficou incompleta, solta no ar.");
     correction = fragmentFix.correction;
-    follow_up = `Repita comigo: "${corrected_sentence}". Depois cria uma frase completa parecida.`;
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = previousMistakes.includes("sentence_fragment") ? 16 : 13;
     pronunciation_score = 72;
     xp_delta = 7;
@@ -402,13 +443,12 @@ export function analyzeEnglishSentence(
     mistake_type = "learning_request";
     corrected_sentence = translatePortuguesePhrase(translationPhrase, learningLevel);
     reaction = pickVariant([
-      "Finalmente uma pergunta útil, preguiçoso. Anota antes que você esqueça.",
-      "Boa, cabeça dura. Perguntar como fala é melhor que inventar moda.",
-      "Agora sim. Tradução pedida, caos temporariamente controlado.",
-      "Até que enfim você usou o cérebro para pedir ajuda."
+      "Excelente pergunta! Anota essa antes que você esqueça:",
+      "Perfeito! Perguntar como se diz é o melhor atalho para destravar:",
+      "Boa pedida! Essa expressão é muito útil no dia a dia:"
     ]);
-    correction = `Para dizer isso em inglês, use: "${corrected_sentence}"`;
-    follow_up = `Repita comigo: "${corrected_sentence}". Depois cria outra frase parecida.`;
+    correction = `Em inglês, a gente fala: "${corrected_sentence}"`;
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = -4;
     pronunciation_score = 92;
     xp_delta = 12;
@@ -416,22 +456,21 @@ export function analyzeEnglishSentence(
     mistake_type = "learning_request";
     corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
     reaction = pickVariant([
-      "Até que enfim, preguiçoso. Vamos conversar em inglês.",
-      "Boa, vamos conversar. Tenta não atropelar metade dos verbos.",
-      "Fechado. Conversa em inglês, sem fuga para o português.",
-      "Agora gostei. Bora conversar e ver onde a gramática tropeça."
+      "Demorou! Bora bater um papo em inglês.",
+      "Agora sim! Solta a voz e vamos praticar.",
+      "Fechado! Quero ver esse vocabulário fluindo."
     ]);
-    correction = `Responda em inglês: "${corrected_sentence}"`;
-    follow_up = "Manda sua resposta. Eu corrijo sem dó.";
+    correction = `Para começar, responde pra mim em inglês: "${corrected_sentence}"`;
+    follow_up = `Pode responder direto em inglês pelo microfone: "${corrected_sentence}"`;
     crazy_delta = -3;
     pronunciation_score = 93;
     xp_delta = 12;
   } else if (looksPortuguese(sentence)) {
     mistake_type = "portuguese_input";
     corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
-    reaction = getWrongReaction("Português eu já sei. O treino aqui é em inglês.");
-    correction = `Responda em inglês: "${corrected_sentence}"`;
-    follow_up = "Se quiser tradução, pergunta: como falo isso em inglês?";
+    reaction = getWrongReaction("Você me respondeu em português!");
+    correction = `Aqui o desafio é treinar a língua. Tenta responder em inglês: "${corrected_sentence}"`;
+    follow_up = `Responde em inglês essa pergunta e a gente segue: "${corrected_sentence}"`;
     crazy_delta = 6;
     pronunciation_score = 78;
     xp_delta = 4;
@@ -440,9 +479,9 @@ export function analyzeEnglishSentence(
     mistake_word = "go";
     correct_word = "went";
     corrected_sentence = sentence.replace(/\bgo\b/i, "went");
-    reaction = getWrongReaction("Era para falar WENT e você falou GO.");
-    correction = "No passado, use WENT, não GO.";
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("Você usou o verbo no presente para falar do passado!");
+    correction = 'No inglês, quando a ação já aconteceu ontem ou antes, o GO vira WENT: "went".';
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = previousMistakes.includes("past_tense") ? 15 : 12;
     pronunciation_score = 82;
     xp_delta = 9;
@@ -451,9 +490,9 @@ export function analyzeEnglishSentence(
     mistake_word = "goed";
     correct_word = "went";
     corrected_sentence = sentence.replace(/\bgoed\b/i, "went");
-    reaction = getWrongReaction("GOED não existe aqui. O passado de GO é WENT.");
-    correction = "Era para falar WENT e você falou GOED. GO é irregular.";
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("O verbo GO é irregular, ele não aceita 'ed'!");
+    correction = 'O passado correto de GO é WENT, e não "goed".';
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = previousMistakes.includes("past_tense") ? 16 : 13;
     pronunciation_score = 84;
     xp_delta = 9;
@@ -463,9 +502,9 @@ export function analyzeEnglishSentence(
     mistake_word = "have";
     correct_word = "am";
     corrected_sentence = age ? `I am ${age} years old.` : sentence.replace(/\bi have\b/i, "I am");
-    reaction = getWrongReaction("Você não possui anos como se fossem cadeiras.");
-    correction = "Era para falar I AM e você falou I HAVE. Para idade, diga I AM ... YEARS OLD.";
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("Em inglês você não possui anos como se fossem objetos!");
+    correction = 'No inglês a gente sempre usa o verbo TO BE para idade: use "I am ... years old".';
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = 12;
     pronunciation_score = 86;
     xp_delta = 10;
@@ -475,9 +514,9 @@ export function analyzeEnglishSentence(
     mistake_word = match;
     correct_word = match.replace(/-i$/, "");
     corrected_sentence = sentence.replace(/-i\b/gi, "");
-    reaction = getWrongReaction("Esse I no final não existe. Para de inventar vogal.");
-    correction = `Era para falar ${correct_word?.toUpperCase()} e você falou ${match.toUpperCase()}. Trave a palavra na consoante final.`;
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("Atenção à pronúncia: cuidado com a mania de colocar um 'i' no final!");
+    correction = `Em vez de ${match}, trave o som direto na consoante final: "${correct_word}".`;
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = previousMistakes.includes("pronunciation_epenthesis") ? 14 : 11;
     pronunciation_score = 73;
     xp_delta = 8;
@@ -486,9 +525,9 @@ export function analyzeEnglishSentence(
     mistake_word = "pretend";
     correct_word = "intend";
     corrected_sentence = sentence.replace(/\bpretend(ed|s|ing)?\b/i, "planned");
-    reaction = getWrongReaction("PRETEND é fingir. Você estava atuando ou trabalhando?");
-    correction = "Era para falar PLANNED ou INTENDED e você falou PRETEND. Use pretend só para fingir.";
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("Cuidado com a pegadinha clássica do falso cognato!");
+    correction = 'PRETEND significa fingir! Se a sua ideia era dizer que pretendia fazer algo, use INTEND ou PLAN: "planned".';
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = 15;
     pronunciation_score = 88;
     xp_delta = 10;
@@ -497,9 +536,9 @@ export function analyzeEnglishSentence(
     mistake_word = lower.split(" ")[0] ?? "is";
     correct_word = "it";
     corrected_sentence = `It ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`;
-    reaction = getWrongReaction("O sujeito sumiu. Clássico desaparecimento gramatical.");
-    correction = "Era para começar com IT. Em inglês, use IT em frases como It is raining.";
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("A frase começou sem sujeito!");
+    correction = 'No inglês a frase quase nunca pode ficar sem sujeito. Coloque o "It" na frente: "It is...".';
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = 10;
     pronunciation_score = 89;
     xp_delta = 9;
@@ -523,9 +562,9 @@ export function analyzeEnglishSentence(
     mistake_word = sentence.split(" ")[0] ?? null;
     correct_word = `${auxiliary} ${subject} ${baseVerb}`;
     corrected_sentence = `${auxiliary} ${subject} ${baseVerb}${rest ? ` ${rest}` : ""}?`;
-    reaction = getWrongReaction("A pergunta chegou sem auxiliar. Entrou pela janela.");
-    correction = "Era para usar DO, DOES ou DID. Você fez a pergunta só na entonação.";
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("Faltou o verbo auxiliar da pergunta!");
+    correction = `Em inglês a pergunta não é só entonação. A gente precisa colocar o auxiliar no começo: "${auxiliary} ${subject}".`;
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = 9;
     pronunciation_score = 90;
     xp_delta = 9;
@@ -535,9 +574,9 @@ export function analyzeEnglishSentence(
     mistake_word = verb;
     correct_word = `to ${verb}`;
     corrected_sentence = sentence.replace(new RegExp(`\\bneed\\s+${verb}\\b`, "i"), `need to ${verb}`);
-    reaction = getWrongReaction("Quase elegante, mas o TO caiu do trem.");
-    correction = `Era para falar NEED TO ${verb.toUpperCase()} e você falou NEED ${verb.toUpperCase()}.`;
-    follow_up = `Repita comigo: "${corrected_sentence}". Vamos tentar novamente.`;
+    reaction = getWrongReaction("Faltou conectar os dois verbos!");
+    correction = `Depois de NEED, junte com o próximo verbo usando TO: "need to ${verb}".`;
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
     crazy_delta = 10;
     pronunciation_score = 88;
     xp_delta = 10;

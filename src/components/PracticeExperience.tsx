@@ -32,6 +32,7 @@ import {
   getMistakeLabel,
   normalizeLearningLevel,
   type AnalysisResponse,
+  type ConversationTurn,
   type LearningLevel,
   type MistakeCategory,
   type VoiceState
@@ -111,13 +112,13 @@ const levelOptions: LevelOption[] = [
   }
 ];
 
-const openingTaunts = [
-  "Ô preguiçoso, bora fazer algo, né?",
-  "Acorda, campeão da enrolação.",
-  "Bora trabalhar, preguiçoso.",
-  "Chega de olhar para a tela.",
-  "Opa, preguiçoso, apareceu.",
-  "Vamos lá, gênio do depois eu faço."
+const openingGreetings = [
+  "E aí! Bora colocar esse inglês pra jogo?",
+  "Fala comigo! Chega de enrolar e bora destravar essa fala.",
+  "Chegou quem faltava! Hoje quero ver essa pronúncia afiada.",
+  "Opa, na área! Menos teoria e mais prática de verdade.",
+  "Preparado? Respira fundo e solta o inglês sem medo!",
+  "Bora treinar! Quero ver você falar como um nativo hoje."
 ];
 
 function getNextOpeningIndex() {
@@ -127,7 +128,7 @@ function getNextOpeningIndex() {
 
   const storageKey = "mr-crazy-opening-index";
   const current = Number.parseInt(window.localStorage.getItem(storageKey) ?? "-1", 10);
-  const next = Number.isFinite(current) ? (current + 1) % openingTaunts.length : 0;
+  const next = Number.isFinite(current) ? (current + 1) % openingGreetings.length : 0;
   window.localStorage.setItem(storageKey, String(next));
 
   return next;
@@ -163,9 +164,9 @@ function getTrainingBriefing(level: LearningLevel, mode: string) {
 
 function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: number) {
   const briefing = getTrainingBriefing(level, mode);
-  const taunt = openingTaunts[openingIndex % openingTaunts.length] ?? openingTaunts[0];
+  const greeting = openingGreetings[openingIndex % openingGreetings.length] ?? openingGreetings[0];
 
-  return `${taunt} Hoje o treino é ${briefing.focus}. Pergunta em inglês: "${briefing.question}" Responda em inglês e eu corrijo.`;
+  return `${greeting} Me responde em inglês: "${briefing.question}"`;
 }
 
 function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {
@@ -185,21 +186,62 @@ function splitSpeechText(text: string) {
   return text.match(/[^.!?]+[.!?]?/gu)?.map((part) => part.trim()).filter(Boolean) ?? [text];
 }
 
+type SpeechSegment = {
+  text: string;
+  lang: "pt-BR" | "en-US";
+};
+
+function parseSpeechSegments(text: string, defaultLang = "pt-BR"): SpeechSegment[] {
+  if (defaultLang === "en-US") {
+    return splitSpeechText(text).map((part) => ({ text: part, lang: "en-US" }));
+  }
+
+  const segments: SpeechSegment[] = [];
+  const quoteRegex = /["'“]([^"'“”]+)["'”]/gu;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = quoteRegex.exec(text)) !== null) {
+    const before = text.slice(lastIndex, match.index).trim();
+    if (before) {
+      splitSpeechText(before).forEach((sentence) => {
+        if (sentence.trim()) segments.push({ text: sentence.trim(), lang: "pt-BR" });
+      });
+    }
+
+    const quoted = (match[1] ?? "").trim();
+    if (quoted) {
+      segments.push({ text: quoted, lang: "en-US" });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  const after = text.slice(lastIndex).trim();
+  if (after) {
+    splitSpeechText(after).forEach((sentence) => {
+      if (sentence.trim()) segments.push({ text: sentence.trim(), lang: "pt-BR" });
+    });
+  }
+
+  return segments.length > 0 ? segments : [{ text, lang: defaultLang as "pt-BR" | "en-US" }];
+}
+
 function getCrazyBubbleText(voiceState: VoiceState, openingLine: string, analysis: AnalysisResponse | null) {
   if (voiceState === "listening") {
-    return "Estou ouvindo. Fala em inglês, preguiçoso.";
+    return "Estou ouvindo! Pode falar em inglês...";
   }
 
   if (voiceState === "transcribing") {
-    return "Peguei sua fala. Agora deixa eu ver o tamanho do estrago.";
+    return "Captei sua voz! Processando o que você falou...";
   }
 
   if (voiceState === "analyzing") {
-    return "Estou analisando. Se tiver erro, eu vou achar.";
+    return "Hummm... Analisando pronúncia e gramática!";
   }
 
   if (voiceState === "reacting") {
-    return analysis?.reaction ?? "Calma aí, estou preparando a bronca.";
+    return analysis?.reaction ?? "Prontinho! Olha só o meu feedback:";
   }
 
   if (voiceState === "speaking") {
@@ -275,6 +317,7 @@ export function PracticeExperience() {
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [contextHistory, setContextHistory] = useState<ConversationTurn[]>([]);
   const [storageReady, setStorageReady] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const speechTokenRef = useRef(0);
@@ -328,43 +371,44 @@ export function PracticeExperience() {
     const synth = window.speechSynthesis;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
-    const parts = splitSpeechText(text);
+    const segments = parseSpeechSegments(text, lang);
     const token = speechTokenRef.current + 1;
     const voices = synth.getVoices();
-    if (lang === "pt-BR" && !ptVoiceRef.current) {
+    if (!ptVoiceRef.current) {
       ptVoiceRef.current = getStableVoice(voices, "pt-BR");
     }
-    if (lang !== "pt-BR" && !enVoiceRef.current) {
+    if (!enVoiceRef.current) {
       enVoiceRef.current = getStableVoice(voices, "en-US");
     }
 
-    const voice = lang === "pt-BR" ? ptVoiceRef.current : enVoiceRef.current;
     speechTokenRef.current = token;
 
     synth.cancel();
     synth.resume();
     setVoiceState("speaking");
 
-    const speakPart = (index: number) => {
+    const speakSegment = (index: number) => {
       if (speechTokenRef.current !== token) return;
 
-      if (index >= parts.length) {
+      if (index >= segments.length) {
         setVoiceState(nextState);
         return;
       }
 
-      const utterance = new SpeechSynthesisUtterance(parts[index]);
-      utterance.lang = lang;
-      utterance.voice = voice;
-      utterance.rate = lang === "pt-BR" ? 0.98 : 0.9;
-      utterance.pitch = 1;
+      const seg = segments[index];
+      const targetVoice = seg.lang === "pt-BR" ? ptVoiceRef.current : enVoiceRef.current;
+      const utterance = new SpeechSynthesisUtterance(seg.text);
+      utterance.lang = seg.lang;
+      utterance.voice = targetVoice;
+      utterance.rate = seg.lang === "pt-BR" ? 1.02 : 0.92;
+      utterance.pitch = 1.02;
       utterance.volume = 1;
-      utterance.onend = () => speakPart(index + 1);
+      utterance.onend = () => speakSegment(index + 1);
       utterance.onerror = () => setVoiceState(nextState);
       synth.speak(utterance);
     };
 
-    speakPart(0);
+    speakSegment(0);
   }, [canSpeak]);
 
   const clearSilenceTimer = useCallback(() => {
@@ -438,7 +482,11 @@ export function PracticeExperience() {
           previousMistakes: mistakes,
           crazyLevel,
           mode: selectedMode,
-          learningLevel: selectedLevel
+          learningLevel: selectedLevel,
+          contextHistory: [
+            ...contextHistory,
+            { role: "user", text: cleanSentence }
+          ]
         })
       });
 
@@ -451,6 +499,11 @@ export function PracticeExperience() {
       setAnalysis(result);
       setCrazyLevel(nextCrazyLevel);
       setXp((current) => current + result.xp_delta);
+      setContextHistory((prev) => [
+        ...prev.slice(-4),
+        { role: "user", text: cleanSentence },
+        { role: "crazy", text: `${result.reaction} ${result.correction} ${result.follow_up}` }
+      ]);
 
       if (!result.correct) {
         setMistakes((current) => [result.mistake_type, ...current].slice(0, 12));

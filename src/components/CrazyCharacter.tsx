@@ -11,6 +11,8 @@ type Voxel = {
   z: number;
   seed: number;
   size: number;
+  part?: "upper" | "lower" | "corner" | "center" | "brow";
+  side?: -1 | 1;
 };
 
 const emotionPalette: Record<Emotion, { base: string; hot: string; glow: string; eye: string; mouth: string }> = {
@@ -80,27 +82,77 @@ function frontZ(x: number, y: number) {
 
 function makeEyeVoxels(emotion: Emotion) {
   const voxels: Voxel[] = [];
-  const rows = emotion === "calm" ? 2 : 3;
-  const cols = 5;
   let index = 0;
 
   [-1, 1].forEach((side) => {
-    for (let row = 0; row < rows; row += 1) {
-      for (let col = 0; col < cols; col += 1) {
-        if (emotion !== "calm" && row === 2 && (col === 0 || col === cols - 1)) continue;
-        const localX = col - (cols - 1) / 2;
-        const x = side * 0.68 + localX * 0.1;
-        const angrySlant = side === -1 ? -localX * 0.052 : localX * 0.052;
-        const y = 0.48 - row * 0.105 + (emotion === "calm" ? 0 : angrySlant);
-        const seed = seeded(500 + index++);
+    const s = side as -1 | 1;
+    if (emotion === "calm") {
+      // Olhos amendoados, expressivos e carismáticos
+      const cols = 5;
+      const rows = 3;
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          if ((row === 0 || row === 2) && (col === 0 || col === cols - 1)) continue;
+          const localX = col - (cols - 1) / 2;
+          const x = s * 0.68 + localX * 0.095;
+          const y = 0.48 - row * 0.096;
+          const isCenter = row === 1 && col === 2;
 
-        voxels.push({
-          x,
-          y,
-          z: frontZ(x, y),
-          seed,
-          size: 0.155
-        });
+          voxels.push({
+            x,
+            y,
+            z: frontZ(x, y),
+            seed: seeded(500 + index++),
+            size: isCenter ? 0.165 : 0.145,
+            part: isCenter ? "center" : undefined,
+            side: s
+          });
+        }
+      }
+    } else if (emotion === "annoyed") {
+      // Olhar desconfiado e assimétrico (um olho mais semicerrado que o outro)
+      const cols = 5;
+      const rows = 3;
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          if (s === -1 && row === 0) continue;
+          if (row === 2 && (col === 0 || col === cols - 1)) continue;
+          const localX = col - (cols - 1) / 2;
+          const slant = s === -1 ? -localX * 0.035 : localX * 0.045;
+          const x = s * 0.68 + localX * 0.098;
+          const y = 0.47 - row * 0.095 + slant;
+
+          voxels.push({
+            x,
+            y,
+            z: frontZ(x, y),
+            seed: seeded(500 + index++),
+            size: 0.15,
+            side: s
+          });
+        }
+      }
+    } else {
+      // Irritated & Crazy: Olhar afunilado e penetrante com inclinação agressiva
+      const cols = 5;
+      const rows = 3;
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          if (row === 2 && (col === 0 || col === cols - 1)) continue;
+          const localX = col - (cols - 1) / 2;
+          const angrySlant = s === -1 ? -localX * 0.058 : localX * 0.058;
+          const x = s * 0.68 + localX * 0.1;
+          const y = 0.48 - row * 0.105 + angrySlant;
+
+          voxels.push({
+            x,
+            y,
+            z: frontZ(x, y),
+            seed: seeded(500 + index++),
+            size: emotion === "crazy" ? 0.16 : 0.155,
+            side: s
+          });
+        }
       }
     }
   });
@@ -109,24 +161,47 @@ function makeEyeVoxels(emotion: Emotion) {
 }
 
 function makeBrowVoxels(emotion: Emotion) {
-  if (emotion === "calm") return [];
-
   const voxels: Voxel[] = [];
   let index = 0;
 
   [-1, 1].forEach((side) => {
-    for (let col = 0; col < 6; col += 1) {
-      const localX = col - 2.5;
-      const x = side * 0.69 + localX * 0.105;
-      const y = 0.71 + (side === -1 ? -localX * 0.058 : localX * 0.058);
-      const seed = seeded(650 + index++);
+    const s = side as -1 | 1;
+    const count = 6;
+
+    for (let col = 0; col < count; col += 1) {
+      const localX = col - (count - 1) / 2;
+      const x = s * 0.68 + localX * 0.098;
+      let y = 0.69;
+
+      if (emotion === "calm") {
+        // Sobrancelhas suaves e carismáticas, levemente arqueadas
+        const arch = -(localX * localX) * 0.014;
+        y = 0.68 + arch;
+      } else if (emotion === "annoyed") {
+        // Uma sobrancelha arqueada céptica (estilo The Rock), outra rebaixada
+        if (s === 1) {
+          y = 0.74 + localX * 0.03;
+        } else {
+          y = 0.64 - localX * 0.045;
+        }
+      } else if (emotion === "irritated") {
+        // Franzidas para o centro em 'V' expressivo
+        const innerSlant = s === -1 ? -localX * 0.06 : localX * 0.06;
+        y = 0.66 + innerSlant;
+      } else {
+        // Crazy: Sobrancelhas super inclinadas e assimétricas
+        const innerSlant = s === -1 ? -localX * 0.075 : localX * 0.075;
+        y = 0.65 + innerSlant + (col % 2 === 0 ? 0.02 : -0.01);
+      }
 
       voxels.push({
         x,
         y,
-        z: frontZ(x, y) + 0.015,
-        seed,
-        size: 0.13
+        z: frontZ(x, y) + 0.02,
+        seed: seeded(650 + index++),
+        size: 0.125,
+        part: "brow",
+        side: s
       });
     }
   });
@@ -139,35 +214,114 @@ function makeMouthVoxels(emotion: Emotion) {
   let index = 0;
 
   if (emotion === "calm") {
-    for (let col = 0; col < 5; col += 1) {
-      const localX = col - 2;
-      const x = localX * 0.13;
-      const y = -0.66 - Math.abs(localX) * 0.025;
-      const seed = seeded(820 + index++);
+    // Sorriso confiante e carismático com cantos levemente elevados
+    // Lábio superior
+    const upperCols = 7;
+    for (let col = 0; col < upperCols; col += 1) {
+      const localX = col - (upperCols - 1) / 2;
+      const x = localX * 0.1;
+      const curve = Math.abs(localX) ** 1.7 * 0.022;
+      const y = -0.64 + curve;
 
       voxels.push({
         x,
         y,
         z: frontZ(x, y) + 0.03,
-        seed,
-        size: 0.12
+        seed: seeded(820 + index++),
+        size: 0.12,
+        part: "upper"
+      });
+    }
+
+    // Lábio inferior (sorriso aberto e amigável)
+    const lowerCols = 5;
+    for (let col = 0; col < lowerCols; col += 1) {
+      const localX = col - (lowerCols - 1) / 2;
+      const x = localX * 0.1;
+      const curve = Math.abs(localX) ** 1.7 * 0.016;
+      const y = -0.74 + curve;
+
+      voxels.push({
+        x,
+        y,
+        z: frontZ(x, y) + 0.03,
+        seed: seeded(820 + index++),
+        size: 0.12,
+        part: "lower"
+      });
+    }
+
+    // Cantos do sorriso
+    voxels.push({
+      x: -0.36,
+      y: -0.61,
+      z: frontZ(-0.36, -0.61) + 0.03,
+      seed: seeded(820 + index++),
+      size: 0.115,
+      part: "corner"
+    });
+    voxels.push({
+      x: 0.36,
+      y: -0.61,
+      z: frontZ(0.36, -0.61) + 0.03,
+      seed: seeded(820 + index++),
+      size: 0.115,
+      part: "corner"
+    });
+
+    return voxels;
+  }
+
+  if (emotion === "annoyed") {
+    // Meio sorriso irônico / beiço de desdém assimétrico
+    const cols = 8;
+    for (let col = 0; col < cols; col += 1) {
+      const localX = col - (cols - 1) / 2;
+      const x = localX * 0.105;
+      const curl = localX * 0.035 - Math.abs(localX) * 0.015;
+      const y = -0.67 + curl;
+
+      voxels.push({
+        x,
+        y,
+        z: frontZ(x, y) + 0.03,
+        seed: seeded(820 + index++),
+        size: 0.125,
+        part: localX < 0 ? "lower" : "upper"
+      });
+    }
+
+    for (let col = 1; col < cols - 1; col += 1) {
+      const localX = col - (cols - 1) / 2;
+      const x = localX * 0.1;
+      const curl = localX * 0.03;
+      const y = -0.76 + curl;
+
+      voxels.push({
+        x,
+        y,
+        z: frontZ(x, y) + 0.03,
+        seed: seeded(820 + index++),
+        size: 0.12,
+        part: "lower"
       });
     }
 
     return voxels;
   }
 
-  const rows = emotion === "annoyed"
+  // Irritated & Crazy: Boca ampla com dentes ou careta enérgica
+  const rows = emotion === "irritated"
     ? [
-        { y: -0.6, cols: 6, width: 0.68 },
-        { y: -0.75, cols: 8, width: 0.88 },
-        { y: -0.9, cols: 6, width: 0.68 }
+        { y: -0.58, cols: 7, width: 0.76, part: "upper" as const },
+        { y: -0.72, cols: 9, width: 0.96, part: "center" as const },
+        { y: -0.86, cols: 7, width: 0.76, part: "lower" as const }
       ]
     : [
-        { y: -0.52, cols: 7, width: 0.78 },
-        { y: -0.68, cols: 10, width: 1.06 },
-        { y: -0.84, cols: 10, width: 1.08 },
-        { y: -1, cols: 8, width: 0.86 }
+        { y: -0.52, cols: 8, width: 0.88, part: "upper" as const },
+        { y: -0.68, cols: 11, width: 1.12, part: "center" as const },
+        { y: -0.84, cols: 11, width: 1.12, part: "center" as const },
+        { y: -0.98, cols: 9, width: 0.94, part: "lower" as const }
       ];
 
   rows.forEach((rowConfig, row) => {
@@ -175,20 +329,20 @@ function makeMouthVoxels(emotion: Emotion) {
       const skipCorner =
         (row === 0 || row === rows.length - 1) &&
         (col === 0 || col === rowConfig.cols - 1) &&
-        seeded(900 + row * 20 + col) > 0.34;
+        seeded(900 + row * 20 + col) > 0.38;
       if (skipCorner) continue;
 
       const localX = col - (rowConfig.cols - 1) / 2;
       const x = (localX / Math.max(1, rowConfig.cols - 1)) * rowConfig.width * 2;
       const y = rowConfig.y + Math.sin(localX * 1.4) * 0.012;
-      const seed = seeded(820 + index++);
 
       voxels.push({
         x,
         y,
         z: frontZ(x, y) + 0.03,
-        seed,
-        size: 0.13 + seed * 0.025
+        seed: seeded(820 + index++),
+        size: 0.13 + seeded(index) * 0.02,
+        part: rowConfig.part
       });
     }
   });
@@ -238,17 +392,58 @@ function InstancedVoxels({
     if (!mesh.current) return;
 
     const time = clock.getElapsedTime();
-    const listeningPulse = voiceState === "listening" ? Math.sin(time * 8) * 0.05 : 0;
-    const speakingPulse = voiceState === "speaking" ? Math.sin(time * 11) * 0.05 : 0;
     const activeDebris = Math.max(0, (crazyLevel - 12) / 88);
+
+    // Ciclo de piscada natural dos olhos (a cada ~3.8 segundos com piscadas duplas ocasionais)
+    const blinkCycle = time % 3.8;
+    let blink = 0;
+    if (blinkCycle < 0.14) {
+      blink = Math.sin((blinkCycle / 0.14) * Math.PI);
+    } else if (blinkCycle > 0.28 && blinkCycle < 0.42) {
+      blink = Math.sin(((blinkCycle - 0.28) / 0.14) * Math.PI) * 0.85;
+    }
+
+    // Modulação rítmica de articulação da fala ao pronunciar palavras
+    const isSpeaking = voiceState === "speaking";
+    const speechViseme = isSpeaking
+      ? Math.abs(Math.sin(time * 12)) * 0.46 +
+        Math.abs(Math.sin(time * 19)) * 0.32 +
+        Math.abs(Math.sin(time * 7.5)) * 0.22
+      : 0;
+
+    // Elevação expressiva das sobrancelhas ao escutar atenciosamente
+    const isListening = voiceState === "listening";
+    const browLift = isListening ? 0.045 : isSpeaking ? Math.sin(time * 8) * 0.018 : 0;
+
+    // Ajuste de foco ocular ao pensar / escutar
+    const isAnalyzing = voiceState === "analyzing";
+    const eyeAnalyzeSquint = isAnalyzing ? 0.38 : 0;
+    const eyeListenWiden = isListening ? -0.12 : 0;
+    const totalEyeClose = Math.max(0, Math.min(1, blink + eyeAnalyzeSquint + eyeListenWiden));
+
+    // Direção do olhar (gaze tracking e micro-sacadas humanas)
+    let gazeX = 0;
+    let gazeY = 0;
+    if (isAnalyzing) {
+      // Olhando para cima e para o lado (pose pensativa)
+      gazeX = 0.036;
+      gazeY = 0.032;
+    } else if (isListening) {
+      // Olhar focado direto no usuário
+      gazeX = 0;
+      gazeY = -0.01;
+    } else {
+      // Micro-sacadas naturais de quem está vivo e presente
+      const gazeCycle = Math.floor(time * 0.7);
+      gazeX = (seeded(gazeCycle * 17) - 0.5) * 0.032;
+      gazeY = (seeded(gazeCycle * 23) - 0.5) * 0.022;
+    }
 
     voxels.forEach((voxel, index) => {
       const unstable = variant === "body" && voxel.seed < intensity * 0.3;
-      const faceTwitch = variant !== "body" && variant !== "debris" ? Math.sin(time * 12 + index) * intensity * 0.018 : 0;
+      const faceTwitch = variant !== "body" && variant !== "debris" ? Math.sin(time * 12 + index) * intensity * 0.016 : 0;
       const jitter = unstable ? Math.sin(time * (10 + voxel.seed * 10) + voxel.seed * 20) * intensity * 0.11 : faceTwitch;
       const push = unstable ? intensity * voxel.seed * 0.18 : 0;
-      const scalePulse = 1 + listeningPulse + speakingPulse + (unstable ? Math.sin(time * 13 + index) * 0.08 : 0);
-      const scale = voxel.size * scalePulse;
 
       if (variant === "debris") {
         const visible = voxel.seed < activeDebris;
@@ -258,23 +453,63 @@ function InstancedVoxels({
         const y = voxel.y + Math.sin(time * (1.2 + voxel.seed) + index) * 0.18;
 
         dummy.position.set(x, y, z);
-        dummy.scale.setScalar(visible ? scale * (0.8 + activeDebris * 0.45) : 0.001);
+        dummy.scale.setScalar(visible ? voxel.size * (0.8 + activeDebris * 0.45) : 0.001);
+        dummy.rotation.set(time * (0.22 + voxel.seed * 0.28) + voxel.seed, time * 0.2, time * 0.14);
+      } else if (variant === "eye") {
+        // Animação de piscada, foco e micro-sacadas humanas
+        const scaleY = Math.max(0.08, 1 - totalEyeClose * 0.92);
+        const blinkYOffset = -totalEyeClose * 0.02;
+        const eyeGazeX = voxel.part === "center" ? gazeX * 1.5 : gazeX;
+        const eyeGazeY = voxel.part === "center" ? gazeY * 1.5 : gazeY;
+
+        dummy.position.set(
+          voxel.x + jitter + eyeGazeX,
+          voxel.y + jitter + blinkYOffset + eyeGazeY,
+          voxel.z + jitter * 0.3
+        );
+        dummy.scale.set(voxel.size, voxel.size * scaleY, voxel.size);
+        dummy.rotation.set(0, 0, 0);
+      } else if (variant === "brow") {
+        // Sobrancelha expressiva que reage ao áudio e escuta
+        const browYOffset = browLift + (isAnalyzing ? -0.02 : 0);
+        dummy.position.set(voxel.x + jitter, voxel.y + jitter + browYOffset, voxel.z + jitter * 0.3);
+        dummy.scale.setScalar(voxel.size);
+        dummy.rotation.set(0, 0, 0);
+      } else if (variant === "mouth") {
+        // Articulação realista de boca abrindo e fechando na fala
+        let mouthYOffset = 0;
+        if (voxel.part === "upper") {
+          mouthYOffset = speechViseme * 0.05;
+        } else if (voxel.part === "lower") {
+          mouthYOffset = -speechViseme * 0.17;
+        } else if (voxel.part === "corner") {
+          mouthYOffset = -speechViseme * 0.04 + (isSpeaking ? Math.sin(time * 10) * 0.01 : 0);
+        } else {
+          mouthYOffset = voxel.y < -0.68 ? -speechViseme * 0.15 : speechViseme * 0.04;
+        }
+
+        const reactDrop = voiceState === "reacting" && crazyLevel > 50 ? -0.06 : 0;
+        const mouthWidthScale = 1 + (isSpeaking ? Math.sin(time * 15) * 0.08 : 0);
+        dummy.position.set(
+          voxel.x * mouthWidthScale + jitter,
+          voxel.y + jitter + mouthYOffset + (voxel.part === "lower" ? reactDrop : 0),
+          voxel.z + jitter * 0.3
+        );
+        dummy.scale.set(voxel.size, voxel.size * (1 + speechViseme * 0.22), voxel.size);
+        dummy.rotation.set(0, 0, 0);
       } else {
+        // Corpo voxelizado com respiração sutil
+        const breath = Math.sin(time * 2) * 0.015;
+        const scale = voxel.size * (1 + breath + (unstable ? Math.sin(time * 13 + index) * 0.08 : 0));
         dummy.position.set(voxel.x + jitter + push, voxel.y + jitter, voxel.z + jitter * 0.4);
         dummy.scale.setScalar(Math.max(0.08, scale));
-      }
-
-      if (variant === "body") {
         dummy.rotation.set(
           Math.sin(time * 0.72 + voxel.seed * 8) * 0.045,
           Math.cos(time * 0.56 + voxel.seed * 6) * 0.045,
           Math.sin(time * 0.48 + voxel.seed * 5) * 0.035
         );
-      } else if (variant === "debris") {
-        dummy.rotation.set(time * (0.22 + voxel.seed * 0.28) + voxel.seed, time * 0.2, time * 0.14);
-      } else {
-        dummy.rotation.set(0, 0, 0);
       }
+
       dummy.updateMatrix();
       mesh.current?.setMatrixAt(index, dummy.matrix);
     });
@@ -335,13 +570,49 @@ function CrazyScene({
   const group = useRef<THREE.Group>(null);
   const palette = emotionPalette[emotion];
 
+  // Postura dinâmica e suave da cabeça
   useFrame(({ clock }) => {
     if (!group.current) return;
     const time = clock.getElapsedTime();
     const stressShake = crazyLevel > 60 ? Math.sin(time * 24) * 0.012 : 0;
-    group.current.rotation.y = Math.sin(time * 0.36) * 0.045;
-    group.current.rotation.x = Math.sin(time * 0.3) * 0.026;
-    group.current.position.y = Math.sin(time * 1.15) * 0.06 + stressShake;
+
+    let targetRotX = Math.sin(time * 0.3) * 0.024;
+    let targetRotY = Math.sin(time * 0.36) * 0.042;
+    let targetRotZ = 0;
+
+    if (voiceState === "listening") {
+      // Inclinação atenta para escutar o usuário
+      targetRotZ = -0.065;
+      targetRotY = 0.075;
+      targetRotX = 0.045;
+    } else if (voiceState === "analyzing") {
+      // Olhar inclinado em postura de raciocínio crítico
+      targetRotZ = 0.045;
+      targetRotY = -0.13;
+      targetRotX = -0.065;
+    } else if (voiceState === "speaking") {
+      // Gestual de fala: acenos rítmicos afirmativos acompanhando a locução
+      targetRotX = Math.sin(time * 8.5) * 0.045 + 0.02;
+      targetRotY = Math.sin(time * 3.2) * 0.038;
+      targetRotZ = Math.sin(time * 2.4) * 0.02;
+    } else if (voiceState === "reacting") {
+      // Reação imediata ao resultado: aprovação relaxada ou espanto cômico
+      if (emotion === "calm") {
+        targetRotX = Math.sin(time * 5) * 0.035 - 0.02;
+        targetRotZ = 0.03;
+        targetRotY = 0.02;
+      } else {
+        targetRotX = -0.07;
+        targetRotZ = -0.055;
+        targetRotY = 0.06;
+      }
+    }
+
+    // Interpolação suave para movimentos orgânicos sem trancos
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, targetRotX, 0.09);
+    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetRotY, 0.09);
+    group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, targetRotZ, 0.09);
+    group.current.position.y = Math.sin(time * 1.15) * 0.05 + stressShake;
   });
 
   return (

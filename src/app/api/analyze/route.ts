@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/server-auth";
-import { analyzeEnglishSentence, normalizeLearningLevel, type AnalysisRequest } from "@/lib/mr-crazy";
+import { analyzeEnglishSentence, normalizeLearningLevel, type AnalysisRequest, type ConversationTurn } from "@/lib/mr-crazy";
 import { analyzeEnglishSentenceLive } from "@/lib/gemini-analysis";
+
+function normalizeContextHistory(value: unknown): ConversationTurn[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const turn = item as Partial<ConversationTurn>;
+      const role = turn.role === "user" || turn.role === "crazy" ? turn.role : null;
+      const text = typeof turn.text === "string" ? turn.text.trim().slice(0, 360) : "";
+
+      return role && text ? { role, text } : null;
+    })
+    .filter((item): item is ConversationTurn => Boolean(item))
+    .slice(-10);
+}
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +37,8 @@ export async function POST(request: Request) {
       previousMistakes: Array.isArray(body.previousMistakes) ? body.previousMistakes : [],
       crazyLevel: typeof body.crazyLevel === "number" ? body.crazyLevel : 14,
       mode: typeof body.mode === "string" ? body.mode : "free-conversation",
-      learningLevel: normalizeLearningLevel(body.learningLevel)
+      learningLevel: normalizeLearningLevel(body.learningLevel),
+      contextHistory: normalizeContextHistory(body.contextHistory)
     };
     const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.MRCRAZY_TEST_KEY;
     const result = apiKey
