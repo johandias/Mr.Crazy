@@ -450,23 +450,43 @@ export function analyzeEnglishSentence(
       "Boa pedida! Essa expressão é muito útil no dia a dia:"
     ]);
     correction = `Em inglês, a gente fala: "${corrected_sentence}"`;
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = `Agora repete comigo: "${corrected_sentence}"`;
     crazy_delta = -4;
     pronunciation_score = 92;
     xp_delta = 12;
   } else if (conversationRequested) {
     mistake_type = "learning_request";
-    corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
-    reaction = pickVariant([
-      "Demorou! Bora bater um papo em inglês.",
-      "Agora sim! Solta a voz e vamos praticar.",
-      "Fechado! Quero ver esse vocabulário fluindo."
-    ]);
-    correction = `Para começar, responde pra mim em inglês: "${corrected_sentence}"`;
-    follow_up = `Pode responder direto em inglês pelo microfone: "${corrected_sentence}"`;
+    if (request.mode === "free-conversation") {
+      corrected_sentence = "Can you help me say this in English?";
+      reaction = "Agora sim, conversa livre de verdade.";
+      correction = learningLevel === "basic"
+        ? "Pode começar em português; eu monto uma frase simples em inglês para a situação."
+        : "Puxe o assunto em português ou inglês e eu encaixo o treino naturalmente.";
+      follow_up = "O que você quer conversar ou aprender a dizer?";
+    } else {
+      corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);
+      reaction = pickVariant([
+        "Demorou! Bora bater um papo em inglês.",
+        "Agora sim! Solta a voz e vamos praticar.",
+        "Fechado! Quero ver esse vocabulário fluindo."
+      ]);
+      correction = `Para começar, responde pra mim em inglês: "${corrected_sentence}"`;
+      follow_up = `Pode responder direto em inglês pelo microfone: "${corrected_sentence}"`;
+    }
     crazy_delta = -3;
     pronunciation_score = 93;
     xp_delta = 12;
+  } else if (looksPortuguese(sentence) && request.mode === "free-conversation") {
+    mistake_type = "learning_request";
+    corrected_sentence = "Can you help me say this in English?";
+    reaction = "Entendi, pode falar em português sem drama.";
+    correction = learningLevel === "basic"
+      ? "Eu uso o que você contou para montar uma expressão curta e útil em inglês."
+      : "Eu continuo o assunto e puxo o inglês quando ele fizer sentido.";
+    follow_up = "Quer continuar a conversa ou aprender uma frase para essa situação?";
+    crazy_delta = -3;
+    pronunciation_score = 93;
+    xp_delta = 8;
   } else if (looksPortuguese(sentence)) {
     mistake_type = "portuguese_input";
     corrected_sentence = getConversationPrompt(learningLevel, request.mode, sentence);

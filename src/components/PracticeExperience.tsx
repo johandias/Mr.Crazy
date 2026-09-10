@@ -175,8 +175,19 @@ function getTrainingBriefing(level: LearningLevel, mode: string) {
 }
 
 function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: number) {
-  const briefing = getTrainingBriefing(level, mode);
   const greeting = openingGreetings[openingIndex % openingGreetings.length] ?? openingGreetings[0];
+
+  if (mode === "free-conversation") {
+    const invitations: Record<LearningLevel, string> = {
+      basic: "Hoje a conversa é livre. Me conta em português uma situação do seu dia e eu te ensino uma frase simples para usar nela.",
+      intermediate: "Hoje a conversa é livre. Puxa um assunto em português ou inglês e eu encaixo o treino sem transformar isso numa prova.",
+      advanced: "Hoje a conversa é livre. Escolha um assunto e eu entro na conversa, corrigindo apenas quando houver algo que realmente valha ajustar."
+    };
+
+    return `${greeting} ${invitations[level]}`;
+  }
+
+  const briefing = getTrainingBriefing(level, mode);
 
   return `${greeting} Hoje: ${briefing.focus}. "${briefing.question}" Responde em inglês.`;
 }

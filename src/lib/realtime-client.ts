@@ -27,8 +27,17 @@ type ConnectRealtimeOptions = {
   onError: (message: string) => void;
 };
 
-const INITIAL_RESPONSE =
-  "Inicie a sessão agora. Faça uma provocação curta em português, diga em poucas palavras o foco do treino e termine com uma pergunta em inglês adequada ao nível escolhido. Não espere o usuário falar primeiro.";
+function buildInitialResponse(level: LearningLevel, mode: string) {
+  if (mode === "free-conversation") {
+    const basicHelp = level === "basic"
+      ? "Ajude desde o começo com uma expressão curta e útil, mas primeiro descubra em português qual situação o usuário quer praticar."
+      : "Converse em português até surgir um contexto natural para praticar inglês.";
+
+    return `Inicie a sessão agora com uma provocação curta em português. É conversa livre: não force uma pergunta em inglês na primeira fala. ${basicHelp}`;
+  }
+
+  return "Inicie a sessão agora. Faça uma provocação curta em português, diga em poucas palavras o foco do treino e termine com uma pergunta em inglês adequada ao nível escolhido. Não espere o usuário falar primeiro.";
+}
 
 function getConnectionError(error: unknown) {
   if (error instanceof DOMException && error.name === "NotAllowedError") {
@@ -141,9 +150,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     switch (event.type) {
       case "input_audio_buffer.speech_started":
         userTranscript = "";
-        assistantTranscript = "";
         options.onUserTranscript("", false);
-        options.onAssistantTranscript("", false);
         options.onVoiceState("listening");
         break;
       case "input_audio_buffer.speech_stopped":
@@ -160,7 +167,6 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "response.created":
         assistantTranscript = "";
-        options.onAssistantTranscript("", false);
         options.onVoiceState("analyzing");
         break;
       case "response.output_audio_transcript.delta":
@@ -211,7 +217,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     options.onVoiceState("analyzing");
     send({
       type: "response.create",
-      response: { instructions: INITIAL_RESPONSE }
+      response: { instructions: buildInitialResponse(options.level, options.mode) }
     });
 
     return {
