@@ -15,6 +15,10 @@ Abra `http://127.0.0.1:3000/practice`.
 
 A chave enviada foi configurada em `.env.local` como `MRCRAZY_TEST_KEY`. Esse arquivo fica ignorado pelo Git. Para analise online em tempo real, o backend procura `GEMINI_API_KEY`, `GOOGLE_API_KEY` ou `MRCRAZY_TEST_KEY`, sem expor o valor para o navegador. Se a API falhar, o simulador local assume a correcao.
 
+## Voz neural
+
+Configure `OPENAI_API_KEY` para ativar a voz neural do Mr.Crazy. Por padrão, o app usa `gpt-4o-mini-tts` com a voz `marin`; `OPENAI_TTS_MODEL` e `OPENAI_TTS_VOICE` permitem trocar esses valores. A chave permanece somente no backend e a voz do navegador entra automaticamente como contingência.
+
 ## Acesso
 
 O app protege as rotas com cookie de sessao HTTP-only. Em producao, configure `MRCRAZY_AUTH_USER`, `MRCRAZY_AUTH_PASSWORD` e `MRCRAZY_AUTH_SECRET` na Vercel. Sem `MRCRAZY_AUTH_PASSWORD`, nenhum login e aceito.

@@ -27,6 +27,7 @@ import { PronunciationFeedback } from "@/components/PronunciationFeedback";
 import { RepeatButton } from "@/components/RepeatButton";
 import { SessionHeader } from "@/components/SessionHeader";
 import { VoiceButton } from "@/components/VoiceButton";
+import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
 import { playSpeech, type SpeechSegment } from "@/lib/speech-playback";
 import {
   clampCrazyLevel,
@@ -116,12 +117,12 @@ const levelOptions: LevelOption[] = [
 ];
 
 const openingGreetings = [
-  "E aí! Bora colocar esse inglês pra jogo?",
-  "Fala comigo! Chega de enrolar e bora destravar essa fala.",
-  "Chegou quem faltava! Hoje quero ver essa pronúncia afiada.",
-  "Opa, na área! Menos teoria e mais prática de verdade.",
-  "Preparado? Respira fundo e solta o inglês sem medo!",
-  "Bora treinar! Quero ver você falar como um nativo hoje."
+  "Opa, preguiçoso. Acorda esse inglês.",
+  "Chegou, cabeça de vento? Bora falar direito.",
+  "Vamos, burro esforçado. Hoje é sem enrolação.",
+  "E aí, idiota aplicado? Abre o ouvido.",
+  "Até que enfim apareceu. Bora destravar essa língua.",
+  "Acorda, dorminhoco. Seu inglês não vai treinar sozinho."
 ];
 
 function getNextOpeningIndex() {
@@ -169,7 +170,7 @@ function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: numb
   const briefing = getTrainingBriefing(level, mode);
   const greeting = openingGreetings[openingIndex % openingGreetings.length] ?? openingGreetings[0];
 
-  return `${greeting} Hoje eu vou puxar ${briefing.focus}. Eu começo a conversa: "${briefing.question}" Responde em inglês; se travar, pergunta como fala que eu te ajudo.`;
+  return `${greeting} Hoje: ${briefing.focus}. "${briefing.question}" Responde em inglês.`;
 }
 
 function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {
@@ -395,8 +396,32 @@ export function PracticeExperience() {
   }, [canSpeak, cancelSpeech]);
 
   const speak = useCallback((text: string, nextState: VoiceState = "waiting_for_repeat", lang = "pt-BR") => {
-    speakSegments(parseSpeechSegments(text, lang), nextState);
-  }, [speakSegments]);
+    const segments = parseSpeechSegments(text, lang);
+    cancelSpeech();
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
+    setErrorMessage("");
+
+    cancelPlaybackRef.current = playGeneratedSpeech({
+      text,
+      fetchAudio: async (signal) => {
+        const response = await fetch("/api/speech", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+          signal
+        });
+        if (!response.ok) throw new Error(`speech-${response.status}`);
+        return response.blob();
+      },
+      createAudio: (url) => new Audio(url),
+      createObjectUrl: (blob) => URL.createObjectURL(blob),
+      revokeObjectUrl: (url) => URL.revokeObjectURL(url),
+      onState: setVoiceState,
+      onEnd: () => setVoiceState(nextState),
+      onError: () => speakSegments(segments, nextState)
+    });
+  }, [cancelSpeech, speakSegments]);
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current === null) return;
