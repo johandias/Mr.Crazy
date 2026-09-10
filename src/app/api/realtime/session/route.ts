@@ -51,7 +51,24 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error("OpenAI Realtime session failed", response.status, responseBody.slice(0, 500));
-      return NextResponse.json({ error: "Não foi possível abrir a conversa em tempo real." }, { status: 502 });
+      let providerError: { code?: string; param?: string; message?: string } = {};
+      try {
+        const parsed = JSON.parse(responseBody) as { error?: { code?: string; param?: string; message?: string } };
+        providerError = parsed.error ?? {};
+      } catch {
+        providerError = {};
+      }
+
+      return NextResponse.json(
+        {
+          error: "Não foi possível abrir a conversa em tempo real.",
+          providerStatus: response.status,
+          providerCode: providerError.code,
+          providerParam: providerError.param,
+          providerMessage: providerError.message
+        },
+        { status: 502 }
+      );
     }
 
     return new Response(responseBody, {
