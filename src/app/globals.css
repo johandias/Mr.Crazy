@@ -1655,6 +1655,7 @@ meter {
   gap: 14px;
   margin-top: 12px;
   width: 100%;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
 }
 
 .clean-mic-btn {

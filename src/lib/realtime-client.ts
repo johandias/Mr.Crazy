@@ -42,15 +42,20 @@ function buildInitialResponse(level: LearningLevel, mode: string) {
 function buildTranscriptBoundResponse(transcript: string) {
   const cleanTranscript = transcript.trim();
   if (!cleanTranscript) {
-    return "O último áudio não gerou transcrição nítida. Peça com simpatia e naturalidade para o aluno repetir, sem julgar.";
+    return "O último áudio não gerou transcrição nítida. Peça em uma única frase curta para o usuário repetir.";
   }
 
   return `O usuário acabou de falar: "${cleanTranscript}".
-Comporte-se como um parceiro de estudo e professor humano real em uma conversa dinâmica, divertida e natural (NUNCA como um avaliador robótico de prova).
-1. Saudações ou papo casual (ex: "Opa, tudo bem?", "E aí?", "How are you?"): Responda de forma humana, amigável e descontraída em português/inglês, retribuindo o cumprimento e puxando o assunto para praticar inglês americano.
-2. Regra dos 80%: Se o usuário comunicou a ideia de forma compreensível (~80% certo), NÃO avalie, NÃO dê nota e NÃO fique dando parabéns repetitivos ("Passou!", "Correto!", "Boa"). Simplesmente continue a conversa sobre o assunto que ele falou!
-3. Ensine o máximo sem tédio: Traga frases e expressões autênticas do inglês americano cotidiano conectadas ao que ele falou.
-4. Correção pontual: Corrija apenas se ele falar uma palavra muito errada ou cometer um erro grave de inglês, dando a dica rápida e mantendo o ritmo da conversa.`;
+Comporte-se como Mr.Crazy: parceiro de estudo humano, direto, espirituoso e prático (NUNCA um avaliador robótico).
+
+DIRETRIZES CRÍTICAS:
+1. BREVIDADE MÁXIMA POR PADRÃO: Responda em estritamente 1 a 2 frases curtas e diretas. Não seja prolixo, não fale várias coisas de uma vez e não seja redundante.
+2. EXCEÇÃO DE BREVIDADE: Só fale mais ou explique em detalhes se o usuário pedir explicitamente ("me explica melhor", "fala mais", "não entendi").
+3. PRÁTICA ASSISTIDA (quando o usuário pedir para praticar/treinar): Guie de forma assistida, passo a passo, 1 frase ou estímulo por vez. Não despeje várias instruções. Ciclo: o usuário fala -> você ajuda diretamente naquela frase em 1 frase curta -> o usuário fala de novo.
+4. IDIOMA SOB DEMANDA: O usuário pode falar em português ou inglês. Responda/apoie em português e use inglês americano nos exemplos. Só fale 100% em inglês se o usuário pedir expressamente.
+5. SAUDAÇÕES/PAPO CASUAL: Se o usuário der um oi/saudação (ex: "opa, tudo bem?"), retribua de forma humana e direta em 1 frase curta, sem fazer teste.
+6. REGRA DOS 80%: Se o usuário comunicou a ideia de forma compreensível (~80% certo), NÃO avalie nem dê notas ou elogios robóticos ("Correto", "Muito bem"). Continue a interação naturalmente.
+7. CORREÇÃO PONTUAL: Corrija apenas se falar uma palavra muito errada ou cometer erro grave de inglês, dando a alternativa americana natural em 1 frase rápida e direta.`;
 }
 
 function getConnectionError(error: unknown) {
@@ -132,6 +137,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
   const syncMicrophone = () => {
     microphone.enabled = microphoneEnabled && !assistantAudioActive;
+    microphone.enabled = microphoneEnabled;
   };
 
   const setMicrophoneEnabled = (enabled: boolean) => {
@@ -171,6 +177,13 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         userTranscript = "";
         options.onUserTranscript("", false);
         options.onVoiceState("listening");
+        if (audioPlaying || assistantAudioActive) {
+          audioPlaying = false;
+          assistantAudioActive = false;
+          audio.muted = true;
+          audio.pause();
+          send({ type: "response.cancel" });
+        }
         break;
       case "input_audio_buffer.speech_stopped":
         options.onVoiceState("transcribing");
@@ -204,6 +217,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         audioPlaying = true;
         assistantAudioActive = true;
         syncMicrophone();
+        audio.muted = false;
+        void audio.play().catch(() => {});
         options.onVoiceState("speaking");
         break;
       case "output_audio_buffer.stopped":
@@ -211,6 +226,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         audioPlaying = false;
         assistantAudioActive = false;
         window.setTimeout(syncMicrophone, 180);
+        audio.muted = false;
         options.onVoiceState("listening");
         break;
       case "response.done":

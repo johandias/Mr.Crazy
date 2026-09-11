@@ -587,23 +587,9 @@ export function PracticeExperience() {
   }, [clearSilenceTimer]);
 
   useEffect(() => {
-    if (
-      !storageReady ||
-      realtimeStatus !== "failed" ||
-      introSpokenRef.current ||
-      transcript ||
-      analysis ||
-      voiceState !== "idle"
-    ) return;
-
-    const timeoutId = window.setTimeout(() => {
-      introSpokenRef.current = true;
-      setContextHistory((current) => (current.length ? current : [{ role: "crazy", text: openingLine }]));
-      speak(openingLine, "idle", "pt-BR");
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [analysis, openingLine, realtimeStatus, speak, storageReady, transcript, voiceState]);
+    if (!storageReady || introSpokenRef.current) return;
+    introSpokenRef.current = true;
+  }, [storageReady]);
 
   useEffect(() => {
     if (!storageReady) return;

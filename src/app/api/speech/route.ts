@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     const configuredVoice = process.env.OPENAI_TTS_VOICE?.trim().toLowerCase();
-    const voice = configuredVoice && VOICES.has(configuredVoice) ? configuredVoice : "ballad";
+    const voice = configuredVoice && VOICES.has(configuredVoice) ? configuredVoice : "ash";
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         input: text,
         response_format: "mp3",
         speed: 1.05,
-        instructions: "Speak in Brazilian Portuguese with an impatient, stressed, sarcastic and funny delivery. Sound human, energetic and close to the microphone, with consistent loudness, pitch and clarity. Pronounce quoted English phrases in natural American English. Keep the pace quick but intelligible. Do not add, remove or replace any words."
+        instructions: "Speak naturally in Brazilian Portuguese and clear American English for English phrases. Delivery: friendly, direct, human, conversational, close to the microphone. Keep it concise. Pronounce quoted English phrases in natural American English. Do not add, remove or replace any words."
       }),
       cache: "no-store"
     });
