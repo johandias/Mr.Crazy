@@ -17,36 +17,36 @@ type Voxel = {
 
 const emotionPalette: Record<Emotion, { base: string; core: string; hot: string; glow: string; eye: string; mouth: string }> = {
   calm: {
-    base: "#a9342d",
-    core: "#3f0d0c",
-    hot: "#ff9a76",
-    glow: "#e44832",
-    eye: "#ffb15c",
-    mouth: "#100303"
+    base: "#9be7ee",
+    core: "#2f747c",
+    hot: "#e1fcff",
+    glow: "#91eef5",
+    eye: "#f7fbff",
+    mouth: "#143238"
   },
   annoyed: {
-    base: "#bd392d",
-    core: "#480b09",
-    hot: "#ff8a65",
-    glow: "#f0442f",
-    eye: "#ffba58",
-    mouth: "#100202"
+    base: "#e0a54f",
+    core: "#3b2a12",
+    hot: "#ffe3a0",
+    glow: "#f2b84b",
+    eye: "#fff6c9",
+    mouth: "#15120d"
   },
   irritated: {
-    base: "#cf3a2b",
-    core: "#520907",
-    hot: "#ff7658",
-    glow: "#ff3e2b",
-    eye: "#ffc15e",
-    mouth: "#120202"
+    base: "#e56e45",
+    core: "#3f1b12",
+    hot: "#ffd09a",
+    glow: "#f29a3f",
+    eye: "#fff0b8",
+    mouth: "#17100b"
   },
   crazy: {
-    base: "#dc3528",
-    core: "#5b0806",
-    hot: "#ff684d",
-    glow: "#ff321f",
-    eye: "#ffd06a",
-    mouth: "#150101"
+    base: "#d83a30",
+    core: "#4c0d0a",
+    hot: "#ff7658",
+    glow: "#ff3527",
+    eye: "#ffd66f",
+    mouth: "#150302"
   }
 };
 
@@ -58,8 +58,8 @@ function seeded(index: number) {
 function makeSphereVoxels() {
   const voxels: Voxel[] = [];
   const radius = 2.04;
-  const latitudeRings = 46;
-  const equatorColumns = 94;
+  const latitudeRings = 58;
+  const equatorColumns = 122;
   let index = 0;
 
   for (let row = 0; row < latitudeRings; row += 1) {
@@ -75,18 +75,13 @@ function makeSphereVoxels() {
       const x = Math.cos(theta) * ringRadius * radius * surfaceNoise;
       const voxelY = Math.cos(phi) * radius * surfaceNoise;
       const z = Math.sin(theta) * ringRadius * radius * surfaceNoise;
-      const absX = Math.abs(x);
-      const eyeOpening = z > 1.64 && absX > 0.28 && absX < 1.1 && voxelY > 0.08 && voxelY < 0.82;
-      const mouthOpening = z > 1.66 && absX < 0.92 && voxelY > -1.06 && voxelY < -0.34;
-
-      if (eyeOpening || mouthOpening) continue;
 
       voxels.push({
         x,
         y: voxelY,
         z,
         seed,
-        size: 0.112 + seed * 0.018
+        size: 0.1 + seed * 0.012
       });
     }
   }
@@ -105,13 +100,13 @@ function makeEyeSocketVoxels() {
         if ((row === 0 || row === 4) && (col < 2 || col > 6)) continue;
         const localX = col - 4;
         const x = s * 0.68 + localX * 0.088;
-        const y = 0.68 - row * 0.096 + s * localX * 0.035;
+        const y = 0.66 - row * 0.096 + s * localX * 0.018;
         voxels.push({
           x,
           y,
           z: frontZ(x, y) + 0.015,
           seed: seeded(430 + index++),
-          size: 0.105,
+          size: 0.092,
           side: s
         });
       }
@@ -136,7 +131,7 @@ function makeMouthSocketVoxels() {
         y,
         z: frontZ(x, y) + 0.015,
         seed: seeded(760 + index++),
-        size: 0.105,
+        size: 0.09,
         part: row < 2 ? "upper" : row > 2 ? "lower" : "center"
       });
     }
@@ -162,7 +157,7 @@ function makeTeethVoxels() {
       y,
       z: frontZ(x, y) + 0.2,
       seed: seeded(940 + index),
-      size: 0.086 + (index % 2) * 0.004,
+      size: 0.068 + (index % 2) * 0.004,
       part
     };
   });
@@ -177,7 +172,7 @@ function makeMouthGlowVoxels() {
       y,
       z: frontZ(x, y) + 0.17,
       seed: seeded(980 + index),
-      size: 0.082,
+      size: 0.064,
       part: "lower" as const
     };
   });
@@ -194,15 +189,15 @@ function makeEyeVoxels(emotion: Emotion) {
   [-1, 1].forEach((side) => {
     const s = side as -1 | 1;
     if (emotion === "calm") {
-      // Mesmo no nível básico, o olhar mantém a assinatura impaciente do personagem.
+      // Olhar alerta, mas mais amigável no estado calmo.
       const cols = 5;
-      const rows = 2;
+      const rows = 3;
       for (let row = 0; row < rows; row += 1) {
         for (let col = 0; col < cols; col += 1) {
-          if (row === 1 && (col === 0 || col === cols - 1)) continue;
+          if ((row === 0 || row === 2) && (col === 0 || col === cols - 1)) continue;
           const localX = col - (cols - 1) / 2;
           const x = s * 0.68 + localX * 0.12;
-          const y = 0.5 - row * 0.11 + s * localX * 0.065;
+          const y = 0.55 - row * 0.095;
           const isCenter = row === 1 && col === 2;
 
           voxels.push({
@@ -210,7 +205,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: isCenter ? 0.122 : 0.108,
+            size: isCenter ? 0.1 : 0.09,
             part: isCenter ? "center" : undefined,
             side: s
           });
@@ -234,7 +229,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: 0.108,
+            size: 0.09,
             side: s
           });
         }
@@ -256,7 +251,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: emotion === "crazy" ? 0.116 : 0.108,
+            size: emotion === "crazy" ? 0.096 : 0.09,
             side: s
           });
         }
@@ -279,7 +274,7 @@ function makePupilVoxels(emotion: Emotion) {
         y: 0.43 + focusY,
         z: frontZ(s * 0.68, 0.43) + 0.39,
         seed: seeded(610 + sideIndex * 3),
-        size: 0.082,
+        size: 0.066,
         part: "center" as const,
         side: s
       },
@@ -288,7 +283,7 @@ function makePupilVoxels(emotion: Emotion) {
         y: 0.34 + focusY,
         z: frontZ(s * 0.68, 0.34) + 0.38,
         seed: seeded(611 + sideIndex * 3),
-        size: 0.072,
+        size: 0.058,
         part: "center" as const,
         side: s
       }
@@ -304,7 +299,7 @@ function makeEyeHighlightVoxels() {
       y: 0.48,
       z: frontZ(s * 0.68, 0.48) + 0.48,
       seed: seeded(640 + index),
-      size: 0.035,
+      size: 0.03,
       part: "center" as const,
       side: s
     };
@@ -325,9 +320,9 @@ function makeBrowVoxels(emotion: Emotion) {
       let y = 0.69;
 
       if (emotion === "calm") {
-        // Sobrancelhas suaves e carismáticas, levemente arqueadas
+        // Sobrancelhas suaves e carismáticas, levemente arqueadas.
         const arch = -(localX * localX) * 0.014;
-        y = 0.68 + arch;
+        y = 0.74 + arch;
       } else if (emotion === "annoyed") {
         // Uma sobrancelha arqueada céptica (estilo The Rock), outra rebaixada
         if (s === 1) {
@@ -350,7 +345,7 @@ function makeBrowVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.02,
         seed: seeded(650 + index++),
-        size: 0.084,
+        size: 0.068,
         part: "brow",
         side: s
       });
@@ -379,7 +374,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.078,
+        size: 0.064,
         part: "upper"
       });
     }
@@ -397,7 +392,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.078,
+        size: 0.064,
         part: "lower"
       });
     }
@@ -408,7 +403,7 @@ function makeMouthVoxels(emotion: Emotion) {
       y: -0.61,
       z: frontZ(-0.36, -0.61) + 0.03,
       seed: seeded(820 + index++),
-      size: 0.075,
+      size: 0.062,
       part: "corner"
     });
     voxels.push({
@@ -416,7 +411,7 @@ function makeMouthVoxels(emotion: Emotion) {
       y: -0.61,
       z: frontZ(0.36, -0.61) + 0.03,
       seed: seeded(820 + index++),
-      size: 0.075,
+      size: 0.062,
       part: "corner"
     });
 
@@ -437,7 +432,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.08,
+        size: 0.066,
         part: localX < 0 ? "lower" : "upper"
       });
     }
@@ -453,7 +448,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.078,
+        size: 0.064,
         part: "lower"
       });
     }
@@ -492,7 +487,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.076 + seeded(index) * 0.012,
+        size: 0.064 + seeded(index) * 0.01,
         part: rowConfig.part
       });
     }
@@ -502,18 +497,18 @@ function makeMouthVoxels(emotion: Emotion) {
 }
 
 function makeDebrisVoxels() {
-  return Array.from({ length: 34 }).map((_, index) => {
+  return Array.from({ length: 24 }).map((_, index) => {
     const seed = seeded(1000 + index);
     const theta = seed * Math.PI * 2;
     const phi = seeded(1200 + index) * Math.PI;
-    const radius = 2.45 + seeded(1400 + index) * 1.15;
+    const radius = 2.55 + seeded(1400 + index) * 0.9;
 
     return {
       x: Math.cos(theta) * Math.sin(phi) * radius,
       y: Math.cos(phi) * radius * 0.82,
       z: Math.sin(theta) * Math.sin(phi) * radius,
       seed,
-      size: 0.072 + seed * 0.065
+      size: 0.052 + seed * 0.045
     };
   });
 }
@@ -556,7 +551,7 @@ function InstancedVoxels({
     if (!mesh.current) return;
 
     const time = clock.getElapsedTime();
-    const activeDebris = Math.min(1, 0.14 + crazyLevel / 115);
+    const activeDebris = Math.max(0, Math.min(1, (crazyLevel - 34) / 72));
 
     // Ciclo de piscada natural dos olhos (a cada ~3.8 segundos com piscadas duplas ocasionais)
     const blinkCycle = time % 3.8;
@@ -604,10 +599,10 @@ function InstancedVoxels({
     }
 
     voxels.forEach((voxel, index) => {
-      const unstable = variant === "body" && voxel.seed < intensity * 0.3;
+      const unstable = variant === "body" && intensity > 0.48 && voxel.seed < (intensity - 0.42) * 0.24;
       const faceTwitch = variant !== "body" && variant !== "debris" ? Math.sin(time * 12 + index) * intensity * 0.016 : 0;
-      const jitter = unstable ? Math.sin(time * (10 + voxel.seed * 10) + voxel.seed * 20) * intensity * 0.045 : faceTwitch;
-      const push = unstable ? intensity * voxel.seed * 0.08 : 0;
+      const jitter = unstable ? Math.sin(time * (10 + voxel.seed * 10) + voxel.seed * 20) * intensity * 0.028 : faceTwitch;
+      const push = unstable ? intensity * voxel.seed * 0.045 : 0;
 
       if (variant === "debris") {
         const visible = voxel.seed < activeDebris;
@@ -617,7 +612,7 @@ function InstancedVoxels({
         const y = voxel.y + Math.sin(time * (1.2 + voxel.seed) + index) * 0.18;
 
         dummy.position.set(x, y, z);
-        dummy.scale.setScalar(visible ? voxel.size * (0.8 + activeDebris * 0.45) : 0.001);
+        dummy.scale.setScalar(visible ? voxel.size * (0.75 + activeDebris * 0.38) : 0.001);
         dummy.rotation.set(time * (0.22 + voxel.seed * 0.28) + voxel.seed, time * 0.2, time * 0.14);
       } else if (variant === "eye") {
         // Animação de piscada, foco e micro-sacadas humanas
@@ -664,9 +659,9 @@ function InstancedVoxels({
       } else {
         // Corpo voxelizado com respiração sutil
         const breath = Math.sin(time * 2) * 0.015;
-        const scale = voxel.size * (1 + breath + (unstable ? Math.sin(time * 13 + index) * 0.08 : 0));
-        dummy.position.set(voxel.x + jitter + push, voxel.y + jitter, voxel.z + jitter * 0.4);
-        dummy.scale.setScalar(Math.max(0.08, scale));
+        const scale = voxel.size * (1 + breath + (unstable ? Math.sin(time * 13 + index) * 0.045 : 0));
+        dummy.position.set(voxel.x + jitter + push, voxel.y + jitter, voxel.z + jitter * 0.35);
+        dummy.scale.setScalar(Math.max(0.06, scale));
         dummy.rotation.set(
           Math.sin(time * 0.72 + voxel.seed * 8) * 0.045,
           Math.cos(time * 0.56 + voxel.seed * 6) * 0.045,
@@ -703,18 +698,18 @@ function Aura({ color, crazyLevel, voiceState }: Readonly<{ color: string; crazy
     if (!mesh.current) return;
     const time = clock.getElapsedTime();
     const voicePulse = voiceState === "speaking" || voiceState === "listening" ? Math.sin(time * 7) * 0.08 : 0;
-    const scale = 1 + crazyLevel / 420 + voicePulse;
+    const scale = 0.94 + crazyLevel / 620 + voicePulse;
     mesh.current.scale.setScalar(scale);
     mesh.current.rotation.y = time * 0.04;
   });
 
   return (
     <mesh ref={mesh}>
-      <sphereGeometry args={[2.18, 42, 42]} />
+      <sphereGeometry args={[2.08, 42, 42]} />
       <meshBasicMaterial
         color={color}
         transparent
-        opacity={0.09 + crazyLevel / 1200}
+        opacity={0.014 + crazyLevel / 3600}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
@@ -740,6 +735,11 @@ function CrazyScene({
   const debrisVoxels = useMemo(() => makeDebrisVoxels(), []);
   const group = useRef<THREE.Group>(null);
   const palette = emotionPalette[emotion];
+  const isVeryStressed = emotion === "crazy";
+  const heat = isVeryStressed ? crazyLevel / 100 : 0;
+  const calmGlow = emotion === "calm" ? 0.16 : emotion === "annoyed" ? 0.11 : emotion === "irritated" ? 0.08 : 0;
+  const showOpenMouth = emotion === "irritated" || emotion === "crazy" || voiceState === "speaking";
+  const showMouthGlow = emotion === "crazy" || (emotion === "irritated" && voiceState === "speaking");
 
   // Postura dinâmica e suave da cabeça
   useFrame(({ clock }) => {
@@ -788,11 +788,12 @@ function CrazyScene({
 
   return (
     <>
-      <ambientLight intensity={0.46} />
-      <spotLight castShadow position={[-2.8, 4.6, 5.8]} angle={0.48} penumbra={0.76} intensity={6.4} color={palette.hot} />
-      <directionalLight position={[4.5, 3.2, 4.8]} intensity={2.1} color="#fff4e8" />
-      <pointLight position={[-3.5, -1.5, 3.6]} intensity={2.8} color={palette.glow} />
-      <pointLight position={[2.2, 0.4, 3.7]} intensity={1.1 + crazyLevel / 52} color={palette.eye} distance={5.5} />
+      <ambientLight intensity={0.78} />
+      <spotLight castShadow position={[-2.8, 4.6, 5.8]} angle={0.48} penumbra={0.78} intensity={5.1 + heat * 2.2} color={palette.hot} />
+      <directionalLight position={[4.5, 3.2, 4.8]} intensity={2.9} color="#f6fbff" />
+      <pointLight position={[0, 1.1, 5.4]} intensity={1.9} color="#e7fdff" distance={6.4} />
+      <pointLight position={[-3.5, -1.5, 3.6]} intensity={1.9 + heat * 1.55} color={palette.glow} />
+      <pointLight position={[2.2, 0.4, 3.7]} intensity={0.72 + heat * 1.9} color={palette.eye} distance={5.5} />
       <group ref={group}>
         <Aura color={palette.glow} crazyLevel={crazyLevel} voiceState={voiceState} />
         <mesh castShadow>
@@ -803,14 +804,14 @@ function CrazyScene({
           voxels={bodyVoxels}
           color={palette.base}
           emissive={palette.glow}
-          emissiveIntensity={0.1 + crazyLevel / 900}
-          colorVariation={0.42}
+          emissiveIntensity={calmGlow + heat * 0.18}
+          colorVariation={0.22}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
         />
         <InstancedVoxels
           voxels={eyeSocketVoxels}
-          color="#090202"
+          color={emotion === "calm" ? "#2f7a84" : isVeryStressed ? "#090202" : "#263640"}
           emissive="#000000"
           crazyLevel={crazyLevel}
           voiceState={voiceState}
@@ -820,7 +821,7 @@ function CrazyScene({
           voxels={debrisVoxels}
           color={palette.base}
           emissive={palette.glow}
-          emissiveIntensity={0.16 + crazyLevel / 520}
+          emissiveIntensity={0.04 + heat * 0.34}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
           variant="debris"
@@ -829,14 +830,14 @@ function CrazyScene({
           voxels={eyeVoxels}
           color={palette.eye}
           emissive={palette.eye}
-          emissiveIntensity={0.86 + crazyLevel / 170}
+          emissiveIntensity={0.22 + heat * 0.92}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
           variant="eye"
         />
         <InstancedVoxels
           voxels={pupilVoxels}
-          color="#210706"
+          color="#071013"
           emissive="#000000"
           crazyLevel={crazyLevel}
           voiceState={voiceState}
@@ -853,48 +854,54 @@ function CrazyScene({
         />
         <InstancedVoxels
           voxels={browVoxels}
-          color="#070809"
+          color={emotion === "calm" ? "#285760" : "#070809"}
           emissive="#000000"
           crazyLevel={crazyLevel}
           voiceState={voiceState}
           variant="brow"
         />
-        <InstancedVoxels
-          voxels={mouthSocketVoxels}
-          color={palette.mouth}
-          emissive="#210301"
-          emissiveIntensity={0.16}
-          crazyLevel={crazyLevel}
-          voiceState={voiceState}
-          variant="mouth"
-        />
+        {showOpenMouth ? (
+          <InstancedVoxels
+            voxels={mouthSocketVoxels}
+            color={palette.mouth}
+            emissive={isVeryStressed ? "#260402" : "#000000"}
+            emissiveIntensity={isVeryStressed ? 0.16 : 0.02}
+            crazyLevel={crazyLevel}
+            voiceState={voiceState}
+            variant="mouth"
+          />
+        ) : null}
         <InstancedVoxels
           voxels={mouthVoxels}
-          color="#70140f"
+          color={isVeryStressed ? "#7d160f" : emotion === "annoyed" ? "#5d4321" : "#326a72"}
           emissive={palette.glow}
-          emissiveIntensity={0.1 + crazyLevel / 850}
+          emissiveIntensity={0.02 + heat * 0.2}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
           variant="mouth"
         />
-        <InstancedVoxels
-          voxels={teethVoxels}
-          color="#ffe4ad"
-          emissive="#ffb35a"
-          emissiveIntensity={0.42 + crazyLevel / 240}
-          crazyLevel={crazyLevel}
-          voiceState={voiceState}
-          variant="mouth"
-        />
-        <InstancedVoxels
-          voxels={mouthGlowVoxels}
-          color={palette.hot}
-          emissive={palette.glow}
-          emissiveIntensity={0.8 + crazyLevel / 120}
-          crazyLevel={crazyLevel}
-          voiceState={voiceState}
-          variant="mouth"
-        />
+        {showOpenMouth ? (
+          <InstancedVoxels
+            voxels={teethVoxels}
+            color="#f8f0d7"
+            emissive={isVeryStressed ? "#ffb35a" : "#e7fbff"}
+            emissiveIntensity={0.12 + heat * 0.58}
+            crazyLevel={crazyLevel}
+            voiceState={voiceState}
+            variant="mouth"
+          />
+        ) : null}
+        {showMouthGlow ? (
+          <InstancedVoxels
+            voxels={mouthGlowVoxels}
+            color={palette.hot}
+            emissive={palette.glow}
+            emissiveIntensity={isVeryStressed ? 0.72 + crazyLevel / 150 : 0.06}
+            crazyLevel={crazyLevel}
+            voiceState={voiceState}
+            variant="mouth"
+          />
+        ) : null}
       </group>
       <mesh position={[0, -2.2, -0.15]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <circleGeometry args={[2.2, 64]} />
@@ -917,7 +924,7 @@ export function CrazyCharacter({
         shadows="basic"
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping }}
         onCreated={({ gl }) => {
-          gl.toneMappingExposure = 1.08;
+          gl.toneMappingExposure = 1.18;
           gl.outputColorSpace = THREE.SRGBColorSpace;
         }}
       >

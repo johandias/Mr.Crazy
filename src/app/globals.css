@@ -655,15 +655,15 @@ a {
 }
 
 .character-stage.calm .character-glow {
-  background: #b8322b;
+  background: #6fd8ea;
 }
 
 .character-stage.annoyed .character-glow {
-  background: var(--amber);
+  background: #e0a54f;
 }
 
 .character-stage.irritated .character-glow {
-  background: var(--orange);
+  background: #f29a3f;
 }
 
 .character-stage.crazy .character-glow {
