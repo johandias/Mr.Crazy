@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import { getMistakeLabel, type AnalysisResponse } from "@/lib/mr-crazy";
 
 function highlightCorrection(sentence: string, word: string | null) {
@@ -21,6 +22,19 @@ export function CorrectionDisplay({ analysis }: Readonly<{ analysis: AnalysisRes
   return (
     <section className={`correction-display ${analysis.correct ? "correct" : "wrong"}`} aria-label="Correção">
       <span>{getMistakeLabel(analysis.mistake_type)}</span>
+      {!analysis.correct && analysis.mistake_word && analysis.correct_word ? (
+        <div className="correction-contrast" aria-label={`Você falou ${analysis.mistake_word}. O correto é ${analysis.correct_word}.`}>
+          <span>
+            <small>Você falou</small>
+            <del>{analysis.mistake_word}</del>
+          </span>
+          <ArrowRight size={18} aria-hidden="true" />
+          <span>
+            <small>O correto é</small>
+            <strong>{analysis.correct_word}</strong>
+          </span>
+        </div>
+      ) : null}
       <p>{analysis.correction}</p>
       <strong>{highlightCorrection(analysis.corrected_sentence, analysis.correct_word)}</strong>
       <small>{analysis.follow_up}</small>

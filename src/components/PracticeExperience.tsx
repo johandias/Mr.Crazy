@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
+  Box,
   BrainCircuit,
   BriefcaseBusiness,
   Mic,
@@ -18,6 +19,7 @@ import {
   Square,
   Sparkles,
   Volume2,
+  Sword,
   UserRound
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -28,6 +30,7 @@ import { ListenButton } from "@/components/ListenButton";
 import { ListeningWave } from "@/components/ListeningWave";
 import { PronunciationFeedback } from "@/components/PronunciationFeedback";
 import { RepeatButton } from "@/components/RepeatButton";
+import { RpgCharacter } from "@/components/RpgCharacter";
 import { SessionHeader } from "@/components/SessionHeader";
 import { VoiceButton } from "@/components/VoiceButton";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
@@ -55,6 +58,8 @@ type SessionMode = {
   icon: LucideIcon;
 };
 
+type CharacterId = "voxel" | "rpg";
+
 type LevelOption = {
   id: LearningLevel;
   label: string;
@@ -79,6 +84,7 @@ type StoredSession = {
   history: PracticeHistory[];
   contextHistory: ConversationTurn[];
   learningLevel: LearningLevel;
+  character: CharacterId;
 };
 
 const modes: SessionMode[] = [
@@ -87,6 +93,11 @@ const modes: SessionMode[] = [
   { id: "job-interview", label: "Entrevista", icon: UserRound },
   { id: "travel", label: "Viagem", icon: Plane },
   { id: "random-topic", label: "Aleatório", icon: Shuffle }
+];
+
+const characters: Array<{ id: CharacterId; label: string; description: string; icon: LucideIcon }> = [
+  { id: "voxel", label: "Fúria 3D", description: "Voxels reativos", icon: Box },
+  { id: "rpg", label: "Mestre RPG", description: "Herói pixelado", icon: Sword }
 ];
 
 const levelOptions: LevelOption[] = [
@@ -302,7 +313,8 @@ function getStoredSession(): StoredSession {
     mistakes: [],
     history: [],
     contextHistory: [],
-    learningLevel: "basic"
+    learningLevel: "basic",
+    character: "voxel"
   };
 
   if (typeof window === "undefined") {
@@ -322,7 +334,8 @@ function getStoredSession(): StoredSession {
       mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes : fallback.mistakes,
       history: Array.isArray(parsed.history) ? parsed.history.slice(0, 6) : fallback.history,
       contextHistory: Array.isArray(parsed.contextHistory) ? parsed.contextHistory.slice(-10) : fallback.contextHistory,
-      learningLevel: normalizeLearningLevel(parsed.learningLevel)
+      learningLevel: normalizeLearningLevel(parsed.learningLevel),
+      character: parsed.character === "rpg" ? "rpg" : "voxel"
     };
   } catch {
     window.localStorage.removeItem("mr-crazy-session");
@@ -343,6 +356,7 @@ export function PracticeExperience() {
   const [openingIndex, setOpeningIndex] = useState(0);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
   const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("voxel");
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -477,6 +491,7 @@ export function PracticeExperience() {
       setHistory(stored.history);
       setContextHistory(stored.contextHistory);
       setSelectedLevel(stored.learningLevel);
+      setSelectedCharacter(stored.character);
       setStorageReady(true);
     }, 0);
 
@@ -585,10 +600,11 @@ export function PracticeExperience() {
         mistakes,
         history,
         contextHistory,
-        learningLevel: selectedLevel
+        learningLevel: selectedLevel,
+        character: selectedCharacter
       })
     );
-  }, [contextHistory, crazyLevel, xp, mistakes, history, selectedLevel, storageReady]);
+  }, [contextHistory, crazyLevel, xp, mistakes, history, selectedCharacter, selectedLevel, storageReady]);
 
   async function analyzeSentence(sentence: string) {
     const cleanSentence = sentence.trim();
@@ -877,6 +893,29 @@ export function PracticeExperience() {
           })}
         </section>
 
+        <section className="character-picker" aria-label="Escolha do personagem">
+          {characters.map((character) => {
+            const Icon = character.icon;
+            return (
+              <button
+                type="button"
+                key={character.id}
+                className={selectedCharacter === character.id ? "active" : ""}
+                aria-pressed={selectedCharacter === character.id}
+                onClick={() => setSelectedCharacter(character.id)}
+              >
+                <span className={`character-picker-icon ${character.id}`} aria-hidden="true">
+                  <Icon size={17} />
+                </span>
+                <span>
+                  <strong>{character.label}</strong>
+                  <small>{character.description}</small>
+                </span>
+              </button>
+            );
+          })}
+        </section>
+
         <section className="practice-stage">
           <motion.div
             className="character-column"
@@ -884,7 +923,11 @@ export function PracticeExperience() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            <CrazyCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
+            {selectedCharacter === "rpg" ? (
+              <RpgCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
+            ) : (
+              <CrazyCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
+            )}
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking"} />
           </motion.div>
 
