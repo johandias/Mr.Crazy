@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ConversationBubble } from "@/components/ConversationBubble";
-import { CorrectionDisplay } from "@/components/CorrectionDisplay";
 import { ListeningWave } from "@/components/ListeningWave";
 import { RpgCharacter } from "@/components/RpgCharacter";
 import { SessionHeader } from "@/components/SessionHeader";
@@ -638,7 +637,6 @@ export function PracticeExperience() {
           transcriptRef.current = text;
           if (complete && text.trim()) {
             setContextHistory((current) => [...current.slice(-8), { role: "user", text: text.trim() }]);
-            void scoreRealtimeSentence(text, "voice_realtime");
           }
         },
         onAssistantTranscript: (text, complete) => {
@@ -927,10 +925,6 @@ export function PracticeExperience() {
             transition={{ duration: 0.45 }}
           >
             <RpgCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
-            <div className={`character-speech-bubble ${voiceState === "speaking" ? "speaking" : ""}`} aria-hidden="true">
-              <span>Mr.Crazy</span>
-              <p>{crazyBubbleText}</p>
-            </div>
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking"} />
           </motion.div>
 
@@ -956,7 +950,6 @@ export function PracticeExperience() {
                 </button>
               </div>
             ) : null}
-            <CorrectionDisplay analysis={analysis} source={analysisSource} />
           </motion.aside>
         </section>
 

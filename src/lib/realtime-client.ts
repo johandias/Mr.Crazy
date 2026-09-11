@@ -42,10 +42,15 @@ function buildInitialResponse(level: LearningLevel, mode: string) {
 function buildTranscriptBoundResponse(transcript: string) {
   const cleanTranscript = transcript.trim();
   if (!cleanTranscript) {
-    return "O ultimo audio nao gerou transcript confiavel. Peca em portugues para o aluno repetir mais perto do microfone, sem corrigir nem inventar o que ele disse.";
+    return "O último áudio não gerou transcrição nítida. Peça com simpatia e naturalidade para o aluno repetir, sem julgar.";
   }
 
-  return `Responda ao ultimo turno do aluno usando este transcript final como fonte principal: "${cleanTranscript}". Se esse texto reconhecido estiver correto para o contexto, elogie em portugues curto e variado, sem usar sempre "Passou!". Se estiver confuso ou incompleto, peca para repetir mais claro. Se houver erro real, cite exatamente o trecho errado desse transcript e corrija.`;
+  return `O usuário acabou de falar: "${cleanTranscript}".
+Comporte-se como um parceiro de estudo e professor humano real em uma conversa dinâmica, divertida e natural (NUNCA como um avaliador robótico de prova).
+1. Saudações ou papo casual (ex: "Opa, tudo bem?", "E aí?", "How are you?"): Responda de forma humana, amigável e descontraída em português/inglês, retribuindo o cumprimento e puxando o assunto para praticar inglês americano.
+2. Regra dos 80%: Se o usuário comunicou a ideia de forma compreensível (~80% certo), NÃO avalie, NÃO dê nota e NÃO fique dando parabéns repetitivos ("Passou!", "Correto!", "Boa"). Simplesmente continue a conversa sobre o assunto que ele falou!
+3. Ensine o máximo sem tédio: Traga frases e expressões autênticas do inglês americano cotidiano conectadas ao que ele falou.
+4. Correção pontual: Corrija apenas se ele falar uma palavra muito errada ou cometer um erro grave de inglês, dando a dica rápida e mantendo o ritmo da conversa.`;
 }
 
 function getConnectionError(error: unknown) {
