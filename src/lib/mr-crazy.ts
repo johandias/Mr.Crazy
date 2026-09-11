@@ -375,13 +375,19 @@ function extractTranslationRequest(sentence: string) {
   if (quoted) return quoted;
 
   const normalized = normalizeText(sentence);
-  if (!/(como|qual).*(falo|falar|fala|digo|dizer|se fala)/u.test(normalized)) {
+  if (
+    !/(como|qual).*(falo|falar|fala|digo|dizer|se fala)/u.test(normalized) &&
+    !/\b(me\s+)?(ajuda|ajude|ensina|ensine)\b.*\b(falo|falar|fala|digo|dizer)\b/u.test(normalized) &&
+    !/\b(quero|preciso)\b.*\b(falar|dizer)\b.*\b(ingles|inglês)\b/u.test(normalized)
+  ) {
     return null;
   }
 
   const withoutQuestion = removeFinalPunctuation(sentence)
     .replace(/^\s*como\s+(eu\s+)?(falo|falar|digo|dizer)\s+/iu, "")
     .replace(/^\s*como\s+se\s+fala\s+/iu, "")
+    .replace(/^\s*(me\s+)?(ajuda|ajude|ensina|ensine)\s+(a\s+|me\s+a\s+|para\s+|pra\s+)?(falo|falar|fala|digo|dizer)\s+/iu, "")
+    .replace(/^\s*(eu\s+)?(quero|preciso)\s+(falar|dizer)\s+/iu, "")
     .replace(/^\s*qual\s+é\s+a\s+forma\s+de\s+dizer\s+/iu, "")
     .replace(/\s+em\s+ingl[eê]s$/iu, "")
     .trim();
@@ -418,6 +424,10 @@ function translatePortuguesePhrase(phrase: string, level: LearningLevel) {
     { pattern: /^vamos conversar$/u, translation: "Let's talk." },
     { pattern: /^bom dia$/u, translation: "Good morning." },
     { pattern: /^boa noite$/u, translation: "Good evening." },
+    { pattern: /^(eu\s+)?quero beber agua$/u, translation: "I want to drink water." },
+    { pattern: /^(eu\s+)?quero agua$/u, translation: "I want some water." },
+    { pattern: /^(eu\s+)?posso beber agua$/u, translation: "Can I drink some water?" },
+    { pattern: /^(eu\s+)?preciso beber agua$/u, translation: "I need to drink water." },
     { pattern: /^(eu\s+)?trabalho com atendimento$/u, translation: "I work in customer service." },
     { pattern: /^(eu\s+)?estou aprendendo ingles$/u, translation: "I am learning English." }
   ];

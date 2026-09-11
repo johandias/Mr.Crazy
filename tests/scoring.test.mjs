@@ -69,6 +69,20 @@ test("pronunciation help is not scored as a wrong English attempt", () => {
   assert.match(result.follow_up, /beautiful/u);
 });
 
+test("help request extracts the target phrase instead of translating the request", () => {
+  const result = analyzeEnglishSentence({
+    sentence: "me ajude a falar eu quero beber agua",
+    mode: "free-conversation",
+    learningLevel: "basic"
+  });
+
+  assert.equal(result.correct, true);
+  assert.equal(result.mistake_type, "learning_request");
+  assert.equal(result.corrected_sentence, "I want to drink water.");
+  assert.match(result.correction, /I want to drink water/u);
+  assert.doesNotMatch(result.corrected_sentence, /help me say/u);
+});
+
 test("consecutive repeated mistakes teach an easier alternative", () => {
   const result = analyzeEnglishSentence({
     sentence: "I need go home.",

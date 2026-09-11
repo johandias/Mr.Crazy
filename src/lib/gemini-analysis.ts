@@ -126,7 +126,11 @@ function normalizeText(value: string) {
 
 function isTranslationRequest(sentence: string) {
   const normalized = normalizeText(sentence);
-  return /(como|qual).*(falo|falar|fala|digo|dizer|se fala)/u.test(normalized);
+  return (
+    /(como|qual).*(falo|falar|fala|digo|dizer|se fala)/u.test(normalized) ||
+    /\b(me\s+)?(ajuda|ajude|ensina|ensine)\b.*\b(falo|falar|fala|digo|dizer)\b/u.test(normalized) ||
+    /\b(quero|preciso)\b.*\b(falar|dizer)\b.*\bingles\b/u.test(normalized)
+  );
 }
 
 function isUnderstandingOrPronunciationHelp(sentence: string) {
@@ -152,7 +156,11 @@ function chooseCorrectedSentence(raw: RawAnalysis, request: AnalysisRequest, fal
   const corrected = asCorrectedSentence(raw.corrected_sentence, fallback.corrected_sentence);
   const normalized = normalizeText(corrected);
 
-  if (fallback.mistake_type === "learning_request" && isTranslationRequest(request.sentence) && /^how do i say\b/u.test(normalized)) {
+  if (
+    fallback.mistake_type === "learning_request" &&
+    isTranslationRequest(request.sentence) &&
+    (/^how do i say\b/u.test(normalized) || /\b(help me|can you help me|say this in english)\b/u.test(normalized))
+  ) {
     return fallback.corrected_sentence;
   }
 
@@ -225,9 +233,10 @@ ${isFreeConversation
    - Responda ao feedback primeiro, em portugues, como professor paciente e direto.
    - Explique a pergunta ou a correcao anterior em palavras simples, de uma possivel resposta americana curta e convide uma repeticao pequena.
    - Nao empurre uma nova pergunta em ingles antes de resolver a duvida.
-10. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?"):
+10. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?", "Me ajuda a falar eu quero beber agua"):
    - correct=true, mistake_type="learning_request"
-   - corrected_sentence: entregue a frase natural em ingles (ex: "I am tired today."). Nunca comece com "How do I say...".
+   - Extraia somente a frase alvo depois de "como falo", "me ajuda a falar", "me ensina a dizer", "quero falar" etc. No exemplo "me ajuda a falar eu quero beber agua", a frase alvo e "eu quero beber agua".
+   - corrected_sentence: entregue a frase natural em ingles da frase alvo (ex: "I am tired today.", "I want to drink water."). Nunca traduza o pedido inteiro e nunca comece com "How do I say..." ou "Can you help me say...".
    - Um pedido de ajuda em portugues nao e erro: nao ridicularize, nao insulte e nao diga que o usuario falou errado.
 11. Se o usuario pedir para conversar:
    - correct=true, mistake_type="learning_request"
