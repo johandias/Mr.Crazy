@@ -57,33 +57,38 @@ function seeded(index: number) {
 
 function makeSphereVoxels() {
   const voxels: Voxel[] = [];
-  const radius = 2.06;
-  const count = 1480;
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const radius = 2.04;
+  const latitudeRings = 46;
+  const equatorColumns = 94;
+  let index = 0;
 
-  for (let index = 0; index < count; index += 1) {
-    const seed = seeded(index);
-    const y = 1 - (index / (count - 1)) * 2;
-    const ringRadius = Math.sqrt(1 - y * y);
-    const theta = index * goldenAngle;
-    const surfaceNoise = 1 + (seed - 0.5) * 0.026;
+  for (let row = 0; row < latitudeRings; row += 1) {
+    const phi = ((row + 0.5) / latitudeRings) * Math.PI;
+    const ringRadius = Math.sin(phi);
+    const columns = Math.max(8, Math.round(equatorColumns * ringRadius));
+    const rowOffset = row % 2 === 0 ? 0 : Math.PI / columns;
 
-    const x = Math.cos(theta) * ringRadius * radius * surfaceNoise;
-    const voxelY = y * radius * surfaceNoise;
-    const z = Math.sin(theta) * ringRadius * radius * surfaceNoise;
-    const absX = Math.abs(x);
-    const eyeOpening = z > 1.64 && absX > 0.3 && absX < 1.08 && voxelY > 0.12 && voxelY < 0.78;
-    const mouthOpening = z > 1.66 && absX < 0.88 && voxelY > -1.02 && voxelY < -0.4;
+    for (let column = 0; column < columns; column += 1) {
+      const seed = seeded(index++);
+      const theta = (column / columns) * Math.PI * 2 + rowOffset;
+      const surfaceNoise = 1 + (seed - 0.5) * 0.012;
+      const x = Math.cos(theta) * ringRadius * radius * surfaceNoise;
+      const voxelY = Math.cos(phi) * radius * surfaceNoise;
+      const z = Math.sin(theta) * ringRadius * radius * surfaceNoise;
+      const absX = Math.abs(x);
+      const eyeOpening = z > 1.64 && absX > 0.28 && absX < 1.1 && voxelY > 0.08 && voxelY < 0.82;
+      const mouthOpening = z > 1.66 && absX < 0.92 && voxelY > -1.06 && voxelY < -0.34;
 
-    if (eyeOpening || mouthOpening) continue;
+      if (eyeOpening || mouthOpening) continue;
 
-    voxels.push({
-      x,
-      y: voxelY,
-      z,
-      seed,
-      size: 0.172 + seed * 0.036
-    });
+      voxels.push({
+        x,
+        y: voxelY,
+        z,
+        seed,
+        size: 0.112 + seed * 0.018
+      });
+    }
   }
 
   return voxels;
@@ -95,18 +100,18 @@ function makeEyeSocketVoxels() {
 
   [-1, 1].forEach((side) => {
     const s = side as -1 | 1;
-    for (let row = 0; row < 3; row += 1) {
-      for (let col = 0; col < 6; col += 1) {
-        if ((row === 0 || row === 2) && (col === 0 || col === 5)) continue;
-        const localX = col - 2.5;
-        const x = s * 0.68 + localX * 0.132;
-        const y = 0.59 - row * 0.145 + s * localX * 0.055;
+    for (let row = 0; row < 5; row += 1) {
+      for (let col = 0; col < 9; col += 1) {
+        if ((row === 0 || row === 4) && (col < 2 || col > 6)) continue;
+        const localX = col - 4;
+        const x = s * 0.68 + localX * 0.088;
+        const y = 0.68 - row * 0.096 + s * localX * 0.035;
         voxels.push({
           x,
           y,
           z: frontZ(x, y) + 0.015,
           seed: seeded(430 + index++),
-          size: 0.16,
+          size: 0.105,
           side: s
         });
       }
@@ -118,20 +123,20 @@ function makeEyeSocketVoxels() {
 
 function makeMouthSocketVoxels() {
   const voxels: Voxel[] = [];
-  const rows = [7, 9, 9, 7];
+  const rows = [7, 11, 13, 11];
   let index = 0;
 
   rows.forEach((cols, row) => {
     for (let col = 0; col < cols; col += 1) {
       const localX = col - (cols - 1) / 2;
-      const x = localX * 0.16;
-      const y = -0.5 - row * 0.16 + Math.abs(localX) * 0.006;
+      const x = localX * 0.105;
+      const y = -0.52 - row * 0.12 + Math.abs(localX) * 0.003;
       voxels.push({
         x,
         y,
         z: frontZ(x, y) + 0.015,
         seed: seeded(760 + index++),
-        size: 0.17,
+        size: 0.105,
         part: row < 2 ? "upper" : row > 2 ? "lower" : "center"
       });
     }
@@ -142,13 +147,13 @@ function makeMouthSocketVoxels() {
 
 function makeTeethVoxels() {
   const positions = [
-    [-0.36, -0.57, "upper"],
-    [-0.18, -0.61, "upper"],
-    [0, -0.58, "upper"],
-    [0.18, -0.62, "upper"],
-    [0.36, -0.56, "upper"],
-    [-0.27, -0.91, "lower"],
-    [0.28, -0.9, "lower"]
+    [-0.36, -0.59, "upper"],
+    [-0.24, -0.61, "upper"],
+    [-0.12, -0.62, "upper"],
+    [0, -0.63, "upper"],
+    [0.12, -0.62, "upper"],
+    [0.24, -0.61, "upper"],
+    [0.36, -0.59, "upper"]
   ] as const;
 
   return positions.map(([x, y, part], index) => {
@@ -157,22 +162,22 @@ function makeTeethVoxels() {
       y,
       z: frontZ(x, y) + 0.2,
       seed: seeded(940 + index),
-      size: 0.105 + (index % 2) * 0.012,
+      size: 0.086 + (index % 2) * 0.004,
       part
     };
   });
 }
 
 function makeMouthGlowVoxels() {
-  return Array.from({ length: 4 }, (_, index) => {
-    const x = (index - 1.5) * 0.14;
-    const y = -0.81 - Math.abs(index - 1.5) * 0.018;
+  return Array.from({ length: 5 }, (_, index) => {
+    const x = (index - 2) * 0.11;
+    const y = -0.82 - Math.abs(index - 2) * 0.012;
     return {
       x,
       y,
       z: frontZ(x, y) + 0.17,
       seed: seeded(980 + index),
-      size: 0.105,
+      size: 0.082,
       part: "lower" as const
     };
   });
@@ -205,7 +210,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: isCenter ? 0.19 : 0.175,
+            size: isCenter ? 0.122 : 0.108,
             part: isCenter ? "center" : undefined,
             side: s
           });
@@ -229,7 +234,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: 0.18,
+            size: 0.108,
             side: s
           });
         }
@@ -251,7 +256,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: emotion === "crazy" ? 0.19 : 0.18,
+            size: emotion === "crazy" ? 0.116 : 0.108,
             side: s
           });
         }
@@ -262,17 +267,61 @@ function makeEyeVoxels(emotion: Emotion) {
   return voxels;
 }
 
+function makePupilVoxels(emotion: Emotion) {
+  return [-1, 1].flatMap((side, sideIndex) => {
+    const s = side as -1 | 1;
+    const focusX = emotion === "annoyed" ? s * -0.025 : 0;
+    const focusY = emotion === "crazy" ? 0.025 : 0;
+
+    return [
+      {
+        x: s * 0.68 + focusX,
+        y: 0.43 + focusY,
+        z: frontZ(s * 0.68, 0.43) + 0.39,
+        seed: seeded(610 + sideIndex * 3),
+        size: 0.082,
+        part: "center" as const,
+        side: s
+      },
+      {
+        x: s * 0.68 + focusX,
+        y: 0.34 + focusY,
+        z: frontZ(s * 0.68, 0.34) + 0.38,
+        seed: seeded(611 + sideIndex * 3),
+        size: 0.072,
+        part: "center" as const,
+        side: s
+      }
+    ];
+  });
+}
+
+function makeEyeHighlightVoxels() {
+  return [-1, 1].map((side, index) => {
+    const s = side as -1 | 1;
+    return {
+      x: s * 0.68 - 0.025,
+      y: 0.48,
+      z: frontZ(s * 0.68, 0.48) + 0.48,
+      seed: seeded(640 + index),
+      size: 0.035,
+      part: "center" as const,
+      side: s
+    };
+  });
+}
+
 function makeBrowVoxels(emotion: Emotion) {
   const voxels: Voxel[] = [];
   let index = 0;
 
   [-1, 1].forEach((side) => {
     const s = side as -1 | 1;
-    const count = 6;
+    const count = 9;
 
     for (let col = 0; col < count; col += 1) {
       const localX = col - (count - 1) / 2;
-      const x = s * 0.68 + localX * 0.098;
+      const x = s * 0.68 + localX * 0.066;
       let y = 0.69;
 
       if (emotion === "calm") {
@@ -301,7 +350,7 @@ function makeBrowVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.02,
         seed: seeded(650 + index++),
-        size: 0.125,
+        size: 0.084,
         part: "brow",
         side: s
       });
@@ -321,7 +370,7 @@ function makeMouthVoxels(emotion: Emotion) {
     const upperCols = 7;
     for (let col = 0; col < upperCols; col += 1) {
       const localX = col - (upperCols - 1) / 2;
-      const x = localX * 0.1;
+      const x = localX * 0.085;
       const curve = Math.abs(localX) ** 1.7 * 0.022;
       const y = -0.64 + curve;
 
@@ -330,7 +379,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.12,
+        size: 0.078,
         part: "upper"
       });
     }
@@ -339,7 +388,7 @@ function makeMouthVoxels(emotion: Emotion) {
     const lowerCols = 5;
     for (let col = 0; col < lowerCols; col += 1) {
       const localX = col - (lowerCols - 1) / 2;
-      const x = localX * 0.1;
+      const x = localX * 0.085;
       const curve = Math.abs(localX) ** 1.7 * 0.016;
       const y = -0.74 + curve;
 
@@ -348,26 +397,26 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.12,
+        size: 0.078,
         part: "lower"
       });
     }
 
     // Cantos do sorriso
     voxels.push({
-      x: -0.36,
+      x: -0.3,
       y: -0.61,
       z: frontZ(-0.36, -0.61) + 0.03,
       seed: seeded(820 + index++),
-      size: 0.115,
+      size: 0.075,
       part: "corner"
     });
     voxels.push({
-      x: 0.36,
+      x: 0.3,
       y: -0.61,
       z: frontZ(0.36, -0.61) + 0.03,
       seed: seeded(820 + index++),
-      size: 0.115,
+      size: 0.075,
       part: "corner"
     });
 
@@ -379,7 +428,7 @@ function makeMouthVoxels(emotion: Emotion) {
     const cols = 8;
     for (let col = 0; col < cols; col += 1) {
       const localX = col - (cols - 1) / 2;
-      const x = localX * 0.105;
+      const x = localX * 0.085;
       const curl = localX * 0.035 - Math.abs(localX) * 0.015;
       const y = -0.67 + curl;
 
@@ -388,14 +437,14 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.125,
+        size: 0.08,
         part: localX < 0 ? "lower" : "upper"
       });
     }
 
     for (let col = 1; col < cols - 1; col += 1) {
       const localX = col - (cols - 1) / 2;
-      const x = localX * 0.1;
+      const x = localX * 0.082;
       const curl = localX * 0.03;
       const y = -0.76 + curl;
 
@@ -404,7 +453,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.12,
+        size: 0.078,
         part: "lower"
       });
     }
@@ -415,15 +464,15 @@ function makeMouthVoxels(emotion: Emotion) {
   // Irritated & Crazy: Boca ampla com dentes ou careta enérgica
   const rows = emotion === "irritated"
     ? [
-        { y: -0.58, cols: 7, width: 0.76, part: "upper" as const },
-        { y: -0.72, cols: 9, width: 0.96, part: "center" as const },
-        { y: -0.86, cols: 7, width: 0.76, part: "lower" as const }
+        { y: -0.58, cols: 9, width: 0.64, part: "upper" as const },
+        { y: -0.72, cols: 11, width: 0.78, part: "center" as const },
+        { y: -0.86, cols: 9, width: 0.64, part: "lower" as const }
       ]
     : [
-        { y: -0.52, cols: 8, width: 0.88, part: "upper" as const },
-        { y: -0.68, cols: 11, width: 1.12, part: "center" as const },
-        { y: -0.84, cols: 11, width: 1.12, part: "center" as const },
-        { y: -0.98, cols: 9, width: 0.94, part: "lower" as const }
+        { y: -0.54, cols: 9, width: 0.72, part: "upper" as const },
+        { y: -0.68, cols: 13, width: 0.88, part: "center" as const },
+        { y: -0.82, cols: 13, width: 0.88, part: "center" as const },
+        { y: -0.94, cols: 9, width: 0.7, part: "lower" as const }
       ];
 
   rows.forEach((rowConfig, row) => {
@@ -443,7 +492,7 @@ function makeMouthVoxels(emotion: Emotion) {
         y,
         z: frontZ(x, y) + 0.03,
         seed: seeded(820 + index++),
-        size: 0.13 + seeded(index) * 0.02,
+        size: 0.076 + seeded(index) * 0.012,
         part: rowConfig.part
       });
     }
@@ -453,7 +502,7 @@ function makeMouthVoxels(emotion: Emotion) {
 }
 
 function makeDebrisVoxels() {
-  return Array.from({ length: 52 }).map((_, index) => {
+  return Array.from({ length: 34 }).map((_, index) => {
     const seed = seeded(1000 + index);
     const theta = seed * Math.PI * 2;
     const phi = seeded(1200 + index) * Math.PI;
@@ -464,7 +513,7 @@ function makeDebrisVoxels() {
       y: Math.cos(phi) * radius * 0.82,
       z: Math.sin(theta) * Math.sin(phi) * radius,
       seed,
-      size: 0.115 + seed * 0.1
+      size: 0.072 + seed * 0.065
     };
   });
 }
@@ -557,8 +606,8 @@ function InstancedVoxels({
     voxels.forEach((voxel, index) => {
       const unstable = variant === "body" && voxel.seed < intensity * 0.3;
       const faceTwitch = variant !== "body" && variant !== "debris" ? Math.sin(time * 12 + index) * intensity * 0.016 : 0;
-      const jitter = unstable ? Math.sin(time * (10 + voxel.seed * 10) + voxel.seed * 20) * intensity * 0.11 : faceTwitch;
-      const push = unstable ? intensity * voxel.seed * 0.18 : 0;
+      const jitter = unstable ? Math.sin(time * (10 + voxel.seed * 10) + voxel.seed * 20) * intensity * 0.045 : faceTwitch;
+      const push = unstable ? intensity * voxel.seed * 0.08 : 0;
 
       if (variant === "debris") {
         const visible = voxel.seed < activeDebris;
@@ -637,8 +686,8 @@ function InstancedVoxels({
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial
         color="#ffffff"
-        roughness={variant === "mouth" ? 0.7 : 0.34}
-        metalness={variant === "body" ? 0.16 : 0.08}
+        roughness={variant === "mouth" ? 0.68 : 0.42}
+        metalness={variant === "body" ? 0.1 : 0.05}
         emissive={emissive ?? color}
         emissiveIntensity={emissiveIntensity}
         vertexColors
@@ -681,6 +730,8 @@ function CrazyScene({
   const bodyVoxels = useMemo(() => makeSphereVoxels(), []);
   const eyeSocketVoxels = useMemo(() => makeEyeSocketVoxels(), []);
   const eyeVoxels = useMemo(() => makeEyeVoxels(emotion), [emotion]);
+  const pupilVoxels = useMemo(() => makePupilVoxels(emotion), [emotion]);
+  const eyeHighlightVoxels = useMemo(() => makeEyeHighlightVoxels(), []);
   const browVoxels = useMemo(() => makeBrowVoxels(emotion), [emotion]);
   const mouthSocketVoxels = useMemo(() => makeMouthSocketVoxels(), []);
   const mouthVoxels = useMemo(() => makeMouthVoxels(emotion), [emotion]);
@@ -779,6 +830,23 @@ function CrazyScene({
           color={palette.eye}
           emissive={palette.eye}
           emissiveIntensity={0.86 + crazyLevel / 170}
+          crazyLevel={crazyLevel}
+          voiceState={voiceState}
+          variant="eye"
+        />
+        <InstancedVoxels
+          voxels={pupilVoxels}
+          color="#210706"
+          emissive="#000000"
+          crazyLevel={crazyLevel}
+          voiceState={voiceState}
+          variant="eye"
+        />
+        <InstancedVoxels
+          voxels={eyeHighlightVoxels}
+          color="#fff8d7"
+          emissive="#fff2b5"
+          emissiveIntensity={0.9}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
           variant="eye"

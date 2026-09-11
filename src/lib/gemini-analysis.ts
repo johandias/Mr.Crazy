@@ -1,5 +1,6 @@
 import {
   analyzeEnglishSentence,
+  calibrateAttemptMetrics,
   clampCrazyLevel,
   getEmotion,
   normalizeLearningLevel,
@@ -190,7 +191,7 @@ ${isFreeConversation
     ? "3. Modo conversa livre: Nao obrigue o usuario a falar ingles imediatamente e nunca trate portugues como erro. Converse, entenda a situacao e ofereca uma frase util em ingles quando isso ajudar o que ele quer dizer."
     : "3. Modo de treino: Conduza o tema escolhido e use portugues apenas como apoio proporcional ao nivel."}
 4. Conteudo primeiro: Na "reaction", reconheca a ideia do aluno em uma frase curta antes de corrigir. Ex: se ele falou do trabalho, reaja ao trabalho; se falou de viagem, reaja a viagem.
-5. Reacao ("reaction"): Uma frase muito curta, direta e variada. Seja impaciente, estressado, sarcastico e engracado. Pode usar ocasionalmente "burro", "idiota", "preguicoso" ou "cabeca de vento", sem repetir o mesmo insulto em turnos proximos. Nunca use odio, discriminacao, ameaca ou insulto sexual.
+5. Reacao ("reaction"): Uma frase muito curta, direta e variada. Mantenha a personalidade impaciente e engracada, mas seja professor antes de ser carrasco. Use provocacao leve raramente, nunca em toda correcao e nunca para punir um iniciante que tentou se comunicar.
 6. Explicacao ("correction"): No maximo uma frase curta e pratica em portugues. Mostre o erro e a forma certa, sem aula longa.
    - A correcao e mais importante que a piada. Cite o trecho exato realmente dito, mostre "errado -> correto", explique o motivo e inclua a frase americana completa corrigida. Nunca entregue apenas uma reacao generica.
 7. Proximo passo ("follow_up"): No maximo uma frase curta. Se houve erro, mande repetir a correcao. Em conversa livre, continue o assunto naturalmente e so proponha ingles quando fizer sentido.
@@ -207,6 +208,12 @@ ${isFreeConversation
 13. Fora do modo conversa livre, se o aluno acertou, o campo "follow_up" deve terminar com uma pergunta em ingles entre aspas. Se errou, deve terminar pedindo a frase corrigida entre aspas.
 14. A soma de "reaction", "correction" e "follow_up" deve ter no maximo 45 palavras. Nunca escreva paragrafos.
 15. No nivel basico, ajude com blocos prontos: "Para pedir as horas, diga: 'What time is it?'" ou "Para dar bom dia, diga: 'Good morning.'" Adapte esse formato livremente ao contexto real, sem se limitar aos exemplos.
+16. Ensine rapido: corrija apenas o ponto de maior impacto por turno, transforme-o em uma regra reutilizavel e avance para uma nova frase curta. Nao acumule uma lista de erros na mesma resposta.
+17. Pontuacao honesta por nivel: "pronunciation_score" representa a qualidade geral da tentativa (clareza, gramatica e adequacao), nao apenas pronuncia. Nunca dê nota alta como se estivesse perfeito quando houver erro real.
+   - Basico: erros pequenos que nao mudam o sentido podem receber 84-89 e devem ser tratados como boa comunicacao com um ajuste rapido.
+   - Intermediario: erros pequenos podem receber 80-86; erros de estrutura ou que mudam o sentido recebem menos.
+   - Avancado: cobre mais precisao e naturalidade; o mesmo erro deve reduzir mais a nota.
+   - Pedido de ajuda nao e tentativa avaliada. Responda ensinando, sem fingir que mediu pronuncia.
 
 Retorne somente JSON valido neste formato:
 {
@@ -276,6 +283,7 @@ async function requestGemini(apiKey: string, prompt: string) {
 function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fallback: AnalysisResponse): AnalysisResponse {
   const modelCorrect = typeof raw.correct === "boolean" ? raw.correct : fallback.correct;
   let mistake_type = normalizeMistake(raw.mistake_type, modelCorrect ? "none" : fallback.mistake_type);
+  const hasDeterministicDiagnosis = fallback.mistake_type !== "none" && fallback.mistake_type !== "learning_request";
 
   if (!modelCorrect && mistake_type === "none") {
     mistake_type = fallback.mistake_type !== "none" ? fallback.mistake_type : "sentence_fragment";
@@ -283,35 +291,45 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
 
   if (fallback.mistake_type === "learning_request") {
     mistake_type = "learning_request";
-  } else if (fallback.mistake_type === "sentence_fragment") {
-    mistake_type = "sentence_fragment";
+  } else if (hasDeterministicDiagnosis) {
+    mistake_type = fallback.mistake_type;
   }
 
   const correct = (modelCorrect && mistake_type === "none") || mistake_type === "learning_request";
-  let crazy_delta = asNumber(raw.crazy_delta, fallback.crazy_delta, -14, 20);
-  if (!correct && crazy_delta <= 0) {
-    crazy_delta = fallback.crazy_delta > 0 ? fallback.crazy_delta : 10;
-  }
-  if (correct && crazy_delta > 0) {
-    crazy_delta = -4;
-  }
-
-  const nextCrazyLevel = clampCrazyLevel((request.crazyLevel ?? 14) + crazy_delta);
+  const learningLevel = normalizeLearningLevel(request.learningLevel);
+  const metrics = calibrateAttemptMetrics({
+    correct,
+    mistakeType: mistake_type,
+    learningLevel,
+    rawScore: asNumber(raw.pronunciation_score, fallback.pronunciation_score, 45, 98),
+    rawXpDelta: asNumber(raw.xp_delta, fallback.xp_delta, 0, 24),
+    rawCrazyDelta: asNumber(raw.crazy_delta, fallback.crazy_delta, -14, 20),
+    repeated: (request.previousMistakes ?? []).includes(mistake_type)
+  });
+  const nextCrazyLevel = clampCrazyLevel((request.crazyLevel ?? 14) + metrics.crazyDelta);
 
   return {
     user_sentence: asString(raw.user_sentence, request.sentence, 180),
     correct,
     mistake_type,
-    mistake_word: mistake_type === "learning_request" ? null : asNullableString(raw.mistake_word, fallback.mistake_word),
-    correct_word: mistake_type === "learning_request" ? null : asNullableString(raw.correct_word, fallback.correct_word),
-    corrected_sentence: chooseCorrectedSentence(raw, request, fallback),
+    mistake_word: mistake_type === "learning_request"
+      ? null
+      : hasDeterministicDiagnosis
+        ? fallback.mistake_word
+        : asNullableString(raw.mistake_word, fallback.mistake_word),
+    correct_word: mistake_type === "learning_request"
+      ? null
+      : hasDeterministicDiagnosis
+        ? fallback.correct_word
+        : asNullableString(raw.correct_word, fallback.correct_word),
+    corrected_sentence: hasDeterministicDiagnosis ? fallback.corrected_sentence : chooseCorrectedSentence(raw, request, fallback),
     reaction: asPortugueseString(raw.reaction, fallback.reaction, 220),
-    correction: asPortugueseString(raw.correction, fallback.correction, 340),
-    follow_up: asFollowUp(raw.follow_up, fallback.follow_up),
-    crazy_delta,
+    correction: hasDeterministicDiagnosis ? fallback.correction : asPortugueseString(raw.correction, fallback.correction, 340),
+    follow_up: hasDeterministicDiagnosis ? fallback.follow_up : asFollowUp(raw.follow_up, fallback.follow_up),
+    crazy_delta: metrics.crazyDelta,
     emotion: getEmotion(nextCrazyLevel),
-    pronunciation_score: asNumber(raw.pronunciation_score, fallback.pronunciation_score, 45, 98),
-    xp_delta: asNumber(raw.xp_delta, fallback.xp_delta, 0, 24),
+    pronunciation_score: metrics.score,
+    xp_delta: metrics.xpDelta,
     provider: "gemini-live"
   };
 }

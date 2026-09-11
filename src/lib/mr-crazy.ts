@@ -110,6 +110,65 @@ export function normalizeLearningLevel(value?: string): LearningLevel {
   return "basic";
 }
 
+type MistakeSeverity = "minor" | "medium" | "major";
+
+function getMistakeSeverity(mistake: MistakeCategory): MistakeSeverity {
+  if (mistake === "preposition" || mistake === "pronunciation_epenthesis") return "minor";
+  if (mistake === "sentence_fragment" || mistake === "false_cognate" || mistake === "portuguese_input") return "major";
+  return "medium";
+}
+
+export function calibrateAttemptMetrics({
+  correct,
+  mistakeType,
+  learningLevel,
+  rawScore,
+  rawXpDelta,
+  rawCrazyDelta,
+  repeated
+}: Readonly<{
+  correct: boolean;
+  mistakeType: MistakeCategory;
+  learningLevel: LearningLevel;
+  rawScore: number;
+  rawXpDelta: number;
+  rawCrazyDelta: number;
+  repeated: boolean;
+}>) {
+  if (mistakeType === "learning_request") {
+    return { score: 95, xpDelta: Math.max(6, Math.min(12, rawXpDelta)), crazyDelta: -3 };
+  }
+
+  if (correct) {
+    const levelFloor: Record<LearningLevel, number> = { basic: 92, intermediate: 90, advanced: 88 };
+    return {
+      score: Math.max(levelFloor[learningLevel], Math.min(98, Math.round(rawScore))),
+      xpDelta: Math.max(14, Math.min(20, rawXpDelta)),
+      crazyDelta: Math.min(-2, rawCrazyDelta)
+    };
+  }
+
+  const severity = getMistakeSeverity(mistakeType);
+  const scoreBase: Record<LearningLevel, Record<MistakeSeverity, number>> = {
+    basic: { minor: 87, medium: 82, major: 75 },
+    intermediate: { minor: 84, medium: 76, major: 68 },
+    advanced: { minor: 79, medium: 70, major: 61 }
+  };
+  const rawAdjustment = Math.max(-3, Math.min(3, Math.round(rawScore) - 80));
+  const score = scoreBase[learningLevel][severity] + rawAdjustment - (repeated ? 3 : 0);
+  const crazyBase: Record<LearningLevel, Record<MistakeSeverity, number>> = {
+    basic: { minor: 2, medium: 4, major: 7 },
+    intermediate: { minor: 3, medium: 6, major: 9 },
+    advanced: { minor: 5, medium: 8, major: 12 }
+  };
+
+  return {
+    score: Math.max(45, Math.min(89, score)),
+    xpDelta: Math.max(6, Math.min(13, rawXpDelta)),
+    crazyDelta: Math.max(1, Math.min(14, crazyBase[learningLevel][severity] + (repeated ? 2 : 0)))
+  };
+}
+
 function getNextConversationQuestion(level: LearningLevel, mode = "free-conversation", turnCount = 0) {
   const questionsByMode: Record<string, Record<LearningLevel, string[]>> = {
     "work-english": {
@@ -604,11 +663,21 @@ export function analyzeEnglishSentence(
     xp_delta = 10;
   }
 
-  const nextLevel = clampCrazyLevel((request.crazyLevel ?? 14) + crazy_delta);
+  const correct = mistake_type === "none" || mistake_type === "learning_request";
+  const metrics = calibrateAttemptMetrics({
+    correct,
+    mistakeType: mistake_type,
+    learningLevel,
+    rawScore: pronunciation_score,
+    rawXpDelta: xp_delta,
+    rawCrazyDelta: crazy_delta,
+    repeated: previousMistakes.includes(mistake_type)
+  });
+  const nextLevel = clampCrazyLevel((request.crazyLevel ?? 14) + metrics.crazyDelta);
 
   return {
     user_sentence: sentence,
-    correct: mistake_type === "none" || mistake_type === "learning_request",
+    correct,
     mistake_type,
     mistake_word,
     correct_word,
@@ -616,10 +685,10 @@ export function analyzeEnglishSentence(
     reaction,
     correction,
     follow_up,
-    crazy_delta,
+    crazy_delta: metrics.crazyDelta,
     emotion: getEmotion(nextLevel),
-    pronunciation_score,
-    xp_delta,
+    pronunciation_score: metrics.score,
+    xp_delta: metrics.xpDelta,
     provider
   };
 }

@@ -373,6 +373,14 @@ export function PracticeExperience() {
   const silenceTimerRef = useRef<number | null>(null);
   const introSpokenRef = useRef(false);
   const realtimeRef = useRef<RealtimeController | null>(null);
+  const lastScoredTranscriptRef = useRef("");
+  const scoringContextRef = useRef({
+    mistakes: [] as MistakeCategory[],
+    crazyLevel: 16,
+    selectedMode: "free-conversation",
+    selectedLevel: "basic" as LearningLevel,
+    contextHistory: [] as ConversationTurn[]
+  });
 
   const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]);
   const activeLevel = useMemo(
@@ -391,6 +399,10 @@ export function PracticeExperience() {
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
   const hasSpeechRecognition =
     typeof window !== "undefined" && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  useEffect(() => {
+    scoringContextRef.current = { mistakes, crazyLevel, selectedMode, selectedLevel, contextHistory };
+  }, [contextHistory, crazyLevel, mistakes, selectedLevel, selectedMode]);
 
   useEffect(() => {
     if (!canSpeak) return;
@@ -481,6 +493,64 @@ export function PracticeExperience() {
     silenceTimerRef.current = null;
   }, []);
 
+  const applyAnalysisResult = useCallback((result: AnalysisResponse, sentence: string, addConversationContext: boolean) => {
+    setAnalysis(result);
+    setCrazyLevel((current) => clampCrazyLevel(current + result.crazy_delta));
+    setXp((current) => current + result.xp_delta);
+
+    if (!result.correct) {
+      setMistakes((current) => [result.mistake_type, ...current].slice(0, 12));
+    }
+
+    setHistory((current) =>
+      [
+        {
+          sentence: result.user_sentence,
+          corrected: result.corrected_sentence,
+          mistake: result.mistake_type,
+          createdAt: new Date().toISOString()
+        },
+        ...current
+      ].slice(0, 6)
+    );
+
+    if (addConversationContext) {
+      setContextHistory((current) => [
+        ...current.slice(-4),
+        { role: "user", text: sentence },
+        { role: "crazy", text: `${result.reaction} ${result.correction} ${result.follow_up}` }
+      ]);
+    }
+  }, []);
+
+  const scoreRealtimeSentence = useCallback(async (sentence: string) => {
+    const cleanSentence = sentence.trim();
+    if (!cleanSentence || lastScoredTranscriptRef.current === cleanSentence) return;
+
+    lastScoredTranscriptRef.current = cleanSentence;
+    const current = scoringContextRef.current;
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sentence: cleanSentence,
+          previousMistakes: current.mistakes,
+          crazyLevel: current.crazyLevel,
+          mode: current.selectedMode,
+          learningLevel: current.selectedLevel,
+          contextHistory: [...current.contextHistory, { role: "user", text: cleanSentence }]
+        })
+      });
+
+      if (!response.ok) throw new Error("realtime scoring failed");
+      applyAnalysisResult((await response.json()) as AnalysisResponse, cleanSentence, false);
+    } catch {
+      lastScoredTranscriptRef.current = "";
+    }
+  }, [applyAnalysisResult]);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const stored = getStoredSession();
@@ -559,13 +629,14 @@ export function PracticeExperience() {
           transcriptRef.current = text;
           if (complete && text.trim()) {
             setContextHistory((current) => [...current.slice(-8), { role: "user", text: text.trim() }]);
+            void scoreRealtimeSentence(text);
           }
         },
         onAssistantTranscript: (text, complete) => {
           setRealtimeReply(text);
           if (complete && text.trim()) {
             setContextHistory((current) => [...current.slice(-8), { role: "crazy", text: text.trim() }]);
-            setXp((current) => current + 4);
+            lastScoredTranscriptRef.current = "";
           }
         },
         onError: setErrorMessage
@@ -587,7 +658,7 @@ export function PracticeExperience() {
       activeController?.disconnect();
       if (realtimeRef.current === activeController) realtimeRef.current = null;
     };
-  }, [cancelSpeech, selectedLevel, selectedMode, storageReady]);
+  }, [cancelSpeech, scoreRealtimeSentence, selectedLevel, selectedMode, storageReady]);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -644,32 +715,7 @@ export function PracticeExperience() {
       }
 
       const result = (await response.json()) as AnalysisResponse;
-      const nextCrazyLevel = clampCrazyLevel(crazyLevel + result.crazy_delta);
-      setAnalysis(result);
-      setCrazyLevel(nextCrazyLevel);
-      setXp((current) => current + result.xp_delta);
-      setContextHistory((prev) => [
-        ...prev.slice(-4),
-        { role: "user", text: cleanSentence },
-        { role: "crazy", text: `${result.reaction} ${result.correction} ${result.follow_up}` }
-      ]);
-
-      if (!result.correct) {
-        setMistakes((current) => [result.mistake_type, ...current].slice(0, 12));
-      }
-
-      setHistory((current) =>
-        [
-          {
-            sentence: result.user_sentence,
-            corrected: result.corrected_sentence,
-            mistake: result.mistake_type,
-            createdAt: new Date().toISOString()
-          },
-          ...current
-        ].slice(0, 6)
-      );
-
+      applyAnalysisResult(result, cleanSentence, true);
       speak(`${result.reaction} ${result.correction} ${result.follow_up}`);
     } catch {
       setErrorMessage("A análise falhou. Digite uma frase e tente de novo.");
@@ -803,6 +849,7 @@ export function PracticeExperience() {
   function submitSentence(sentence: string) {
     if (realtimeStatus === "connected" && realtimeRef.current?.sendText(sentence)) {
       setAnalysis(null);
+      void scoreRealtimeSentence(sentence);
       return;
     }
 
@@ -831,6 +878,7 @@ export function PracticeExperience() {
     setTranscript("");
     transcriptRef.current = "";
     setContextHistory([]);
+    lastScoredTranscriptRef.current = "";
     setVoiceState("idle");
     setOpeningIndex(getNextOpeningIndex());
     introSpokenRef.current = false;
@@ -966,7 +1014,9 @@ export function PracticeExperience() {
                     disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "preparing_speech" || voiceState === "analyzing"}
                   />
                 </div>
-                <PronunciationFeedback score={analysis.pronunciation_score} />
+                <PronunciationFeedback
+                  score={analysis.mistake_type === "learning_request" ? null : analysis.pronunciation_score}
+                />
               </>
             ) : null}
           </motion.aside>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Settings, TimerReset } from "lucide-react";
+import { MobileNav } from "@/components/MobileNav";
 
 export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -25,6 +26,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
         </div>
       </header>
       {children}
+      <MobileNav />
     </div>
   );
 }
