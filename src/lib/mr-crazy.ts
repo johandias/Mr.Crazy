@@ -254,6 +254,13 @@ const wrongIntros = [
   "Quase passou batido, só que"
 ];
 
+const repeatedWrongIntros = [
+  "De novo esse tropeço, cabeça de vento!",
+  "Aí você está insistindo no erro, cabaço.",
+  "Respira, usuário de ChatGPT, é o mesmo ajuste de novo.",
+  "Agora minha paciência deu uma sentada, burro: é o mesmo erro."
+];
+
 function getPositiveReaction() {
   return pickVariant(positiveReactions);
 }
@@ -265,6 +272,30 @@ function getPositiveCorrection() {
 function getWrongReaction(detail: string) {
   const intro = pickVariant(wrongIntros);
   return `${intro} ${detail}`;
+}
+
+function getRepeatedWrongReaction(detail: string) {
+  const intro = pickVariant(repeatedWrongIntros);
+  return `${intro} ${detail}`;
+}
+
+function hasConsecutiveMistake(previousMistakes: readonly string[], mistakeType: MistakeCategory) {
+  return mistakeType !== "none" && mistakeType !== "learning_request" && previousMistakes[0] === mistakeType;
+}
+
+function getAlternativeExpression(mistakeType: MistakeCategory, correctedSentence: string) {
+  const clean = removeFinalPunctuation(correctedSentence);
+  const alternatives: Partial<Record<MistakeCategory, string>> = {
+    past_tense: "Se travar no passado, use também: \"I was there yesterday.\" quando combinar com a ideia.",
+    age_expression: "Alternativa curta e natural: \"I'm 22.\"",
+    preposition: "Outra forma natural: \"I have to go home.\"",
+    sentence_fragment: `Se a frase emperrar, usa esse molde: "${clean}".`,
+    question_auxiliary: "Molde rápido de pergunta: \"Do you...?\" ou \"Did you...?\"",
+    pronunciation_epenthesis: "Para treinar o som, fala devagar sem vogal extra no final e depois acelera.",
+    false_cognate: "Se for ideia de plano, use \"plan to\" ou \"intend to\"."
+  };
+
+  return alternatives[mistakeType] ?? `Usa uma versão mais simples por enquanto: "${clean}."`;
 }
 
 type FragmentFix = {
@@ -412,6 +443,51 @@ function isConversationRequest(sentence: string) {
   return /\b(vamos|bora|quero|podemos|pode)\b.*\b(conversar|praticar|treinar|bate papo)\b/u.test(normalized);
 }
 
+function isUnderstandingRequest(sentence: string) {
+  const normalized = normalizeText(sentence);
+  return (
+    /\b(nao|n)\s+(entendi|entendo|compreendi|peguei)\b/u.test(normalized) ||
+    /\b(me\s+)?explica(r)?\b/u.test(normalized) ||
+    /\b(o\s+que\s+quer\s+dizer|o\s+que\s+significa|qual\s+foi\s+o\s+erro)\b/u.test(normalized) ||
+    /\b(pode\s+repetir|repete|fala\s+de\s+novo)\b/u.test(normalized)
+  );
+}
+
+function isPronunciationHelpRequest(sentence: string) {
+  const normalized = normalizeText(sentence);
+  return /\b(pronuncia|pronunciar|som|sotaque|fala(r)?\s+essa|como\s+se\s+fala)\b/u.test(normalized);
+}
+
+function getLastUsefulAssistantTurn(contextHistory?: ConversationTurn[]) {
+  return contextHistory
+    ?.slice()
+    .reverse()
+    .find((turn) => turn.role === "crazy" && turn.text.trim())?.text
+    .trim();
+}
+
+function getLastCorrectedSentence(contextHistory?: ConversationTurn[]) {
+  const assistantTurn = getLastUsefulAssistantTurn(contextHistory);
+  const quoted = assistantTurn?.match(/"([^"]+)"/u)?.[1]?.trim();
+  return quoted || null;
+}
+
+function extractPronunciationTarget(sentence: string, contextHistory?: ConversationTurn[]) {
+  const quoted = sentence.match(/["']([^"']+)["']/u)?.[1]?.trim();
+  if (quoted) return quoted;
+
+  const clean = removeFinalPunctuation(sentence);
+  const target = clean
+    .replace(/^\s*(me\s+)?ajuda\s+(com\s+a\s+)?pron[uú]ncia\s+(de|da|do)?\s*/iu, "")
+    .replace(/^\s*como\s+(eu\s+)?pronuncio\s*/iu, "")
+    .replace(/^\s*como\s+pronuncia\s*/iu, "")
+    .replace(/^\s*fala\s+essa\s+palavra\s*/iu, "")
+    .replace(/\s+em\s+ingl[eê]s$/iu, "")
+    .trim();
+
+  return target && target !== clean ? target : getLastCorrectedSentence(contextHistory) ?? "that sentence";
+}
+
 function looksPortuguese(sentence: string) {
   const normalized = normalizeText(sentence);
   return /\b(eu|voce|você|quero|preciso|como|falar|dizer|conversar|sobre|trabalho|hoje|amanha|amanhã|estou|sou|tenho|gosto)\b/u.test(
@@ -477,6 +553,8 @@ export function analyzeEnglishSentence(
   const turnCount = request.contextHistory?.filter((turn) => turn.role === "user").length ?? 0;
   const translationPhrase = extractTranslationRequest(sentence);
   const conversationRequested = isConversationRequest(sentence);
+  const understandingRequested = isUnderstandingRequest(sentence);
+  const pronunciationHelpRequested = isPronunciationHelpRequest(sentence);
   const fragmentFix = getSentenceFragmentFix(sentence);
   let mistake_type: MistakeCategory = "none";
   let mistake_word: string | null = null;
@@ -489,7 +567,29 @@ export function analyzeEnglishSentence(
   let pronunciation_score = 91;
   let xp_delta = 18;
 
-  if (fragmentFix) {
+  if (understandingRequested) {
+    const lastTarget = getLastCorrectedSentence(request.contextHistory) ?? getConversationPrompt(learningLevel, request.mode, sentence);
+    mistake_type = "learning_request";
+    corrected_sentence = lastTarget;
+    reaction = "Sem drama, isso é dúvida de aula, não erro.";
+    correction = `Eu estava trabalhando esta ideia: "${lastTarget}".`;
+    follow_up = learningLevel === "basic"
+      ? `Você pode responder simples assim: "${lastTarget}". Quer tentar comigo?`
+      : `Me diz onde travou e repete só esta parte: "${lastTarget}".`;
+    crazy_delta = -4;
+    pronunciation_score = 94;
+    xp_delta = 10;
+  } else if (pronunciationHelpRequested && !translationPhrase) {
+    const target = extractPronunciationTarget(sentence, request.contextHistory);
+    mistake_type = "learning_request";
+    corrected_sentence = target;
+    reaction = "Boa, pedir pronúncia antes de sair chutando é atitude inteligente.";
+    correction = `Vamos quebrar devagar: "${target}". Escuta o ritmo americano e copia sem enfiar vogal extra no final.`;
+    follow_up = `Repete curto agora: "${target}".`;
+    crazy_delta = -4;
+    pronunciation_score = 94;
+    xp_delta = 10;
+  } else if (fragmentFix) {
     mistake_type = "sentence_fragment";
     mistake_word = fragmentFix.mistake_word;
     correct_word = fragmentFix.correct_word;
@@ -664,6 +764,12 @@ export function analyzeEnglishSentence(
   }
 
   const correct = mistake_type === "none" || mistake_type === "learning_request";
+  const consecutiveRepeat = hasConsecutiveMistake(previousMistakes, mistake_type);
+  if (!correct && consecutiveRepeat) {
+    const directFix = mistake_word && correct_word ? `O ponto é "${mistake_word}" -> "${correct_word}".` : "É o mesmo tipo de erro de novo.";
+    reaction = getRepeatedWrongReaction(directFix);
+    follow_up = `${getAlternativeExpression(mistake_type, corrected_sentence)} Depois repete: "${removeFinalPunctuation(corrected_sentence)}".`;
+  }
   const metrics = calibrateAttemptMetrics({
     correct,
     mistakeType: mistake_type,

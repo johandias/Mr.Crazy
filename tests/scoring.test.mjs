@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { calibrateAttemptMetrics } from "../src/lib/mr-crazy.ts";
+import { analyzeEnglishSentence, calibrateAttemptMetrics } from "../src/lib/mr-crazy.ts";
 
 function score(learningLevel, mistakeType = "preposition", repeated = false) {
   return calibrateAttemptMetrics({
@@ -40,4 +40,45 @@ test("repeated errors receive a modest extra penalty", () => {
 
   assert.equal(repeatedAttempt.score, firstAttempt.score - 3);
   assert.equal(repeatedAttempt.crazyDelta, firstAttempt.crazyDelta + 2);
+});
+
+test("requests for explanation are treated as teaching moments", () => {
+  const result = analyzeEnglishSentence({
+    sentence: "Não entendi o erro",
+    mode: "free-conversation",
+    learningLevel: "basic",
+    contextHistory: [{ role: "crazy", text: 'Responde isso: "What did you do today?"' }]
+  });
+
+  assert.equal(result.correct, true);
+  assert.equal(result.mistake_type, "learning_request");
+  assert.match(result.correction, /What did you do today/u);
+  assert.ok(result.crazy_delta < 0);
+});
+
+test("pronunciation help is not scored as a wrong English attempt", () => {
+  const result = analyzeEnglishSentence({
+    sentence: "Me ajuda com a pronúncia de beautiful",
+    mode: "free-conversation",
+    learningLevel: "basic"
+  });
+
+  assert.equal(result.correct, true);
+  assert.equal(result.mistake_type, "learning_request");
+  assert.equal(result.corrected_sentence, "beautiful");
+  assert.match(result.follow_up, /beautiful/u);
+});
+
+test("consecutive repeated mistakes teach an easier alternative", () => {
+  const result = analyzeEnglishSentence({
+    sentence: "I need go home.",
+    mode: "free-conversation",
+    learningLevel: "basic",
+    previousMistakes: ["preposition"]
+  });
+
+  assert.equal(result.correct, false);
+  assert.equal(result.mistake_type, "preposition");
+  assert.match(result.reaction, /(cabaço|ChatGPT|burro|cabeça de vento)/u);
+  assert.match(result.follow_up, /I have to go home/u);
 });

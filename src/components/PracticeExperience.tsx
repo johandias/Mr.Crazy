@@ -136,12 +136,12 @@ const levelOptions: LevelOption[] = [
 ];
 
 const openingGreetings = [
-  "Opa, preguiçoso. Acorda esse inglês.",
-  "Chegou, cabeça de vento? Bora falar direito.",
-  "Vamos, burro esforçado. Hoje é sem enrolação.",
-  "E aí, idiota aplicado? Abre o ouvido.",
-  "Até que enfim apareceu. Bora destravar essa língua.",
-  "Acorda, dorminhoco. Seu inglês não vai treinar sozinho."
+  "Opa, preguiçoso. Bora acordar esse inglês.",
+  "Chegou. Hoje eu quero ver esse inglês sair sem drama.",
+  "Vamos destravar essa fala antes que ela crie poeira.",
+  "E aí, cabeça de vento aplicado? Vamos treinar direito.",
+  "Até que enfim apareceu. Bora fazer esse inglês trabalhar.",
+  "Acorda, campeão da enrolação. Me diz o foco de hoje."
 ];
 
 function getNextOpeningIndex() {
@@ -190,9 +190,9 @@ function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: numb
 
   if (mode === "free-conversation") {
     const invitations: Record<LearningLevel, string> = {
-      basic: "Hoje a conversa é livre. Me conta em português uma situação do seu dia e eu te ensino uma frase simples para usar nela.",
-      intermediate: "Hoje a conversa é livre. Puxa um assunto em português ou inglês e eu encaixo o treino sem transformar isso numa prova.",
-      advanced: "Hoje a conversa é livre. Escolha um assunto e eu entro na conversa, corrigindo apenas quando houver algo que realmente valha ajustar."
+      basic: "O que você quer aprender hoje: uma situação do dia, uma frase específica ou conversa livre?",
+      intermediate: "O que você quer treinar hoje: conversa livre, trabalho, viagem ou alguma frase que travou?",
+      advanced: "Qual assunto você quer destravar hoje? Pode ser livre; eu corrijo só o que realmente atrapalhar."
     };
 
     return `${greeting} ${invitations[level]}`;
@@ -200,7 +200,7 @@ function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: numb
 
   const briefing = getTrainingBriefing(level, mode);
 
-  return `${greeting} Hoje: ${briefing.focus}. "${briefing.question}" Responde em inglês.`;
+  return `${greeting} Hoje vamos treinar ${briefing.focus}; se quiser mudar o foco, fala agora. "${briefing.question}" Responde em inglês.`;
 }
 
 function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {

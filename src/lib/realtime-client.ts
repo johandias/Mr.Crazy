@@ -30,13 +30,13 @@ type ConnectRealtimeOptions = {
 function buildInitialResponse(level: LearningLevel, mode: string) {
   if (mode === "free-conversation") {
     const basicHelp = level === "basic"
-      ? "Ajude desde o começo com uma expressão curta e útil, mas primeiro descubra em português qual situação o usuário quer praticar."
-      : "Converse em português até surgir um contexto natural para praticar inglês.";
+      ? "Pergunte o que ele quer aprender hoje e ofereça ajuda com uma frase curta quando ele escolher a situação."
+      : "Pergunte o que ele quer aprender hoje e deixe o assunto nascer antes de puxar inglês.";
 
-    return `Inicie a sessão agora com no máximo duas frases curtas em português e pare. É conversa livre: não force uma pergunta em inglês, não liste opções e não dê exemplos antes de o usuário responder. ${basicHelp}`;
+    return `Inicie a sessão agora com no máximo duas frases curtas em português e pare. É conversa livre: pergunte o que o usuário quer aprender hoje ou se quer conversar livre, sem listar opções demais. ${basicHelp}`;
   }
 
-  return "Inicie a sessão agora. Faça uma provocação curta em português, diga em poucas palavras o foco do treino e termine com uma pergunta em inglês adequada ao nível escolhido. Não espere o usuário falar primeiro.";
+  return "Inicie a sessão agora. Pergunte em português o que o usuário quer aprender hoje, diga em poucas palavras o foco do treino escolhido e termine com uma pergunta em inglês adequada ao nível. Não espere o usuário falar primeiro.";
 }
 
 function getConnectionError(error: unknown) {

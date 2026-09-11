@@ -129,6 +129,16 @@ function isTranslationRequest(sentence: string) {
   return /(como|qual).*(falo|falar|fala|digo|dizer|se fala)/u.test(normalized);
 }
 
+function isUnderstandingOrPronunciationHelp(sentence: string) {
+  const normalized = normalizeText(sentence);
+  return (
+    /\b(nao|n)\s+(entendi|entendo|compreendi|peguei)\b/u.test(normalized) ||
+    /\b(me\s+)?explica(r)?\b/u.test(normalized) ||
+    /\b(o\s+que\s+quer\s+dizer|o\s+que\s+significa|qual\s+foi\s+o\s+erro)\b/u.test(normalized) ||
+    /\b(pronuncia|pronunciar|som|sotaque|fala(r)?\s+essa)\b/u.test(normalized)
+  );
+}
+
 function chooseCorrectedSentence(raw: RawAnalysis, request: AnalysisRequest, fallback: AnalysisResponse) {
   const corrected = asCorrectedSentence(raw.corrected_sentence, fallback.corrected_sentence);
   const normalized = normalizeText(corrected);
@@ -192,24 +202,31 @@ ${isFreeConversation
     : "3. Modo de treino: Conduza o tema escolhido e use portugues apenas como apoio proporcional ao nivel."}
 4. Conteudo primeiro: Na "reaction", reconheca a ideia do aluno em uma frase curta antes de corrigir. Ex: se ele falou do trabalho, reaja ao trabalho; se falou de viagem, reaja a viagem.
 5. Reacao ("reaction"): Uma frase muito curta, direta e variada. Mantenha a personalidade impaciente e engracada, mas seja professor antes de ser carrasco. Use provocacao leve raramente, nunca em toda correcao e nunca para punir um iniciante que tentou se comunicar.
+   - Use insultos leves apenas quando houver erro real repetido no historico recente. Pode variar com "burro", "idiota", "preguicoso", "cabeca de vento", "ignorante", "acefalo", "cabaco" ou "usuario de ChatGPT", mas nunca use termo discriminatorio.
 6. Explicacao ("correction"): No maximo uma frase curta e pratica em portugues. Mostre o erro e a forma certa, sem aula longa.
    - A correcao e mais importante que a piada. Cite o trecho exato realmente dito, mostre "errado -> correto", explique o motivo e inclua a frase americana completa corrigida. Nunca entregue apenas uma reacao generica.
 7. Proximo passo ("follow_up"): No maximo uma frase curta. Se houve erro, mande repetir a correcao. Em conversa livre, continue o assunto naturalmente e so proponha ingles quando fizer sentido.
 8. Evite respostas padrao como "Nao achei erro importante nessa frase" quando houver contexto. Seja especifico.
-9. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?"):
+9. Se o usuario disser que nao entendeu, pedir para explicar o erro, pedir ajuda de pronuncia ou contestar seu feedback:
+   - correct=true, mistake_type="learning_request"
+   - Responda ao feedback primeiro, em portugues, como professor paciente e direto.
+   - Explique a pergunta ou a correcao anterior em palavras simples, de uma possivel resposta americana curta e convide uma repeticao pequena.
+   - Nao empurre uma nova pergunta em ingles antes de resolver a duvida.
+10. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?"):
    - correct=true, mistake_type="learning_request"
    - corrected_sentence: entregue a frase natural em ingles (ex: "I am tired today."). Nunca comece com "How do I say...".
    - Um pedido de ajuda em portugues nao e erro: nao ridicularize, nao insulte e nao diga que o usuario falou errado.
-10. Se o usuario pedir para conversar:
+11. Se o usuario pedir para conversar:
    - correct=true, mistake_type="learning_request"
    - Em conversa livre, acolha o assunto em portugues e pergunte qual situacao ele quer explorar; nos outros modos, crie uma pergunta em ingles adequada ao nivel (${learningLevel}).
-11. Nunca marque como correto fragmentos de fala sem sujeito/verbo (ex: "Google yesterday" -> "I searched on Google yesterday.").
-12. O campo "corrected_sentence" deve conter apenas uma unica frase final ideal em ingles, sem alternativas com "or" ou "ou".
-13. Fora do modo conversa livre, se o aluno acertou, o campo "follow_up" deve terminar com uma pergunta em ingles entre aspas. Se errou, deve terminar pedindo a frase corrigida entre aspas.
-14. A soma de "reaction", "correction" e "follow_up" deve ter no maximo 45 palavras. Nunca escreva paragrafos.
-15. No nivel basico, ajude com blocos prontos: "Para pedir as horas, diga: 'What time is it?'" ou "Para dar bom dia, diga: 'Good morning.'" Adapte esse formato livremente ao contexto real, sem se limitar aos exemplos.
-16. Ensine rapido: corrija apenas o ponto de maior impacto por turno, transforme-o em uma regra reutilizavel e avance para uma nova frase curta. Nao acumule uma lista de erros na mesma resposta.
-17. Pontuacao honesta por nivel: "pronunciation_score" representa a qualidade geral da tentativa (clareza, gramatica e adequacao), nao apenas pronuncia. Nunca dê nota alta como se estivesse perfeito quando houver erro real.
+12. Nunca marque como correto fragmentos de fala sem sujeito/verbo (ex: "Google yesterday" -> "I searched on Google yesterday.").
+13. O campo "corrected_sentence" deve conter apenas uma unica frase final ideal em ingles, sem alternativas com "or" ou "ou".
+14. Fora do modo conversa livre, se o aluno acertou, o campo "follow_up" deve terminar com uma pergunta em ingles entre aspas. Se errou, deve terminar pedindo a frase corrigida entre aspas.
+15. A soma de "reaction", "correction" e "follow_up" deve ter no maximo 45 palavras. Nunca escreva paragrafos.
+16. No nivel basico, ajude com blocos prontos: "Para pedir as horas, diga: 'What time is it?'" ou "Para dar bom dia, diga: 'Good morning.'" Adapte esse formato livremente ao contexto real, sem se limitar aos exemplos.
+17. Ensine rapido: corrija apenas o ponto de maior impacto por turno, transforme-o em uma regra reutilizavel e avance para uma nova frase curta. Nao acumule uma lista de erros na mesma resposta.
+18. Se o mesmo erro aparecer duas vezes seguidas no historico recente, ensine uma alternativa de mesmo sentido ou mais facil de falar antes de pedir a repeticao corrigida.
+19. Pontuacao honesta por nivel: "pronunciation_score" representa a qualidade geral da tentativa (clareza, gramatica e adequacao), nao apenas pronuncia. Nunca dê nota alta como se estivesse perfeito quando houver erro real.
    - Basico: erros pequenos que nao mudam o sentido podem receber 84-89 e devem ser tratados como boa comunicacao com um ajuste rapido.
    - Intermediario: erros pequenos podem receber 80-86; erros de estrutura ou que mudam o sentido recebem menos.
    - Avancado: cobre mais precisao e naturalidade; o mesmo erro deve reduzir mais a nota.
@@ -284,6 +301,7 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
   const modelCorrect = typeof raw.correct === "boolean" ? raw.correct : fallback.correct;
   let mistake_type = normalizeMistake(raw.mistake_type, modelCorrect ? "none" : fallback.mistake_type);
   const hasDeterministicDiagnosis = fallback.mistake_type !== "none" && fallback.mistake_type !== "learning_request";
+  const shouldKeepFallbackHelp = fallback.mistake_type === "learning_request" && isUnderstandingOrPronunciationHelp(request.sentence);
 
   if (!modelCorrect && mistake_type === "none") {
     mistake_type = fallback.mistake_type !== "none" ? fallback.mistake_type : "sentence_fragment";
@@ -322,10 +340,10 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
       : hasDeterministicDiagnosis
         ? fallback.correct_word
         : asNullableString(raw.correct_word, fallback.correct_word),
-    corrected_sentence: hasDeterministicDiagnosis ? fallback.corrected_sentence : chooseCorrectedSentence(raw, request, fallback),
+    corrected_sentence: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.corrected_sentence : chooseCorrectedSentence(raw, request, fallback),
     reaction: asPortugueseString(raw.reaction, fallback.reaction, 220),
-    correction: hasDeterministicDiagnosis ? fallback.correction : asPortugueseString(raw.correction, fallback.correction, 340),
-    follow_up: hasDeterministicDiagnosis ? fallback.follow_up : asFollowUp(raw.follow_up, fallback.follow_up),
+    correction: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.correction : asPortugueseString(raw.correction, fallback.correction, 340),
+    follow_up: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.follow_up : asFollowUp(raw.follow_up, fallback.follow_up),
     crazy_delta: metrics.crazyDelta,
     emotion: getEmotion(nextCrazyLevel),
     pronunciation_score: metrics.score,
