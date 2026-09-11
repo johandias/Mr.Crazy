@@ -11,8 +11,11 @@ type Voxel = {
   z: number;
   seed: number;
   size: number;
-  part?: "upper" | "lower" | "corner" | "center" | "brow";
+  part?: "upper" | "lower" | "corner" | "center" | "brow" | "spark";
   side?: -1 | 1;
+  drift?: number;
+  phase?: number;
+  trail?: number;
 };
 
 const emotionPalette: Record<Emotion, { base: string; core: string; hot: string; glow: string; eye: string; mouth: string }> = {
@@ -57,9 +60,9 @@ function seeded(index: number) {
 
 function makeSphereVoxels() {
   const voxels: Voxel[] = [];
-  const radius = 2.04;
-  const latitudeRings = 58;
-  const equatorColumns = 122;
+  const radius = 2.02;
+  const latitudeRings = 56;
+  const equatorColumns = 116;
   let index = 0;
 
   for (let row = 0; row < latitudeRings; row += 1) {
@@ -71,7 +74,9 @@ function makeSphereVoxels() {
     for (let column = 0; column < columns; column += 1) {
       const seed = seeded(index++);
       const theta = (column / columns) * Math.PI * 2 + rowOffset;
-      const surfaceNoise = 1 + (seed - 0.5) * 0.012;
+      const patternNoise = Math.sin(theta * 7 + row * 0.31) * 0.012 + Math.cos(theta * 11 - row * 0.18) * 0.009;
+      const silhouetteNoise = ringRadius > 0.72 && seed > 0.72 ? (seed - 0.72) * 0.075 : 0;
+      const surfaceNoise = 1 + (seed - 0.5) * 0.026 + patternNoise + silhouetteNoise;
       const x = Math.cos(theta) * ringRadius * radius * surfaceNoise;
       const voxelY = Math.cos(phi) * radius * surfaceNoise;
       const z = Math.sin(theta) * ringRadius * radius * surfaceNoise;
@@ -81,7 +86,9 @@ function makeSphereVoxels() {
         y: voxelY,
         z,
         seed,
-        size: 0.1 + seed * 0.012
+        size: 0.096 + seed * 0.026,
+        drift: silhouetteNoise > 0 ? silhouetteNoise : seed > 0.9 ? 0.018 : 0,
+        phase: seeded(200 + index) * Math.PI * 2
       });
     }
   }
@@ -95,18 +102,18 @@ function makeEyeSocketVoxels() {
 
   [-1, 1].forEach((side) => {
     const s = side as -1 | 1;
-    for (let row = 0; row < 5; row += 1) {
-      for (let col = 0; col < 9; col += 1) {
-        if ((row === 0 || row === 4) && (col < 2 || col > 6)) continue;
-        const localX = col - 4;
-        const x = s * 0.68 + localX * 0.088;
-        const y = 0.66 - row * 0.096 + s * localX * 0.018;
+    for (let row = 0; row < 4; row += 1) {
+      for (let col = 0; col < 10; col += 1) {
+        if ((row === 0 || row === 3) && (col < 2 || col > 7)) continue;
+        const localX = col - 4.5;
+        const x = s * 0.69 + localX * 0.083;
+        const y = 0.64 - row * 0.09 + s * localX * 0.012;
         voxels.push({
           x,
           y,
           z: frontZ(x, y) + 0.015,
           seed: seeded(430 + index++),
-          size: 0.092,
+          size: 0.084,
           side: s
         });
       }
@@ -190,22 +197,22 @@ function makeEyeVoxels(emotion: Emotion) {
     const s = side as -1 | 1;
     if (emotion === "calm") {
       // Olhar alerta, mas mais amigável no estado calmo.
-      const cols = 5;
+      const cols = 6;
       const rows = 3;
       for (let row = 0; row < rows; row += 1) {
         for (let col = 0; col < cols; col += 1) {
           if ((row === 0 || row === 2) && (col === 0 || col === cols - 1)) continue;
           const localX = col - (cols - 1) / 2;
-          const x = s * 0.68 + localX * 0.12;
-          const y = 0.55 - row * 0.095;
-          const isCenter = row === 1 && col === 2;
+          const x = s * 0.69 + localX * 0.105;
+          const y = 0.56 - row * 0.088 + (col > 2 ? 0.015 : 0);
+          const isCenter = row === 1 && (col === 2 || col === 3);
 
           voxels.push({
             x,
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: isCenter ? 0.1 : 0.09,
+            size: isCenter ? 0.094 : 0.084,
             part: isCenter ? "center" : undefined,
             side: s
           });
@@ -221,7 +228,7 @@ function makeEyeVoxels(emotion: Emotion) {
           if (row === 2 && (col === 0 || col === cols - 1)) continue;
           const localX = col - (cols - 1) / 2;
           const slant = s === -1 ? -localX * 0.035 : localX * 0.045;
-          const x = s * 0.68 + localX * 0.098;
+          const x = s * 0.69 + localX * 0.098;
           const y = 0.47 - row * 0.095 + slant;
 
           voxels.push({
@@ -229,7 +236,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: 0.09,
+            size: 0.086,
             side: s
           });
         }
@@ -243,7 +250,7 @@ function makeEyeVoxels(emotion: Emotion) {
           if (row === 2 && (col === 0 || col === cols - 1)) continue;
           const localX = col - (cols - 1) / 2;
           const angrySlant = s === -1 ? -localX * 0.058 : localX * 0.058;
-          const x = s * 0.68 + localX * 0.1;
+          const x = s * 0.69 + localX * 0.1;
           const y = 0.48 - row * 0.105 + angrySlant;
 
           voxels.push({
@@ -251,7 +258,7 @@ function makeEyeVoxels(emotion: Emotion) {
             y,
             z: frontZ(x, y) + 0.24,
             seed: seeded(500 + index++),
-            size: emotion === "crazy" ? 0.096 : 0.09,
+            size: emotion === "crazy" ? 0.092 : 0.086,
             side: s
           });
         }
@@ -292,17 +299,28 @@ function makePupilVoxels(emotion: Emotion) {
 }
 
 function makeEyeHighlightVoxels() {
-  return [-1, 1].map((side, index) => {
+  return [-1, 1].flatMap((side, index) => {
     const s = side as -1 | 1;
-    return {
-      x: s * 0.68 - 0.025,
-      y: 0.48,
-      z: frontZ(s * 0.68, 0.48) + 0.48,
-      seed: seeded(640 + index),
-      size: 0.03,
-      part: "center" as const,
-      side: s
-    };
+    return [
+      {
+        x: s * 0.66 - 0.035,
+        y: 0.49,
+        z: frontZ(s * 0.66, 0.49) + 0.48,
+        seed: seeded(640 + index * 3),
+        size: 0.034,
+        part: "center" as const,
+        side: s
+      },
+      {
+        x: s * 0.75 + 0.018,
+        y: 0.41,
+        z: frontZ(s * 0.75, 0.41) + 0.48,
+        seed: seeded(641 + index * 3),
+        size: 0.025,
+        part: "center" as const,
+        side: s
+      }
+    ];
   });
 }
 
@@ -508,7 +526,30 @@ function makeDebrisVoxels() {
       y: Math.cos(phi) * radius * 0.82,
       z: Math.sin(theta) * Math.sin(phi) * radius,
       seed,
-      size: 0.052 + seed * 0.045
+      size: 0.052 + seed * 0.045,
+      phase: seeded(1500 + index) * Math.PI * 2
+    };
+  });
+}
+
+function makeEnergyVoxels() {
+  return Array.from({ length: 76 }).map((_, index) => {
+    const seed = seeded(1800 + index);
+    const theta = seed * Math.PI * 2;
+    const phi = (0.22 + seeded(1900 + index) * 0.64) * Math.PI;
+    const radius = 2.04;
+    const isTrail = index % 7 === 0 || seeded(2100 + index) > 0.82;
+
+    return {
+      x: Math.cos(theta) * Math.sin(phi) * radius,
+      y: Math.cos(phi) * radius * 0.95,
+      z: Math.sin(theta) * Math.sin(phi) * radius,
+      seed,
+      size: isTrail ? 0.055 + seed * 0.04 : 0.032 + seed * 0.04,
+      part: "spark" as const,
+      drift: 0.22 + seeded(2000 + index) * 0.86,
+      phase: seeded(2200 + index) * Math.PI * 2,
+      trail: isTrail ? 1 : 0
     };
   });
 }
@@ -530,7 +571,7 @@ function InstancedVoxels({
   colorVariation?: number;
   crazyLevel: number;
   voiceState: VoiceState;
-  variant?: "body" | "eye" | "mouth" | "brow" | "debris";
+  variant?: "body" | "eye" | "mouth" | "brow" | "debris" | "energy";
 }>) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -541,11 +582,12 @@ function InstancedVoxels({
 
     voxels.forEach((voxel, index) => {
       const instanceColor = new THREE.Color(color);
-      instanceColor.offsetHSL((voxel.seed - 0.5) * 0.018, -voxel.seed * 0.025, (voxel.seed - 0.5) * colorVariation);
+      const lightOffset = variant === "energy" ? (voxel.seed - 0.36) * colorVariation + 0.12 : (voxel.seed - 0.5) * colorVariation;
+      instanceColor.offsetHSL((voxel.seed - 0.5) * 0.018, -voxel.seed * 0.025, lightOffset);
       mesh.current?.setColorAt(index, instanceColor);
     });
     if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
-  }, [color, colorVariation, voxels]);
+  }, [color, colorVariation, variant, voxels]);
 
   useFrame(({ clock }) => {
     if (!mesh.current) return;
@@ -600,11 +642,33 @@ function InstancedVoxels({
 
     voxels.forEach((voxel, index) => {
       const unstable = variant === "body" && intensity > 0.48 && voxel.seed < (intensity - 0.42) * 0.24;
-      const faceTwitch = variant !== "body" && variant !== "debris" ? Math.sin(time * 12 + index) * intensity * 0.016 : 0;
+      const faceTwitch = variant !== "body" && variant !== "debris" && variant !== "energy" ? Math.sin(time * 12 + index) * intensity * 0.016 : 0;
       const jitter = unstable ? Math.sin(time * (10 + voxel.seed * 10) + voxel.seed * 20) * intensity * 0.028 : faceTwitch;
       const push = unstable ? intensity * voxel.seed * 0.045 : 0;
 
-      if (variant === "debris") {
+      if (variant === "energy") {
+        const cycle = (time * (0.12 + voxel.seed * 0.22) + (voxel.phase ?? 0)) % 1;
+        const flare = Math.sin(cycle * Math.PI);
+        const voiceBoost = voiceState === "speaking" ? 0.36 : voiceState === "listening" ? 0.16 : 0;
+        const stressBoost = Math.min(0.7, intensity * 0.72);
+        const orbit = time * (0.22 + voxel.seed * 0.28) + (voxel.phase ?? 0);
+        const drift = (voxel.drift ?? 0.4) * (0.28 + flare * (0.72 + voiceBoost + stressBoost));
+        const source = new THREE.Vector3(voxel.x, voxel.y, voxel.z).normalize();
+        const orbitX = Math.cos(orbit) * (0.08 + (voxel.trail ?? 0) * 0.16);
+        const orbitY = Math.sin(orbit * 0.8) * (0.1 + (voxel.trail ?? 0) * 0.12);
+        const orbitZ = Math.sin(orbit) * 0.1;
+        const tailX = voiceState === "speaking" ? -0.18 * flare * (voxel.trail ?? 0) : 0;
+        const tailY = voiceState === "speaking" ? 0.08 * Math.sin(time * 4 + index) * (voxel.trail ?? 0) : 0;
+        const visible = 0.18 + flare * (0.72 + stressBoost) + voiceBoost;
+
+        dummy.position.set(
+          voxel.x + source.x * drift + orbitX + tailX,
+          voxel.y + source.y * drift + orbitY + tailY,
+          voxel.z + source.z * drift + orbitZ
+        );
+        dummy.scale.setScalar(voxel.size * Math.max(0.18, visible));
+        dummy.rotation.set(time * (0.6 + voxel.seed), time * (0.8 + voxel.seed), time * 0.42);
+      } else if (variant === "debris") {
         const visible = voxel.seed < activeDebris;
         const orbit = time * (0.18 + voxel.seed * 0.26);
         const x = voxel.x * Math.cos(orbit) - voxel.z * Math.sin(orbit);
@@ -659,9 +723,16 @@ function InstancedVoxels({
       } else {
         // Corpo voxelizado com respiração sutil
         const breath = Math.sin(time * 2) * 0.015;
-        const scale = voxel.size * (1 + breath + (unstable ? Math.sin(time * 13 + index) * 0.045 : 0));
-        dummy.position.set(voxel.x + jitter + push, voxel.y + jitter, voxel.z + jitter * 0.35);
-        dummy.scale.setScalar(Math.max(0.06, scale));
+        const edgePulse = (voxel.drift ?? 0) * Math.sin(time * (0.8 + voxel.seed * 0.8) + (voxel.phase ?? 0)) * 0.55;
+        const reorganize = voxel.seed > 0.86 ? Math.sin(time * (1.1 + voxel.seed) + index) * 0.011 : 0;
+        const surface = new THREE.Vector3(voxel.x, voxel.y, voxel.z).normalize();
+        const scale = voxel.size * (1 + breath + Math.abs(edgePulse) * 0.18 + (unstable ? Math.sin(time * 13 + index) * 0.045 : 0));
+        dummy.position.set(
+          voxel.x + surface.x * edgePulse + jitter + push + reorganize,
+          voxel.y + surface.y * edgePulse + jitter - reorganize * 0.5,
+          voxel.z + surface.z * edgePulse + jitter * 0.35
+        );
+        dummy.scale.setScalar(Math.max(0.048, scale));
         dummy.rotation.set(
           Math.sin(time * 0.72 + voxel.seed * 8) * 0.045,
           Math.cos(time * 0.56 + voxel.seed * 6) * 0.045,
@@ -685,6 +756,10 @@ function InstancedVoxels({
         metalness={variant === "body" ? 0.1 : 0.05}
         emissive={emissive ?? color}
         emissiveIntensity={emissiveIntensity}
+        transparent={variant === "energy"}
+        opacity={variant === "energy" ? 0.88 : 1}
+        blending={variant === "energy" ? THREE.AdditiveBlending : THREE.NormalBlending}
+        depthWrite={variant !== "energy"}
         vertexColors
       />
     </instancedMesh>
@@ -733,6 +808,7 @@ function CrazyScene({
   const teethVoxels = useMemo(() => makeTeethVoxels(), []);
   const mouthGlowVoxels = useMemo(() => makeMouthGlowVoxels(), []);
   const debrisVoxels = useMemo(() => makeDebrisVoxels(), []);
+  const energyVoxels = useMemo(() => makeEnergyVoxels(), []);
   const group = useRef<THREE.Group>(null);
   const palette = emotionPalette[emotion];
   const isVeryStressed = emotion === "crazy";
@@ -797,17 +873,27 @@ function CrazyScene({
       <group ref={group}>
         <Aura color={palette.glow} crazyLevel={crazyLevel} voiceState={voiceState} />
         <mesh castShadow>
-          <sphereGeometry args={[1.94, 48, 48]} />
-          <meshStandardMaterial color={palette.core} roughness={0.78} metalness={0.02} />
+          <sphereGeometry args={[1.74, 32, 32]} />
+          <meshStandardMaterial color={palette.core} roughness={0.9} metalness={0.02} transparent opacity={0.08} depthWrite={false} />
         </mesh>
         <InstancedVoxels
           voxels={bodyVoxels}
           color={palette.base}
           emissive={palette.glow}
           emissiveIntensity={calmGlow + heat * 0.18}
-          colorVariation={0.22}
+          colorVariation={0.36}
           crazyLevel={crazyLevel}
           voiceState={voiceState}
+        />
+        <InstancedVoxels
+          voxels={energyVoxels}
+          color={isVeryStressed ? palette.hot : "#c5fbff"}
+          emissive={isVeryStressed ? palette.glow : "#83f7ff"}
+          emissiveIntensity={0.86 + heat * 0.72}
+          colorVariation={0.24}
+          crazyLevel={crazyLevel}
+          voiceState={voiceState}
+          variant="energy"
         />
         <InstancedVoxels
           voxels={eyeSocketVoxels}
