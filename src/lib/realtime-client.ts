@@ -236,11 +236,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
     options.onStatus("connected");
-    options.onVoiceState("analyzing");
-    send({
-      type: "response.create",
-      response: { instructions: buildInitialResponse(options.level, options.mode) }
-    });
+    options.onVoiceState("listening");
 
     return {
       disconnect,

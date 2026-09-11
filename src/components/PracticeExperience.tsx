@@ -608,7 +608,6 @@ export function PracticeExperience() {
     const timeoutId = window.setTimeout(() => {
       introSpokenRef.current = true;
       setContextHistory((current) => (current.length ? current : [{ role: "crazy", text: openingLine }]));
-      speak(openingLine, "idle", "pt-BR");
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
