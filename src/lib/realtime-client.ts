@@ -45,7 +45,7 @@ function buildTranscriptBoundResponse(transcript: string) {
     return "O ultimo audio nao gerou transcript confiavel. Peca em portugues para o aluno repetir mais perto do microfone, sem corrigir nem inventar o que ele disse.";
   }
 
-  return `Responda ao ultimo turno do aluno usando este transcript final como fonte principal: "${cleanTranscript}". Se esse texto reconhecido estiver correto para o contexto, diga que passou; nao invente erro de pronuncia, vocabulario ou gramatica. Se houver erro real, cite exatamente o trecho errado desse transcript e corrija.`;
+  return `Responda ao ultimo turno do aluno usando este transcript final como fonte principal: "${cleanTranscript}". Se esse texto reconhecido estiver correto para o contexto, elogie em portugues curto e variado, sem usar sempre "Passou!". Se estiver confuso ou incompleto, peca para repetir mais claro. Se houver erro real, cite exatamente o trecho errado desse transcript e corrija.`;
 }
 
 function getConnectionError(error: unknown) {
@@ -107,6 +107,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   let userTranscript = "";
   let assistantTranscript = "";
   let microphoneEnabled = true;
+  let assistantAudioActive = false;
   let audioPlaying = false;
   let disconnected = false;
 
@@ -124,9 +125,13 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     return true;
   };
 
+  const syncMicrophone = () => {
+    microphone.enabled = microphoneEnabled && !assistantAudioActive;
+  };
+
   const setMicrophoneEnabled = (enabled: boolean) => {
     microphoneEnabled = enabled;
-    microphone.enabled = enabled;
+    syncMicrophone();
   };
 
   const disconnect = () => {
@@ -192,11 +197,15 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "output_audio_buffer.started":
         audioPlaying = true;
+        assistantAudioActive = true;
+        syncMicrophone();
         options.onVoiceState("speaking");
         break;
       case "output_audio_buffer.stopped":
       case "output_audio_buffer.cleared":
         audioPlaying = false;
+        assistantAudioActive = false;
+        window.setTimeout(syncMicrophone, 180);
         options.onVoiceState("listening");
         break;
       case "response.done":
@@ -260,7 +269,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         microphone.enabled = false;
         options.onVoiceState("transcribing");
         window.setTimeout(() => {
-          if (!disconnected && microphoneEnabled) microphone.enabled = true;
+          if (!disconnected && microphoneEnabled) syncMicrophone();
         }, 700);
       }
     };

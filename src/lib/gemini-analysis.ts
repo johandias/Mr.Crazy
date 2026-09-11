@@ -228,6 +228,7 @@ ${isFreeConversation
    - A correcao e mais importante que a piada. Cite o trecho exato realmente dito, mostre "errado -> correto", explique o motivo e inclua a frase americana completa corrigida. Nunca entregue apenas uma reacao generica.
 7. Proximo passo ("follow_up"): No maximo uma frase curta. Se houve erro, mande repetir a correcao. Em conversa livre, continue o assunto naturalmente e so proponha ingles quando fizer sentido.
 8. Evite respostas padrao como "Nao achei erro importante nessa frase" quando houver contexto. Seja especifico.
+   - Evite repetir "Passou!" como abertura. Varie elogios curtos quando estiver correto.
 9. Se o usuario disser que nao entendeu, pedir para explicar o erro, pedir ajuda de pronuncia ou contestar seu feedback:
    - correct=true, mistake_type="learning_request"
    - Responda ao feedback primeiro, em portugues, como professor paciente e direto.
@@ -249,6 +250,9 @@ ${isFreeConversation
 17. Ensine rapido: corrija apenas o ponto de maior impacto por turno, transforme-o em uma regra reutilizavel e avance para uma nova frase curta. Nao acumule uma lista de erros na mesma resposta.
 18. Se o mesmo erro aparecer duas vezes seguidas no historico recente, ensine uma alternativa de mesmo sentido ou mais facil de falar antes de pedir a repeticao corrigida.
 19. Pontuacao honesta por nivel: "pronunciation_score" representa a qualidade geral da tentativa (clareza, gramatica e adequacao), nao apenas pronuncia. Nunca dê nota alta como se estivesse perfeito quando houver erro real.
+   - Tolerancia no basico significa explicar com leveza e dar nota menos dura, nao marcar tudo como correto.
+   - Se houver erro pequeno mas real, use correct=false, cite o ajuste e de uma nota razoavel para o nivel.
+   - Se o audio/texto estiver incompleto, confuso ou nao responder ao que foi pedido, peca repeticao ou guie a frase correta; nao acate como certo.
    - Basico: erros pequenos que nao mudam o sentido podem receber 84-89 e devem ser tratados como boa comunicacao com um ajuste rapido.
    - Intermediario: erros pequenos podem receber 80-86; erros de estrutura ou que mudam o sentido recebem menos.
    - Avancado: cobre mais precisao e naturalidade; o mesmo erro deve reduzir mais a nota.
@@ -359,7 +363,7 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
     return {
       ...fallback,
       provider: "gemini-live",
-      reaction: "Pelo que foi reconhecido, essa passou limpa.",
+      reaction: "Pelo que foi reconhecido, a frase ficou válida.",
       correction: "O transcritor captou uma frase válida; não vou inventar erro onde não tem prova.",
       follow_up: fallback.follow_up
     };

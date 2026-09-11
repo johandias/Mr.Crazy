@@ -229,20 +229,24 @@ function pickVariant(values: readonly string[]) {
 }
 
 const positiveReactions = [
-  "Mandou bem demais! Falou com propriedade, agora sim senti firmeza.",
-  "Boa! Nem eu consegui achar defeito nessa. Tá afiado hoje, hein!",
-  "Aí sim! Saiu límpido, natural e sem tropeço. Gostei de ver.",
-  "Perfeito! Um nativo entenderia de primeira sem piscar.",
-  "Olha só, o milagre da gramática aconteceu! Frase redondinha.",
-  "Mandou benzão! Estrutura e ritmo no ponto certo. Continua assim!"
+  "Boa, essa saiu natural.",
+  "Agora sim, frase limpa.",
+  "Aí sim, sem gambiarra gramatical.",
+  "Essa ficou redonda.",
+  "Funcionou bem, olha o milagre.",
+  "Mandou certo, continua nesse ritmo.",
+  "Frase clara e útil.",
+  "Gostei, isso dá para usar na vida real.",
+  "Sem drama nessa, ficou boa.",
+  "Até que enfim uma resposta alinhada."
 ];
 
 const positiveCorrections = [
-  "Estrutura impecável para essa situação.",
+  "Estrutura boa para essa situação.",
   "Gramática no lugar e vocabulário natural.",
-  "Frase fluida e correta do jeito que se fala no dia a dia.",
-  "Pode soltar essa frase em qualquer conversa que vai soar super natural.",
-  "Zero ressalvas. Essa passou com louvor."
+  "Frase fluida e correta para o dia a dia.",
+  "Pode usar essa sem inventar moda.",
+  "Zero ressalvas importantes para esse nível."
 ];
 
 const wrongIntros = [
@@ -648,12 +652,10 @@ export function analyzeEnglishSentence(
     xp_delta = 12;
   } else if (looksPortuguese(sentence) && request.mode === "free-conversation") {
     mistake_type = "learning_request";
-    corrected_sentence = "Can you help me say this in English?";
-    reaction = "Entendi, pode falar em português sem drama.";
-    correction = learningLevel === "basic"
-      ? "Eu uso o que você contou para montar uma expressão curta e útil em inglês."
-      : "Eu continuo o assunto e puxo o inglês quando ele fizer sentido.";
-    follow_up = "Quer continuar a conversa ou aprender uma frase para essa situação?";
+    corrected_sentence = translatePortuguesePhrase(sentence, learningLevel);
+    reaction = "Entendi a ideia; agora vamos colocar isso em inglês.";
+    correction = `Para essa situação, diga: "${corrected_sentence}"`;
+    follow_up = `Repete comigo: "${corrected_sentence}"`;
     crazy_delta = -3;
     pronunciation_score = 93;
     xp_delta = 8;

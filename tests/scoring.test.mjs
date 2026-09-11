@@ -83,6 +83,32 @@ test("help request extracts the target phrase instead of translating the request
   assert.doesNotMatch(result.corrected_sentence, /help me say/u);
 });
 
+test("correct attempts avoid frozen pass response", () => {
+  for (let index = 0; index < 12; index += 1) {
+    const result = analyzeEnglishSentence({
+      sentence: "I need to go home.",
+      mode: "free-conversation",
+      learningLevel: "basic"
+    });
+
+    assert.equal(result.correct, true);
+    assert.doesNotMatch(`${result.reaction} ${result.correction}`, /passou/i);
+  }
+});
+
+test("free Portuguese idea becomes a useful English phrase", () => {
+  const result = analyzeEnglishSentence({
+    sentence: "eu quero beber agua",
+    mode: "free-conversation",
+    learningLevel: "basic"
+  });
+
+  assert.equal(result.correct, true);
+  assert.equal(result.mistake_type, "learning_request");
+  assert.equal(result.corrected_sentence, "I want to drink water.");
+  assert.match(result.follow_up, /Repete comigo/u);
+});
+
 test("consecutive repeated mistakes teach an easier alternative", () => {
   const result = analyzeEnglishSentence({
     sentence: "I need go home.",
