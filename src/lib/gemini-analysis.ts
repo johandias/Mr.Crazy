@@ -139,6 +139,15 @@ function isUnderstandingOrPronunciationHelp(sentence: string) {
   );
 }
 
+function isVoiceInput(request: AnalysisRequest) {
+  return request.inputSource === "voice_realtime" || request.inputSource === "voice_fallback";
+}
+
+function isSameNormalizedSentence(a: string, b: string) {
+  const normalizeSentence = (value: string) => normalizeText(value).replace(/[^\p{L}\p{N}\s']/gu, "").replace(/\s+/gu, " ");
+  return normalizeSentence(a) === normalizeSentence(b);
+}
+
 function chooseCorrectedSentence(raw: RawAnalysis, request: AnalysisRequest, fallback: AnalysisResponse) {
   const corrected = asCorrectedSentence(raw.corrected_sentence, fallback.corrected_sentence);
   const normalized = normalizeText(corrected);
@@ -176,6 +185,9 @@ function buildPrompt(request: AnalysisRequest) {
   const learningLevel = normalizeLearningLevel(request.learningLevel);
   const isFreeConversation = request.mode === "free-conversation";
   const previousMistakes = (request.previousMistakes ?? []).slice(0, 8);
+  const sourceRule = isVoiceInput(request)
+    ? "\nFonte da entrada: voz transcrita. Avalie o texto reconhecido, nao invente erro de pronuncia que nao aparece no transcript e nao diga que errou se o transcript esta gramaticalmente correto e adequado ao contexto."
+    : "";
   const contextSnippet = request.contextHistory && request.contextHistory.length > 0
     ? `\nHistorico recente da conversa:\n${request.contextHistory.slice(-4).map((turn) => `${turn.role === "user" ? "Aluno" : "Mr.Crazy"}: "${turn.text}"`).join("\n")}\n`
     : "";
@@ -184,6 +196,7 @@ function buildPrompt(request: AnalysisRequest) {
 Voce e Mr.Crazy, um mentor de ingles carismatico, provocador, bem-humorado e super expressivo para brasileiros.
 Sua missao e fazer o aluno destravar a fala no dia a dia com ritmo de bate-papo real.
 O idioma-alvo e exclusivamente o ingles americano contemporaneo (en-US). Use vocabulario, ortografia, gramatica, expressoes e formas naturais dos Estados Unidos em todas as frases, correcoes e exemplos. Normalize variantes antes de responder: sempre use "apartment" em vez de "flat", "elevator" em vez de "lift", "truck" em vez de "lorry", "vacation" em vez de "holiday", "color" em vez de "colour" e "center" em vez de "centre". Nunca repita uma variante britanica como resposta correta; se ela aparecer, identifique-a e mostre o equivalente americano.
+${sourceRule}
 ${contextSnippet}
 Entrada atual:
 ${JSON.stringify({
@@ -313,6 +326,36 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
     mistake_type = fallback.mistake_type;
   }
 
+  const correctedSentence = hasDeterministicDiagnosis || shouldKeepFallbackHelp
+    ? fallback.corrected_sentence
+    : chooseCorrectedSentence(raw, request, fallback);
+  const mistakeWord = mistake_type === "learning_request"
+    ? null
+    : hasDeterministicDiagnosis
+      ? fallback.mistake_word
+      : asNullableString(raw.mistake_word, fallback.mistake_word);
+  const correctWord = mistake_type === "learning_request"
+    ? null
+    : hasDeterministicDiagnosis
+      ? fallback.correct_word
+      : asNullableString(raw.correct_word, fallback.correct_word);
+  const weakVoiceDisagreement =
+    isVoiceInput(request) &&
+    fallback.correct &&
+    fallback.mistake_type === "none" &&
+    mistake_type !== "learning_request" &&
+    (!mistakeWord || !correctWord || isSameNormalizedSentence(correctedSentence, request.sentence));
+
+  if (weakVoiceDisagreement) {
+    return {
+      ...fallback,
+      provider: "gemini-live",
+      reaction: "Pelo que foi reconhecido, essa passou limpa.",
+      correction: "O transcritor captou uma frase válida; não vou inventar erro onde não tem prova.",
+      follow_up: fallback.follow_up
+    };
+  }
+
   const correct = (modelCorrect && mistake_type === "none") || mistake_type === "learning_request";
   const learningLevel = normalizeLearningLevel(request.learningLevel);
   const metrics = calibrateAttemptMetrics({
@@ -330,17 +373,9 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
     user_sentence: asString(raw.user_sentence, request.sentence, 180),
     correct,
     mistake_type,
-    mistake_word: mistake_type === "learning_request"
-      ? null
-      : hasDeterministicDiagnosis
-        ? fallback.mistake_word
-        : asNullableString(raw.mistake_word, fallback.mistake_word),
-    correct_word: mistake_type === "learning_request"
-      ? null
-      : hasDeterministicDiagnosis
-        ? fallback.correct_word
-        : asNullableString(raw.correct_word, fallback.correct_word),
-    corrected_sentence: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.corrected_sentence : chooseCorrectedSentence(raw, request, fallback),
+    mistake_word: mistakeWord,
+    correct_word: correctWord,
+    corrected_sentence: correctedSentence,
     reaction: asPortugueseString(raw.reaction, fallback.reaction, 220),
     correction: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.correction : asPortugueseString(raw.correction, fallback.correction, 340),
     follow_up: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.follow_up : asFollowUp(raw.follow_up, fallback.follow_up),

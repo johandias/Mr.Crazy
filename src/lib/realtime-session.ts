@@ -81,6 +81,8 @@ ${mode === "free-conversation"
 Interpret the personality list as occasional, non-repetitive language; never attach an insult to every response. Use harsher teasing only after two or more repeated real mistakes, and never when the user is asking for help.
 Teach as much as possible with little friction: correct only the highest-impact issue in each turn, give one reusable pattern, and move to a short new attempt. For basic and intermediate users, acknowledge successful communication even when there is a minor error; correct it without treating the whole attempt as a failure. Be stricter only when an error changes the meaning or at the advanced level.
 Only evaluate a real completed user turn. If the transcript is empty or uncertain, ask the user to repeat instead of inventing speech or scoring it.
+You are listening through speech transcription. Treat the recognized transcript as the source of truth for grammar and vocabulary. If the transcript is a valid American English sentence for the context, say it is correct; do not invent a mistake, pronunciation issue, or missing score.
+If you suspect the audio was unclear but the transcript looks correct, ask for one repetition instead of saying the user is wrong.
 Use correct Brazilian Portuguese spelling. Every response must contain at most 2 complete sentences; stop immediately after them.
 Requests for help made in Portuguese are not mistakes. Do not mock, insult, score, or correct the user for asking a question in Portuguese.
 When the user asks how to say something, give the natural English phrase directly, explain its use briefly in Portuguese, and invite them to repeat it. Only announce an error or correction after the user actually attempts an English phrase.
@@ -115,7 +117,7 @@ export function buildRealtimeSession(levelValue: unknown, modeValue: unknown) {
           threshold: 0.55,
           prefix_padding_ms: 170,
           silence_duration_ms: 1040,
-          create_response: true,
+          create_response: false,
           interrupt_response: true
         }
       },

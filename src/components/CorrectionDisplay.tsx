@@ -14,16 +14,22 @@ function highlightCorrection(sentence: string, word: string | null) {
   );
 }
 
-export function CorrectionDisplay({ analysis }: Readonly<{ analysis: AnalysisResponse | null }>) {
+export function CorrectionDisplay({
+  analysis,
+  source = "manual"
+}: Readonly<{ analysis: AnalysisResponse | null; source?: "manual" | "voice" }>) {
   if (!analysis) {
     return null;
   }
 
   const tone = analysis.correct ? "correct" : analysis.pronunciation_score >= 82 ? "coached" : "wrong";
+  const label = source === "voice" && analysis.mistake_type !== "learning_request"
+    ? `Áudio: ${getMistakeLabel(analysis.mistake_type)}`
+    : getMistakeLabel(analysis.mistake_type);
 
   return (
     <section className={`correction-display ${tone}`} aria-label="Correção">
-      <span>{getMistakeLabel(analysis.mistake_type)}</span>
+      <span>{label}</span>
       {!analysis.correct && analysis.mistake_word && analysis.correct_word ? (
         <div className="correction-contrast" aria-label={`Você falou ${analysis.mistake_word}. O correto é ${analysis.correct_word}.`}>
           <span>

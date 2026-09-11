@@ -39,6 +39,15 @@ function buildInitialResponse(level: LearningLevel, mode: string) {
   return "Inicie a sessão agora. Pergunte em português o que o usuário quer aprender hoje, diga em poucas palavras o foco do treino escolhido e termine com uma pergunta em inglês adequada ao nível. Não espere o usuário falar primeiro.";
 }
 
+function buildTranscriptBoundResponse(transcript: string) {
+  const cleanTranscript = transcript.trim();
+  if (!cleanTranscript) {
+    return "O ultimo audio nao gerou transcript confiavel. Peca em portugues para o aluno repetir mais perto do microfone, sem corrigir nem inventar o que ele disse.";
+  }
+
+  return `Responda ao ultimo turno do aluno usando este transcript final como fonte principal: "${cleanTranscript}". Se esse texto reconhecido estiver correto para o contexto, diga que passou; nao invente erro de pronuncia, vocabulario ou gramatica. Se houver erro real, cite exatamente o trecho errado desse transcript e corrija.`;
+}
+
 function getConnectionError(error: unknown) {
   if (error instanceof DOMException && error.name === "NotAllowedError") {
     return "Permita o acesso ao microfone para ativar a conversa automática.";
@@ -164,6 +173,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         userTranscript = event.transcript?.trim() || userTranscript.trim();
         options.onUserTranscript(userTranscript, true);
         options.onVoiceState("analyzing");
+        send({
+          type: "response.create",
+          response: { instructions: buildTranscriptBoundResponse(userTranscript) }
+        });
         break;
       case "response.created":
         assistantTranscript = "";
@@ -237,7 +250,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
             content: [{ type: "input_text", text: cleanText }]
           }
         });
-        return created && send({ type: "response.create" });
+        return created && send({
+          type: "response.create",
+          response: { instructions: buildTranscriptBoundResponse(cleanText) }
+        });
       },
       finishTurn() {
         if (!microphoneEnabled) return;

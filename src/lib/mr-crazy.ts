@@ -38,6 +38,7 @@ export interface AnalysisRequest {
   mode?: string;
   learningLevel?: LearningLevel;
   contextHistory?: ConversationTurn[];
+  inputSource?: "manual" | "voice_realtime" | "voice_fallback";
 }
 
 export interface AnalysisResponse {

@@ -38,7 +38,9 @@ export async function POST(request: Request) {
       crazyLevel: typeof body.crazyLevel === "number" ? body.crazyLevel : 14,
       mode: typeof body.mode === "string" ? body.mode : "free-conversation",
       learningLevel: normalizeLearningLevel(body.learningLevel),
-      contextHistory: normalizeContextHistory(body.contextHistory)
+      contextHistory: normalizeContextHistory(body.contextHistory),
+      inputSource:
+        body.inputSource === "voice_realtime" || body.inputSource === "voice_fallback" ? body.inputSource : "manual"
     };
     const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.MRCRAZY_TEST_KEY;
     const result = apiKey

@@ -350,6 +350,7 @@ export function PracticeExperience() {
   const [manualText, setManualText] = useState("");
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [analysisSource, setAnalysisSource] = useState<"manual" | "voice">("manual");
   const [realtimeReply, setRealtimeReply] = useState("");
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>("connecting");
   const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
@@ -493,8 +494,14 @@ export function PracticeExperience() {
     silenceTimerRef.current = null;
   }, []);
 
-  const applyAnalysisResult = useCallback((result: AnalysisResponse, sentence: string, addConversationContext: boolean) => {
+  const applyAnalysisResult = useCallback((
+    result: AnalysisResponse,
+    sentence: string,
+    addConversationContext: boolean,
+    source: "manual" | "voice" = "manual"
+  ) => {
     setAnalysis(result);
+    setAnalysisSource(source);
     setCrazyLevel((current) => clampCrazyLevel(current + result.crazy_delta));
     setXp((current) => current + result.xp_delta);
 
@@ -523,7 +530,10 @@ export function PracticeExperience() {
     }
   }, []);
 
-  const scoreRealtimeSentence = useCallback(async (sentence: string) => {
+  const scoreRealtimeSentence = useCallback(async (
+    sentence: string,
+    inputSource: "manual" | "voice_realtime" = "voice_realtime"
+  ) => {
     const cleanSentence = sentence.trim();
     if (!cleanSentence || lastScoredTranscriptRef.current === cleanSentence) return;
 
@@ -540,12 +550,18 @@ export function PracticeExperience() {
           crazyLevel: current.crazyLevel,
           mode: current.selectedMode,
           learningLevel: current.selectedLevel,
-          contextHistory: [...current.contextHistory, { role: "user", text: cleanSentence }]
+          contextHistory: [...current.contextHistory, { role: "user", text: cleanSentence }],
+          inputSource
         })
       });
 
       if (!response.ok) throw new Error("realtime scoring failed");
-      applyAnalysisResult((await response.json()) as AnalysisResponse, cleanSentence, false);
+      applyAnalysisResult(
+        (await response.json()) as AnalysisResponse,
+        cleanSentence,
+        false,
+        inputSource === "manual" ? "manual" : "voice"
+      );
     } catch {
       lastScoredTranscriptRef.current = "";
     }
@@ -617,6 +633,7 @@ export function PracticeExperience() {
       setMicrophoneEnabled(true);
       setErrorMessage("");
       setVoiceState("preparing_speech");
+      setAnalysisSource("manual");
 
       void connectRealtime({
         level: selectedLevel,
@@ -629,7 +646,7 @@ export function PracticeExperience() {
           transcriptRef.current = text;
           if (complete && text.trim()) {
             setContextHistory((current) => [...current.slice(-8), { role: "user", text: text.trim() }]);
-            void scoreRealtimeSentence(text);
+            void scoreRealtimeSentence(text, "voice_realtime");
           }
         },
         onAssistantTranscript: (text, complete) => {
@@ -691,6 +708,7 @@ export function PracticeExperience() {
     setTranscript(cleanSentence);
     transcriptRef.current = cleanSentence;
     setAnalysis(null);
+    setAnalysisSource("manual");
     setVoiceState("analyzing");
 
     try {
@@ -703,6 +721,7 @@ export function PracticeExperience() {
           crazyLevel,
           mode: selectedMode,
           learningLevel: selectedLevel,
+          inputSource: "manual",
           contextHistory: [
             ...contextHistory,
             { role: "user", text: cleanSentence }
@@ -768,6 +787,7 @@ export function PracticeExperience() {
     setTranscript("");
     transcriptRef.current = "";
     setAnalysis(null);
+    setAnalysisSource("manual");
     analysisQueuedRef.current = false;
     clearSilenceTimer();
     const recognition = new Recognition();
@@ -849,7 +869,8 @@ export function PracticeExperience() {
   function submitSentence(sentence: string) {
     if (realtimeStatus === "connected" && realtimeRef.current?.sendText(sentence)) {
       setAnalysis(null);
-      void scoreRealtimeSentence(sentence);
+      setAnalysisSource("manual");
+      void scoreRealtimeSentence(sentence, "manual");
       return;
     }
 
@@ -874,6 +895,7 @@ export function PracticeExperience() {
     recognitionRef.current = null;
     clearSilenceTimer();
     setAnalysis(null);
+    setAnalysisSource("manual");
     setRealtimeReply("");
     setTranscript("");
     transcriptRef.current = "";
@@ -976,6 +998,10 @@ export function PracticeExperience() {
             ) : (
               <CrazyCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
             )}
+            <div className={`character-speech-bubble ${voiceState === "speaking" ? "speaking" : ""}`} aria-hidden="true">
+              <span>Mr.Crazy</span>
+              <p>{crazyBubbleText}</p>
+            </div>
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking"} />
           </motion.div>
 
@@ -1001,7 +1027,7 @@ export function PracticeExperience() {
                 </button>
               </div>
             ) : null}
-            <CorrectionDisplay analysis={analysis} />
+            <CorrectionDisplay analysis={analysis} source={analysisSource} />
             {analysis ? (
               <>
                 <div className="action-row">
