@@ -6,33 +6,27 @@ import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
-  Box,
-  BrainCircuit,
   BriefcaseBusiness,
   Mic,
   MicOff,
+  Menu,
   MessagesSquare,
   Plane,
-  Radio,
   Rocket,
+  RotateCcw,
+  Send,
   Shuffle,
-  Square,
   Sparkles,
   Volume2,
-  Sword,
-  UserRound
+  UserRound,
+  X
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ConversationBubble } from "@/components/ConversationBubble";
 import { CorrectionDisplay } from "@/components/CorrectionDisplay";
-import { CrazyCharacter } from "@/components/CrazyCharacter";
-import { ListenButton } from "@/components/ListenButton";
 import { ListeningWave } from "@/components/ListeningWave";
-import { PronunciationFeedback } from "@/components/PronunciationFeedback";
-import { RepeatButton } from "@/components/RepeatButton";
 import { RpgCharacter } from "@/components/RpgCharacter";
 import { SessionHeader } from "@/components/SessionHeader";
-import { VoiceButton } from "@/components/VoiceButton";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
 import {
   connectRealtime,
@@ -95,10 +89,7 @@ const modes: SessionMode[] = [
   { id: "random-topic", label: "Aleatório", icon: Shuffle }
 ];
 
-const characters: Array<{ id: CharacterId; label: string; description: string; icon: LucideIcon }> = [
-  { id: "voxel", label: "Fúria 3D", description: "Voxels reativos", icon: Box },
-  { id: "rpg", label: "Mestre RPG", description: "Herói pixelado", icon: Sword }
-];
+
 
 const levelOptions: LevelOption[] = [
   {
@@ -357,7 +348,8 @@ export function PracticeExperience() {
   const [openingIndex, setOpeningIndex] = useState(0);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
   const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
-  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("voxel");
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("rpg");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -608,6 +600,7 @@ export function PracticeExperience() {
     const timeoutId = window.setTimeout(() => {
       introSpokenRef.current = true;
       setContextHistory((current) => (current.length ? current : [{ role: "crazy", text: openingLine }]));
+      speak(openingLine, "idle", "pt-BR");
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
@@ -912,91 +905,28 @@ export function PracticeExperience() {
 
   return (
     <AppShell>
-      <main className="practice-main">
-        <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
+      <main className="practice-main clean-layout">
+        <div className="practice-header-bar">
+          <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
+          <button
+            type="button"
+            className="hamburger-btn"
+            onClick={() => setIsMenuOpen(true)}
+            aria-label="Abrir menu de configurações e digitação"
+            title="Opções de nível, tema e digitação"
+          >
+            <Menu size={22} />
+          </button>
+        </div>
 
-        <section className="level-strip" aria-label="Nível de inglês">
-          {levelOptions.map((level) => {
-            const Icon = level.icon;
-            return (
-              <button
-                aria-pressed={selectedLevel === level.id}
-                className={selectedLevel === level.id ? "active" : ""}
-                type="button"
-                key={level.id}
-                onClick={() => {
-                  if (selectedLevel === level.id) return;
-                  setSelectedLevel(level.id);
-                  resetTrainingContext();
-                }}
-              >
-                <Icon size={17} />
-                <span>
-                  <span>{level.label}</span>
-                  <small>{level.description}</small>
-                </span>
-                <strong>{level.badge}</strong>
-              </button>
-            );
-          })}
-        </section>
-
-        <section className="mode-strip" aria-label="Tipos de sessão">
-          {modes.map((mode) => {
-            const Icon = mode.icon;
-            return (
-              <button
-                className={selectedMode === mode.id ? "active" : ""}
-                type="button"
-                key={mode.id}
-                onClick={() => {
-                  if (selectedMode === mode.id) return;
-                  setSelectedMode(mode.id);
-                  resetTrainingContext();
-                }}
-              >
-                <Icon size={15} />
-                <span>{mode.label}</span>
-              </button>
-            );
-          })}
-        </section>
-
-        <section className="character-picker" aria-label="Escolha do personagem">
-          {characters.map((character) => {
-            const Icon = character.icon;
-            return (
-              <button
-                type="button"
-                key={character.id}
-                className={selectedCharacter === character.id ? "active" : ""}
-                aria-pressed={selectedCharacter === character.id}
-                onClick={() => setSelectedCharacter(character.id)}
-              >
-                <span className={`character-picker-icon ${character.id}`} aria-hidden="true">
-                  <Icon size={17} />
-                </span>
-                <span>
-                  <strong>{character.label}</strong>
-                  <small>{character.description}</small>
-                </span>
-              </button>
-            );
-          })}
-        </section>
-
-        <section className="practice-stage">
+        <section className="practice-stage clean-stage">
           <motion.div
             className="character-column"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            {selectedCharacter === "rpg" ? (
-              <RpgCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
-            ) : (
-              <CrazyCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
-            )}
+            <RpgCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
             <div className={`character-speech-bubble ${voiceState === "speaking" ? "speaking" : ""}`} aria-hidden="true">
               <span>Mr.Crazy</span>
               <p>{crazyBubbleText}</p>
@@ -1005,7 +935,7 @@ export function PracticeExperience() {
           </motion.div>
 
           <motion.aside
-            className="conversation-panel"
+            className="conversation-panel clean-conversation"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45 }}
@@ -1027,110 +957,161 @@ export function PracticeExperience() {
               </div>
             ) : null}
             <CorrectionDisplay analysis={analysis} source={analysisSource} />
-            {analysis ? (
-              <>
-                <div className="action-row">
-                  <ListenButton
-                    onClick={speakCorrection}
-                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "preparing_speech" || voiceState === "analyzing"}
-                  />
-                  <RepeatButton
-                    onClick={startListening}
-                    disabled={voiceState === "listening" || voiceState === "speaking" || voiceState === "preparing_speech" || voiceState === "analyzing"}
-                  />
-                </div>
-                <PronunciationFeedback
-                  score={analysis.mistake_type === "learning_request" ? null : analysis.pronunciation_score}
-                />
-              </>
-            ) : null}
           </motion.aside>
         </section>
 
-        <section
-          className={`practice-controls ${voiceState === "listening" ? "listening" : ""} ${realtimeStatus !== "failed" ? "realtime" : ""}`}
-          aria-label="Controle de voz"
-        >
-          {realtimeStatus === "failed" ? (
-            <VoiceButton state={voiceState} onClick={handleVoiceClick} disabled={voiceState === "analyzing" || voiceState === "speaking" || voiceState === "preparing_speech"} />
-          ) : (
-            <div className={`realtime-control ${realtimeStatus}`}>
-              <div className="realtime-copy">
-                <Radio size={19} className={realtimeStatus === "connected" ? "realtime-pulse" : "spin"} />
-                <span>
-                  <strong>{realtimeStatus === "connected" ? "Conversa automática ativa" : "Conectando à voz..."}</strong>
-                  <small>
-                    {voiceState === "speaking"
-                      ? "Mr.Crazy está falando"
-                      : voiceState === "analyzing" || voiceState === "transcribing"
-                        ? "Preparando resposta"
-                        : microphoneEnabled
-                          ? "Fale quando quiser"
-                          : "Microfone pausado"}
-                  </small>
-                </span>
-              </div>
-              <div className="realtime-actions">
-                <button
-                  type="button"
-                  onClick={toggleRealtimeMicrophone}
-                  disabled={realtimeStatus !== "connected"}
-                  aria-label={microphoneEnabled ? "Pausar microfone" : "Ativar microfone"}
-                  title={microphoneEnabled ? "Pausar microfone" : "Ativar microfone"}
-                >
-                  {microphoneEnabled ? <Mic size={18} /> : <MicOff size={18} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={finishRealtimeTurn}
-                  disabled={realtimeStatus !== "connected" || !microphoneEnabled || voiceState !== "listening"}
-                  aria-label="Encerrar minha fala"
-                  title="Use apenas se a pausa automática não for detectada"
-                >
-                  <Square size={17} />
-                  <span>Terminei</span>
-                </button>
-              </div>
-            </div>
-          )}
-          {realtimeStatus === "failed" && voiceState === "listening" ? (
-            <button className="stop-listening-button" type="button" onClick={stopListeningAndAnalyze}>
-              <Square size={18} />
-              Parar e analisar
-            </button>
-          ) : null}
-          <form className="text-fallback" onSubmit={handleSubmit}>
-            <BrainCircuit size={17} />
-            <label htmlFor="manual-sentence">Modo texto</label>
-            <input
-              id="manual-sentence"
-              ref={textInputRef}
-              value={manualText}
-              onChange={(event) => setManualText(event.target.value)}
-              placeholder={activeLevel.placeholder}
-            />
-            <button type="submit">{realtimeStatus === "connected" ? "Enviar" : "Analisar"}</button>
-          </form>
-          <div className="example-row" aria-label="Frases de teste">
-            {activeLevel.examples.map((example) => (
-              <button type="button" key={example} onClick={() => submitSentence(example)}>
-                {example}
-              </button>
-            ))}
-          </div>
+        <section className="clean-mic-section" aria-label="Controle de microfone">
+          <button
+            type="button"
+            className={`clean-mic-btn ${microphoneEnabled && voiceState === "listening" ? "listening" : microphoneEnabled ? "active" : "muted"}`}
+            onClick={toggleRealtimeMicrophone}
+            aria-label={microphoneEnabled ? "Mutar microfone" : "Ativar microfone"}
+            title={microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone"}
+          >
+            {microphoneEnabled ? <Mic size={34} /> : <MicOff size={34} />}
+          </button>
+          <span className="clean-mic-hint">
+            {voiceState === "speaking"
+              ? "Mr.Crazy falando..."
+              : voiceState === "analyzing" || voiceState === "transcribing"
+                ? "Processando resposta..."
+                : microphoneEnabled
+                  ? "Microfone ativo • Toque para mutar"
+                  : "Microfone mutado • Toque para falar"}
+          </span>
           {errorMessage ? <p className="error-message">{errorMessage}</p> : null}
         </section>
 
-        {history.length ? (
-          <section className="session-trail" aria-label="Últimas correções">
-            {history.slice(0, 3).map((item) => (
-              <article key={`${item.createdAt}-${item.sentence}`}>
-                <span>{getMistakeLabel(item.mistake)}</span>
-                <p>{item.corrected}</p>
-              </article>
-            ))}
-          </section>
-        ) : null}
+        {isMenuOpen && (
+          <div className="drawer-overlay" onClick={() => setIsMenuOpen(false)}>
+            <aside className="drawer-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="drawer-header">
+                <div className="drawer-title">
+                  <Menu size={18} />
+                  <h2>Ajustes & Digitação</h2>
+                </div>
+                <button
+                  type="button"
+                  className="drawer-close-btn"
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Fechar menu"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="drawer-body">
+                <div className="drawer-group">
+                  <span className="drawer-group-title">Nível de Inglês</span>
+                  <div className="drawer-level-options">
+                    {levelOptions.map((level) => {
+                      const Icon = level.icon;
+                      const isSelected = selectedLevel === level.id;
+                      return (
+                        <button
+                          key={level.id}
+                          type="button"
+                          className={`drawer-option-card ${isSelected ? "selected" : ""}`}
+                          onClick={() => {
+                            if (selectedLevel === level.id) return;
+                            setSelectedLevel(level.id);
+                            resetTrainingContext();
+                          }}
+                        >
+                          <Icon size={18} />
+                          <div className="drawer-option-text">
+                            <strong>{level.label} ({level.badge})</strong>
+                            <small>{level.description}</small>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="drawer-group">
+                  <span className="drawer-group-title">Modo de Conversa</span>
+                  <div className="drawer-mode-grid">
+                    {modes.map((mode) => {
+                      const Icon = mode.icon;
+                      const isSelected = selectedMode === mode.id;
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          className={`drawer-mode-pill ${isSelected ? "selected" : ""}`}
+                          onClick={() => {
+                            if (selectedMode === mode.id) return;
+                            setSelectedMode(mode.id);
+                            resetTrainingContext();
+                          }}
+                        >
+                          <Icon size={16} />
+                          <span>{mode.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="drawer-group">
+                  <span className="drawer-group-title">Modo Digitação (Texto)</span>
+                  <form
+                    className="drawer-text-form"
+                    onSubmit={(e) => {
+                      handleSubmit(e);
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <input
+                      ref={textInputRef}
+                      value={manualText}
+                      onChange={(e) => setManualText(e.target.value)}
+                      placeholder={activeLevel.placeholder}
+                      aria-label="Digite sua frase em inglês"
+                    />
+                    <button type="submit" disabled={!manualText.trim()} title="Enviar mensagem">
+                      <Send size={16} />
+                      <span>Enviar</span>
+                    </button>
+                  </form>
+
+                  <div className="drawer-examples-box">
+                    <small>Frases sugeridas para testar:</small>
+                    <div className="drawer-chips">
+                      {activeLevel.examples.map((example) => (
+                        <button
+                          key={example}
+                          type="button"
+                          onClick={() => {
+                            submitSentence(example);
+                            setIsMenuOpen(false);
+                          }}
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="drawer-footer">
+                <button
+                  type="button"
+                  className="drawer-reset-btn"
+                  onClick={() => {
+                    resetTrainingContext();
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <RotateCcw size={16} />
+                  <span>Reiniciar Conversa</span>
+                </button>
+              </div>
+            </aside>
+          </div>
+        )}
       </main>
     </AppShell>
   );
