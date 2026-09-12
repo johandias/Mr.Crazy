@@ -821,6 +821,28 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     };
   }, [connectSession, storageReady]);
 
+  // Garante que o microfone fique ativo ESTRITAMENTE enquanto o usuário está usando o sistema
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        // Celular bloqueado, troca de app ou aba em background: muta imediatamente
+        if (realtimeRef.current) {
+          realtimeRef.current.setMicrophoneEnabled(false);
+        }
+        setVoiceState("idle");
+      } else if (document.visibilityState === "visible") {
+        // Usuário voltou para o Mr.Crazy: reativa apenas se o microfone estiver habilitado
+        if (realtimeRef.current && microphoneEnabled) {
+          realtimeRef.current.setMicrophoneEnabled(true);
+          setVoiceState("listening");
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [microphoneEnabled]);
+
   useEffect(() => {
     if (!storageReady) return;
 

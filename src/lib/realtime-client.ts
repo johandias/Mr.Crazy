@@ -123,46 +123,95 @@ function waitForDataChannel(channel: RTCDataChannel, signal?: AbortSignal) {
   });
 }
 
-export async function getFreshMicrophoneStream(): Promise<MediaStream> {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
+let masterMicrophoneStream: MediaStream | null = null;
+let visibilityHandlerAttached = false;
+let isPageVisible = typeof document !== "undefined" ? document.visibilityState === "visible" : true;
+
+function setupVisibilityListener() {
+  if (visibilityHandlerAttached || typeof window === "undefined" || typeof document === "undefined") {
+    return;
+  }
+  visibilityHandlerAttached = true;
+
+  document.addEventListener("visibilitychange", () => {
+    isPageVisible = document.visibilityState === "visible";
+    if (masterMicrophoneStream) {
+      masterMicrophoneStream.getAudioTracks().forEach((track) => {
+        // Microfone SÓ fica ativo enquanto o usuário está usando o sistema na tela.
+        // Se minimizado, aba trocada ou tela bloqueada, a captação é desativada no hardware.
+        track.enabled = isPageVisible;
+      });
     }
   });
 
-  const tracks = stream.getAudioTracks();
-  if (!tracks || tracks.length === 0) {
+  // Encerra completamente o hardware quando o usuário fecha a aba ou sai do site
+  window.addEventListener("pagehide", () => {
+    if (masterMicrophoneStream) {
+      masterMicrophoneStream.getTracks().forEach((t) => t.stop());
+      masterMicrophoneStream = null;
+    }
+  });
+}
+
+export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamTrack; stream: MediaStream }> {
+  setupVisibilityListener();
+
+  const hasLiveTrack =
+    masterMicrophoneStream &&
+    masterMicrophoneStream.getAudioTracks().some((t) => t.readyState === "live");
+
+  if (!hasLiveTrack) {
+    masterMicrophoneStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("mr-crazy-mic-granted", "true");
+      }
+    } catch {
+      // Ignore storage issues
+    }
+  }
+
+  const parentTrack = masterMicrophoneStream!.getAudioTracks().find((t) => t.readyState === "live");
+  if (!parentTrack) {
     throw new Error("Nenhum microfone ativo detectado no dispositivo.");
   }
 
-  tracks.forEach((track) => {
-    track.enabled = true;
-  });
+  // Ativa a track mestre apenas se o app estiver visível na tela
+  parentTrack.enabled = isPageVisible;
 
-  try {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("mr-crazy-mic-granted", "true");
-    }
-  } catch {
-    // Ignore storage issues
-  }
+  // Clona a faixa mestre exclusivamente para esta conexão WebRTC.
+  // No iOS Safari, isso NÃO dispara o popup de permissão novamente e entrega uma faixa limpa ao RTCPeerConnection.
+  const sessionTrack = parentTrack.clone();
+  sessionTrack.enabled = isPageVisible;
+  const sessionStream = new MediaStream([sessionTrack]);
 
-  return stream;
+  return { track: sessionTrack, stream: sessionStream };
 }
 
 export function releasePersistentMicrophoneStream() {
-  // Mantido para retrocompatibilidade
+  if (masterMicrophoneStream) {
+    masterMicrophoneStream.getTracks().forEach((t) => t.stop());
+    masterMicrophoneStream = null;
+  }
 }
 
 export async function connectRealtime(options: ConnectRealtimeOptions): Promise<RealtimeController> {
   options.onStatus("connecting");
   const peer = new RTCPeerConnection();
   const audio = document.createElement("audio");
+  let microphone: MediaStreamTrack;
   let stream: MediaStream;
   try {
-    stream = await getFreshMicrophoneStream();
+    const sessionMedia = await getMicrophoneSessionMedia();
+    microphone = sessionMedia.track;
+    stream = sessionMedia.stream;
   } catch (error) {
     peer.close();
     if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -171,7 +220,6 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     }
     throw error;
   }
-  const microphone = stream.getAudioTracks()[0];
   const channel = peer.createDataChannel("oai-events");
   let userTranscript = "";
   let assistantTranscript = "";
@@ -195,7 +243,13 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   };
 
   const syncMicrophone = () => {
-    microphone.enabled = microphoneEnabled;
+    const shouldEnable = microphoneEnabled && isPageVisible;
+    microphone.enabled = shouldEnable;
+    if (masterMicrophoneStream) {
+      masterMicrophoneStream.getAudioTracks().forEach((t) => {
+        t.enabled = shouldEnable;
+      });
+    }
   };
 
   const setMicrophoneEnabled = (enabled: boolean) => {
@@ -257,9 +311,17 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     try {
       peer.close();
     } catch {}
+    // Encerra a faixa clonada da sessão WebRTC
     try {
-      stream.getTracks().forEach((track) => track.stop());
+      microphone.stop();
     } catch {}
+    // Muta a faixa mestre enquanto o usuário não estiver em prática ativa,
+    // sem matar a permissão concedida pelo iOS!
+    if (masterMicrophoneStream) {
+      masterMicrophoneStream.getAudioTracks().forEach((t) => {
+        t.enabled = false;
+      });
+    }
   };
 
   options.signal?.addEventListener("abort", disconnect, { once: true });
