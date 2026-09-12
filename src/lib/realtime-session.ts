@@ -103,8 +103,8 @@ export function buildRealtimeSession(levelValue: unknown, modeValue: unknown) {
         transcription: { model: "gpt-realtime-whisper" },
         turn_detection: {
           type: "server_vad",
-          threshold: 0.8,
-          prefix_padding_ms: 110,
+          threshold: 0.88,
+          prefix_padding_ms: 100,
           silence_duration_ms: 800,
           create_response: false,
           interrupt_response: true
