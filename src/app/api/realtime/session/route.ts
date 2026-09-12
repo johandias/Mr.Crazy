@@ -10,6 +10,16 @@ export const maxDuration = 30;
 
 const MAX_SDP_LENGTH = 120_000;
 
+let cachedWorkingModel: string | null = null;
+
+const DEFAULT_REALTIME_MODELS = [
+  "gpt-4o-realtime-preview",
+  "gpt-4o-realtime-preview-2024-12-17",
+  "gpt-4o-realtime-preview-2024-10-01",
+  "gpt-4o-mini-realtime-preview-2024-12-17",
+  "gpt-4o-mini-realtime-preview"
+];
+
 export async function POST(request: Request) {
   const sessionUser = await getCurrentSession();
   if (!sessionUser || sessionUser.status !== "approved") {
@@ -65,7 +75,11 @@ export async function POST(request: Request) {
       .update(user?.email || sessionUser.email || "mr-crazy-authenticated-user")
       .digest("hex");
 
-    const realtimeModel = process.env.OPENAI_REALTIME_MODEL?.trim() || "gpt-4o-mini-realtime-preview";
+    const userRequestedModel = url.searchParams.get("model")?.trim();
+    const envModel = process.env.OPENAI_REALTIME_MODEL?.trim();
+    const candidateModels = Array.from(
+      new Set([userRequestedModel, cachedWorkingModel, envModel, ...DEFAULT_REALTIME_MODELS])
+    ).filter((m): m is string => Boolean(m));
 
     const controller = new AbortController();
     const timeoutTimer = setTimeout(() => {
@@ -79,29 +93,53 @@ export async function POST(request: Request) {
       request.signal.addEventListener("abort", onReqAbort, { once: true });
     }
 
-    let response: Response;
+    let response: Response | null = null;
     let responseBody = "";
-    try {
-      // 1. Tenta o endpoint WebRTC oficial da OpenAI (/v1/realtime?model=...)
-      response = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(realtimeModel)}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/sdp",
-          "OpenAI-Safety-Identifier": safetyIdentifier
-        },
-        body: sdp,
-        signal: controller.signal,
-        cache: "no-store"
-      });
-      responseBody = await response.text();
+    let usedModel = candidateModels[0] || "gpt-4o-realtime-preview";
 
-      // 2. Se o endpoint direto não responder OK, tenta /v1/realtime/calls com FormData
-      if (!response.ok) {
-        console.warn(`[Realtime] Direct endpoint returned ${response.status}: ${responseBody.slice(0, 150)}. Trying /v1/realtime/calls fallback...`);
+    try {
+      // 1. Itera sobre os modelos candidatos suportados pelo endpoint WebRTC oficial da OpenAI
+      for (const candidate of candidateModels) {
+        if (controller.signal.aborted) break;
+        usedModel = candidate;
+
+        const res = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(candidate)}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/sdp",
+            "OpenAI-Safety-Identifier": safetyIdentifier
+          },
+          body: sdp,
+          signal: controller.signal,
+          cache: "no-store"
+        });
+        const body = await res.text();
+        response = res;
+        responseBody = body;
+
+        if (res.ok) {
+          cachedWorkingModel = candidate;
+          break;
+        }
+
+        // Se o erro foi 'model_not_found', tenta o próximo candidato
+        if (res.status === 404 && body.includes("model_not_found")) {
+          console.warn(`[Realtime] Model '${candidate}' not found on account, trying next candidate...`);
+          continue;
+        }
+
+        // Outro tipo de erro, interrompe a busca
+        break;
+      }
+
+      // 2. Se nenhum modelo direto deu OK, tenta fallback para /v1/realtime/calls com FormData
+      if (!response || !response.ok) {
+        console.warn(`[Realtime] Direct endpoint failed. Trying /v1/realtime/calls fallback...`);
+        const sessionWithModel = { ...session, model: usedModel };
         const formData = new FormData();
         formData.set("sdp", sdp);
-        formData.set("session", JSON.stringify(session));
+        formData.set("session", JSON.stringify(sessionWithModel));
 
         const fallbackResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
           method: "POST",
@@ -118,13 +156,9 @@ export async function POST(request: Request) {
         if (fallbackResponse.ok) {
           response = fallbackResponse;
           responseBody = fallbackBody;
-        } else {
-          // Se o fallback também falhou, mantém o erro mais descritivo
-          console.error(`[Realtime] Fallback endpoint returned ${fallbackResponse.status}: ${fallbackBody.slice(0, 150)}`);
-          if (fallbackBody) {
-            response = fallbackResponse;
-            responseBody = fallbackBody;
-          }
+        } else if (!response) {
+          response = fallbackResponse;
+          responseBody = fallbackBody;
         }
       }
     } finally {
@@ -132,8 +166,9 @@ export async function POST(request: Request) {
       request.signal.removeEventListener("abort", onReqAbort);
     }
 
-    if (!response.ok) {
-      console.error("OpenAI Realtime session failed", response.status, responseBody.slice(0, 500));
+    if (!response || !response.ok) {
+      const status = response?.status ?? 500;
+      console.error("OpenAI Realtime session failed", status, responseBody.slice(0, 500));
       let providerError: { code?: string; param?: string; message?: string } = {};
       try {
         const parsed = JSON.parse(responseBody) as { error?: { code?: string; param?: string; message?: string } };
@@ -145,10 +180,11 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "Não foi possível abrir a conversa em tempo real.",
-          providerStatus: response.status,
+          providerStatus: status,
           providerCode: providerError.code,
           providerMessage: providerError.message,
-          providerBody: responseBody.slice(0, 300)
+          providerBody: responseBody.slice(0, 300),
+          testedModel: usedModel
         },
         { status: 502 }
       );
@@ -160,7 +196,8 @@ export async function POST(request: Request) {
         "Content-Type": "application/sdp",
         "Cache-Control": "private, no-store",
         "X-RateLimit-Limit": String(rateLimit.limit),
-        "X-RateLimit-Remaining": String(rateLimit.remaining)
+        "X-RateLimit-Remaining": String(rateLimit.remaining),
+        "X-Realtime-Model": usedModel
       }
     });
   } catch (error) {

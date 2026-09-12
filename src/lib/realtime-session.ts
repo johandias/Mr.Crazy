@@ -139,11 +139,12 @@ Regras de Interação ao Vivo:
 export function buildRealtimeSession(
   levelValue: unknown,
   modeValue: unknown,
-  profile?: Partial<UserProfile> | null
+  profile?: Partial<UserProfile> | null,
+  modelName: string = "gpt-4o-realtime-preview"
 ) {
   return {
     type: "realtime",
-    model: "gpt-4o-mini-realtime-preview",
+    model: modelName,
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
     max_output_tokens: 300,
     audio: {
