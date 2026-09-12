@@ -1119,71 +1119,42 @@ export function PracticeExperience() {
               onTap={handleAvatarTap}
             />
 
-            {/* Mute/Microfone abaixo do boneco */}
+            {/* Mute/Microfone abaixo do boneco: Grande e Arredondado */}
             <div className="avatar-mic-dock">
               <button
                 type="button"
-                className={`avatar-mic-btn ${microphoneEnabled && voiceState === "listening" ? "listening" : microphoneEnabled ? "active" : "muted"}`}
+                className={`avatar-mic-btn large-round ${microphoneEnabled && voiceState === "listening" ? "listening" : microphoneEnabled ? "active" : "muted"}`}
                 onClick={toggleRealtimeMicrophone}
                 aria-label={microphoneEnabled ? "Mutar microfone" : "Ativar microfone"}
                 title={microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone"}
               >
-                {microphoneEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+                {microphoneEnabled ? <Mic size={22} /> : <MicOff size={22} />}
                 <span className="avatar-mic-label">
                   {voiceState === "speaking"
-                    ? "Mr.Crazy falando"
+                    ? "Mr.Crazy falando..."
                     : voiceState === "analyzing" || voiceState === "transcribing"
-                      ? "Ouvindo..."
+                      ? "Ouvindo você..."
                       : microphoneEnabled
-                        ? "Mutar"
-                        : "Desmutar"}
+                        ? "Microfone Ativo"
+                        : "Microfone Mutado"}
                 </span>
               </button>
             </div>
-
-            <div className="gesture-action-bar" role="toolbar" aria-label="Reações do Mr.Crazy">
-              <button
-                type="button"
-                className={`gesture-btn ${activeGesture === "finger" ? "active" : ""}`}
-                onClick={() => triggerGesture("finger")}
-                title="Gesto: Dar o dedo"
-              >
-                🖕 Dedo
-              </button>
-              <button
-                type="button"
-                className={`gesture-btn ${activeGesture === "smoke" ? "active" : ""}`}
-                onClick={() => triggerGesture("smoke")}
-                title="Gesto: Fumar cigarro"
-              >
-                🚬 Fumar
-              </button>
-              <button
-                type="button"
-                className={`gesture-btn ${activeGesture === "heart" ? "active" : ""}`}
-                onClick={() => triggerGesture("heart")}
-                title="Gesto: Fazer coração"
-              >
-                🫶 Coração
-              </button>
-              <button
-                type="button"
-                className={`gesture-btn ${activeGesture === "thumbsup" ? "active" : ""}`}
-                onClick={() => triggerGesture("thumbsup")}
-                title="Gesto: Joinha"
-              >
-                👍 Joinha
-              </button>
-              <button
-                type="button"
-                className={`gesture-btn ${activeGesture === "watergun" ? "active" : ""}`}
-                onClick={() => triggerGesture("watergun")}
-                title="Gesto: Arminha d'água de brinquedo"
-              >
-                🔫 Água
-              </button>
-            </div>
-            {errorMessage ? <p className="avatar-mic-error">{errorMessage}</p> : null}
+            {errorMessage ? (
+              <div className="avatar-mic-error-box">
+                <p className="avatar-mic-error">{errorMessage}</p>
+                <button
+                  type="button"
+                  className="retry-connection-btn"
+                  onClick={() => {
+                    setErrorMessage("");
+                    window.location.reload();
+                  }}
+                >
+                  Tentar reconectar
+                </button>
+              </div>
+            ) : null}
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking"} />
           </motion.div>
 
