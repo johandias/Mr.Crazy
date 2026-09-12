@@ -64,16 +64,36 @@ export async function POST(request: Request) {
       .update(user?.email || sessionUser.email || "mr-crazy-authenticated-user")
       .digest("hex");
 
-    const response = await fetch("https://api.openai.com/v1/realtime/calls", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "OpenAI-Safety-Identifier": safetyIdentifier
-      },
-      body: formData,
-      cache: "no-store"
-    });
-    const responseBody = await response.text();
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => {
+      controller.abort(new DOMException("TimeoutError", "TimeoutError"));
+    }, 8500);
+
+    const onReqAbort = () => controller.abort(request.signal.reason);
+    if (request.signal.aborted) {
+      controller.abort(request.signal.reason);
+    } else {
+      request.signal.addEventListener("abort", onReqAbort, { once: true });
+    }
+
+    let response: Response;
+    let responseBody = "";
+    try {
+      response = await fetch("https://api.openai.com/v1/realtime/calls", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "OpenAI-Safety-Identifier": safetyIdentifier
+        },
+        body: formData,
+        signal: controller.signal,
+        cache: "no-store"
+      });
+      responseBody = await response.text();
+    } finally {
+      clearTimeout(timeoutTimer);
+      request.signal.removeEventListener("abort", onReqAbort);
+    }
 
     if (!response.ok) {
       console.error("OpenAI Realtime session failed", response.status, responseBody.slice(0, 500));
@@ -106,7 +126,12 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    console.error("OpenAI Realtime route failed", error instanceof Error ? error.message : "unknown error");
-    return NextResponse.json({ error: "Falha ao preparar a conversa em tempo real." }, { status: 500 });
+    const isTimeout = (error instanceof DOMException && error.name === "TimeoutError") ||
+      (error instanceof Error && error.name === "TimeoutError");
+    console.error("OpenAI Realtime route failed", isTimeout ? "Request Timeout (8.5s)" : (error instanceof Error ? error.message : "unknown error"));
+    return NextResponse.json(
+      { error: isTimeout ? "Tempo limite ao conectar com a IA. Tente novamente." : "Falha ao preparar a conversa em tempo real." },
+      { status: isTimeout ? 504 : 500 }
+    );
   }
 }

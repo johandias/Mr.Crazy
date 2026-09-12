@@ -29,6 +29,7 @@ import { SessionHeader } from "@/components/SessionHeader";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
 import {
   connectRealtime,
+  getConnectionError,
   type RealtimeConnectionStatus,
   type RealtimeController
 } from "@/lib/realtime-client";
@@ -422,6 +423,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   };
   const introSpokenRef = useRef(false);
   const realtimeRef = useRef<RealtimeController | null>(null);
+  const connectAbortRef = useRef<AbortController | null>(null);
+  const watchdogTimerRef = useRef<number | null>(null);
+
+  const clearWatchdog = useCallback(() => {
+    if (watchdogTimerRef.current !== null) {
+      window.clearTimeout(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
+    }
+  }, []);
+
   const scoringContextRef = useRef({
     mistakes: [] as MistakeCategory[],
     crazyLevel: 16,
@@ -716,7 +727,25 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     introSpokenRef.current = true;
   }, [storageReady]);
 
-  const connectSession = useCallback((signal?: AbortSignal) => {
+  const connectSession = useCallback((customSignal?: AbortSignal) => {
+    // Aborta de forma limpa qualquer conexão anterior ainda em progresso
+    if (connectAbortRef.current) {
+      connectAbortRef.current.abort();
+      connectAbortRef.current = null;
+    }
+
+    const abortController = new AbortController();
+    connectAbortRef.current = abortController;
+
+    if (customSignal) {
+      if (customSignal.aborted) {
+        abortController.abort();
+      } else {
+        customSignal.addEventListener("abort", () => abortController.abort(), { once: true });
+      }
+    }
+
+    clearWatchdog();
     realtimeRef.current?.disconnect();
     realtimeRef.current = null;
     cancelSpeech();
@@ -732,17 +761,39 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setVoiceState("preparing_speech");
     setAnalysisSource("manual");
 
+    // Watchdog de segurança (8.5s): se a conexão não abrir nem falhar, destrava a UI
+    watchdogTimerRef.current = window.setTimeout(() => {
+      if (connectAbortRef.current === abortController) {
+        realtimeRef.current?.disconnect();
+        realtimeRef.current = null;
+        setRealtimeStatus("failed");
+        setVoiceState("idle");
+        setErrorMessage("A conexão demorou a responder. Toque no botão para tentar novamente.");
+      }
+    }, 8500);
+
+    const level = scoringContextRef.current.selectedLevel;
+    const mode = scoringContextRef.current.selectedMode;
+
     return connectRealtime({
-      level: selectedLevel,
-      mode: selectedMode,
-      signal,
+      level,
+      mode,
+      signal: abortController.signal,
       getRecentContext: () =>
         scoringContextRef.current.contextHistory.map((turn) => ({
           role: turn.role,
           text: turn.text
         })),
-      onStatus: setRealtimeStatus,
-      onVoiceState: setVoiceState,
+      onStatus: (status) => {
+        if (connectAbortRef.current === abortController) {
+          setRealtimeStatus(status);
+        }
+      },
+      onVoiceState: (state) => {
+        if (connectAbortRef.current === abortController) {
+          setVoiceState(state);
+        }
+      },
       onUserTranscript: (text, complete) => {
         setTranscript(text);
         transcriptRef.current = text;
@@ -782,44 +833,53 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
       },
       onError: (err) => {
-        setErrorMessage(err);
-        setRealtimeStatus("failed");
-        setVoiceState("idle");
+        if (connectAbortRef.current === abortController) {
+          clearWatchdog();
+          setErrorMessage(err);
+          setRealtimeStatus("failed");
+          setVoiceState("idle");
+        }
       }
     }).then((controller) => {
-      if (signal?.aborted) {
+      if (abortController.signal.aborted) {
         controller.disconnect();
         return null;
       }
+      clearWatchdog();
       realtimeRef.current = controller;
       setRealtimeStatus("connected");
       setMicrophoneEnabled(true);
       setVoiceState("listening");
       return controller;
-    }).catch(() => {
-      if (!signal?.aborted) {
+    }).catch((err) => {
+      clearWatchdog();
+      if (!abortController.signal.aborted) {
         setRealtimeStatus("failed");
         setVoiceState("idle");
+        setErrorMessage(getConnectionError(err));
       }
       return null;
     });
-  }, [cancelSpeech, selectedLevel, selectedMode]);
+  }, [cancelSpeech, clearWatchdog]);
 
   useEffect(() => {
     if (!storageReady) return;
 
-    const abortController = new AbortController();
     const timeoutId = window.setTimeout(() => {
-      void connectSession(abortController.signal);
+      void connectSession();
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
-      abortController.abort();
+      clearWatchdog();
+      if (connectAbortRef.current) {
+        connectAbortRef.current.abort();
+        connectAbortRef.current = null;
+      }
       realtimeRef.current?.disconnect();
       realtimeRef.current = null;
     };
-  }, [connectSession, storageReady]);
+  }, [connectSession, storageReady, clearWatchdog]);
 
   // Garante que o microfone fique ativo ESTRITAMENTE enquanto o usuário está usando o sistema
   useEffect(() => {
@@ -1261,7 +1321,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                           onClick={() => {
                             if (selectedLevel === level.id) return;
                             setSelectedLevel(level.id);
+                            scoringContextRef.current.selectedLevel = level.id;
                             resetTrainingContext();
+                            void connectSession();
                           }}
                         >
                           <Icon size={18} />
@@ -1289,7 +1351,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                           onClick={() => {
                             if (selectedMode === mode.id) return;
                             setSelectedMode(mode.id);
+                            scoringContextRef.current.selectedMode = mode.id;
                             resetTrainingContext();
+                            void connectSession();
                           }}
                         >
                           <Icon size={16} />
