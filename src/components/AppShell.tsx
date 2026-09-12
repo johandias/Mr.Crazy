@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { Settings, TimerReset, ShieldCheck } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
@@ -62,7 +62,9 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
         </div>
       </header>
       {children}
-      <MobileNav />
+      <Suspense fallback={null}>
+        <MobileNav />
+      </Suspense>
     </div>
   );
 }
