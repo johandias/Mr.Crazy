@@ -812,15 +812,46 @@ a {
   margin: 0;
 }
 
-.conversation-bubble p {
-  min-height: 42px;
-  color: var(--text);
-  font-size: clamp(1rem, 1.4vw, 1.22rem);
-  line-height: 1.48;
+.conversation-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 88%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.conversation-bubble.user {
+  align-self: flex-end;
+  border-color: rgb(56 189 248 / 28%);
+  background: rgb(12 33 46 / 85%);
+  border-bottom-right-radius: 3px;
 }
 
 .conversation-bubble.crazy {
-  border-color: rgb(209 115 56 / 28%);
+  align-self: flex-start;
+  border-color: rgb(249 115 22 / 28%);
+  background: rgb(30 20 18 / 85%);
+  border-bottom-left-radius: 3px;
+}
+
+.conversation-bubble.user span {
+  color: #38bdf8;
+}
+
+.conversation-bubble.crazy span {
+  color: #fb923c;
+}
+
+.conversation-bubble p {
+  min-height: unset;
+  color: var(--text);
+  font-size: clamp(0.94rem, 1.2vw, 1.05rem);
+  line-height: 1.45;
+  margin: 0;
+  word-break: break-word;
 }
 
 .correction-display {
@@ -1642,6 +1673,53 @@ meter {
   min-height: 400px;
 }
 
+.clean-conversation {
+  width: 100%;
+  max-height: 380px;
+  min-height: 180px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 6px 12px;
+  scroll-behavior: smooth;
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 14px, black 34px, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 14px, black 34px, black 100%);
+}
+
+.clean-conversation::-webkit-scrollbar {
+  width: 4px;
+}
+
+.clean-conversation::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.clean-conversation::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 15%);
+  border-radius: 4px;
+}
+
+.history-drag-hint {
+  text-align: center;
+  padding: 2px 0 6px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.65;
+  letter-spacing: 0.3px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.messages-bottom-anchor {
+  height: 1px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   /* Suppress redundant headers and bottom navigation on mobile clean-layout */
   .app-shell:has(.clean-layout) .app-header {
@@ -1709,13 +1787,18 @@ meter {
   .clean-conversation {
     width: 100%;
     max-height: 36vh;
+    min-height: 160px;
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 2px 4px;
+    padding: 6px 4px 10px;
     flex-shrink: 1;
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 14px, black 32px, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 14px, black 32px, black 100%);
   }
 
   .clean-mic-section {

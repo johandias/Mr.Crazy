@@ -126,12 +126,12 @@ const levelOptions: LevelOption[] = [
 ];
 
 const openingGreetings = [
-  "Opa, preguiçoso. Bora acordar esse inglês.",
-  "Chegou. Hoje eu quero ver esse inglês sair sem drama.",
-  "Vamos destravar essa fala antes que ela crie poeira.",
-  "E aí, cabeça de vento aplicado? Vamos treinar direito.",
-  "Até que enfim apareceu. Bora fazer esse inglês trabalhar.",
-  "Acorda, campeão da enrolação. Me diz o foco de hoje."
+  "Opa, tudo bem? Bora destravar a fala hoje.",
+  "E aí, pronto para praticar?",
+  "Fala comigo! Como posso te ajudar hoje?",
+  "Opa! Vamos bater um papo e treinar?",
+  "E aí, tudo certo? Me diz o que você quer ver hoje.",
+  "Opa, bora praticar um pouco?"
 ];
 
 function getNextOpeningIndex() {
@@ -180,9 +180,9 @@ function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: numb
 
   if (mode === "free-conversation") {
     const invitations: Record<LearningLevel, string> = {
-      basic: "O que você quer aprender hoje: uma situação do dia, uma frase específica ou conversa livre?",
+      basic: "O que você quer aprender hoje: uma situação do dia, uma frase específica ou bater um papo?",
       intermediate: "O que você quer treinar hoje: conversa livre, trabalho, viagem ou alguma frase que travou?",
-      advanced: "Qual assunto você quer destravar hoje? Pode ser livre; eu corrijo só o que realmente atrapalhar."
+      advanced: "Qual assunto você quer destravar hoje? Pode ser livre; eu te dou suporte com o que precisar."
     };
 
     return `${greeting} ${invitations[level]}`;
@@ -190,7 +190,7 @@ function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: numb
 
   const briefing = getTrainingBriefing(level, mode);
 
-  return `${greeting} Hoje vamos treinar ${briefing.focus}; se quiser mudar o foco, fala agora. "${briefing.question}" Responde em inglês.`;
+  return `${greeting} Hoje podemos praticar ${briefing.focus}. Você pode falar em português e eu te apoio com o inglês!`;
 }
 
 function getStableVoice(voices: SpeechSynthesisVoice[], lang: string) {
@@ -254,7 +254,7 @@ function getCrazyBubbleText(
   }
 
   if (voiceState === "listening") {
-    return realtimeStatus === "connected" ? "Pode falar. Estou ouvindo." : "Estou ouvindo! Pode falar em inglês...";
+    return realtimeStatus === "connected" ? "Pode falar. Estou ouvindo." : "Estou ouvindo! Pode falar...";
   }
 
   if (voiceState === "transcribing") {
@@ -323,7 +323,17 @@ function getStoredSession(): StoredSession {
       xp: typeof parsed.xp === "number" ? parsed.xp : fallback.xp,
       mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes : fallback.mistakes,
       history: Array.isArray(parsed.history) ? parsed.history.slice(0, 6) : fallback.history,
-      contextHistory: Array.isArray(parsed.contextHistory) ? parsed.contextHistory.slice(-10) : fallback.contextHistory,
+      contextHistory: Array.isArray(parsed.contextHistory)
+        ? parsed.contextHistory
+            .map((item) => {
+              if (!item || typeof item !== "object") return null;
+              const role = item.role === "user" || item.role === "crazy" ? item.role : null;
+              const text = typeof item.text === "string" ? item.text.trim() : "";
+              return role && text ? { role, text } : null;
+            })
+            .filter((item): item is ConversationTurn => Boolean(item))
+            .slice(-50)
+        : fallback.contextHistory,
       learningLevel: normalizeLearningLevel(parsed.learningLevel),
       character: parsed.character === "rpg" ? "rpg" : "voxel"
     };
@@ -383,11 +393,70 @@ export function PracticeExperience() {
     () => buildOpeningLine(selectedLevel, selectedMode, openingIndex),
     [openingIndex, selectedLevel, selectedMode]
   );
-  const userBubble = useMemo(() => getUserBubble(voiceState, transcript), [transcript, voiceState]);
-  const crazyBubbleText = useMemo(
-    () => getCrazyBubbleText(voiceState, openingLine, analysis, realtimeReply, realtimeStatus),
-    [analysis, openingLine, realtimeReply, realtimeStatus, voiceState]
-  );
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: smooth ? "smooth" : "auto",
+        block: "end"
+      });
+    }
+  }, []);
+
+  const conversationDisplayItems = useMemo(() => {
+    if (contextHistory.length > 0) {
+      return contextHistory.map((turn, index) => ({
+        key: `hist-${index}-${turn.role}`,
+        role: turn.role,
+        text: turn.text
+      }));
+    }
+
+    return [
+      {
+        key: "opening-greeting",
+        role: "crazy" as const,
+        text: openingLine
+      }
+    ];
+  }, [contextHistory, openingLine]);
+
+  const liveUserItem = useMemo(() => {
+    const clean = transcript.trim();
+    if (clean) {
+      const last = contextHistory[contextHistory.length - 1];
+      if (last && last.role === "user" && last.text === clean) return null;
+      return { text: clean };
+    }
+    return null;
+  }, [contextHistory, transcript]);
+
+  const liveCrazyItem = useMemo(() => {
+    const clean = realtimeReply.trim();
+    if (clean) {
+      const last = contextHistory[contextHistory.length - 1];
+      if (last && last.role === "crazy" && last.text === clean) return null;
+      return { text: clean };
+    }
+    if (voiceState === "analyzing" && !liveUserItem) {
+      return { text: "Hummm... Analisando..." };
+    }
+    return null;
+  }, [contextHistory, liveUserItem, realtimeReply, voiceState]);
+
+  useEffect(() => {
+    scrollToBottom(true);
+  }, [contextHistory, transcript, realtimeReply, voiceState, scrollToBottom]);
+
+  useEffect(() => {
+    if (storageReady) {
+      const timer = window.setTimeout(() => scrollToBottom(false), 120);
+      return () => window.clearTimeout(timer);
+    }
+  }, [storageReady, scrollToBottom]);
+
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
   const hasSpeechRecognition =
     typeof window !== "undefined" && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -622,13 +691,26 @@ export function PracticeExperience() {
           setTranscript(text);
           transcriptRef.current = text;
           if (complete && text.trim()) {
-            setContextHistory((current) => [...current.slice(-8), { role: "user", text: text.trim() }]);
+            const clean = text.trim();
+            setContextHistory((current) => {
+              const last = current[current.length - 1];
+              if (last && last.role === "user" && last.text === clean) return current;
+              return [...current.slice(-49), { role: "user", text: clean }];
+            });
+            setTranscript("");
+            transcriptRef.current = "";
           }
         },
         onAssistantTranscript: (text, complete) => {
           setRealtimeReply(text);
           if (complete && text.trim()) {
-            setContextHistory((current) => [...current.slice(-8), { role: "crazy", text: text.trim() }]);
+            const clean = text.trim();
+            setContextHistory((current) => {
+              const last = current[current.length - 1];
+              if (last && last.role === "crazy" && last.text === clean) return current;
+              return [...current.slice(-49), { role: "crazy", text: clean }];
+            });
+            setRealtimeReply("");
             lastScoredTranscriptRef.current = "";
           }
         },
@@ -875,11 +957,15 @@ export function PracticeExperience() {
     setRealtimeReply("");
     setTranscript("");
     transcriptRef.current = "";
-    setContextHistory([]);
     lastScoredTranscriptRef.current = "";
     setVoiceState("idle");
-    setOpeningIndex(getNextOpeningIndex());
     introSpokenRef.current = false;
+  }
+
+  function clearConversationHistory() {
+    resetTrainingContext();
+    setContextHistory([]);
+    setOpeningIndex(getNextOpeningIndex());
   }
 
   function speakCorrection() {
@@ -915,19 +1001,40 @@ export function PracticeExperience() {
           </motion.div>
 
           <motion.aside
+            ref={conversationContainerRef}
             className="conversation-panel clean-conversation"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45 }}
           >
-            {userBubble ? (
-              <ConversationBubble label={userBubble.label} tone="user">
-                {userBubble.text}
+            {contextHistory.length > 2 ? (
+              <div className="history-drag-hint" title="Arraste para ver mensagens anteriores">
+                <span>↑ Deslize para ver mensagens anteriores</span>
+              </div>
+            ) : null}
+
+            {conversationDisplayItems.map((item) => (
+              <ConversationBubble
+                key={item.key}
+                label={item.role === "user" ? "Você" : "Mr.Crazy"}
+                tone={item.role === "user" ? "user" : "crazy"}
+              >
+                {item.text}
+              </ConversationBubble>
+            ))}
+
+            {liveUserItem ? (
+              <ConversationBubble label="Você" tone="user">
+                {liveUserItem.text}
               </ConversationBubble>
             ) : null}
-            <ConversationBubble label="Mr.Crazy" tone="crazy">
-              {crazyBubbleText}
-            </ConversationBubble>
+
+            {liveCrazyItem ? (
+              <ConversationBubble label="Mr.Crazy" tone="crazy">
+                {liveCrazyItem.text}
+              </ConversationBubble>
+            ) : null}
+
             {speechRetry ? (
               <div className="action-row">
                 <button className="ghost-action" type="button" onClick={() => speakSegments(speechRetry.segments, speechRetry.nextState)}>
@@ -936,6 +1043,7 @@ export function PracticeExperience() {
                 </button>
               </div>
             ) : null}
+            <div ref={messagesEndRef} className="messages-bottom-anchor" />
           </motion.aside>
         </section>
 
@@ -1080,12 +1188,12 @@ export function PracticeExperience() {
                   type="button"
                   className="drawer-reset-btn"
                   onClick={() => {
-                    resetTrainingContext();
+                    clearConversationHistory();
                     setIsMenuOpen(false);
                   }}
                 >
                   <RotateCcw size={16} />
-                  <span>Reiniciar Conversa</span>
+                  <span>Limpar histórico de conversa</span>
                 </button>
               </div>
             </aside>

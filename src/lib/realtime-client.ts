@@ -42,22 +42,24 @@ function buildInitialResponse(level: LearningLevel, mode: string) {
 function buildTranscriptBoundResponse(transcript: string) {
   const cleanTranscript = transcript.trim();
   if (!cleanTranscript) {
-    return "O último áudio não gerou transcrição nítida. Peça em uma única frase curta para o usuário repetir.";
+    return "O último áudio não gerou transcrição nítida. Peça em uma única frase curta em português do Brasil para o usuário repetir.";
   }
 
   return `O usuário acabou de falar: "${cleanTranscript}".
-Comporte-se como Mr.Crazy: parceiro de estudo humano, direto, espirituoso e prático (NUNCA um avaliador robótico), ensinando inglês americano (en-US) para um brasileiro nativo.
+Você é Mr.Crazy: parceiro de estudos humano, descontraído e direto, ensinando inglês americano (en-US) para um aluno brasileiro nativo.
 
-DIRETRIZES CRÍTICAS:
-1. FOCO NO ALUNO BRASILEIRO: Entenda a mente de quem fala português do Brasil. Identifique vícios fonéticos comuns (ex: colocar 'i' no final de palavras que terminam em consoante como "like-i", trocar 'TH' por 'F'/'S', esquecer o pronome neutro 'it', ou traduzir expressões literalmente). Faça a ponte direta para o inglês americano natural.
-2. BREVIDADE MÁXIMA POR PADRÃO: Responda em estritamente 1 a 2 frases curtas e diretas. Não seja prolixo, não fale várias coisas de uma vez e JAMAIS repita explicações já feitas.
-3. EXCEÇÃO DE BREVIDADE: Só fale mais ou explique em detalhes se o usuário pedir explicitamente ("me explica melhor", "fala mais", "não entendi").
-4. PRÁTICA ASSISTIDA: Guie passo a passo, 1 frase ou estímulo por vez. Não despeje múltiplas coisas. Ciclo: o usuário fala -> você ajuda diretamente naquela frase em 1 frase curta -> o usuário fala de novo.
-5. TÉCNICAS PRÁTICAS DE PRONÚNCIA (LÍNGUA E BOCA): Quando relevante ensinar pronúncia, ensine a posição física exata da língua para o brasileiro destravar o som americano (ex: 'TH': ponta da língua entre os dentes soprando; 'R' americano: língua puxada pra trás sem encostar no céu da boca; corte o 'i' no fim de sons secos). Vá direto ao ponto e não repita a mesma dica.
-6. IDIOMA SOB DEMANDA: O usuário pode falar em português ou inglês. Apoie em português e use inglês americano nos exemplos. Só fale 100% em inglês se o usuário pedir expressamente.
-7. SAUDAÇÕES/PAPO CASUAL: Se o usuário der um oi/saudação (ex: "opa, tudo bem?"), retribua de forma humana e direta em 1 frase curta, sem fazer teste.
-8. REGRA DOS 80%: Se o usuário comunicou a ideia de forma compreensível (~80% certo), NÃO avalie nem dê notas ou elogios robóticos ("Correto", "Muito bem"). Continue a interação naturalmente como dois humanos.
-9. CORREÇÃO PONTUAL: Corrija apenas se falar uma palavra muito errada ou cometer erro grave de inglês, dando a alternativa americana natural em 1 frase rápida e direta.`;
+REGRA ABSOLUTA DE IDIOMA:
+- FALE SEMPRE EM PORTUGUÊS DO BRASIL (pt-BR). Sua fala e sua resposta devem ser em português brasileiro natural.
+- O inglês americano entra apenas como APOIO pedagógico (frases de exemplo, pronúncia ou expressões para treinar).
+- NÃO TENTE LEVAR TUDO PARA O INGLÊS: se o usuário falou em português (saudação, pergunta, desabafo ou dúvida), responda em português brasileiro. Não force o usuário a falar inglês.
+- NUNCA fale exclusivamente em inglês, a não ser que o usuário tenha pedido expressamente ("vamos falar só em inglês", "fale em inglês comigo").
+
+DIRETRIZES FUNDAMENTAIS:
+1. BREVIDADE MÁXIMA: Responda em estritamente 1 a 2 frases curtas e diretas. Não seja prolixo, não fale várias coisas juntas e jamais repita explicações.
+2. SAUDAÇÕES E BATE-PAPO: Se o usuário cumprimentou ("opa, tudo bem?", "oi"), retribua de forma humana e calorosa em português do Brasil em 1 frase curta (ex: "Opa, tudo ótimo! Como posso te ajudar hoje?"). Sem avaliar e sem empurrar inglês.
+3. PRÁTICA ASSISTIDA: Quando o usuário pedir para treinar ou perguntar como falar algo, ensine a frase em inglês americano e guie 1 passo por vez.
+4. TÉCNICA DE PRONÚNCIA: Se ensinar pronúncia para o brasileiro, ensine a mecânica da língua em português (ex: travar o som seco sem "i" no fim; ponta da língua entre os dentes pro 'th').
+5. REGRA DOS 80%: Se a comunicação fez sentido, continue como um amigo humano, sem jargões robóticos como "Passou!" ou "Muito bem!".`;
 }
 
 function getConnectionError(error: unknown) {
@@ -138,7 +140,6 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   };
 
   const syncMicrophone = () => {
-    microphone.enabled = microphoneEnabled && !assistantAudioActive;
     microphone.enabled = microphoneEnabled;
   };
 
@@ -147,9 +148,29 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     syncMicrophone();
   };
 
+  let interruptionTimer: number | null = null;
+  const clearInterruptionTimer = () => {
+    if (interruptionTimer !== null) {
+      window.clearTimeout(interruptionTimer);
+      interruptionTimer = null;
+    }
+  };
+
+  const cancelAssistantPlayback = () => {
+    clearInterruptionTimer();
+    if (audioPlaying || assistantAudioActive) {
+      audioPlaying = false;
+      assistantAudioActive = false;
+      audio.muted = true;
+      audio.pause();
+      send({ type: "response.cancel" });
+    }
+  };
+
   const disconnect = () => {
     if (disconnected) return;
     disconnected = true;
+    clearInterruptionTimer();
     audio.pause();
     audio.srcObject = null;
     channel.close();
@@ -180,22 +201,36 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         options.onUserTranscript("", false);
         options.onVoiceState("listening");
         if (audioPlaying || assistantAudioActive) {
-          audioPlaying = false;
-          assistantAudioActive = false;
-          audio.muted = true;
-          audio.pause();
-          send({ type: "response.cancel" });
+          clearInterruptionTimer();
+          interruptionTimer = window.setTimeout(() => {
+            cancelAssistantPlayback();
+          }, 320);
         }
         break;
       case "input_audio_buffer.speech_stopped":
+        clearInterruptionTimer();
         options.onVoiceState("transcribing");
         break;
       case "conversation.item.input_audio_transcription.delta":
         userTranscript += event.delta ?? "";
         options.onUserTranscript(userTranscript, false);
+        if ((audioPlaying || assistantAudioActive) && userTranscript.trim().length > 2) {
+          cancelAssistantPlayback();
+        }
         break;
-      case "conversation.item.input_audio_transcription.completed":
-        userTranscript = event.transcript?.trim() || userTranscript.trim();
+      case "conversation.item.input_audio_transcription.completed": {
+        clearInterruptionTimer();
+        const raw = event.transcript?.trim() || userTranscript.trim();
+        const cleanWords = raw.replace(/[.,!?;:\-–—"'`~^]/gu, "").trim();
+
+        if (!cleanWords || cleanWords.length < 2) {
+          userTranscript = "";
+          options.onUserTranscript("", false);
+          options.onVoiceState("listening");
+          break;
+        }
+
+        userTranscript = raw;
         options.onUserTranscript(userTranscript, true);
         options.onVoiceState("analyzing");
         send({
@@ -203,6 +238,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           response: { instructions: buildTranscriptBoundResponse(userTranscript) }
         });
         break;
+      }
       case "response.created":
         assistantTranscript = "";
         options.onVoiceState("analyzing");
