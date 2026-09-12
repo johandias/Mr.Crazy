@@ -65,6 +65,8 @@ export async function POST(request: Request) {
       .update(user?.email || sessionUser.email || "mr-crazy-authenticated-user")
       .digest("hex");
 
+    const realtimeModel = process.env.OPENAI_REALTIME_MODEL?.trim() || "gpt-4o-mini-realtime-preview";
+
     const controller = new AbortController();
     const timeoutTimer = setTimeout(() => {
       controller.abort(new DOMException("TimeoutError", "TimeoutError"));
@@ -80,17 +82,51 @@ export async function POST(request: Request) {
     let response: Response;
     let responseBody = "";
     try {
-      response = await fetch("https://api.openai.com/v1/realtime/calls", {
+      // 1. Tenta o endpoint WebRTC oficial da OpenAI (/v1/realtime?model=...)
+      response = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(realtimeModel)}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/sdp",
           "OpenAI-Safety-Identifier": safetyIdentifier
         },
-        body: formData,
+        body: sdp,
         signal: controller.signal,
         cache: "no-store"
       });
       responseBody = await response.text();
+
+      // 2. Se o endpoint direto não responder OK, tenta /v1/realtime/calls com FormData
+      if (!response.ok) {
+        console.warn(`[Realtime] Direct endpoint returned ${response.status}: ${responseBody.slice(0, 150)}. Trying /v1/realtime/calls fallback...`);
+        const formData = new FormData();
+        formData.set("sdp", sdp);
+        formData.set("session", JSON.stringify(session));
+
+        const fallbackResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "OpenAI-Safety-Identifier": safetyIdentifier
+          },
+          body: formData,
+          signal: controller.signal,
+          cache: "no-store"
+        });
+        const fallbackBody = await fallbackResponse.text();
+
+        if (fallbackResponse.ok) {
+          response = fallbackResponse;
+          responseBody = fallbackBody;
+        } else {
+          // Se o fallback também falhou, mantém o erro mais descritivo
+          console.error(`[Realtime] Fallback endpoint returned ${fallbackResponse.status}: ${fallbackBody.slice(0, 150)}`);
+          if (fallbackBody) {
+            response = fallbackResponse;
+            responseBody = fallbackBody;
+          }
+        }
+      }
     } finally {
       clearTimeout(timeoutTimer);
       request.signal.removeEventListener("abort", onReqAbort);
@@ -98,9 +134,9 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error("OpenAI Realtime session failed", response.status, responseBody.slice(0, 500));
-      let providerError: { code?: string; param?: string } = {};
+      let providerError: { code?: string; param?: string; message?: string } = {};
       try {
-        const parsed = JSON.parse(responseBody) as { error?: { code?: string; param?: string } };
+        const parsed = JSON.parse(responseBody) as { error?: { code?: string; param?: string; message?: string } };
         providerError = parsed.error ?? {};
       } catch {
         providerError = {};
@@ -111,7 +147,8 @@ export async function POST(request: Request) {
           error: "Não foi possível abrir a conversa em tempo real.",
           providerStatus: response.status,
           providerCode: providerError.code,
-          providerParam: providerError.param
+          providerMessage: providerError.message,
+          providerBody: responseBody.slice(0, 300)
         },
         { status: 502 }
       );

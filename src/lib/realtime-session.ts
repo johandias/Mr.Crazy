@@ -143,15 +143,14 @@ export function buildRealtimeSession(
 ) {
   return {
     type: "realtime",
-    model: "gpt-realtime-2.1-mini",
+    model: "gpt-4o-mini-realtime-preview",
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
     max_output_tokens: 300,
-    reasoning: { effort: "low" },
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
         transcription: {
-          model: "gpt-realtime-whisper",
+          model: "whisper-1",
           prompt: "Transcrição fiel em português do Brasil e inglês americano (en-US). Inclui dúvidas, bate-papo, termos e pronúncia."
         },
         turn_detection: {

@@ -189,12 +189,12 @@ function waitForDataChannel(
     const onOpen = () => finish();
     const onAbort = () => finish(new DOMException("Aborted", "AbortError"));
     const onPeerState = () => {
-      if (peer.connectionState === "failed" || peer.connectionState === "disconnected") {
+      if (peer.connectionState === "failed") {
         finish(new Error("peer-connection-failed"));
       }
     };
     const onIceState = () => {
-      if (peer.iceConnectionState === "failed" || peer.iceConnectionState === "disconnected") {
+      if (peer.iceConnectionState === "failed") {
         finish(new Error("ice-connection-failed"));
       }
     };
@@ -562,6 +562,25 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
 
+    // Aguarda gathering dos candidatos ICE (host + STUN) para incluir no SDP offer
+    if (peer.iceGatheringState !== "complete") {
+      await new Promise<void>((resolve) => {
+        const onState = () => {
+          if (peer.iceGatheringState === "complete") {
+            peer.removeEventListener("icegatheringstatechange", onState);
+            resolve();
+          }
+        };
+        peer.addEventListener("icegatheringstatechange", onState);
+        setTimeout(() => {
+          peer.removeEventListener("icegatheringstatechange", onState);
+          resolve();
+        }, 1200);
+      });
+    }
+
+    const sdpToSend = peer.localDescription?.sdp || offer.sdp;
+
     const { signal: fetchSignal, cleanup: cleanupFetchSignal } = createMergedTimeoutSignal(options.signal, 18000);
 
     let response: Response;
@@ -571,7 +590,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
-          body: offer.sdp,
+          body: sdpToSend,
           signal: fetchSignal
         }
       );
@@ -582,10 +601,12 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     if (!response.ok) {
       let errorMsg = "realtime-unavailable";
       try {
-        const errorData = (await response.json()) as { error?: string; providerCode?: string };
+        const errorData = (await response.json()) as { error?: string; providerCode?: string; providerMessage?: string; providerBody?: string };
         if (errorData?.error) {
           errorMsg = errorData.error;
-          if (errorData.providerCode) {
+          if (errorData.providerMessage) {
+            errorMsg += ` (${errorData.providerMessage})`;
+          } else if (errorData.providerCode) {
             errorMsg += ` (${errorData.providerCode})`;
           }
         }
@@ -596,6 +617,23 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
     await waitForDataChannel(channel, peer, options.signal);
     if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
+    // Configura a sessão com voz 'echo', transcrição e VAD
+    send({
+      type: "session.update",
+      session: {
+        modalities: ["text", "audio"],
+        voice: "echo",
+        input_audio_transcription: { model: "whisper-1" },
+        turn_detection: {
+          type: "server_vad",
+          threshold: 0.45,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 850,
+          create_response: false
+        }
+      }
+    });
 
     microphone.enabled = true;
     microphoneEnabled = true;

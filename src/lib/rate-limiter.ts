@@ -20,9 +20,9 @@ interface ActionLimits {
 }
 
 const STUDENT_LIMITS: Record<RateLimitAction, ActionLimits> = {
-  analyze: { perMinute: 12, perDay: 120 },
-  speech: { perMinute: 15, perDay: 150 },
-  realtime: { perMinute: 4, perDay: 20 }
+  analyze: { perMinute: 20, perDay: 300 },
+  speech: { perMinute: 30, perDay: 500 },
+  realtime: { perMinute: 15, perDay: 150 }
 };
 
 const ADMIN_LIMITS: Record<RateLimitAction, ActionLimits> = {

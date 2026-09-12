@@ -769,16 +769,17 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setVoiceState("preparing_speech");
     setAnalysisSource("manual");
 
-    // Watchdog de segurança (22s): se a conexão não abrir nem falhar, destrava a UI
+    // Watchdog de segurança (13s): se a conexão não abrir nem falhar, destrava a UI
     watchdogTimerRef.current = window.setTimeout(() => {
       if (connectAbortRef.current === abortController) {
+        isConnectingRef.current = false;
         realtimeRef.current?.disconnect();
         realtimeRef.current = null;
         setRealtimeStatus("failed");
         setVoiceState("idle");
         setErrorMessage("A conexão demorou a responder. Toque no botão para tentar novamente.");
       }
-    }, 22000);
+    }, 13000);
 
     const level = scoringContextRef.current.selectedLevel;
     const mode = scoringContextRef.current.selectedMode;
@@ -1149,15 +1150,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }
 
   function handleAvatarMicClick() {
-    // Se está em processo de conexão, ignora cliques repetidos para não abortar
-    if (realtimeStatus === "connecting" || isConnectingRef.current) {
-      return;
-    }
-
     // Se a conexão não está ativa ou falhou, o toque no microfone inicia/reconecta diretamente
     if (realtimeStatus !== "connected" || !realtimeRef.current) {
       setErrorMessage("");
       isConnectingRef.current = false;
+      if (connectAbortRef.current) {
+        connectAbortRef.current.abort();
+        connectAbortRef.current = null;
+      }
       void connectSession();
       return;
     }
