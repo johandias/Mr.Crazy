@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +12,13 @@ export async function GET() {
   let dbError: unknown = null;
   let rowCount: number | null = null;
 
+  let usersData: unknown = null;
+
   if (isSupabaseConfigured) {
     try {
-      const { error, count } = await supabaseAdmin
+      const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
-        .select("*", { count: "exact", head: true });
+        .select("id, email, role, status, created_at");
 
       if (error) {
         dbStatus = "error";
@@ -28,7 +30,8 @@ export async function GET() {
         };
       } else {
         dbStatus = "connected";
-        rowCount = count;
+        rowCount = data?.length ?? 0;
+        usersData = data;
       }
     } catch (err) {
       dbStatus = "exception";
@@ -47,7 +50,8 @@ export async function GET() {
       hasServiceRoleKey: Boolean(serviceRoleKey),
       status: dbStatus,
       error: dbError,
-      usersCount: rowCount
+      usersCount: rowCount,
+      dbUsers: usersData
     }
   });
 }
