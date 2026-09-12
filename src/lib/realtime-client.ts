@@ -123,27 +123,22 @@ function waitForDataChannel(channel: RTCDataChannel, signal?: AbortSignal) {
   });
 }
 
-let sharedAudioStream: MediaStream | null = null;
-
-export async function getPersistentMicrophoneStream(): Promise<MediaStream> {
-  if (
-    sharedAudioStream &&
-    sharedAudioStream.active &&
-    sharedAudioStream.getAudioTracks().some((track) => track.readyState === "live")
-  ) {
-    sharedAudioStream.getAudioTracks().forEach((track) => {
-      track.enabled = true;
-    });
-    return sharedAudioStream;
-  }
-
+export async function getFreshMicrophoneStream(): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
       echoCancellation: true,
       noiseSuppression: true,
-      autoGainControl: true,
-      channelCount: 1
+      autoGainControl: true
     }
+  });
+
+  const tracks = stream.getAudioTracks();
+  if (!tracks || tracks.length === 0) {
+    throw new Error("Nenhum microfone ativo detectado no dispositivo.");
+  }
+
+  tracks.forEach((track) => {
+    track.enabled = true;
   });
 
   try {
@@ -154,15 +149,11 @@ export async function getPersistentMicrophoneStream(): Promise<MediaStream> {
     // Ignore storage issues
   }
 
-  sharedAudioStream = stream;
   return stream;
 }
 
 export function releasePersistentMicrophoneStream() {
-  if (sharedAudioStream) {
-    sharedAudioStream.getTracks().forEach((track) => track.stop());
-    sharedAudioStream = null;
-  }
+  // Mantido para retrocompatibilidade
 }
 
 export async function connectRealtime(options: ConnectRealtimeOptions): Promise<RealtimeController> {
@@ -171,7 +162,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   const audio = document.createElement("audio");
   let stream: MediaStream;
   try {
-    stream = await getPersistentMicrophoneStream();
+    stream = await getFreshMicrophoneStream();
   } catch (error) {
     peer.close();
     if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -230,6 +221,14 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     }
   };
 
+  let transcriptionSafetyTimer: number | null = null;
+  const clearTranscriptionSafetyTimer = () => {
+    if (transcriptionSafetyTimer !== null) {
+      window.clearTimeout(transcriptionSafetyTimer);
+      transcriptionSafetyTimer = null;
+    }
+  };
+
   const cancelAssistantPlayback = () => {
     clearInterruptionTimer();
     if (audioPlaying || assistantAudioActive || activeResponseInProgress) {
@@ -248,13 +247,19 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     if (disconnected) return;
     disconnected = true;
     clearInterruptionTimer();
+    clearTranscriptionSafetyTimer();
     activeResponseInProgress = false;
     audio.pause();
     audio.srcObject = null;
-    channel.close();
-    peer.close();
-    // Do NOT call track.stop() on shared stream so browser never re-prompts for mic permission!
-    microphone.enabled = false;
+    try {
+      channel.close();
+    } catch {}
+    try {
+      peer.close();
+    } catch {}
+    try {
+      stream.getTracks().forEach((track) => track.stop());
+    } catch {}
   };
 
   options.signal?.addEventListener("abort", disconnect, { once: true });
@@ -289,6 +294,12 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       case "input_audio_buffer.speech_stopped":
         clearInterruptionTimer();
         options.onVoiceState("transcribing");
+        clearTranscriptionSafetyTimer();
+        transcriptionSafetyTimer = window.setTimeout(() => {
+          if (!activeResponseInProgress && !audioPlaying) {
+            options.onVoiceState("listening");
+          }
+        }, 5000);
         break;
       case "conversation.item.input_audio_transcription.delta":
         userTranscript += event.delta ?? "";
@@ -299,6 +310,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "conversation.item.input_audio_transcription.completed": {
         clearInterruptionTimer();
+        clearTranscriptionSafetyTimer();
         const raw = event.transcript?.trim() || userTranscript.trim();
         const cleanWords = raw.replace(/[.,!?;:\-–—"'`~^]/gu, "").trim();
 
@@ -325,6 +337,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       }
       case "conversation.item.input_audio_transcription.failed":
+        clearTranscriptionSafetyTimer();
         options.onVoiceState("listening");
         break;
       case "response.created":

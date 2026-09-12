@@ -149,16 +149,16 @@ export function buildRealtimeSession(
     reasoning: { effort: "low" },
     audio: {
       input: {
-        noise_reduction: { type: "far_field" },
+        noise_reduction: { type: "near_field" },
         transcription: {
           model: "gpt-realtime-whisper",
           prompt: "Transcrição fiel em português do Brasil e inglês americano (en-US). Inclui dúvidas, bate-papo, termos e pronúncia."
         },
         turn_detection: {
           type: "server_vad",
-          threshold: 0.65,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 850,
+          threshold: 0.45,
+          prefix_padding_ms: 350,
+          silence_duration_ms: 900,
           create_response: false,
           interrupt_response: false
         }

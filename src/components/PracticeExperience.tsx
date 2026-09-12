@@ -716,96 +716,110 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     introSpokenRef.current = true;
   }, [storageReady]);
 
+  const connectSession = useCallback((signal?: AbortSignal) => {
+    realtimeRef.current?.disconnect();
+    realtimeRef.current = null;
+    cancelSpeech();
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
+    setAnalysis(null);
+    setTranscript("");
+    transcriptRef.current = "";
+    setRealtimeReply("");
+    setRealtimeStatus("connecting");
+    setMicrophoneEnabled(true);
+    setErrorMessage("");
+    setVoiceState("preparing_speech");
+    setAnalysisSource("manual");
+
+    return connectRealtime({
+      level: selectedLevel,
+      mode: selectedMode,
+      signal,
+      getRecentContext: () =>
+        scoringContextRef.current.contextHistory.map((turn) => ({
+          role: turn.role,
+          text: turn.text
+        })),
+      onStatus: setRealtimeStatus,
+      onVoiceState: setVoiceState,
+      onUserTranscript: (text, complete) => {
+        setTranscript(text);
+        transcriptRef.current = text;
+        if (complete && text.trim()) {
+          const clean = text.trim();
+          setContextHistory((current) => {
+            const last = current[current.length - 1];
+            if (last && last.role === "user" && last.text === clean) return current;
+            return [...current.slice(-49), { role: "user", text: clean }];
+          });
+          setTranscript("");
+          transcriptRef.current = "";
+        }
+      },
+      onAssistantTranscript: (text, complete) => {
+        setRealtimeReply(text);
+        if (complete && text.trim()) {
+          const clean = text.trim();
+          setContextHistory((current) => {
+            const last = current[current.length - 1];
+            if (last && last.role === "crazy" && last.text === clean) return current;
+            return [...current.slice(-49), { role: "crazy", text: clean }];
+          });
+          setRealtimeReply("");
+
+          // Disparo automático de gestos conforme a reação do Mr.Crazy
+          const lower = clean.toLowerCase();
+          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou)/i.test(lower);
+          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete)/i.test(lower);
+
+          if (isPraise) {
+            triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
+          } else if (isCorrection) {
+            const options: CharacterGesture[] = ["watergun", "smoke", "finger"];
+            triggerGesture(options[Math.floor(Math.random() * options.length)]);
+          }
+        }
+      },
+      onError: (err) => {
+        setErrorMessage(err);
+        setRealtimeStatus("failed");
+        setVoiceState("idle");
+      }
+    }).then((controller) => {
+      if (signal?.aborted) {
+        controller.disconnect();
+        return null;
+      }
+      realtimeRef.current = controller;
+      setRealtimeStatus("connected");
+      setMicrophoneEnabled(true);
+      setVoiceState("listening");
+      return controller;
+    }).catch(() => {
+      if (!signal?.aborted) {
+        setRealtimeStatus("failed");
+        setVoiceState("idle");
+      }
+      return null;
+    });
+  }, [cancelSpeech, selectedLevel, selectedMode]);
+
   useEffect(() => {
     if (!storageReady) return;
 
     const abortController = new AbortController();
-    let activeController: RealtimeController | null = null;
     const timeoutId = window.setTimeout(() => {
-      realtimeRef.current?.disconnect();
-      realtimeRef.current = null;
-      cancelSpeech();
-      recognitionRef.current?.abort();
-      recognitionRef.current = null;
-      setAnalysis(null);
-      setTranscript("");
-      transcriptRef.current = "";
-      setRealtimeReply("");
-      setRealtimeStatus("connecting");
-      setMicrophoneEnabled(true);
-      setErrorMessage("");
-      setVoiceState("preparing_speech");
-      setAnalysisSource("manual");
-
-      void connectRealtime({
-        level: selectedLevel,
-        mode: selectedMode,
-        signal: abortController.signal,
-        getRecentContext: () =>
-          scoringContextRef.current.contextHistory.map((turn) => ({
-            role: turn.role,
-            text: turn.text
-          })),
-        onStatus: setRealtimeStatus,
-        onVoiceState: setVoiceState,
-        onUserTranscript: (text, complete) => {
-          setTranscript(text);
-          transcriptRef.current = text;
-          if (complete && text.trim()) {
-            const clean = text.trim();
-            setContextHistory((current) => {
-              const last = current[current.length - 1];
-              if (last && last.role === "user" && last.text === clean) return current;
-              return [...current.slice(-49), { role: "user", text: clean }];
-            });
-            setTranscript("");
-            transcriptRef.current = "";
-          }
-        },
-        onAssistantTranscript: (text, complete) => {
-          setRealtimeReply(text);
-          if (complete && text.trim()) {
-            const clean = text.trim();
-            setContextHistory((current) => {
-              const last = current[current.length - 1];
-              if (last && last.role === "crazy" && last.text === clean) return current;
-              return [...current.slice(-49), { role: "crazy", text: clean }];
-            });
-            setRealtimeReply("");
-
-            // Disparo automático de gestos conforme a reação do Mr.Crazy
-            const lower = clean.toLowerCase();
-            const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou)/i.test(lower);
-            const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete)/i.test(lower);
-
-            if (isPraise) {
-              triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
-            } else if (isCorrection) {
-              const options: CharacterGesture[] = ["watergun", "smoke", "finger"];
-              triggerGesture(options[Math.floor(Math.random() * options.length)]);
-            }
-          }
-        },
-        onError: setErrorMessage
-      }).then((controller) => {
-        if (abortController.signal.aborted) {
-          controller.disconnect();
-          return;
-        }
-        activeController = controller;
-        realtimeRef.current = controller;
-      }).catch(() => {
-        if (!abortController.signal.aborted) setVoiceState("idle");
-      });
+      void connectSession(abortController.signal);
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
       abortController.abort();
-      activeController?.disconnect();
-      if (realtimeRef.current === activeController) realtimeRef.current = null;
+      realtimeRef.current?.disconnect();
+      realtimeRef.current = null;
     };
-  }, [cancelSpeech, selectedLevel, selectedMode, storageReady]);
+  }, [connectSession, storageReady]);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -1015,8 +1029,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     void analyzeSentence(sentence);
   }
 
-  function toggleRealtimeMicrophone() {
-    if (realtimeStatus !== "connected" || !realtimeRef.current) return;
+  function handleAvatarMicClick() {
+    // Se a conexão não está ativa ou falhou, o toque no microfone inicia/reconecta diretamente
+    if (realtimeStatus !== "connected" || !realtimeRef.current) {
+      setErrorMessage("");
+      void connectSession();
+      return;
+    }
+
     const nextEnabled = !microphoneEnabled;
     realtimeRef.current.setMicrophoneEnabled(nextEnabled);
     setMicrophoneEnabled(nextEnabled);
@@ -1087,20 +1107,36 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             <div className="avatar-mic-dock">
               <button
                 type="button"
-                className={`avatar-mic-btn large-round ${microphoneEnabled && voiceState === "listening" ? "listening" : microphoneEnabled ? "active" : "muted"}`}
-                onClick={toggleRealtimeMicrophone}
-                aria-label={microphoneEnabled ? "Mutar microfone" : "Ativar microfone"}
-                title={microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone"}
+                className={`avatar-mic-btn large-round ${
+                  realtimeStatus === "connected" && microphoneEnabled && voiceState === "listening"
+                    ? "listening"
+                    : realtimeStatus === "connected" && microphoneEnabled
+                      ? "active"
+                      : realtimeStatus === "connecting"
+                        ? "connecting"
+                        : "muted"
+                }`}
+                onClick={handleAvatarMicClick}
+                aria-label={microphoneEnabled && realtimeStatus === "connected" ? "Mutar microfone" : "Ativar microfone"}
+                title={
+                  realtimeStatus === "connected"
+                    ? (microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone")
+                    : "Toque para ativar o microfone"
+                }
               >
-                {microphoneEnabled ? <Mic size={22} /> : <MicOff size={22} />}
+                {microphoneEnabled && realtimeStatus === "connected" ? <Mic size={22} /> : <MicOff size={22} />}
                 <span className="avatar-mic-label">
-                  {voiceState === "speaking"
-                    ? "Mr.Crazy falando..."
-                    : voiceState === "analyzing" || voiceState === "transcribing"
-                      ? "Ouvindo você..."
-                      : microphoneEnabled
-                        ? "Microfone Ativo"
-                        : "Microfone Mutado"}
+                  {realtimeStatus === "connecting"
+                    ? "Conectando microfone..."
+                    : realtimeStatus === "failed"
+                      ? "Toque para ativar microfone"
+                      : voiceState === "speaking"
+                        ? "Mr.Crazy falando..."
+                        : voiceState === "analyzing" || voiceState === "transcribing"
+                          ? "Ouvindo você..."
+                          : microphoneEnabled
+                            ? "Microfone Ativo"
+                            : "Microfone Mutado (Toque para falar)"}
                 </span>
               </button>
             </div>
@@ -1113,10 +1149,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   className="retry-connection-btn"
                   onClick={() => {
                     setErrorMessage("");
-                    window.location.reload();
+                    void connectSession();
                   }}
                 >
-                  Tentar reconectar
+                  Tentar reconectar microfone
                 </button>
               </div>
             ) : null}

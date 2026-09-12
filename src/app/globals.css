@@ -2066,6 +2066,13 @@ meter {
   color: #f87171;
 }
 
+.avatar-mic-btn.connecting {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #fde047;
+  animation: mic-pulse 1.2s ease-in-out infinite alternate;
+}
+
 .avatar-mic-label {
   letter-spacing: 0.3px;
 }
