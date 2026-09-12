@@ -20,6 +20,7 @@ type ConnectRealtimeOptions = {
   level: LearningLevel;
   mode: string;
   signal?: AbortSignal;
+  getRecentContext?: () => { role: string; text: string }[];
   onStatus: (status: RealtimeConnectionStatus) => void;
   onVoiceState: (state: VoiceState) => void;
   onUserTranscript: (text: string, complete: boolean) => void;
@@ -39,13 +40,34 @@ function buildInitialResponse(level: LearningLevel, mode: string) {
   return "Inicie a sessão agora. Pergunte em português o que o usuário quer aprender hoje, diga em poucas palavras o foco do treino escolhido e termine com uma pergunta em inglês adequada ao nível. Não espere o usuário falar primeiro.";
 }
 
-function buildTranscriptBoundResponse(transcript: string) {
+function buildTranscriptBoundResponse(
+  transcript: string,
+  recentTurns: { role: string; text: string }[] = []
+) {
   const cleanTranscript = transcript.trim();
   if (!cleanTranscript) {
     return "O último áudio não gerou transcrição nítida. Peça em uma única frase curta em português do Brasil para o usuário repetir.";
   }
 
-  return `O usuário acabou de falar: "${cleanTranscript}".
+  const contextSection =
+    recentTurns.length > 0
+      ? `
+CONTEXTO DA CONVERSA NESTA INSTÂNCIA ATUAL (MEMÓRIA TEMPORÁRIA DA SESSÃO):
+${recentTurns
+  .slice(-6)
+  .map(
+    (turn) =>
+      `- ${turn.role === "user" ? "Aluno" : "Mr.Crazy (você)"}: "${turn.text}"`
+  )
+  .join("\n")}
+
+DIRETRIZ DE CONTINUIDADE DO DIÁLOGO:
+- O aluno acabou de falar agora: "${cleanTranscript}".
+- Use o contexto acima para entender exatamente o que está acontecendo: se no turno anterior você ensinou uma expressão ou pediu para o aluno repetir uma palavra/frase, avalie a tentativa dele agora e dê continuidade ao ciclo de prática.
+- Se o aluno estiver respondendo a uma pergunta sua ou trazendo uma dúvida, responda diretamente em português do Brasil.`
+      : `O aluno acabou de falar: "${cleanTranscript}".`;
+
+  return `${contextSection}
 Você é Mr.Crazy: parceiro de estudos e professor de inglês americano (en-US) para um aluno brasileiro nativo.
 
 METODOLOGIA OBRIGATÓRIA (MISTURA NATURAL PORTUGUÊS-INGLÊS):
@@ -160,6 +182,15 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     syncMicrophone();
   };
 
+  const localSessionTurns: { role: string; text: string }[] = [];
+  const getContextSnapshot = (): { role: string; text: string }[] => {
+    const external = options.getRecentContext?.() ?? [];
+    if (external.length > 0) {
+      return external.slice(-6);
+    }
+    return localSessionTurns.slice(-6);
+  };
+
   let activeResponseInProgress = false;
   let interruptionTimer: number | null = null;
   const clearInterruptionTimer = () => {
@@ -251,9 +282,14 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         options.onUserTranscript(userTranscript, true);
         options.onVoiceState("analyzing");
         activeResponseInProgress = true;
+
+        const currentContext = getContextSnapshot();
+        localSessionTurns.push({ role: "user", text: userTranscript });
+        if (localSessionTurns.length > 12) localSessionTurns.shift();
+
         send({
           type: "response.create",
-          response: { instructions: buildTranscriptBoundResponse(userTranscript) }
+          response: { instructions: buildTranscriptBoundResponse(userTranscript, currentContext) }
         });
         break;
       }
@@ -269,6 +305,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       case "response.output_audio_transcript.done":
         assistantTranscript = event.transcript?.trim() || assistantTranscript.trim();
         options.onAssistantTranscript(assistantTranscript, true);
+        if (assistantTranscript) {
+          localSessionTurns.push({ role: "crazy", text: assistantTranscript });
+          if (localSessionTurns.length > 12) localSessionTurns.shift();
+        }
         break;
       case "output_audio_buffer.started":
         audioPlaying = true;
@@ -338,6 +378,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         userTranscript = cleanText;
         options.onUserTranscript(cleanText, true);
         options.onVoiceState("analyzing");
+        const currentContext = getContextSnapshot();
+        localSessionTurns.push({ role: "user", text: cleanText });
+        if (localSessionTurns.length > 12) localSessionTurns.shift();
+
         const created = send({
           type: "conversation.item.create",
           item: {
@@ -348,7 +392,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         });
         return created && send({
           type: "response.create",
-          response: { instructions: buildTranscriptBoundResponse(cleanText) }
+          response: { instructions: buildTranscriptBoundResponse(cleanText, currentContext) }
         });
       },
       finishTurn() {

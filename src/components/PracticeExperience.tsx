@@ -702,6 +702,11 @@ export function PracticeExperience() {
         level: selectedLevel,
         mode: selectedMode,
         signal: abortController.signal,
+        getRecentContext: () =>
+          scoringContextRef.current.contextHistory.map((turn) => ({
+            role: turn.role,
+            text: turn.text
+          })),
         onStatus: setRealtimeStatus,
         onVoiceState: setVoiceState,
         onUserTranscript: (text, complete) => {
