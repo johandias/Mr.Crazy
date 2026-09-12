@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { supabaseAdmin, isSupabaseConfigured } from "./supabase";
 
 export const AUTH_COOKIE_NAME = "mr_crazy_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 dias
@@ -171,17 +171,19 @@ export async function findUserByEmail(email: string): Promise<UserProfile | null
 
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
         .select("*")
         .eq("email", cleanEmail)
         .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        console.error("[Supabase findUserByEmail error]:", error.message, error.details || "");
+      } else if (data) {
         return data as UserProfile;
       }
-    } catch {
-      // Falha silenciosa para fallback
+    } catch (err) {
+      console.error("[Supabase findUserByEmail exception]:", err);
     }
   }
 
@@ -192,17 +194,19 @@ export async function findUserByEmail(email: string): Promise<UserProfile | null
 export async function findUserById(id: string): Promise<UserProfile | null> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
         .select("*")
         .eq("id", id)
         .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        console.error("[Supabase findUserById error]:", error.message, error.details || "");
+      } else if (data) {
         return data as UserProfile;
       }
-    } catch {
-      // Falha silenciosa para fallback
+    } catch (err) {
+      console.error("[Supabase findUserById exception]:", err);
     }
   }
 
@@ -243,7 +247,7 @@ export async function registerNewUser(
 
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
         .insert({
           email: cleanEmail,
@@ -260,12 +264,22 @@ export async function registerNewUser(
         .select()
         .single();
 
-      if (!error && data) {
+      if (error) {
+        console.error("[Supabase registerNewUser error]:", error.message, error.details || "", error.hint || "");
+        if (error.code === "23505") {
+          throw new Error("Já existe uma conta cadastrada com este e-mail no banco de dados.");
+        }
+      } else if (data) {
         return { user: data as UserProfile, isPending: status === "pending" };
       }
-    } catch {
-      // Continua para fallback em memória se tabela ainda não tiver sido criada
+    } catch (err) {
+      console.error("[Supabase registerNewUser exception]:", err);
+      if (err instanceof Error && err.message.includes("Já existe")) {
+        throw err;
+      }
     }
+  } else {
+    console.warn("[Mr.Crazy Auth] Supabase não está configurado. Usuário registrado apenas em memória temporária.");
   }
 
   memoryUsers.set(cleanEmail, {
@@ -279,16 +293,18 @@ export async function registerNewUser(
 export async function listAllUsers(): Promise<UserProfile[]> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
         .select("id, email, role, status, nickname, gender, learning_level, self_assessed_level, learning_style, main_difficulties, practice_time_seconds, evolution_score, xp, streak_days, created_at")
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
+      if (error) {
+        console.error("[Supabase listAllUsers error]:", error.message, error.details || "");
+      } else if (data) {
         return data as UserProfile[];
       }
-    } catch {
-      // Falha silenciosa para memória
+    } catch (err) {
+      console.error("[Supabase listAllUsers exception]:", err);
     }
   }
 
@@ -305,7 +321,7 @@ export async function updateUserApprovalStatus(
 ): Promise<boolean> {
   if (isSupabaseConfigured) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from("mrcrazy_users")
         .update({
           status: newStatus,
@@ -314,9 +330,13 @@ export async function updateUserApprovalStatus(
         })
         .eq("id", userId);
 
-      if (!error) return true;
-    } catch {
-      // Continua para fallback
+      if (error) {
+        console.error("[Supabase updateUserApprovalStatus error]:", error.message, error.details || "");
+      } else {
+        return true;
+      }
+    } catch (err) {
+      console.error("[Supabase updateUserApprovalStatus exception]:", err);
     }
   }
 
@@ -335,7 +355,7 @@ export async function updateUserProfile(
 ): Promise<UserProfile | null> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
         .update({
           ...updates,
@@ -345,11 +365,13 @@ export async function updateUserProfile(
         .select()
         .single();
 
-      if (!error && data) {
+      if (error) {
+        console.error("[Supabase updateUserProfile error]:", error.message, error.details || "");
+      } else if (data) {
         return data as UserProfile;
       }
-    } catch {
-      // Continua para fallback
+    } catch (err) {
+      console.error("[Supabase updateUserProfile exception]:", err);
     }
   }
 
