@@ -525,7 +525,7 @@ a {
 
 .rpg-hero {
   transform-origin: 80px 142px;
-  animation: rpg-idle 1.4s steps(2, end) infinite;
+  animation: realistic-breathe 3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 .rpg-cape rect {
@@ -632,57 +632,255 @@ a {
   animation: rpg-spark 1.5s steps(3, end) infinite;
 }
 
+/* Realistic Head Micro-movement & Eye blink */
+.rpg-head {
+  transform-origin: 80px 65px;
+  animation: realistic-head-sway 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.rpg-eyes {
+  transform-origin: 80px 60px;
+  animation: realistic-blink 4s infinite;
+}
+
+.rpg-body {
+  transform-origin: 80px 95px;
+  animation: realistic-chest 3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
 .rpg-character-stage.listening .rpg-eyes {
-  animation: rpg-listen 700ms steps(2, end) infinite;
+  animation: rpg-listen 700ms ease-in-out infinite;
 }
 
 .rpg-character-stage.speaking .rpg-hero {
-  animation-duration: 420ms;
+  animation-duration: 1.2s;
 }
 
 .rpg-character-stage.speaking .rpg-mouth {
   transform-origin: 80px 74px;
-  animation: rpg-talk 240ms steps(2, end) infinite;
+  animation: realistic-talk 240ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .rpg-character-stage.speaking .rpg-arm-right {
   transform-origin: 116px 88px;
-  animation: rpg-cast 520ms steps(2, end) infinite;
+  animation: rpg-cast 520ms ease-in-out infinite;
 }
 
-@keyframes rpg-idle {
-  0%,
-  100% {
-    transform: translateY(0);
+/* GESTOS EXPRESSIVOS */
+/* 1. Dar o dedo (Middle finger) */
+.rpg-gesture-finger {
+  transform-origin: 104px 90px;
+  animation: gesture-finger-shake 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite alternate;
+}
+
+.brows-smirk {
+  transform-origin: 80px 52px;
+  transform: rotate(4deg);
+}
+
+@keyframes gesture-finger-shake {
+  0% {
+    transform: rotate(-1deg) translateY(0);
   }
-  50% {
-    transform: translateY(-2px);
+  100% {
+    transform: rotate(3.5deg) translateY(-2px);
   }
 }
 
-@keyframes rpg-talk {
-  0%,
+/* 2. Fumar cigarro (Smoke) */
+.rpg-gesture-smoke {
+  transform-origin: 106px 90px;
+}
+
+.rpg-cig-ember {
+  animation: ember-pulse 0.7s ease-in-out infinite alternate;
+}
+
+.eyes-chill {
+  transform-origin: 80px 60px;
+  transform: scaleY(0.65);
+}
+
+.rpg-smoke-p1 {
+  animation: smoke-rise-1 1.8s ease-out infinite;
+}
+
+.rpg-smoke-p2 {
+  animation: smoke-rise-2 1.8s ease-out 0.5s infinite;
+}
+
+.rpg-smoke-p3 {
+  animation: smoke-rise-3 1.8s ease-out 1s infinite;
+}
+
+@keyframes ember-pulse {
+  0% {
+    fill: #ff3b00;
+    filter: drop-shadow(0 0 1px #ff2200);
+  }
   100% {
-    transform: scaleY(0.7);
+    fill: #ffb800;
+    filter: drop-shadow(0 0 5px #ff7700);
+  }
+}
+
+@keyframes smoke-rise-1 {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-7px, -18px) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes smoke-rise-2 {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-12px, -26px) scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes smoke-rise-3 {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(-16px, -34px) scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* 3. Fazer coração (Heart) */
+.rpg-heart-pulse {
+  transform-origin: 80px 92px;
+  animation: heart-beat 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.brows-happy {
+  transform-origin: 80px 52px;
+  transform: translateY(-1px);
+}
+
+@keyframes heart-beat {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px #ff2d60);
+  }
+  25% {
+    transform: scale(1.22);
+    filter: drop-shadow(0 0 7px #ff2d60);
+  }
+  40% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 4px #ff2d60);
+  }
+  60% {
+    transform: scale(1.28);
+    filter: drop-shadow(0 0 9px #ff2d60);
+  }
+}
+
+/* 4. Joinha (Thumbs Up) */
+.rpg-gesture-thumbsup {
+  transform-origin: 106px 90px;
+  animation: thumb-bounce 0.9s ease-in-out infinite alternate;
+}
+
+.eyes-wink .rpg-eye:first-child {
+  transform-origin: 69px 60px;
+  transform: scaleY(0.2);
+}
+
+.rpg-thumb-sparkle {
+  transform-origin: 122px 58px;
+  animation: thumb-sparkle 0.9s ease-in-out infinite;
+}
+
+@keyframes thumb-bounce {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+@keyframes thumb-sparkle {
+  0%, 100% {
+    transform: scale(0.7) rotate(0deg);
+    opacity: 0.4;
   }
   50% {
-    transform: scaleY(1.65);
+    transform: scale(1.25) rotate(45deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 4px #ffe600);
+  }
+}
+
+/* KEYFRAMES REALISTAS */
+@keyframes realistic-breathe {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-2px) scaleY(1.016);
+  }
+}
+
+@keyframes realistic-head-sway {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-1px) rotate(-0.5deg);
+  }
+}
+
+@keyframes realistic-chest {
+  0%, 100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.015, 1.02);
+  }
+}
+
+@keyframes realistic-blink {
+  0%, 92%, 96%, 100% {
+    transform: scaleY(1);
+  }
+  94% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes realistic-talk {
+  0%, 100% {
+    transform: scaleY(0.75);
+  }
+  50% {
+    transform: scaleY(1.65) translateY(0.5px);
   }
 }
 
 @keyframes rpg-cast {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
   }
 }
 
 @keyframes rpg-listen {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
   50% {
@@ -691,8 +889,7 @@ a {
 }
 
 @keyframes rpg-spark {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(4px);
     opacity: 0.25;
   }
@@ -1720,6 +1917,49 @@ meter {
   flex-shrink: 0;
 }
 
+.gesture-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  margin-bottom: 2px;
+  z-index: 5;
+  flex-wrap: wrap;
+}
+
+.gesture-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  background: rgb(18 24 38 / 75%);
+  backdrop-filter: blur(8px);
+  color: var(--text-soft);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.gesture-btn:hover {
+  background: rgb(34 46 72 / 90%);
+  border-color: var(--cyan);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.gesture-btn.active {
+  background: linear-gradient(135deg, rgba(49, 123, 137, 0.55), rgba(240, 179, 74, 0.45));
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(240, 179, 74, 0.4);
+  transform: scale(1.05);
+}
+
 @media (max-width: 768px) {
   /* Suppress redundant headers and bottom navigation on mobile clean-layout */
   .app-shell:has(.clean-layout) .app-header {
@@ -1755,7 +1995,7 @@ meter {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     min-height: 0;
     flex: 1;
     width: 100%;
@@ -1766,28 +2006,41 @@ meter {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
+    gap: 2px;
     flex-shrink: 0;
   }
 
   .character-stage {
-    width: 125px;
-    min-width: 100px;
-    max-width: 135px;
-    height: 125px;
+    width: min(205px, 52vw);
+    min-width: 170px;
+    max-width: 235px;
+    height: min(205px, 52vw);
+    aspect-ratio: 1;
+    cursor: pointer;
   }
 
   .listening-wave {
     width: min(260px, 75vw);
-    height: 24px;
-    margin-top: -10px;
+    height: 22px;
+    margin-top: -8px;
     transform: scale(0.8);
+  }
+
+  .gesture-action-bar {
+    gap: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+
+  .gesture-btn {
+    padding: 4px 8px;
+    font-size: 0.7rem;
   }
 
   .clean-conversation {
     width: 100%;
-    max-height: 36vh;
-    min-height: 160px;
+    max-height: 25vh;
+    min-height: 120px;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;

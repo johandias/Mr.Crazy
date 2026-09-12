@@ -24,7 +24,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { ConversationBubble } from "@/components/ConversationBubble";
 import { ListeningWave } from "@/components/ListeningWave";
-import { RpgCharacter } from "@/components/RpgCharacter";
+import { RpgCharacter, type CharacterGesture } from "@/components/RpgCharacter";
 import { SessionHeader } from "@/components/SessionHeader";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
 import {
@@ -358,6 +358,8 @@ export function PracticeExperience() {
   const [selectedMode, setSelectedMode] = useState("free-conversation");
   const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("rpg");
+  const [activeGesture, setActiveGesture] = useState<CharacterGesture>("idle");
+  const gestureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
@@ -373,6 +375,21 @@ export function PracticeExperience() {
   const transcriptRef = useRef("");
   const analysisQueuedRef = useRef(false);
   const silenceTimerRef = useRef<number | null>(null);
+
+  const triggerGesture = (gesture: CharacterGesture) => {
+    if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
+    setActiveGesture(gesture);
+    gestureTimeoutRef.current = setTimeout(() => {
+      setActiveGesture("idle");
+    }, 3800);
+  };
+
+  const handleAvatarTap = () => {
+    const gestures: CharacterGesture[] = ["finger", "smoke", "heart", "thumbsup"];
+    const currentIndex = gestures.indexOf(activeGesture);
+    const nextGesture = gestures[(currentIndex + 1) % gestures.length] || "thumbsup";
+    triggerGesture(nextGesture);
+  };
   const introSpokenRef = useRef(false);
   const realtimeRef = useRef<RealtimeController | null>(null);
   const lastScoredTranscriptRef = useRef("");
@@ -996,7 +1013,47 @@ export function PracticeExperience() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            <RpgCharacter crazyLevel={crazyLevel} emotion={emotion} voiceState={voiceState} />
+            <RpgCharacter
+              crazyLevel={crazyLevel}
+              emotion={emotion}
+              voiceState={voiceState}
+              gesture={activeGesture}
+              onTap={handleAvatarTap}
+            />
+            <div className="gesture-action-bar" role="toolbar" aria-label="Reações do Mr.Crazy">
+              <button
+                type="button"
+                className={`gesture-btn ${activeGesture === "finger" ? "active" : ""}`}
+                onClick={() => triggerGesture("finger")}
+                title="Gesto: Dar o dedo"
+              >
+                🖕 Dedo
+              </button>
+              <button
+                type="button"
+                className={`gesture-btn ${activeGesture === "smoke" ? "active" : ""}`}
+                onClick={() => triggerGesture("smoke")}
+                title="Gesto: Fumar cigarro"
+              >
+                🚬 Fumar
+              </button>
+              <button
+                type="button"
+                className={`gesture-btn ${activeGesture === "heart" ? "active" : ""}`}
+                onClick={() => triggerGesture("heart")}
+                title="Gesto: Fazer coração"
+              >
+                🫶 Coração
+              </button>
+              <button
+                type="button"
+                className={`gesture-btn ${activeGesture === "thumbsup" ? "active" : ""}`}
+                onClick={() => triggerGesture("thumbsup")}
+                title="Gesto: Joinha"
+              >
+                👍 Joinha
+              </button>
+            </div>
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking"} />
           </motion.div>
 

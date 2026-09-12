@@ -46,20 +46,32 @@ function buildTranscriptBoundResponse(transcript: string) {
   }
 
   return `O usuário acabou de falar: "${cleanTranscript}".
-Você é Mr.Crazy: parceiro de estudos humano, descontraído e direto, ensinando inglês americano (en-US) para um aluno brasileiro nativo.
+Você é Mr.Crazy: parceiro de estudos e professor de inglês americano (en-US) para um aluno brasileiro nativo.
 
-REGRA ABSOLUTA DE IDIOMA:
-- FALE SEMPRE EM PORTUGUÊS DO BRASIL (pt-BR). Sua fala e sua resposta devem ser em português brasileiro natural.
-- O inglês americano entra apenas como APOIO pedagógico (frases de exemplo, pronúncia ou expressões para treinar).
-- NÃO TENTE LEVAR TUDO PARA O INGLÊS: se o usuário falou em português (saudação, pergunta, desabafo ou dúvida), responda em português brasileiro. Não force o usuário a falar inglês.
-- NUNCA fale exclusivamente em inglês, a não ser que o usuário tenha pedido expressamente ("vamos falar só em inglês", "fale em inglês comigo").
+METODOLOGIA OBRIGATÓRIA (MISTURA NATURAL PORTUGUÊS-INGLÊS):
+1. O padrão é SEMPRE utilizar o português do Brasil como apoio para ensinar o inglês americano:
+   - Use o português para contextualizar de forma curta (1 frase).
+   - Apresente o modelo em inglês americano logo em seguida.
+   - Convide o usuário a repetir.
+   - Exemplo: "Para dar bom dia a alguém, você pode falar: Good morning. Tenta falar agora."
+   - Exemplo: "Para perguntar como alguém está, diga: How are you? Repete comigo."
 
-DIRETRIZES FUNDAMENTAIS:
-1. BREVIDADE MÁXIMA: Responda em estritamente 1 a 2 frases curtas e diretas. Não seja prolixo, não fale várias coisas juntas e jamais repita explicações.
-2. SAUDAÇÕES E BATE-PAPO: Se o usuário cumprimentou ("opa, tudo bem?", "oi"), retribua de forma humana e calorosa em português do Brasil em 1 frase curta (ex: "Opa, tudo ótimo! Como posso te ajudar hoje?"). Sem avaliar e sem empurrar inglês.
-3. PRÁTICA ASSISTIDA: Quando o usuário pedir para treinar ou perguntar como falar algo, ensine a frase em inglês americano e guie 1 passo por vez.
-4. TÉCNICA DE PRONÚNCIA: Se ensinar pronúncia para o brasileiro, ensine a mecânica da língua em português (ex: travar o som seco sem "i" no fim; ponta da língua entre os dentes pro 'th').
-5. REGRA DOS 80%: Se a comunicação fez sentido, continue como um amigo humano, sem jargões robóticos como "Passou!" ou "Muito bem!".`;
+2. CORREÇÃO DE PRONÚNCIA RÁPIDA E MECÂNICA (DIRETO AO PONTO):
+   - Se o usuário errou ou teve pronúncia truncada, aponte em 1 frase curta a técnica corporal:
+     * "Quase. Nesse som, coloque a língua mais próxima dos dentes."
+     * "Esse 'R' é diferente do português. Tente deixar a língua mais para trás sem encostar no céu da boca."
+     * "Faça esse som mais curto e seco, sem som de 'i' no final."
+   - Peça para tentar novamente imediatamente.
+
+3. CICLO DE AULA:
+   Português para contextualizar -> Inglês para ensinar -> Usuário repete -> Correção rápida -> Tenta novamente.
+
+4. NUNCA EXPLIQUE TUDO EM INGLÊS:
+   - Jamais faça explicações longas ou dê aulas teóricas em inglês.
+   - EXCEÇÃO ÚNICA: Só fale 100% em inglês se o usuário pedir explicitamente ("Quero conversar somente em inglês", "fale só em inglês"). Fora desse pedido, mantenha SEMPRE o português como base.
+
+5. BREVIDADE MÁXIMA:
+   - Responda em estritamente 1 a 2 frases curtas. Não canse o aluno.`;
 }
 
 function getConnectionError(error: unknown) {
@@ -148,6 +160,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     syncMicrophone();
   };
 
+  let activeResponseInProgress = false;
   let interruptionTimer: number | null = null;
   const clearInterruptionTimer = () => {
     if (interruptionTimer !== null) {
@@ -158,12 +171,15 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
   const cancelAssistantPlayback = () => {
     clearInterruptionTimer();
-    if (audioPlaying || assistantAudioActive) {
+    if (audioPlaying || assistantAudioActive || activeResponseInProgress) {
       audioPlaying = false;
       assistantAudioActive = false;
       audio.muted = true;
       audio.pause();
-      send({ type: "response.cancel" });
+      if (activeResponseInProgress) {
+        activeResponseInProgress = false;
+        send({ type: "response.cancel" });
+      }
     }
   };
 
@@ -171,6 +187,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     if (disconnected) return;
     disconnected = true;
     clearInterruptionTimer();
+    activeResponseInProgress = false;
     audio.pause();
     audio.srcObject = null;
     channel.close();
@@ -200,7 +217,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         userTranscript = "";
         options.onUserTranscript("", false);
         options.onVoiceState("listening");
-        if (audioPlaying || assistantAudioActive) {
+        if (audioPlaying || assistantAudioActive || activeResponseInProgress) {
           clearInterruptionTimer();
           interruptionTimer = window.setTimeout(() => {
             cancelAssistantPlayback();
@@ -214,7 +231,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       case "conversation.item.input_audio_transcription.delta":
         userTranscript += event.delta ?? "";
         options.onUserTranscript(userTranscript, false);
-        if ((audioPlaying || assistantAudioActive) && userTranscript.trim().length > 2) {
+        if ((audioPlaying || assistantAudioActive || activeResponseInProgress) && userTranscript.trim().length > 2) {
           cancelAssistantPlayback();
         }
         break;
@@ -233,6 +250,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         userTranscript = raw;
         options.onUserTranscript(userTranscript, true);
         options.onVoiceState("analyzing");
+        activeResponseInProgress = true;
         send({
           type: "response.create",
           response: { instructions: buildTranscriptBoundResponse(userTranscript) }
@@ -240,6 +258,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       }
       case "response.created":
+        activeResponseInProgress = true;
         assistantTranscript = "";
         options.onVoiceState("analyzing");
         break;
@@ -263,16 +282,29 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       case "output_audio_buffer.cleared":
         audioPlaying = false;
         assistantAudioActive = false;
+        activeResponseInProgress = false;
         window.setTimeout(syncMicrophone, 180);
         audio.muted = false;
         options.onVoiceState("listening");
         break;
       case "response.done":
+        activeResponseInProgress = false;
         if (!audioPlaying) options.onVoiceState("listening");
         break;
-      case "error":
-        options.onError(event.error?.message || "A API de voz retornou um erro.");
+      case "error": {
+        const errorMsg = event.error?.message || "";
+        // Ignora erros inofensivos de corrida de cancelamento da OpenAI Realtime
+        if (
+          errorMsg.toLowerCase().includes("cancellation failed") ||
+          errorMsg.toLowerCase().includes("no active response") ||
+          errorMsg.toLowerCase().includes("buffer is empty")
+        ) {
+          console.warn("[Realtime] Aviso transitório ignorado:", errorMsg);
+          break;
+        }
+        options.onError(errorMsg || "A API de voz retornou um erro.");
         break;
+      }
     }
   });
 
