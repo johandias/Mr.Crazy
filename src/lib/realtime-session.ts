@@ -97,7 +97,7 @@ export function buildRealtimeSession(levelValue: unknown, modeValue: unknown) {
           type: "server_vad",
           threshold: 0.8,
           prefix_padding_ms: 110,
-          silence_duration_ms: 1100,
+          silence_duration_ms: 800,
           create_response: false,
           interrupt_response: true
         }
