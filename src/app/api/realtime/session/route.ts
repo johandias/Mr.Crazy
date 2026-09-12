@@ -13,6 +13,7 @@ const MAX_SDP_LENGTH = 120_000;
 let cachedWorkingModel: string | null = null;
 
 const DEFAULT_REALTIME_MODELS = [
+  "gpt-realtime-2",
   "gpt-4o-realtime-preview",
   "gpt-4o-realtime-preview-2024-12-17",
   "gpt-4o-realtime-preview-2024-10-01",
@@ -98,19 +99,23 @@ export async function POST(request: Request) {
     let usedModel = candidateModels[0] || "gpt-4o-realtime-preview";
 
     try {
-      // 1. Itera sobre os modelos candidatos suportados pelo endpoint WebRTC oficial da OpenAI
+      // Itera sobre os modelos candidatos suportados pelo endpoint GA oficial da OpenAI (/v1/realtime/calls)
       for (const candidate of candidateModels) {
         if (controller.signal.aborted) break;
         usedModel = candidate;
 
-        const res = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(candidate)}`, {
+        const sessionWithModel = { ...session, model: candidate };
+        const formData = new FormData();
+        formData.set("sdp", sdp);
+        formData.set("session", JSON.stringify(sessionWithModel));
+
+        const res = await fetch("https://api.openai.com/v1/realtime/calls", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/sdp",
             "OpenAI-Safety-Identifier": safetyIdentifier
           },
-          body: sdp,
+          body: formData,
           signal: controller.signal,
           cache: "no-store"
         });
@@ -123,43 +128,13 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Se o erro foi 'model_not_found', tenta o próximo candidato
-        if (res.status === 404 && body.includes("model_not_found")) {
+        // Se o modelo não foi encontrado na conta, tenta o próximo candidato
+        if (res.status === 404 && (body.includes("model_not_found") || body.includes("does not exist"))) {
           console.warn(`[Realtime] Model '${candidate}' not found on account, trying next candidate...`);
           continue;
         }
 
-        // Outro tipo de erro, interrompe a busca
         break;
-      }
-
-      // 2. Se nenhum modelo direto deu OK, tenta fallback para /v1/realtime/calls com FormData
-      if (!response || !response.ok) {
-        console.warn(`[Realtime] Direct endpoint failed. Trying /v1/realtime/calls fallback...`);
-        const sessionWithModel = { ...session, model: usedModel };
-        const formData = new FormData();
-        formData.set("sdp", sdp);
-        formData.set("session", JSON.stringify(sessionWithModel));
-
-        const fallbackResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "OpenAI-Safety-Identifier": safetyIdentifier
-          },
-          body: formData,
-          signal: controller.signal,
-          cache: "no-store"
-        });
-        const fallbackBody = await fallbackResponse.text();
-
-        if (fallbackResponse.ok) {
-          response = fallbackResponse;
-          responseBody = fallbackBody;
-        } else if (!response) {
-          response = fallbackResponse;
-          responseBody = fallbackBody;
-        }
       }
     } finally {
       clearTimeout(timeoutTimer);

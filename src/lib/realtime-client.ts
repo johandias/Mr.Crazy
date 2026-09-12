@@ -547,9 +547,11 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         if (
           errorMsg.includes("buffer is empty") ||
           errorMsg.includes("already active") ||
-          errorMsg.includes("cancelled")
+          errorMsg.includes("cancelled") ||
+          errorMsg.includes("session.type") ||
+          errorMsg.includes("session.update")
         ) {
-          console.warn("[Realtime] Aviso transitório ignorado:", errorMsg);
+          console.warn("[Realtime] Aviso não crítico ignorado:", errorMsg);
           break;
         }
         options.onError(errorMsg || "A API de voz retornou um erro.");
@@ -617,23 +619,6 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
     await waitForDataChannel(channel, peer, options.signal);
     if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
-
-    // Configura a sessão com voz 'echo', transcrição e VAD
-    send({
-      type: "session.update",
-      session: {
-        modalities: ["text", "audio"],
-        voice: "echo",
-        input_audio_transcription: { model: "whisper-1" },
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.45,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 850,
-          create_response: false
-        }
-      }
-    });
 
     microphone.enabled = true;
     microphoneEnabled = true;
