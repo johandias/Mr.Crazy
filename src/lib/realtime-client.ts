@@ -93,14 +93,17 @@ DIRETRIZES DE IDIOMA E ENSINO:
 
 function getConnectionError(error: unknown) {
   if (error instanceof DOMException && error.name === "NotAllowedError") {
-    return "Permita o acesso ao microfone para ativar a conversa automática.";
+    return "Permita o acesso ao microfone para conversar com o Mr.Crazy.";
   }
 
-  if (error instanceof Error && error.message === "realtime-unavailable") {
-    return "A conversa em tempo real não está disponível agora. Use o botão de voz ou o modo texto.";
+  if (error instanceof Error && error.message) {
+    if (error.message === "realtime-unavailable") {
+      return "A conversa em tempo real está temporariamente indisponível. Toque para tentar novamente.";
+    }
+    return error.message;
   }
 
-  return "Não consegui iniciar a conversa automática. O modo manual continua disponível.";
+  return "Não consegui conectar o microfone. Toque no botão para tentar novamente.";
 }
 
 function waitForDataChannel(channel: RTCDataChannel, signal?: AbortSignal) {
@@ -469,7 +472,20 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         signal: options.signal
       }
     );
-    if (!response.ok) throw new Error("realtime-unavailable");
+
+    if (!response.ok) {
+      let errorMsg = "realtime-unavailable";
+      try {
+        const errorData = (await response.json()) as { error?: string; providerCode?: string };
+        if (errorData?.error) {
+          errorMsg = errorData.error;
+          if (errorData.providerCode) {
+            errorMsg += ` (${errorData.providerCode})`;
+          }
+        }
+      } catch {}
+      throw new Error(errorMsg);
+    }
 
     await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
     await waitForDataChannel(channel, options.signal);

@@ -149,7 +149,7 @@ export function buildRealtimeSession(
     reasoning: { effort: "low" },
     audio: {
       input: {
-        noise_reduction: { type: "near_field" },
+        noise_reduction: { type: "far_field" },
         transcription: {
           model: "gpt-realtime-whisper",
           prompt: "Transcrição fiel em português do Brasil e inglês americano (en-US). Inclui dúvidas, bate-papo, termos e pronúncia."
