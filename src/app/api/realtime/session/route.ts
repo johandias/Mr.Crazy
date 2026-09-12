@@ -6,6 +6,7 @@ import { checkRateLimit } from "@/lib/rate-limiter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const MAX_SDP_LENGTH = 120_000;
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
     const controller = new AbortController();
     const timeoutTimer = setTimeout(() => {
       controller.abort(new DOMException("TimeoutError", "TimeoutError"));
-    }, 8500);
+    }, 16000);
 
     const onReqAbort = () => controller.abort(request.signal.reason);
     if (request.signal.aborted) {
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const isTimeout = (error instanceof DOMException && error.name === "TimeoutError") ||
       (error instanceof Error && error.name === "TimeoutError");
-    console.error("OpenAI Realtime route failed", isTimeout ? "Request Timeout (8.5s)" : (error instanceof Error ? error.message : "unknown error"));
+    console.error("OpenAI Realtime route failed", isTimeout ? "Request Timeout (16s)" : (error instanceof Error ? error.message : "unknown error"));
     return NextResponse.json(
       { error: isTimeout ? "Tempo limite ao conectar com a IA. Tente novamente." : "Falha ao preparar a conversa em tempo real." },
       { status: isTimeout ? 504 : 500 }

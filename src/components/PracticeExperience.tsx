@@ -30,6 +30,7 @@ import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
 import {
   connectRealtime,
   getConnectionError,
+  isAbortError,
   type RealtimeConnectionStatus,
   type RealtimeController
 } from "@/lib/realtime-client";
@@ -425,6 +426,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const realtimeRef = useRef<RealtimeController | null>(null);
   const connectAbortRef = useRef<AbortController | null>(null);
   const watchdogTimerRef = useRef<number | null>(null);
+  const hasAutoConnectedRef = useRef(false);
+  const isConnectingRef = useRef(false);
 
   const clearWatchdog = useCallback(() => {
     if (watchdogTimerRef.current !== null) {
@@ -728,6 +731,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [storageReady]);
 
   const connectSession = useCallback((customSignal?: AbortSignal) => {
+    if (isConnectingRef.current) {
+      return;
+    }
+    isConnectingRef.current = true;
+
     // Aborta de forma limpa qualquer conexão anterior ainda em progresso
     if (connectAbortRef.current) {
       connectAbortRef.current.abort();
@@ -761,7 +769,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setVoiceState("preparing_speech");
     setAnalysisSource("manual");
 
-    // Watchdog de segurança (8.5s): se a conexão não abrir nem falhar, destrava a UI
+    // Watchdog de segurança (22s): se a conexão não abrir nem falhar, destrava a UI
     watchdogTimerRef.current = window.setTimeout(() => {
       if (connectAbortRef.current === abortController) {
         realtimeRef.current?.disconnect();
@@ -770,7 +778,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         setVoiceState("idle");
         setErrorMessage("A conexão demorou a responder. Toque no botão para tentar novamente.");
       }
-    }, 8500);
+    }, 22000);
 
     const level = scoringContextRef.current.selectedLevel;
     const mode = scoringContextRef.current.selectedMode;
@@ -785,12 +793,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           text: turn.text
         })),
       onStatus: (status) => {
-        if (connectAbortRef.current === abortController) {
+        if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           setRealtimeStatus(status);
         }
       },
       onVoiceState: (state) => {
-        if (connectAbortRef.current === abortController) {
+        if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           setVoiceState(state);
         }
       },
@@ -833,11 +841,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
       },
       onError: (err) => {
-        if (connectAbortRef.current === abortController) {
+        if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           clearWatchdog();
-          setErrorMessage(err);
-          setRealtimeStatus("failed");
-          setVoiceState("idle");
+          if (!isAbortError(err)) {
+            setErrorMessage(err);
+            setRealtimeStatus("failed");
+            setVoiceState("idle");
+          }
         }
       }
     }).then((controller) => {
@@ -853,24 +863,36 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return controller;
     }).catch((err) => {
       clearWatchdog();
-      if (!abortController.signal.aborted) {
-        setRealtimeStatus("failed");
-        setVoiceState("idle");
-        setErrorMessage(getConnectionError(err));
+      if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
+        if (!isAbortError(err)) {
+          setRealtimeStatus("failed");
+          setVoiceState("idle");
+          setErrorMessage(getConnectionError(err));
+        }
       }
       return null;
+    }).finally(() => {
+      if (connectAbortRef.current === abortController) {
+        isConnectingRef.current = false;
+      }
     });
   }, [cancelSpeech, clearWatchdog]);
 
   useEffect(() => {
-    if (!storageReady) return;
+    if (!storageReady || hasAutoConnectedRef.current) return;
+    hasAutoConnectedRef.current = true;
 
     const timeoutId = window.setTimeout(() => {
       void connectSession();
-    }, 0);
+    }, 50);
 
     return () => {
       window.clearTimeout(timeoutId);
+    };
+  }, [connectSession, storageReady]);
+
+  useEffect(() => {
+    return () => {
       clearWatchdog();
       if (connectAbortRef.current) {
         connectAbortRef.current.abort();
@@ -879,7 +901,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       realtimeRef.current?.disconnect();
       realtimeRef.current = null;
     };
-  }, [connectSession, storageReady, clearWatchdog]);
+  }, [clearWatchdog]);
 
   // Garante que o microfone fique ativo ESTRITAMENTE enquanto o usuário está usando o sistema
   useEffect(() => {
@@ -1127,9 +1149,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }
 
   function handleAvatarMicClick() {
+    // Se está em processo de conexão, ignora cliques repetidos para não abortar
+    if (realtimeStatus === "connecting" || isConnectingRef.current) {
+      return;
+    }
+
     // Se a conexão não está ativa ou falhou, o toque no microfone inicia/reconecta diretamente
     if (realtimeStatus !== "connected" || !realtimeRef.current) {
       setErrorMessage("");
+      isConnectingRef.current = false;
       void connectSession();
       return;
     }
@@ -1246,6 +1274,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   className="retry-connection-btn"
                   onClick={() => {
                     setErrorMessage("");
+                    isConnectingRef.current = false;
                     void connectSession();
                   }}
                 >
@@ -1338,6 +1367,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                             setSelectedLevel(level.id);
                             scoringContextRef.current.selectedLevel = level.id;
                             resetTrainingContext();
+                            isConnectingRef.current = false;
                             void connectSession();
                           }}
                         >
@@ -1368,6 +1398,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                             setSelectedMode(mode.id);
                             scoringContextRef.current.selectedMode = mode.id;
                             resetTrainingContext();
+                            isConnectingRef.current = false;
                             void connectSession();
                           }}
                         >

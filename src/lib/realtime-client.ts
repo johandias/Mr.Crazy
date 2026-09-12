@@ -91,7 +91,39 @@ DIRETRIZES DE IDIOMA E ENSINO:
    - Seja conciso: 1 a 2 frases objetivas e humanas por intervenção. Mantenha o ritmo de bate-papo ágil.`;
 }
 
+export function isAbortError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+  if (error instanceof Error) {
+    if (error.name === "AbortError") return true;
+    const msg = error.message.toLowerCase();
+    if (msg.includes("abort") || msg.includes("aborted")) return true;
+  }
+  const str = String(error).toLowerCase();
+  return str.includes("abort") || str.includes("aborted");
+}
+
+export function isTimeoutError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof DOMException && error.name === "TimeoutError") return true;
+  if (error instanceof Error) {
+    if (error.name === "TimeoutError") return true;
+    const msg = error.message.toLowerCase();
+    if (msg.includes("timeout") || msg.includes("timed out")) return true;
+  }
+  const str = String(error).toLowerCase();
+  return str.includes("timeout") || str.includes("timed out");
+}
+
 export function getConnectionError(error: unknown) {
+  if (isAbortError(error)) {
+    return "A conexão foi reiniciada. Toque no botão para tentar novamente.";
+  }
+
+  if (isTimeoutError(error)) {
+    return "A conexão demorou a responder. Toque no botão para tentar novamente.";
+  }
+
   if (error instanceof DOMException && error.name === "NotAllowedError") {
     return "Permita o acesso ao microfone para conversar com o Mr.Crazy.";
   }
@@ -108,13 +140,16 @@ export function getConnectionError(error: unknown) {
     ) {
       return "A conexão demorou a responder. Toque no botão para tentar novamente.";
     }
+    if (error.message.toLowerCase().includes("abort")) {
+      return "A conexão foi reiniciada. Toque no botão para tentar novamente.";
+    }
     return error.message;
   }
 
   return "Não consegui conectar o microfone. Toque no botão para tentar novamente.";
 }
 
-function createMergedTimeoutSignal(signal?: AbortSignal, timeoutMs = 8000): { signal: AbortSignal; cleanup: () => void } {
+function createMergedTimeoutSignal(signal?: AbortSignal, timeoutMs = 18000): { signal: AbortSignal; cleanup: () => void } {
   const controller = new AbortController();
   const timer = window.setTimeout(() => {
     controller.abort(new DOMException("TimeoutError", "TimeoutError"));
@@ -149,7 +184,7 @@ function waitForDataChannel(
 
   return new Promise<void>((resolve, reject) => {
     let finished = false;
-    const timeout = window.setTimeout(() => finish(new Error("data-channel-timeout")), 7_000);
+    const timeout = window.setTimeout(() => finish(new Error("data-channel-timeout")), 14_000);
 
     const onOpen = () => finish();
     const onAbort = () => finish(new DOMException("Aborted", "AbortError"));
@@ -219,6 +254,10 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
   // Sempre libera streams anteriores para garantir uma faixa 100% nova e com transmissão ativa no WebKit/iOS
   releasePersistentMicrophoneStream();
 
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+    throw new Error("Seu navegador não suporta captura de áudio ou a página não está em conexão segura (HTTPS).");
+  }
+
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
       echoCancellation: true,
@@ -272,7 +311,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     stream = sessionMedia.stream;
   } catch (error) {
     peer.close();
-    if (!(error instanceof DOMException && error.name === "AbortError")) {
+    if (!isAbortError(error) && !options.signal?.aborted) {
       options.onStatus("failed");
       options.onError(getConnectionError(error));
     }
@@ -523,7 +562,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
 
-    const { signal: fetchSignal, cleanup: cleanupFetchSignal } = createMergedTimeoutSignal(options.signal, 8000);
+    const { signal: fetchSignal, cleanup: cleanupFetchSignal } = createMergedTimeoutSignal(options.signal, 18000);
 
     let response: Response;
     try {
@@ -601,7 +640,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     };
   } catch (error) {
     disconnect();
-    if (!(error instanceof DOMException && error.name === "AbortError")) {
+    if (!isAbortError(error) && !options.signal?.aborted) {
       options.onStatus("failed");
       options.onError(getConnectionError(error));
     }
