@@ -17,3 +17,5 @@ CLAUDE.md
 *-smoke.json
 *-canvas-*.json
 mr-crazy-*.png
+.agents/
+skills-lock.json

@@ -422,7 +422,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   };
   const introSpokenRef = useRef(false);
   const realtimeRef = useRef<RealtimeController | null>(null);
-  const lastScoredTranscriptRef = useRef("");
   const scoringContextRef = useRef({
     mistakes: [] as MistakeCategory[],
     crazyLevel: 16,
@@ -684,43 +683,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
   }, []);
 
-  const scoreRealtimeSentence = useCallback(async (
-    sentence: string,
-    inputSource: "manual" | "voice_realtime" = "voice_realtime"
-  ) => {
-    const cleanSentence = sentence.trim();
-    if (!cleanSentence || lastScoredTranscriptRef.current === cleanSentence) return;
-
-    lastScoredTranscriptRef.current = cleanSentence;
-    const current = scoringContextRef.current;
-
-    try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sentence: cleanSentence,
-          previousMistakes: current.mistakes,
-          crazyLevel: current.crazyLevel,
-          mode: current.selectedMode,
-          learningLevel: current.selectedLevel,
-          contextHistory: [...current.contextHistory, { role: "user", text: cleanSentence }],
-          inputSource
-        })
-      });
-
-      if (!response.ok) throw new Error("realtime scoring failed");
-      applyAnalysisResult(
-        (await response.json()) as AnalysisResponse,
-        cleanSentence,
-        false,
-        inputSource === "manual" ? "manual" : "voice"
-      );
-    } catch {
-      lastScoredTranscriptRef.current = "";
-    }
-  }, [applyAnalysisResult]);
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const stored = getStoredSession();
@@ -810,7 +772,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               return [...current.slice(-49), { role: "crazy", text: clean }];
             });
             setRealtimeReply("");
-            lastScoredTranscriptRef.current = "";
 
             // Disparo automático de gestos conforme a reação do Mr.Crazy
             const lower = clean.toLowerCase();
@@ -844,7 +805,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       activeController?.disconnect();
       if (realtimeRef.current === activeController) realtimeRef.current = null;
     };
-  }, [cancelSpeech, scoreRealtimeSentence, selectedLevel, selectedMode, storageReady]);
+  }, [cancelSpeech, selectedLevel, selectedMode, storageReady]);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -869,7 +830,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   async function analyzeSentence(sentence: string) {
     const cleanSentence = sentence.trim();
-    if (!cleanSentence) return;
+    if (!cleanSentence || analysisQueuedRef.current) return;
 
     introSpokenRef.current = true;
     cancelSpeech();
@@ -890,20 +851,27 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sentence: cleanSentence,
-          previousMistakes: mistakes,
+          previousMistakes: mistakes.slice(0, 5),
           crazyLevel,
           mode: selectedMode,
           learningLevel: selectedLevel,
           inputSource: "manual",
           contextHistory: [
-            ...contextHistory,
+            ...contextHistory.slice(-4),
             { role: "user", text: cleanSentence }
           ]
         })
       });
 
       if (!response.ok) {
-        throw new Error("analysis failed");
+        let errMessage = "A análise falhou. Digite uma frase e tente de novo.";
+        try {
+          const errData = (await response.json()) as { error?: string };
+          if (errData?.error) errMessage = errData.error;
+        } catch {}
+        setErrorMessage(errMessage);
+        setVoiceState("idle");
+        return;
       }
 
       const result = (await response.json()) as AnalysisResponse;
@@ -1043,7 +1011,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     if (realtimeStatus === "connected" && realtimeRef.current?.sendText(sentence)) {
       setAnalysis(null);
       setAnalysisSource("manual");
-      void scoreRealtimeSentence(sentence, "manual");
       return;
     }
 
@@ -1072,7 +1039,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setRealtimeReply("");
     setTranscript("");
     transcriptRef.current = "";
-    lastScoredTranscriptRef.current = "";
     setVoiceState("idle");
     introSpokenRef.current = false;
   }
@@ -1294,9 +1260,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       placeholder={activeLevel.placeholder}
                       aria-label="Digite sua frase em inglês"
                     />
-                    <button type="submit" disabled={!manualText.trim()} title="Enviar mensagem">
+                    <button
+                      type="submit"
+                      disabled={!manualText.trim() || voiceState === "analyzing"}
+                      title="Enviar mensagem"
+                    >
                       <Send size={16} />
-                      <span>Enviar</span>
+                      <span>{voiceState === "analyzing" ? "Analisando..." : "Enviar"}</span>
                     </button>
                   </form>
 
@@ -1307,7 +1277,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                         <button
                           key={example}
                           type="button"
+                          disabled={voiceState === "analyzing"}
                           onClick={() => {
+                            if (voiceState === "analyzing") return;
                             submitSentence(example);
                             setIsMenuOpen(false);
                           }}

@@ -192,7 +192,7 @@ function getGeminiModels() {
 function buildPrompt(request: AnalysisRequest) {
   const learningLevel = normalizeLearningLevel(request.learningLevel);
   const isFreeConversation = request.mode === "free-conversation";
-  const previousMistakes = (request.previousMistakes ?? []).slice(0, 8);
+  const previousMistakes = (request.previousMistakes ?? []).slice(0, 5);
   const sourceRule = isVoiceInput(request)
     ? "\nFonte da entrada: voz transcrita. Avalie o texto reconhecido, nao invente erro de pronuncia que nao aparece no transcript e nao diga que errou se o transcript esta gramaticalmente correto e adequado ao contexto."
     : "";
@@ -290,7 +290,7 @@ async function requestGemini(apiKey: string, prompt: string) {
             generationConfig: {
               temperature: 0.95,
               topP: 0.95,
-              maxOutputTokens: 900,
+              maxOutputTokens: 450,
               responseMimeType: "application/json"
             }
           }),

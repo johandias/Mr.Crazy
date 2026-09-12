@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { isAuthenticated, getCurrentUser } from "@/lib/server-auth";
+import { getCurrentSession, getCurrentUser } from "@/lib/server-auth";
 import { buildRealtimeSession } from "@/lib/realtime-session";
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,8 +10,25 @@ export const dynamic = "force-dynamic";
 const MAX_SDP_LENGTH = 120_000;
 
 export async function POST(request: Request) {
-  if (!(await isAuthenticated())) {
+  const sessionUser = await getCurrentSession();
+  if (!sessionUser || sessionUser.status !== "approved") {
     return NextResponse.json({ error: "Acesso não autorizado." }, { status: 401 });
+  }
+
+  // 1. Verificação de Limite de Taxa e Cota Diária de Sessões WebRTC
+  const rateLimit = await checkRateLimit(sessionUser, "realtime");
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.error, code: rateLimit.code },
+      {
+        status: rateLimit.status,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds ?? 15),
+          "X-RateLimit-Limit": String(rateLimit.limit),
+          "X-RateLimit-Remaining": String(rateLimit.remaining)
+        }
+      }
+    );
   }
 
   const user = await getCurrentUser();
@@ -43,7 +61,7 @@ export async function POST(request: Request) {
     formData.set("session", JSON.stringify(session));
 
     const safetyIdentifier = createHash("sha256")
-      .update(user?.email || "mr-crazy-authenticated-user")
+      .update(user?.email || sessionUser.email || "mr-crazy-authenticated-user")
       .digest("hex");
 
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
@@ -82,7 +100,9 @@ export async function POST(request: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/sdp",
-        "Cache-Control": "private, no-store"
+        "Cache-Control": "private, no-store",
+        "X-RateLimit-Limit": String(rateLimit.limit),
+        "X-RateLimit-Remaining": String(rateLimit.remaining)
       }
     });
   } catch (error) {
