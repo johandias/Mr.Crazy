@@ -2581,10 +2581,34 @@ meter {
   color: #34d399;
 }
 
+.auth-notice.pending-notice {
+  background: rgba(234, 179, 8, 0.14);
+  border: 1.5px solid rgba(234, 179, 8, 0.5);
+  color: #fde047;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.auth-notice.pending-notice strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #facc15;
+  margin-bottom: 3px;
+}
+
+.auth-notice.pending-notice p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #fef08a;
+  line-height: 1.4;
+}
+
 .auth-notice.error-notice {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
 }
 
 .auth-helper-text {

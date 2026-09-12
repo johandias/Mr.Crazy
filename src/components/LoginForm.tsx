@@ -15,12 +15,15 @@ export function LoginForm() {
   const [nickname, setNickname] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isPending, setIsPending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("pending") === "1") {
-      setErrorMessage("Sua conta foi criada e está aguardando aprovação do administrador.");
+      setIsPending(true);
+      setErrorMessage("Conta cadastrada com sucesso! Esperando liberação do administrador para entrar.");
     } else if (searchParams.get("rejected") === "1") {
+      setIsPending(false);
       setErrorMessage("Seu acesso foi suspenso ou recusado pelo administrador.");
     }
   }, [searchParams]);
@@ -44,6 +47,11 @@ export function LoginForm() {
       }>;
 
       if (!response.ok) {
+        if (result.status === "pending") {
+          setIsPending(true);
+          throw new Error("Sua conta foi criada e está esperando liberação do administrador para usar o sistema.");
+        }
+        setIsPending(false);
         throw new Error(result.error ?? "E-mail ou senha inválidos.");
       }
 
@@ -76,20 +84,23 @@ export function LoginForm() {
       }>;
 
       if (!response.ok) {
-        throw new Error(result.error ?? "Erro ao realizar cadastro.");
+        setIsPending(false);
+        throw new Error(result.error ?? "Erro ao criar conta.");
       }
 
-      if (result.status === "approved") {
-        router.replace(result.redirectTo ?? "/practice");
-        router.refresh();
+      if (result.status === "pending") {
+        setIsPending(true);
+        setErrorMessage("Conta cadastrada com sucesso! Esperando liberação do administrador para entrar.");
+        setTab("login");
+        setPassword("");
         return;
       }
 
       setSuccessMessage(
-        result.message ?? "Conta cadastrada com sucesso! Aguardando aprovação do administrador."
+        result.message ?? "Conta criada com sucesso! Redirecionando..."
       );
-      setTab("login");
-      setPassword("");
+      router.replace(result.redirectTo ?? "/practice");
+      router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Erro ao cadastrar.");
     } finally {
@@ -132,13 +143,21 @@ export function LoginForm() {
       ) : null}
 
       {errorMessage ? (
-        <div className="auth-notice error-notice">
-          {errorMessage.includes("aguardando aprovação") ? (
-            <Clock size={18} />
+        <div className={`auth-notice ${isPending ? "pending-notice" : "error-notice"}`}>
+          {isPending ? (
+            <>
+              <Clock size={22} />
+              <div>
+                <strong>Esperando Liberação do Administrador</strong>
+                <p>{errorMessage}</p>
+              </div>
+            </>
           ) : (
-            <AlertCircle size={18} />
+            <>
+              <AlertCircle size={18} />
+              <span>{errorMessage}</span>
+            </>
           )}
-          <span>{errorMessage}</span>
         </div>
       ) : null}
 

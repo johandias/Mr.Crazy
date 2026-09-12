@@ -42,6 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_mrcrazy_users_role ON public.mrcrazy_users(role);
 -- 3. RLS
 ALTER TABLE public.mrcrazy_users ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public read/write for app integration" ON public.mrcrazy_users;
 CREATE POLICY "Allow public read/write for app integration"
     ON public.mrcrazy_users FOR ALL
     TO anon, authenticated

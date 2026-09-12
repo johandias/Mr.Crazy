@@ -72,6 +72,9 @@ export async function requireAdminAuth(nextPath = "/admin"): Promise<SessionToke
 export async function redirectAuthenticated(to = "/practice") {
   const session = await getCurrentSession();
   if (session && session.status === "approved") {
+    if (session.role === "admin") {
+      redirect("/admin");
+    }
     redirect(to);
   }
 }

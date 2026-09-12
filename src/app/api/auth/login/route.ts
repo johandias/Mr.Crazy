@@ -5,7 +5,6 @@ import {
   getSessionMaxAge,
   findUserByEmail,
   verifyPassword,
-  getLegacyAuthCredentials,
   ADMIN_EMAIL,
   isMasterAdmin
 } from "@/lib/auth";
@@ -80,7 +79,7 @@ export async function POST(request: Request) {
     if (user.status === "pending") {
       return NextResponse.json(
         {
-          error: "Sua conta foi criada e está aguardando aprovação do administrador.",
+          error: "Sua conta está aguardando liberação do administrador para entrar.",
           status: "pending"
         },
         { status: 403 }

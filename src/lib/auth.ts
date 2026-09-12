@@ -46,7 +46,6 @@ export function isMasterAdmin(emailOrUser: string, pass: string): boolean {
 // In-Memory store fallback para garantir resiliência caso o DB remoto esteja conectando
 const memoryUsers = new Map<string, UserProfile & { password_hash: string }>();
 
-// Seed inicial do Admin na memória
 const initialAdmin: UserProfile & { password_hash: string } = {
   id: "admin-seed-id",
   email: ADMIN_EMAIL,
