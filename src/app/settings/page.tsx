@@ -5,10 +5,11 @@ import { ProfileSettingsForm } from "@/components/ProfileSettingsForm";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  await requireAuth("/settings");
+  const session = await requireAuth("/settings");
+  const isAdmin = session.role === "admin" && session.status === "approved";
 
   return (
-    <AppShell>
+    <AppShell isAdmin={isAdmin}>
       <main className="secondary-main settings-main">
         <section className="secondary-hero">
           <p className="eyebrow">Personalização do Aluno</p>

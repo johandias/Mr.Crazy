@@ -8,10 +8,11 @@ const sessions = [
 ];
 
 export default async function HistoryPage() {
-  await requireAuth("/history");
+  const session = await requireAuth("/history");
+  const isAdmin = session.role === "admin" && session.status === "approved";
 
   return (
-    <AppShell>
+    <AppShell isAdmin={isAdmin}>
       <main className="secondary-main">
         <section className="secondary-hero">
           <p className="eyebrow">Histórico</p>

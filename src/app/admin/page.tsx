@@ -8,7 +8,7 @@ export default async function AdminPage() {
   await requireAdminAuth("/admin");
 
   return (
-    <AppShell>
+    <AppShell isAdmin={true}>
       <main className="secondary-main admin-main-wrapper">
         <AdminDashboard />
       </main>

@@ -373,7 +373,7 @@ function getStoredSession(): StoredSession {
   }
 }
 
-export function PracticeExperience() {
+export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [crazyLevel, setCrazyLevel] = useState(16);
   const [xp, setXp] = useState(420);
@@ -1089,7 +1089,7 @@ export function PracticeExperience() {
   }
 
   return (
-    <AppShell>
+    <AppShell isAdmin={isAdmin}>
       <main className="practice-main clean-layout">
         <div className="practice-header-bar">
           <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
@@ -1140,6 +1140,7 @@ export function PracticeExperience() {
                 </span>
               </button>
             </div>
+
             {errorMessage ? (
               <div className="avatar-mic-error-box">
                 <p className="avatar-mic-error">{errorMessage}</p>

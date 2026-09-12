@@ -3,10 +3,11 @@ import { ProgressIndicator } from "@/components/ProgressIndicator";
 import { requireAuth } from "@/lib/server-auth";
 
 export default async function ProgressPage() {
-  await requireAuth("/progress");
+  const session = await requireAuth("/progress");
+  const isAdmin = session.role === "admin" && session.status === "approved";
 
   return (
-    <AppShell>
+    <AppShell isAdmin={isAdmin}>
       <main className="secondary-main">
         <section className="secondary-hero">
           <p className="eyebrow">Progresso</p>

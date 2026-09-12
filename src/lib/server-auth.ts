@@ -37,7 +37,7 @@ export async function isAdmin(): Promise<boolean> {
   return Boolean(session && session.role === "admin" && session.status === "approved");
 }
 
-export async function requireAuth(nextPath = "/practice") {
+export async function requireAuth(nextPath = "/practice"): Promise<SessionTokenPayload> {
   const session = await getCurrentSession();
 
   if (!session) {
@@ -51,9 +51,11 @@ export async function requireAuth(nextPath = "/practice") {
   if (session.status === "rejected") {
     redirect("/login?rejected=1");
   }
+
+  return session;
 }
 
-export async function requireAdminAuth(nextPath = "/admin") {
+export async function requireAdminAuth(nextPath = "/admin"): Promise<SessionTokenPayload> {
   const session = await getCurrentSession();
 
   if (!session) {
@@ -63,6 +65,8 @@ export async function requireAdminAuth(nextPath = "/admin") {
   if (session.role !== "admin" || session.status !== "approved") {
     redirect("/practice");
   }
+
+  return session;
 }
 
 export async function redirectAuthenticated(to = "/practice") {

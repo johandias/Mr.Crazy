@@ -1,11 +1,33 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Settings, TimerReset, ShieldCheck } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
-import { getCurrentSession } from "@/lib/server-auth";
 
-export async function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
-  const session = await getCurrentSession();
-  const isAdmin = session?.role === "admin" && session.status === "approved";
+interface AppShellProps {
+  children: React.ReactNode;
+  isAdmin?: boolean;
+}
+
+export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
+  const [isAdmin, setIsAdmin] = useState<boolean>(initialIsAdmin ?? false);
+
+  useEffect(() => {
+    if (initialIsAdmin !== undefined) {
+      setIsAdmin(initialIsAdmin);
+      return;
+    }
+
+    fetch("/api/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user?.role === "admin" && data?.user?.status === "approved") {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+  }, [initialIsAdmin]);
 
   return (
     <div className="app-shell">
