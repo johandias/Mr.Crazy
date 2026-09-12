@@ -1917,6 +1917,70 @@ meter {
   flex-shrink: 0;
 }
 
+.avatar-mic-dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  margin-bottom: 2px;
+  z-index: 4;
+}
+
+.avatar-mic-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+.avatar-mic-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--cyan);
+}
+
+.avatar-mic-btn.active {
+  background: linear-gradient(135deg, rgba(49, 123, 137, 0.3), rgba(22, 61, 69, 0.8));
+  border-color: rgba(77, 208, 225, 0.5);
+  color: #7dd3fc;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.avatar-mic-btn.listening {
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.25), rgba(22, 61, 69, 0.85));
+  border-color: rgba(74, 222, 128, 0.6);
+  color: #86efac;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.35);
+  animation: mic-pulse 1.6s ease-in-out infinite alternate;
+}
+
+.avatar-mic-btn.muted {
+  background: rgba(40, 24, 24, 0.8);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
+
+.avatar-mic-label {
+  letter-spacing: 0.2px;
+}
+
+.avatar-mic-error {
+  font-size: 0.72rem;
+  color: #fca5a5;
+  text-align: center;
+  margin: 2px 0 0;
+  max-width: 260px;
+}
+
 .gesture-action-bar {
   display: flex;
   align-items: center;
@@ -1974,11 +2038,11 @@ meter {
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 8px;
     box-sizing: border-box;
   }
 
@@ -1987,7 +2051,7 @@ meter {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 4px;
+    padding: 0 2px;
     flex-shrink: 0;
   }
 
@@ -1999,7 +2063,7 @@ meter {
     min-height: 0;
     flex: 1;
     width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .character-column {
@@ -2011,19 +2075,24 @@ meter {
   }
 
   .character-stage {
-    width: min(205px, 52vw);
-    min-width: 170px;
-    max-width: 235px;
-    height: min(205px, 52vw);
+    width: min(190px, 48vw);
+    min-width: 160px;
+    max-width: 220px;
+    height: min(190px, 48vw);
     aspect-ratio: 1;
     cursor: pointer;
   }
 
   .listening-wave {
-    width: min(260px, 75vw);
-    height: 22px;
-    margin-top: -8px;
-    transform: scale(0.8);
+    width: min(240px, 70vw);
+    height: 18px;
+    margin-top: -6px;
+    transform: scale(0.75);
+  }
+
+  .avatar-mic-btn {
+    padding: 5px 13px;
+    font-size: 0.74rem;
   }
 
   .gesture-action-bar {
@@ -2033,43 +2102,42 @@ meter {
   }
 
   .gesture-btn {
-    padding: 4px 8px;
-    font-size: 0.7rem;
+    padding: 3px 8px;
+    font-size: 0.68rem;
   }
 
   .clean-conversation {
     width: 100%;
-    max-height: 25vh;
-    min-height: 120px;
+    max-height: 19vh;
+    min-height: 90px;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 6px 4px 10px;
+    gap: 6px;
+    padding: 4px 4px 6px;
     flex-shrink: 1;
-    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 14px, black 32px, black 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 14px, black 32px, black 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 10px, black 24px, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 10px, black 24px, black 100%);
   }
 
-  .clean-mic-section {
-    width: 100%;
-    flex-shrink: 0;
-    margin-top: 4px;
-    margin-bottom: 6px;
-    padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
-    gap: 10px;
+  .clean-conversation .conversation-bubble {
+    padding: 6px 10px;
+    border-radius: 10px;
+    gap: 1px;
+    max-width: 92%;
   }
 
-  .clean-mic-btn {
-    width: 82px;
-    height: 82px;
+  .clean-conversation .conversation-bubble span {
+    font-size: 0.63rem;
+    font-weight: 700;
   }
 
-  .clean-mic-hint {
-    font-size: 0.88rem;
+  .clean-conversation .conversation-bubble p {
+    font-size: 0.8rem;
+    line-height: 1.32;
   }
 }
 

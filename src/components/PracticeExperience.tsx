@@ -311,9 +311,31 @@ function getStoredSession(): StoredSession {
     return fallback;
   }
 
+  // Histórico mantido APENAS durante o uso da aba (sessionStorage). Ao fechar e reabrir, inicia nova instância limpa.
+  let sessionTurns: ConversationTurn[] = [];
+  try {
+    const rawSession = window.sessionStorage.getItem("mr-crazy-session-turns");
+    if (rawSession) {
+      const parsedTurns = JSON.parse(rawSession);
+      if (Array.isArray(parsedTurns)) {
+        sessionTurns = parsedTurns
+          .map((item) => {
+            if (!item || typeof item !== "object") return null;
+            const role = item.role === "user" || item.role === "crazy" ? item.role : null;
+            const text = typeof item.text === "string" ? item.text.trim() : "";
+            return role && text ? { role, text } : null;
+          })
+          .filter((item): item is ConversationTurn => Boolean(item))
+          .slice(-50);
+      }
+    }
+  } catch {
+    sessionTurns = [];
+  }
+
   const stored = window.localStorage.getItem("mr-crazy-session");
   if (!stored) {
-    return fallback;
+    return { ...fallback, contextHistory: sessionTurns };
   }
 
   try {
@@ -323,23 +345,13 @@ function getStoredSession(): StoredSession {
       xp: typeof parsed.xp === "number" ? parsed.xp : fallback.xp,
       mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes : fallback.mistakes,
       history: Array.isArray(parsed.history) ? parsed.history.slice(0, 6) : fallback.history,
-      contextHistory: Array.isArray(parsed.contextHistory)
-        ? parsed.contextHistory
-            .map((item) => {
-              if (!item || typeof item !== "object") return null;
-              const role = item.role === "user" || item.role === "crazy" ? item.role : null;
-              const text = typeof item.text === "string" ? item.text.trim() : "";
-              return role && text ? { role, text } : null;
-            })
-            .filter((item): item is ConversationTurn => Boolean(item))
-            .slice(-50)
-        : fallback.contextHistory,
+      contextHistory: sessionTurns, // Sempre da sessão atual em memória/sessionStorage!
       learningLevel: normalizeLearningLevel(parsed.learningLevel),
       character: parsed.character === "rpg" ? "rpg" : "voxel"
     };
   } catch {
     window.localStorage.removeItem("mr-crazy-session");
-    return fallback;
+    return { ...fallback, contextHistory: sessionTurns };
   }
 }
 
@@ -767,11 +779,15 @@ export function PracticeExperience() {
         xp,
         mistakes,
         history,
-        contextHistory,
         learningLevel: selectedLevel,
         character: selectedCharacter
       })
     );
+
+    // Salva o histórico da conversa APENAS durante o uso da aba (sessionStorage). Ao fechar e reabrir, inicia nova instância.
+    try {
+      window.sessionStorage.setItem("mr-crazy-session-turns", JSON.stringify(contextHistory.slice(-50)));
+    } catch {}
   }, [contextHistory, crazyLevel, xp, mistakes, history, selectedCharacter, selectedLevel, storageReady]);
 
   async function analyzeSentence(sentence: string) {
@@ -1025,6 +1041,29 @@ export function PracticeExperience() {
               gesture={activeGesture}
               onTap={handleAvatarTap}
             />
+
+            {/* Mute/Microfone abaixo do boneco */}
+            <div className="avatar-mic-dock">
+              <button
+                type="button"
+                className={`avatar-mic-btn ${microphoneEnabled && voiceState === "listening" ? "listening" : microphoneEnabled ? "active" : "muted"}`}
+                onClick={toggleRealtimeMicrophone}
+                aria-label={microphoneEnabled ? "Mutar microfone" : "Ativar microfone"}
+                title={microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone"}
+              >
+                {microphoneEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+                <span className="avatar-mic-label">
+                  {voiceState === "speaking"
+                    ? "Mr.Crazy falando"
+                    : voiceState === "analyzing" || voiceState === "transcribing"
+                      ? "Ouvindo..."
+                      : microphoneEnabled
+                        ? "Mutar"
+                        : "Desmutar"}
+                </span>
+              </button>
+            </div>
+
             <div className="gesture-action-bar" role="toolbar" aria-label="Reações do Mr.Crazy">
               <button
                 type="button"
@@ -1059,6 +1098,7 @@ export function PracticeExperience() {
                 👍 Joinha
               </button>
             </div>
+            {errorMessage ? <p className="avatar-mic-error">{errorMessage}</p> : null}
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking"} />
           </motion.div>
 
@@ -1107,28 +1147,6 @@ export function PracticeExperience() {
             ) : null}
             <div ref={messagesEndRef} className="messages-bottom-anchor" />
           </motion.aside>
-        </section>
-
-        <section className="clean-mic-section" aria-label="Controle de microfone">
-          <button
-            type="button"
-            className={`clean-mic-btn ${microphoneEnabled && voiceState === "listening" ? "listening" : microphoneEnabled ? "active" : "muted"}`}
-            onClick={toggleRealtimeMicrophone}
-            aria-label={microphoneEnabled ? "Mutar microfone" : "Ativar microfone"}
-            title={microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone"}
-          >
-            {microphoneEnabled ? <Mic size={34} /> : <MicOff size={34} />}
-          </button>
-          <span className="clean-mic-hint">
-            {voiceState === "speaking"
-              ? "Mr.Crazy falando..."
-              : voiceState === "analyzing" || voiceState === "transcribing"
-                ? "Processando resposta..."
-                : microphoneEnabled
-                  ? "Microfone ativo • Toque para mutar"
-                  : "Microfone mutado • Toque para falar"}
-          </span>
-          {errorMessage ? <p className="error-message">{errorMessage}</p> : null}
         </section>
 
         {isMenuOpen && (
