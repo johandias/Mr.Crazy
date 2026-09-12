@@ -7,17 +7,24 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 dias
 export const ADMIN_EMAIL = "johandias083@gmail.com";
 export const MASTER_ADMIN_PASSWORD = "2020eumando";
 
+export type UserGender = "masculino" | "feminino" | "outro" | "prefiro_nao_dizer";
+
 export interface UserProfile {
   id: string;
   email: string;
   role: "student" | "admin";
   status: "pending" | "approved" | "rejected";
   nickname: string;
-  gender: "masculino" | "feminino" | "outro";
+  age?: number;
+  gender: UserGender;
   learning_level: "basic" | "intermediate" | "advanced";
   self_assessed_level: string;
   learning_style: string;
   main_difficulties: string[];
+  learning_goal?: string;
+  onboarding_completed?: boolean;
+  assessment_score?: number;
+  assessment_answers?: unknown[];
   practice_time_seconds: number;
   evolution_score: number;
   xp: number;
@@ -31,6 +38,7 @@ export interface SessionTokenPayload {
   email: string;
   role: "student" | "admin";
   status: "pending" | "approved" | "rejected";
+  onboardingCompleted?: boolean;
   iat: number;
 }
 
@@ -219,7 +227,9 @@ export async function findUserById(id: string): Promise<UserProfile | null> {
 export async function registerNewUser(
   email: string,
   plainPassword: string,
-  nickname?: string
+  nickname?: string,
+  age?: number,
+  gender: UserGender = "prefiro_nao_dizer"
 ): Promise<{ user: UserProfile; isPending: boolean }> {
   const cleanEmail = email.toLowerCase().trim();
   const isAdmin = cleanEmail === ADMIN_EMAIL;
@@ -233,11 +243,13 @@ export async function registerNewUser(
     role,
     status,
     nickname: nickname?.trim() || cleanEmail.split("@")[0],
-    gender: "masculino",
+    age: age && age >= 10 && age <= 120 ? age : undefined,
+    gender,
     learning_level: "basic",
     self_assessed_level: "Iniciante",
     learning_style: "Conversação prática e descontraída",
     main_difficulties: ["pronúncia do th", "conectar palavras"],
+    onboarding_completed: isAdmin,
     practice_time_seconds: 0,
     evolution_score: 0,
     xp: 0,
@@ -247,25 +259,51 @@ export async function registerNewUser(
 
   if (isSupabaseConfigured) {
     try {
+      const insertPayload: Record<string, unknown> = {
+        email: cleanEmail,
+        password_hash: passwordHash,
+        role,
+        status,
+        nickname: defaultProfile.nickname,
+        gender: defaultProfile.gender,
+        learning_level: defaultProfile.learning_level,
+        self_assessed_level: defaultProfile.self_assessed_level,
+        learning_style: defaultProfile.learning_style,
+        main_difficulties: defaultProfile.main_difficulties,
+        onboarding_completed: isAdmin
+      };
+
+      if (defaultProfile.age) {
+        insertPayload.age = defaultProfile.age;
+      }
+
       const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
-        .insert({
-          email: cleanEmail,
-          password_hash: passwordHash,
-          role,
-          status,
-          nickname: defaultProfile.nickname,
-          gender: defaultProfile.gender,
-          learning_level: defaultProfile.learning_level,
-          self_assessed_level: defaultProfile.self_assessed_level,
-          learning_style: defaultProfile.learning_style,
-          main_difficulties: defaultProfile.main_difficulties
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
       if (error) {
         console.error("[Supabase registerNewUser error]:", error.message, error.details || "", error.hint || "");
+        // Se falhou por causa da coluna nova ainda não criada no DB, tenta inserir sem as colunas novas
+        if (error.message.includes("column") || error.code === "42703") {
+          const fallbackPayload = {
+            email: cleanEmail,
+            password_hash: passwordHash,
+            role,
+            status,
+            nickname: defaultProfile.nickname,
+            gender: defaultProfile.gender === "prefiro_nao_dizer" ? "outro" : defaultProfile.gender,
+            learning_level: defaultProfile.learning_level,
+            self_assessed_level: defaultProfile.self_assessed_level,
+            learning_style: defaultProfile.learning_style,
+            main_difficulties: defaultProfile.main_difficulties
+          };
+          const retryRes = await supabaseAdmin.from("mrcrazy_users").insert(fallbackPayload).select().single();
+          if (retryRes.data) {
+            return { user: retryRes.data as UserProfile, isPending: status === "pending" };
+          }
+        }
         if (error.code === "23505") {
           throw new Error("Já existe uma conta cadastrada com este e-mail no banco de dados.");
         }
@@ -295,7 +333,7 @@ export async function listAllUsers(): Promise<UserProfile[]> {
     try {
       const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")
-        .select("id, email, role, status, nickname, gender, learning_level, self_assessed_level, learning_style, main_difficulties, practice_time_seconds, evolution_score, xp, streak_days, created_at")
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -382,4 +420,22 @@ export async function updateUserProfile(
     }
   }
   return null;
+}
+
+export async function completeUserOnboarding(
+  userId: string,
+  data: {
+    learningGoal: string;
+    level: "basic" | "intermediate" | "advanced";
+    score: number;
+    answers?: unknown[];
+  }
+): Promise<UserProfile | null> {
+  return updateUserProfile(userId, {
+    learning_goal: data.learningGoal,
+    learning_level: data.level,
+    onboarding_completed: true,
+    assessment_score: data.score,
+    assessment_answers: data.answers
+  });
 }

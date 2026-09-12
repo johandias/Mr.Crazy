@@ -190,8 +190,9 @@ export function AdminDashboard() {
                       {isSelf ? <span className="badge-admin">Você (Admin)</span> : null}
                     </div>
                     <p className="user-nickname">
-                      Apelido: <strong>{u.nickname || "Não informado"}</strong> • Sexo:{" "}
-                      <strong>{u.gender || "masculino"}</strong>
+                      Apelido: <strong>{u.nickname || "Não informado"}</strong> • Idade:{" "}
+                      <strong>{u.age ? `${u.age} anos` : "N/D"}</strong> • Sexo:{" "}
+                      <strong>{u.gender || "N/D"}</strong>
                     </p>
                   </div>
 
@@ -211,9 +212,18 @@ export function AdminDashboard() {
                   <div className="user-meta-item">
                     <BookOpen size={14} />
                     <span>
-                      Nível: <strong>{u.learning_level}</strong> ({u.self_assessed_level || "Autoavaliação padrão"})
+                      Nível: <strong>{u.learning_level}</strong>{" "}
+                      {u.onboarding_completed ? "(Diagnóstico Concluído)" : "(Pendente de Teste)"}
                     </span>
                   </div>
+                  {u.learning_goal ? (
+                    <div className="user-meta-item">
+                      <Sparkles size={14} />
+                      <span>
+                        Objetivo: <strong>{u.learning_goal}</strong>
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="user-meta-item">
                     <Sparkles size={14} />
                     <span>

@@ -13,11 +13,20 @@ export async function POST(request: Request) {
       email: string;
       password: string;
       nickname?: string;
+      age?: number | string;
+      gender?: string;
     }>;
 
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body.password === "string" ? body.password : "";
     const nickname = typeof body.nickname === "string" ? body.nickname.trim() : undefined;
+    const parsedAge = body.age ? Number.parseInt(String(body.age), 10) : undefined;
+    const age = parsedAge && !Number.isNaN(parsedAge) ? parsedAge : undefined;
+    const rawGender = typeof body.gender === "string" ? body.gender.trim().toLowerCase() : "";
+    const validGenders = ["masculino", "feminino", "outro", "prefiro_nao_dizer"] as const;
+    const gender = validGenders.includes(rawGender as (typeof validGenders)[number])
+      ? (rawGender as (typeof validGenders)[number])
+      : "prefiro_nao_dizer";
 
     if (!email || !email.includes("@")) {
       return NextResponse.json({ error: "Informe um e-mail válido." }, { status: 400 });
@@ -30,6 +39,20 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!age || age < 10 || age > 120) {
+      return NextResponse.json(
+        { error: "Por favor, informe uma idade válida (entre 10 e 120 anos)." },
+        { status: 400 }
+      );
+    }
+
+    if (!rawGender) {
+      return NextResponse.json(
+        { error: "Por favor, selecione seu sexo/gênero." },
+        { status: 400 }
+      );
+    }
+
     const existingUser = await findUserByEmail(email);
     if (existingUser) {
       return NextResponse.json(
@@ -38,7 +61,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { user, isPending } = await registerNewUser(email, password, nickname);
+    const { user, isPending } = await registerNewUser(email, password, nickname, age, gender);
 
     const response = NextResponse.json({
       ok: true,

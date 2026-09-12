@@ -52,6 +52,18 @@ export async function requireAuth(nextPath = "/practice"): Promise<SessionTokenP
     redirect("/login?rejected=1");
   }
 
+  // Se o aluno aprovado ainda não completou o onboarding de nivelamento, direciona para /onboarding
+  if (
+    nextPath !== "/onboarding" &&
+    session.role !== "admin" &&
+    !session.onboardingCompleted
+  ) {
+    const user = await getCurrentUser();
+    if (user && !user.onboarding_completed) {
+      redirect("/onboarding");
+    }
+  }
+
   return session;
 }
 
@@ -74,6 +86,12 @@ export async function redirectAuthenticated(to = "/practice") {
   if (session && session.status === "approved") {
     if (session.role === "admin") {
       redirect("/admin");
+    }
+    if (!session.onboardingCompleted) {
+      const user = await getCurrentUser();
+      if (user && !user.onboarding_completed) {
+        redirect("/onboarding");
+      }
     }
     redirect(to);
   }

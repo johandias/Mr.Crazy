@@ -13,6 +13,8 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("masculino");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isPending, setIsPending] = useState(false);
@@ -74,7 +76,7 @@ export function LoginForm() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, nickname })
+        body: JSON.stringify({ email, password, nickname, age, gender })
       });
       const result = (await response.json()) as Partial<{
         error: string;
@@ -230,6 +232,35 @@ export function LoginForm() {
               value={nickname}
             />
           </label>
+
+          <div className="auth-form-row">
+            <label className="auth-half-field">
+              Sua Idade
+              <input
+                type="number"
+                min="10"
+                max="120"
+                required
+                placeholder="Ex: 26"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+              />
+            </label>
+            <label className="auth-half-field">
+              Sexo / Gênero
+              <select
+                required
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              >
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+                <option value="outro">Outro</option>
+                <option value="prefiro_nao_dizer">Prefiro não dizer</option>
+              </select>
+            </label>
+          </div>
+
           <p className="auth-helper-text">
             ℹ️ O Mr.Crazy é restrito. Ao criar sua conta, ela será submetida para aprovação do administrador antes do primeiro acesso.
           </p>

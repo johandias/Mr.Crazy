@@ -97,11 +97,13 @@ export async function POST(request: Request) {
     }
 
     // 5. Login aprovado
-    const defaultRedirect = "/practice";
+    const defaultRedirect =
+      user.onboarding_completed || user.role === "admin" ? "/practice" : "/onboarding";
     const response = NextResponse.json({
       ok: true,
       role: user.role,
       status: user.status,
+      onboardingCompleted: Boolean(user.onboarding_completed || user.role === "admin"),
       redirectTo: defaultRedirect
     });
 
@@ -109,7 +111,8 @@ export async function POST(request: Request) {
       userId: user.id,
       email: user.email,
       role: user.role,
-      status: user.status
+      status: user.status,
+      onboardingCompleted: Boolean(user.onboarding_completed || user.role === "admin")
     });
 
     response.cookies.set({
