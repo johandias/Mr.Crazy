@@ -883,25 +883,40 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   // Garante que o microfone fique ativo ESTRITAMENTE enquanto o usuário está usando o sistema
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleHide = () => {
       if (document.visibilityState === "hidden") {
-        // Celular bloqueado, troca de app ou aba em background: muta imediatamente
         if (realtimeRef.current) {
           realtimeRef.current.setMicrophoneEnabled(false);
-        }
-        setVoiceState("idle");
-      } else if (document.visibilityState === "visible") {
-        // Usuário voltou para o Mr.Crazy: reativa apenas se o microfone estiver habilitado
-        if (realtimeRef.current && microphoneEnabled) {
-          realtimeRef.current.setMicrophoneEnabled(true);
-          setVoiceState("listening");
         }
       }
     };
 
+    const handleShow = () => {
+      if (document.visibilityState !== "hidden" && realtimeRef.current) {
+        realtimeRef.current.setMicrophoneEnabled(true);
+        setMicrophoneEnabled(true);
+        setVoiceState("listening");
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleHide();
+      } else {
+        handleShow();
+      }
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [microphoneEnabled]);
+    window.addEventListener("focus", handleShow);
+    window.addEventListener("pageshow", handleShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleShow);
+      window.removeEventListener("pageshow", handleShow);
+    };
+  }, []);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -1216,9 +1231,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                         ? "Mr.Crazy falando..."
                         : voiceState === "analyzing" || voiceState === "transcribing"
                           ? "Ouvindo você..."
-                          : microphoneEnabled
-                            ? "Microfone Ativo"
-                            : "Microfone Mutado (Toque para falar)"}
+                          : microphoneEnabled && realtimeStatus === "connected"
+                            ? "Microfone Ativo (Pode falar)"
+                            : "Toque para falar"}
                 </span>
               </button>
             </div>

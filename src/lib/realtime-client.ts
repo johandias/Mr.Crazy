@@ -216,42 +216,41 @@ function setupVisibilityListener() {
 export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamTrack; stream: MediaStream }> {
   setupVisibilityListener();
 
-  let track = masterMicrophoneStream?.getAudioTracks().find((t) => t.readyState === "live");
+  // Sempre libera streams anteriores para garantir uma faixa 100% nova e com transmissão ativa no WebKit/iOS
+  releasePersistentMicrophoneStream();
 
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
+    }
+  });
+
+  masterMicrophoneStream = stream;
+  const track = stream.getAudioTracks()[0];
   if (!track) {
-    releasePersistentMicrophoneStream();
-
-    masterMicrophoneStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });
-
-    track = masterMicrophoneStream.getAudioTracks().find((t) => t.readyState === "live");
-    if (!track) {
-      throw new Error("Nenhum microfone ativo detectado no dispositivo.");
-    }
-
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("mr-crazy-mic-granted", "true");
-      }
-    } catch {
-      // Ignore storage issues
-    }
+    throw new Error("Nenhum microfone ativo detectado no dispositivo.");
   }
 
-  // Ativa a faixa se a página estiver visível
-  track.enabled = isPageVisible;
+  track.enabled = true;
 
-  return { track, stream: masterMicrophoneStream! };
+  try {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("mr-crazy-mic-granted", "true");
+    }
+  } catch {}
+
+  return { track, stream };
 }
 
 export function releasePersistentMicrophoneStream() {
   if (masterMicrophoneStream) {
-    masterMicrophoneStream.getTracks().forEach((t) => t.stop());
+    masterMicrophoneStream.getTracks().forEach((t) => {
+      try {
+        t.stop();
+      } catch {}
+    });
     masterMicrophoneStream = null;
   }
 }
@@ -291,7 +290,15 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   audio.setAttribute("playsinline", "");
   peer.ontrack = (event) => {
     audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
-    void audio.play().catch(() => options.onError("O navegador bloqueou o áudio. Interaja com a página e tente novamente."));
+    void audio.play().catch(() => {
+      // No Safari / iOS, autoplay é adiado pelo navegador até o primeiro toque na tela.
+      // NÃO derrubamos a conexão! O áudio é retomado automaticamente no próximo toque.
+      const resume = () => {
+        void audio.play().catch(() => {});
+      };
+      window.addEventListener("touchstart", resume, { once: true, passive: true });
+      window.addEventListener("click", resume, { once: true });
+    });
   };
   peer.addTrack(microphone, stream);
 
@@ -370,15 +377,16 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     try {
       peer.close();
     } catch {}
-    // Muta a faixa mestre enquanto o usuário não estiver em prática ativa,
-    // sem matar a permissão concedida pelo iOS!
-    if (microphone) {
-      microphone.enabled = false;
-    }
+    try {
+      microphone.stop();
+    } catch {}
     if (masterMicrophoneStream) {
-      masterMicrophoneStream.getAudioTracks().forEach((t) => {
-        t.enabled = false;
+      masterMicrophoneStream.getTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch {}
       });
+      masterMicrophoneStream = null;
     }
   };
 
@@ -549,6 +557,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
     await waitForDataChannel(channel, peer, options.signal);
     if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
+    microphone.enabled = true;
+    microphoneEnabled = true;
 
     options.onStatus("connected");
     options.onVoiceState("listening");
