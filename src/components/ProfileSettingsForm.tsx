@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { User, Check, Sparkles, BookOpen, AlertCircle, Clock, Award } from "lucide-react";
-import type { UserProfile } from "@/lib/auth";
+import type { UserProfile, UserGender } from "@/lib/auth";
 
 const COMMON_DIFFICULTIES = [
   "Pronúncia do som TH (think, this)",
@@ -33,7 +33,7 @@ const LEARNING_STYLE_OPTIONS = [
 export function ProfileSettingsForm() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [nickname, setNickname] = useState("");
-  const [gender, setGender] = useState<"masculino" | "feminino" | "outro">("masculino");
+  const [gender, setGender] = useState<UserGender>("masculino");
   const [selfAssessedLevel, setSelfAssessedLevel] = useState(SELF_LEVEL_OPTIONS[1]);
   const [learningStyle, setLearningStyle] = useState(LEARNING_STYLE_OPTIONS[0]);
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
@@ -204,6 +204,18 @@ export function ProfileSettingsForm() {
                 value="outro"
               />
               <span className="gender-title">Neutro / Outro</span>
+              <small>Usa linguagem neutra e direta.</small>
+            </label>
+
+            <label className={`gender-card ${gender === "prefiro_nao_dizer" ? "selected" : ""}`}>
+              <input
+                checked={gender === "prefiro_nao_dizer"}
+                name="gender"
+                onChange={() => setGender("prefiro_nao_dizer")}
+                type="radio"
+                value="prefiro_nao_dizer"
+              />
+              <span className="gender-title">Prefiro não dizer</span>
               <small>Usa linguagem neutra e direta.</small>
             </label>
           </div>

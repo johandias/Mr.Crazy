@@ -133,16 +133,6 @@ function isTranslationRequest(sentence: string) {
   );
 }
 
-function isUnderstandingOrPronunciationHelp(sentence: string) {
-  const normalized = normalizeText(sentence);
-  return (
-    /\b(nao|n)\s+(entendi|entendo|compreendi|peguei)\b/u.test(normalized) ||
-    /\b(me\s+)?explica(r)?\b/u.test(normalized) ||
-    /\b(o\s+que\s+quer\s+dizer|o\s+que\s+significa|qual\s+foi\s+o\s+erro)\b/u.test(normalized) ||
-    /\b(pronuncia|pronunciar|som|sotaque|fala(r)?\s+essa)\b/u.test(normalized)
-  );
-}
-
 function isVoiceInput(request: AnalysisRequest) {
   return request.inputSource === "voice_realtime" || request.inputSource === "voice_fallback";
 }
@@ -372,8 +362,8 @@ function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fal
     correct_word: correctWord,
     corrected_sentence: correctedSentence,
     reaction: asPortugueseString(raw.reaction, fallback.reaction, 220),
-    correction: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.correction : asPortugueseString(raw.correction, fallback.correction, 340),
-    follow_up: hasDeterministicDiagnosis || shouldKeepFallbackHelp ? fallback.follow_up : asFollowUp(raw.follow_up, fallback.follow_up),
+    correction: asPortugueseString(raw.correction, fallback.correction, 340),
+    follow_up: asFollowUp(raw.follow_up, fallback.follow_up),
     crazy_delta: metrics.crazyDelta,
     emotion: getEmotion(nextCrazyLevel),
     pronunciation_score: metrics.score,

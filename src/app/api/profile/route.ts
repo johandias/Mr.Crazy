@@ -30,7 +30,12 @@ export async function POST(request: Request) {
     const updates: Partial<UserProfile> = {};
 
     if (typeof body.nickname === "string") updates.nickname = body.nickname.trim();
-    if (body.gender === "masculino" || body.gender === "feminino" || body.gender === "outro") {
+    if (
+      body.gender === "masculino" ||
+      body.gender === "feminino" ||
+      body.gender === "outro" ||
+      body.gender === "prefiro_nao_dizer"
+    ) {
       updates.gender = body.gender;
     }
     if (
