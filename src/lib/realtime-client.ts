@@ -300,7 +300,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         const raw = event.transcript?.trim() || userTranscript.trim();
         const cleanWords = raw.replace(/[.,!?;:\-–—"'`~^]/gu, "").trim();
 
-        if (!cleanWords || cleanWords.length < 2) {
+        if (!cleanWords || cleanWords.length < 1) {
           userTranscript = "";
           options.onUserTranscript("", false);
           options.onVoiceState("listening");
@@ -322,6 +322,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         });
         break;
       }
+      case "conversation.item.input_audio_transcription.failed":
+        options.onVoiceState("listening");
+        break;
       case "response.created":
         activeResponseInProgress = true;
         assistantTranscript = "";

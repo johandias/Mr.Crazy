@@ -901,14 +901,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     return true;
   }
 
-  function scheduleSilenceAnalysis(candidate: string) {
+  function scheduleSilenceAnalysis(candidate: string, delayMs = 1800) {
     clearSilenceTimer();
     const cleanTranscript = candidate.trim();
     if (!cleanTranscript) return;
 
     silenceTimerRef.current = window.setTimeout(() => {
       queueTranscriptAnalysis(cleanTranscript);
-    }, 2400);
+    }, delayMs);
   }
 
   function startListening() {
@@ -932,7 +932,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     analysisQueuedRef.current = false;
     clearSilenceTimer();
     const recognition = new Recognition();
-    recognition.lang = "en-US";
+    recognition.lang = "pt-BR";
     recognition.continuous = true;
     recognition.interimResults = true;
     recognitionRef.current = recognition;
@@ -945,12 +945,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         .trim();
       setTranscript(text);
       transcriptRef.current = text;
-      scheduleSilenceAnalysis(text);
 
-      const isFinal = Array.from(event.results).some((result) => result.isFinal);
-      if (isFinal) {
-        queueTranscriptAnalysis(text);
-      }
+      const lastResult = event.results[event.results.length - 1];
+      const isLastFinal = lastResult?.isFinal;
+      scheduleSilenceAnalysis(text, isLastFinal ? 1200 : 2200);
     };
 
     recognition.onerror = () => {
