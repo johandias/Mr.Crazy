@@ -199,15 +199,30 @@ function getNextConversationQuestion(level: LearningLevel, mode = "free-conversa
   return questions[turnCount % questions.length] ?? questions[0];
 }
 
-function getLevelFollowUp(level: LearningLevel, sentence: string, mode?: string, turnCount = 0) {
+function getLevelFollowUp(
+  level: LearningLevel,
+  sentence: string,
+  mode?: string,
+  turnCount = 0,
+  isCorrection = false
+) {
   const nextQuestion = getNextConversationQuestion(level, mode, turnCount);
   const repeatSentence = removeFinalPunctuation(sentence);
-  const prompts: Record<LearningLevel, string> = {
-    basic: `Repita comigo em voz alta: "${repeatSentence}". Agora continua a conversa: "${nextQuestion}"`,
-    intermediate: `Solta a voz e repete: "${repeatSentence}". Depois responde com um motivo: "${nextQuestion}"`,
-    advanced: `Repita comigo para fixar o ritmo: "${repeatSentence}". Em seguida, responde com uma ideia bem clara: "${nextQuestion}"`
-  };
 
+  if (isCorrection) {
+    const prompts: Record<LearningLevel, string> = {
+      basic: `Tenta falar a frase ajustada: "${repeatSentence}". E depois: "${nextQuestion}"`,
+      intermediate: `Solta a voz com a frase no lugar: "${repeatSentence}". Em seguida: "${nextQuestion}"`,
+      advanced: `Ajusta o ritmo com a forma natural: "${repeatSentence}". Agora me diz: "${nextQuestion}"`
+    };
+    return prompts[level];
+  }
+
+  const prompts: Record<LearningLevel, string> = {
+    basic: `Muito bom! Me conta: "${nextQuestion}"`,
+    intermediate: `Frase no ponto! Dando sequência: "${nextQuestion}"`,
+    advanced: `Excelente colocação! Para aprofundar: "${nextQuestion}"`
+  };
   return prompts[level];
 }
 
@@ -260,10 +275,10 @@ const wrongIntros = [
 ];
 
 const repeatedWrongIntros = [
-  "De novo esse tropeço, cabeça de vento!",
-  "Aí você está insistindo no erro, cabaço.",
-  "Respira, usuário de ChatGPT, é o mesmo ajuste de novo.",
-  "Agora minha paciência deu uma sentada, burro: é o mesmo erro."
+  "Opa, esse mesmo tropeço de novo! Vamos fixar:",
+  "Calma lá, lembra do detalhe que vimos agora há pouco:",
+  "Atenção redobrada aqui, é o mesmo ponto:",
+  "Respira fundo, foco nessa forma que a gente acabou de ver:"
 ];
 
 function getPositiveReaction() {
@@ -611,7 +626,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = fragmentFix.corrected_sentence;
     reaction = getWrongReaction("Essa fala ficou incompleta, solta no ar.");
     correction = fragmentFix.correction;
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = previousMistakes.includes("sentence_fragment") ? 16 : 13;
     pronunciation_score = 72;
     xp_delta = 7;
@@ -675,7 +690,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = sentence.replace(/\bgo\b/i, "went");
     reaction = getWrongReaction("Você usou o verbo no presente para falar do passado!");
     correction = 'No inglês, quando a ação já aconteceu ontem ou antes, o GO vira WENT: "went".';
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = previousMistakes.includes("past_tense") ? 15 : 12;
     pronunciation_score = 82;
     xp_delta = 9;
@@ -686,7 +701,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = sentence.replace(/\bgoed\b/i, "went");
     reaction = getWrongReaction("O verbo GO é irregular, ele não aceita 'ed'!");
     correction = 'O passado correto de GO é WENT, e não "goed".';
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = previousMistakes.includes("past_tense") ? 16 : 13;
     pronunciation_score = 84;
     xp_delta = 9;
@@ -698,7 +713,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = age ? `I am ${age} years old.` : sentence.replace(/\bi have\b/i, "I am");
     reaction = getWrongReaction("Em inglês você não possui anos como se fossem objetos!");
     correction = 'No inglês a gente sempre usa o verbo TO BE para idade: use "I am ... years old".';
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = 12;
     pronunciation_score = 86;
     xp_delta = 10;
@@ -710,7 +725,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = sentence.replace(/-i\b/gi, "");
     reaction = getWrongReaction("Atenção à pronúncia: cuidado com a mania de colocar um 'i' no final!");
     correction = `Em vez de ${match}, trave o som direto na consoante final: "${correct_word}".`;
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = previousMistakes.includes("pronunciation_epenthesis") ? 14 : 11;
     pronunciation_score = 73;
     xp_delta = 8;
@@ -721,7 +736,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = sentence.replace(/\bpretend(ed|s|ing)?\b/i, "planned");
     reaction = getWrongReaction("Cuidado com a pegadinha clássica do falso cognato!");
     correction = 'PRETEND significa fingir! Se a sua ideia era dizer que pretendia fazer algo, use INTEND ou PLAN: "planned".';
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = 15;
     pronunciation_score = 88;
     xp_delta = 10;
@@ -732,7 +747,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = `It ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`;
     reaction = getWrongReaction("A frase começou sem sujeito!");
     correction = 'No inglês a frase quase nunca pode ficar sem sujeito. Coloque o "It" na frente: "It is...".';
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = 10;
     pronunciation_score = 89;
     xp_delta = 9;
@@ -758,7 +773,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = `${auxiliary} ${subject} ${baseVerb}${rest ? ` ${rest}` : ""}?`;
     reaction = getWrongReaction("Faltou o verbo auxiliar da pergunta!");
     correction = `Em inglês a pergunta não é só entonação. A gente precisa colocar o auxiliar no começo: "${auxiliary} ${subject}".`;
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = 9;
     pronunciation_score = 90;
     xp_delta = 9;
@@ -770,7 +785,7 @@ export function analyzeEnglishSentence(
     corrected_sentence = sentence.replace(new RegExp(`\\bneed\\s+${verb}\\b`, "i"), `need to ${verb}`);
     reaction = getWrongReaction("Faltou conectar os dois verbos!");
     correction = `Depois de NEED, junte com o próximo verbo usando TO: "need to ${verb}".`;
-    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount);
+    follow_up = getLevelFollowUp(learningLevel, corrected_sentence, request.mode, turnCount, true);
     crazy_delta = 10;
     pronunciation_score = 88;
     xp_delta = 10;

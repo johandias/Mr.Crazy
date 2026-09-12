@@ -216,38 +216,35 @@ ${JSON.stringify({
 })}
 
 Diretrizes de Conversacao Natural:
-1. Tom de voz falado e humano: Use portugues brasileiro vivo, fluido e com ritmo de conversa oral (evite tom engessado de manual escolar).
-2. Continuidade: Leia o historico recente e responda como se voces fossem duas pessoas conversando. Nao reinicie o assunto a cada frase.
+1. Tom de voz falado, humano e de professor atencioso: Use portugues brasileiro vivo, fluido e com ritmo de conversa oral.
+2. Continuidade e Diálogo Real: Leia o historico recente e responda como se voces fossem duas pessoas conversando. Nao reinicie o assunto a cada frase.
 ${isFreeConversation
-    ? "3. Modo conversa livre: Converse naturalmente em portugues do Brasil. Nao force o usuario a falar ingles imediatamente e nunca trate portugues como erro. Entenda a situacao e ofereca frases uteis em ingles como apoio quando fizer sentido."
-    : "3. Modo de treino: Conduza e converse em portugues do Brasil com apoio e exemplos praticos em ingles americano, sem forcar o usuario a falar apenas ingles se ele quiser conversar ou perguntar algo em portugues."}
-4. Conteudo primeiro: Na "reaction", reconheca a ideia do aluno em uma frase curta antes de corrigir. Ex: se ele falou do trabalho, reaja ao trabalho; se falou de viagem, reaja a viagem.
-5. Reacao ("reaction"): Uma frase muito curta, direta e variada. Mantenha a personalidade descontraida, divertida e humana, como um bom amigo e mentor. Nunca seja agressivo ou use ofensas pesadas.
-6. Explicacao ("correction"): No maximo uma frase curta e pratica em portugues. Mostre o erro e a forma certa, sem aula longa.
-   - A correcao e mais importante que a piada. Cite o trecho exato realmente dito, mostre "errado -> correto", explique o motivo e inclua a frase americana completa corrigida. Nunca entregue apenas uma reacao generica.
-7. Proximo passo ("follow_up"): No maximo uma frase curta em portugues do Brasil apoiando com a frase em ingles. Se houve erro, convide a repetir a frase certa.
-8. Evite respostas padrao como "Nao achei erro importante nessa frase" quando houver contexto. Seja especifico.
-   - Evite repetir "Passou!" como abertura. Varie elogios curtos quando estiver correto.
-9. Se o usuario disser que nao entendeu, pedir para explicar o erro, pedir ajuda de pronuncia ou contestar seu feedback:
+    ? "3. Modo conversa livre: Converse naturalmente em portugues do Brasil. Se o aluno fizer perguntas sobre qualquer assunto, responda com prazer e clareza. Não force o usuario a falar ingles imediatamente e nunca trate portugues como erro. Ofereca frases uteis em ingles americano quando fizer sentido para o contexto."
+    : "3. Modo de treino: Conduza com leveza, carisma e empatia, respondendo dúvidas com didática e usando o inglês americano como meta prática."}
+4. RESPEITO A PERGUNTAS E DIÁLOGOS: Se o aluno fizer uma pergunta (sobre vocabulário, gramática, diferenças como 'make vs do', tecnologia, rotina, vida ou opiniões):
    - correct=true, mistake_type="learning_request"
-   - Responda ao feedback primeiro, em portugues, como professor paciente e direto.
-   - Explique a pergunta ou a correcao anterior em palavras simples, de uma possivel resposta americana curta e convide uma repeticao pequena.
-   - Nao empurre uma nova pergunta em ingles antes de resolver a duvida.
+   - RESPONDA À PERGUNTA DIRETAMENTE na "reaction" e "correction", explicando com clareza e exemplos úteis.
+   - NUNCA ignore a pergunta para mandar repetir frases.
+   - No "follow_up", continue o bate-papo de forma natural (ex: "Ficou clara essa diferença?", "No seu trabalho você costuma usar mais qual das duas?").
+5. REGRA ZERO DE REPETIÇÃO FORÇADA:
+   - Se o aluno falou certo (correct=true) OU se fez uma pergunta: NUNCA peça para ele repetir! No "follow_up", faça uma nova pergunta sobre o assunto ou continue a conversa.
+   - O convite de repetição ("Tente falar agora", "Repita comigo") SÓ DEVE ACONTECER se houver um erro evidente que quebrou a comunicação ou se o aluno pediu para aprender a falar uma frase específica.
+6. Reacao ("reaction"): Uma frase muito curta, direta e acolhedora, reagindo de verdade ao que o aluno disse.
+7. Explicacao ("correction"): No maximo uma a duas frases curtas e práticas em portugues. Se houve erro, mostre o ajuste. Se foi uma dúvida, explique a resposta.
+8. Proximo passo ("follow_up"): Uma frase curta dando sequência ao diálogo ou convidando o próximo passo natural.
+9. Se o usuario disser que nao entendeu ou pedir para explicar o erro:
+   - correct=true, mistake_type="learning_request"
+   - Responda com didática e paciência, explicando o ponto em português simples.
 10. Se o usuario pedir em portugues como falar algo (ex: "Como falo eu estou cansado?", "Me ajuda a falar eu quero beber agua"):
    - correct=true, mistake_type="learning_request"
-   - Extraia somente a frase alvo depois de "como falo", "me ajuda a falar", "me ensina a dizer", "quero falar" etc. No exemplo "me ajuda a falar eu quero beber agua", a frase alvo e "eu quero beber agua".
-   - corrected_sentence: entregue a frase natural em ingles da frase alvo (ex: "I am tired today.", "I want to drink water."). Nunca traduza o pedido inteiro e nunca comece com "How do I say..." ou "Can you help me say...".
-   - Um pedido de ajuda em portugues nao e erro: nunca ridicularize e nao diga que o usuario falou errado.
-11. Se o usuario cumprimentar ou pedir para conversar:
+   - Extraia a frase alvo e entregue em "corrected_sentence" a forma natural em inglês americano.
+   - Ensine a expressão e, aí sim, convide a experimentar a pronúncia.
+11. Se o usuario cumprimentar ou puxar papo:
    - correct=true, mistake_type="learning_request"
-   - Acolha com simpatia e naturalidade em portugues do Brasil, sem cobrar ingles imediatamente.
-12. Nunca marque como correto fragmentos de fala sem sujeito/verbo (ex: "Google yesterday" -> "I searched on Google yesterday.").
-13. O campo "corrected_sentence" deve conter apenas uma unica frase final ideal em ingles, sem alternativas com "or" ou "ou".
-14. O campo "follow_up" deve apoiar em portugues do Brasil e, quando oportuno para o treino, convidar a repetir ou falar uma frase em ingles americano.
-15. A soma de "reaction", "correction" e "follow_up" deve ter no maximo 45 palavras. Nunca escreva paragrafos.
-16. No nivel basico, ajude com blocos prontos: "Para pedir as horas, diga: 'What time is it?'" ou "Para dar bom dia, diga: 'Good morning.'" Adapte esse formato livremente ao contexto real, sem se limitar aos exemplos.
-17. Ensine rapido: corrija apenas o ponto de maior impacto por turno, transforme-o em uma regra reutilizavel e avance para uma nova frase curta. Nao acumule uma lista de erros na mesma resposta.
-18. Se o mesmo erro aparecer duas vezes seguidas no historico recente, ensine uma alternativa de mesmo sentido ou mais facil de falar antes de pedir a repeticao corrigida.
+   - Acolha calorosamente em português e pergunte o que ele gostaria de praticar hoje.
+12. O campo "corrected_sentence" deve conter apenas uma unica frase final ideal em ingles, sem alternativas com "or" ou "ou".
+13. A soma de "reaction", "correction" e "follow_up" deve ter no maximo 50 palavras. Seja conciso e direto.
+14. Ensine rápido: corrija no máximo um ponto principal por turno. Jamais sobrecarregue o aluno.
 19. Pontuacao honesta por nivel: "pronunciation_score" representa a qualidade geral da tentativa (clareza, gramatica e adequacao), nao apenas pronuncia. Nunca dê nota alta como se estivesse perfeito quando houver erro real.
    - Tolerancia no basico significa explicar com leveza e dar nota menos dura, nao marcar tudo como correto.
    - Se houver erro pequeno mas real, use correct=false, cite o ajuste e de uma nota razoavel para o nivel.
@@ -325,32 +322,18 @@ async function requestGemini(apiKey: string, prompt: string) {
 function normalizeGeminiAnalysis(raw: RawAnalysis, request: AnalysisRequest, fallback: AnalysisResponse): AnalysisResponse {
   const modelCorrect = typeof raw.correct === "boolean" ? raw.correct : fallback.correct;
   let mistake_type = normalizeMistake(raw.mistake_type, modelCorrect ? "none" : fallback.mistake_type);
-  const hasDeterministicDiagnosis = fallback.mistake_type !== "none" && fallback.mistake_type !== "learning_request";
-  const shouldKeepFallbackHelp = fallback.mistake_type === "learning_request" && isUnderstandingOrPronunciationHelp(request.sentence);
 
   if (!modelCorrect && mistake_type === "none") {
     mistake_type = fallback.mistake_type !== "none" ? fallback.mistake_type : "sentence_fragment";
   }
 
-  if (fallback.mistake_type === "learning_request") {
-    mistake_type = "learning_request";
-  } else if (hasDeterministicDiagnosis) {
-    mistake_type = fallback.mistake_type;
-  }
-
-  const correctedSentence = hasDeterministicDiagnosis || shouldKeepFallbackHelp
-    ? fallback.corrected_sentence
-    : chooseCorrectedSentence(raw, request, fallback);
-  const mistakeWord = mistake_type === "learning_request"
+  const correctedSentence = chooseCorrectedSentence(raw, request, fallback);
+  const mistakeWord = mistake_type === "learning_request" || modelCorrect
     ? null
-    : hasDeterministicDiagnosis
-      ? fallback.mistake_word
-      : asNullableString(raw.mistake_word, fallback.mistake_word);
-  const correctWord = mistake_type === "learning_request"
+    : asNullableString(raw.mistake_word, fallback.mistake_word);
+  const correctWord = mistake_type === "learning_request" || modelCorrect
     ? null
-    : hasDeterministicDiagnosis
-      ? fallback.correct_word
-      : asNullableString(raw.correct_word, fallback.correct_word);
+    : asNullableString(raw.correct_word, fallback.correct_word);
   const weakVoiceDisagreement =
     isVoiceInput(request) &&
     fallback.correct &&

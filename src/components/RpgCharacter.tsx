@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type CSSProperties } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
 export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup" | "watergun";
@@ -30,8 +30,54 @@ export function RpgCharacter({
   gesture?: CharacterGesture;
   onTap?: () => void;
 }>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Parallax Pointer Tracking (olhos e cabeça seguem o cursor do usuário)
+  const [lookOffset, setLookOffset] = useState({ x: 0, y: 0 });
+  // Ciclo procedural de fonemas labiais realistas durante a fala
+  const [phoneme, setPhoneme] = useState(0);
   // Animação inicial de entrada: na rede descansando -> vê gente -> pula pra posição normal
   const [entranceStage, setEntranceStage] = useState<EntranceStage>("hammock");
+
+  // Rastreamento natural do mouse/toque com amortecimento e retorno suave
+  useEffect(() => {
+    let timeoutId: number | null = null;
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height * 0.42;
+      const dx = Math.max(-1, Math.min(1, (e.clientX - centerX) / (window.innerWidth * 0.35)));
+      const dy = Math.max(-1, Math.min(1, (e.clientY - centerY) / (window.innerHeight * 0.35)));
+      setLookOffset({ x: dx, y: dy });
+
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        setLookOffset({ x: 0, y: 0 });
+      }, 2400);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  // Articulação labial com fonemas vocálicos e consonantais durante a fala do professor
+  useEffect(() => {
+    if (voiceState !== "speaking") {
+      setPhoneme(0);
+      return;
+    }
+    const phonemeSequence = [0, 1, 0, 2, 1, 3, 0, 2];
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % phonemeSequence.length;
+      setPhoneme(phonemeSequence[index]);
+    }, 115);
+
+    return () => clearInterval(interval);
+  }, [voiceState]);
 
   useEffect(() => {
     // 1. Rede balançando por 1.8 segundos
@@ -69,6 +115,7 @@ export function RpgCharacter({
 
   return (
     <div
+      ref={containerRef}
       className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage}`}
       style={{ "--rpg-energy": `${Math.max(0.25, crazyLevel / 100)}` } as CSSProperties}
       role="button"
@@ -249,7 +296,7 @@ export function RpgCharacter({
 
               {/* Braço Direito: Idle (cajado de mentor) ou Gestos Especiais */}
               {gesture === "idle" && (
-                <g className="rpg-arm rpg-arm-right">
+                <g className={`rpg-arm rpg-arm-right ${activity === "speaking" ? "arm-speaking-teaching" : ""}`}>
                   <rect className="rpg-armor-dark" x="108" y="82" width="17" height="33" fill="#163d45" />
                   <rect className="rpg-glove" x="110" y="107" width="18" height="14" fill="#3d2817" />
                   {/* Cajado do Professor Mr.Crazy */}
@@ -348,9 +395,15 @@ export function RpgCharacter({
               )}
 
               {/* ============================================================= */}
-              {/* CABEÇA E ROSTO HIPER-DETALHADO */}
+              {/* CABEÇA E ROSTO HIPER-DETALHADO E VIVO */}
               {/* ============================================================= */}
-              <g className="rpg-head">
+              <g
+                className="rpg-head"
+                style={{
+                  transform: `translate(${lookOffset.x * 2.8}px, ${lookOffset.y * 1.9}px) rotate(${lookOffset.x * 3.2}deg)`,
+                  transition: "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1)"
+                }}
+              >
                 {/* Camadas do Cabelo estilizado com iluminação */}
                 <rect className="rpg-hair-dark" x="49" y="32" width="62" height="42" fill="#35140d" />
                 <rect className="rpg-hair" x="44" y="40" width="16" height="32" fill="#d85337" />
@@ -370,46 +423,91 @@ export function RpgCharacter({
                 <rect className="rpg-ear" x="103" y="52" width="8" height="16" fill="#ef9a85" />
                 <rect x="105" y="56" width="3" height="8" fill="#c25f4b" />
 
-                {/* Sobrancelhas expressivas com arco de raiva ou simpatia */}
-                <g className={`rpg-brows ${gesture === "finger" ? "brows-angry" : gesture === "heart" ? "brows-happy" : ""}`}>
+                {/* Sobrancelhas expressivas com arco de raiva, simpatia ou escuta atenta */}
+                <g className={`rpg-brows ${gesture === "finger" ? "brows-angry" : gesture === "heart" ? "brows-happy" : activity === "listening" ? "brows-listening" : activity === "speaking" ? "brows-speaking" : ""}`}>
                   <rect x="60" y="49" width="16" height="4" fill="#35140d" />
                   <rect x="84" y="49" width="16" height="4" fill="#35140d" />
                   <rect x="62" y="47" width="5" height="2" fill="#d85337" />
                   <rect x="93" y="47" width="5" height="2" fill="#d85337" />
                 </g>
 
-                {/* Olhos Vivos com Reflexo e Pupila Articulada */}
+                {/* Olhos Vivos com Reflexo e Pupilas que Acompanham o Usuário */}
                 <g className={`rpg-eyes ${activity === "listening" ? "eyes-listening" : gesture === "smoke" ? "eyes-chill" : gesture === "thumbsup" ? "eyes-wink" : ""}`}>
                   {/* Olho esquerdo */}
                   <rect className="rpg-eye-white" x="62" y="55" width="13" height="9" fill="#ffffff" />
-                  <rect className="rpg-pupil" x="66" y="56" width="6" height="7" fill="#0284c7" />
-                  <rect x="68" y="57" width="3" height="5" fill="#0f172a" />
-                  <rect className="rpg-eye-shine" x="66" y="56" width="2" height="2" fill="#ffffff" />
+                  <g
+                    className="pupil-left-group"
+                    style={{
+                      transform: `translate(${lookOffset.x * 2.3}px, ${lookOffset.y * 1.5}px)`,
+                      transition: "transform 0.08s cubic-bezier(0.2, 0.8, 0.2, 1)"
+                    }}
+                  >
+                    <rect className="rpg-pupil" x="66" y="56" width="6" height="7" fill="#0284c7" />
+                    <rect x="68" y="57" width="3" height="5" fill="#0f172a" />
+                    <rect className="rpg-eye-shine" x="66" y="56" width="2" height="2" fill="#ffffff" />
+                  </g>
 
                   {/* Olho direito */}
                   <rect className="rpg-eye-white" x="85" y="55" width="13" height="9" fill="#ffffff" />
-                  <rect className="rpg-pupil" x="88" y="56" width="6" height="7" fill="#0284c7" />
-                  <rect x="90" y="57" width="3" height="5" fill="#0f172a" />
-                  <rect className="rpg-eye-shine" x="88" y="56" width="2" height="2" fill="#ffffff" />
+                  <g
+                    className="pupil-right-group"
+                    style={{
+                      transform: `translate(${lookOffset.x * 2.3}px, ${lookOffset.y * 1.5}px)`,
+                      transition: "transform 0.08s cubic-bezier(0.2, 0.8, 0.2, 1)"
+                    }}
+                  >
+                    <rect className="rpg-pupil" x="88" y="56" width="6" height="7" fill="#0284c7" />
+                    <rect x="90" y="57" width="3" height="5" fill="#0f172a" />
+                    <rect className="rpg-eye-shine" x="88" y="56" width="2" height="2" fill="#ffffff" />
+                  </g>
                 </g>
 
                 {/* Nariz sombreado */}
                 <rect className="rpg-nose" x="77" y="61" width="6" height="8" fill="#d06c57" />
                 <rect x="79" y="63" width="2" height="5" fill="#f8b4a5" />
 
-                {/* Boca com Sincronia de Fala Dinâmica (speaking vs idle) */}
+                {/* Boca Articulada Hiper-Realista: sincronia com múltiplos fonemas durante a fala */}
                 <g className={`rpg-mouth ${activity === "speaking" ? "mouth-speaking-live" : gesture === "smoke" ? "mouth-smoke" : ""}`}>
                   {activity === "speaking" ? (
-                    <>
-                      <rect className="mouth-phoneme-open" x="68" y="70" width="24" height="9" rx="2" fill="#4a0e17" />
-                      <rect x="72" y="71" width="16" height="3" fill="#ffffff" />
-                      <rect x="74" y="75" width="12" height="3" fill="#f43f5e" />
-                    </>
+                    <g className="rpg-phonemes-active">
+                      {phoneme === 0 && (
+                        /* Fonema Aberto A/O: boca redonda aberta mostrando dentes superiores e língua */
+                        <g className="phoneme-open-a">
+                          <rect x="67" y="69" width="26" height="11" rx="3" fill="#3b0a12" />
+                          <rect x="70" y="70" width="20" height="3" fill="#ffffff" />
+                          <rect x="73" y="75" width="14" height="4" rx="1" fill="#f43f5e" />
+                        </g>
+                      )}
+                      {phoneme === 1 && (
+                        /* Fonema Sorriso E/I: boca larga mostrando dentes cerrados */
+                        <g className="phoneme-wide-e">
+                          <rect x="65" y="71" width="30" height="7" rx="2" fill="#3b0a12" />
+                          <rect x="68" y="72" width="24" height="3" fill="#ffffff" />
+                          <rect x="72" y="75" width="16" height="2" fill="#f43f5e" />
+                        </g>
+                      )}
+                      {phoneme === 2 && (
+                        /* Fonema Redondo U/O/W: boca arredondada estreita projetada */
+                        <g className="phoneme-round-o">
+                          <rect x="73" y="68" width="14" height="12" rx="4" fill="#3b0a12" />
+                          <ellipse cx="80" cy="74" rx="4" ry="4" fill="#1c0508" />
+                          <rect x="77" y="69" width="6" height="2" fill="#ffffff" />
+                          <ellipse cx="80" cy="76" rx="2.5" ry="1.5" fill="#f43f5e" />
+                        </g>
+                      )}
+                      {phoneme === 3 && (
+                        /* Fonema Consoante M/P/T: lábios quase fechados */
+                        <g className="phoneme-consonant">
+                          <rect x="68" y="72" width="24" height="4" rx="2" fill="#3b0a12" />
+                          <rect x="71" y="73" width="18" height="2" fill="#ffffff" />
+                        </g>
+                      )}
+                    </g>
                   ) : (
-                    <>
-                      <rect className="rpg-mouth-dark" x="69" y="71" width="22" height="5" fill="#4a0e17" />
-                      <rect className="rpg-mouth-glow" x="75" y="73" width="10" height="2" fill="#f43f5e" />
-                    </>
+                    <g className="rpg-mouth-rest">
+                      <rect className="rpg-mouth-dark" x="69" y="71" width="22" height="5" rx="1" fill="#4a0e17" />
+                      <rect className="rpg-mouth-glow" x="74" y="73" width="12" height="2" fill="#f43f5e" />
+                    </g>
                   )}
                 </g>
               </g>

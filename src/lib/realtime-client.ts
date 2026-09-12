@@ -68,32 +68,24 @@ DIRETRIZ DE CONTINUIDADE DO DIÁLOGO:
       : `O aluno acabou de falar: "${cleanTranscript}".`;
 
   return `${contextSection}
-Você é Mr.Crazy: parceiro de estudos e professor de inglês americano (en-US) para um aluno brasileiro nativo.
+Você é Mr.Crazy: professor de inglês americano (en-US) e parceiro de conversação inteligente, carismático e natural para alunos brasileiros.
 
-METODOLOGIA OBRIGATÓRIA (MISTURA NATURAL PORTUGUÊS-INGLÊS):
-1. O padrão é SEMPRE utilizar o português do Brasil como apoio para ensinar o inglês americano:
-   - Use o português para contextualizar de forma curta (1 frase).
-   - Apresente o modelo em inglês americano logo em seguida.
-   - Convide o usuário a repetir.
-   - Exemplo: "Para dar bom dia a alguém, você pode falar: Good morning. Tenta falar agora."
-   - Exemplo: "Para perguntar como alguém está, diga: How are you? Repete comigo."
+DIRETRIZES PEDAGÓGICAS E DE CONVERSAÇÃO:
+1. RESPOSTA DIRETA A DÚVIDAS E PERGUNTAS:
+   - Se o aluno fez uma pergunta (ex: "como uso X?", "qual a diferença entre Y e Z?", "o que significa...", ou uma pergunta sobre qualquer assunto), RESPONDA DIRETAMENTE a dúvida dele com clareza e didática.
+   - NUNCA force o aluno a repetir quando ele estiver fazendo uma pergunta conceitual ou batendo papo. Dialogue como um professor de verdade.
 
-2. CORREÇÃO DE PRONÚNCIA RÁPIDA E MECÂNICA (DIRETO AO PONTO):
-   - Se o usuário errou ou teve pronúncia truncada, aponte em 1 frase curta a técnica corporal:
-     * "Quase. Nesse som, coloque a língua mais próxima dos dentes."
-     * "Esse 'R' é diferente do português. Tente deixar a língua mais para trás sem encostar no céu da boca."
-     * "Faça esse som mais curto e seco, sem som de 'i' no final."
-   - Peça para tentar novamente imediatamente.
+2. FLUXO DE CONVERSAÇÃO NATURAL:
+   - Quando o aluno falar bem ou responder adequadamente, valide ("Perfeito!", "Boa!", "Exatamente isso.") e continue a conversa fazendo uma pergunta aberta em inglês adequada ao nível dele.
+   - Deixe o diálogo fluir. O objetivo principal é destravar a fala e ganhar confiança comunicativa.
 
-3. CICLO DE AULA:
-   Português para contextualizar -> Inglês para ensinar -> Usuário repete -> Correção rápida -> Tenta novamente.
+3. QUANDO PEDIR REPETIÇÃO (APENAS COM PROPÓSITO CLARO):
+   - Só peça repetição quando o aluno cometer um erro relevante que comprometa o entendimento, ou quando ele pedir explicitamente para aprender uma frase ("como falo tal coisa?").
+   - Ao corrigir, explique brevemente a forma correta e convide para tentar uma vez: "Aqui o mais natural é dizer: [frase em inglês]. Tenta falar agora."
 
-4. NUNCA EXPLIQUE TUDO EM INGLÊS:
-   - Jamais faça explicações longas ou dê aulas teóricas em inglês.
-   - EXCEÇÃO ÚNICA: Só fale 100% em inglês se o usuário pedir explicitamente ("Quero conversar somente em inglês", "fale só em inglês"). Fora desse pedido, mantenha SEMPRE o português como base.
-
-5. BREVIDADE MÁXIMA:
-   - Responda em estritamente 1 a 2 frases curtas. Não canse o aluno.`;
+4. MISTURA DIDÁTICA (PORTUGUÊS + INGLÊS):
+   - Use o português brasileiro como ponte de acolhimento e explicação, e traga o inglês americano com expressões do dia a dia.
+   - Seja conciso: 1 a 3 frases objetivas e envolventes por intervenção. Mantenha o ritmo dinâmico.`;
 }
 
 function getConnectionError(error: unknown) {
@@ -128,20 +120,55 @@ function waitForDataChannel(channel: RTCDataChannel, signal?: AbortSignal) {
   });
 }
 
+let sharedAudioStream: MediaStream | null = null;
+
+export async function getPersistentMicrophoneStream(): Promise<MediaStream> {
+  if (
+    sharedAudioStream &&
+    sharedAudioStream.active &&
+    sharedAudioStream.getAudioTracks().some((track) => track.readyState === "live")
+  ) {
+    sharedAudioStream.getAudioTracks().forEach((track) => {
+      track.enabled = true;
+    });
+    return sharedAudioStream;
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1
+    }
+  });
+
+  try {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("mr-crazy-mic-granted", "true");
+    }
+  } catch {
+    // Ignore storage issues
+  }
+
+  sharedAudioStream = stream;
+  return stream;
+}
+
+export function releasePersistentMicrophoneStream() {
+  if (sharedAudioStream) {
+    sharedAudioStream.getTracks().forEach((track) => track.stop());
+    sharedAudioStream = null;
+  }
+}
+
 export async function connectRealtime(options: ConnectRealtimeOptions): Promise<RealtimeController> {
   options.onStatus("connecting");
   const peer = new RTCPeerConnection();
   const audio = document.createElement("audio");
   let stream: MediaStream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 1
-      }
-    });
+    stream = await getPersistentMicrophoneStream();
   } catch (error) {
     peer.close();
     if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -223,7 +250,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     audio.srcObject = null;
     channel.close();
     peer.close();
-    stream.getTracks().forEach((track) => track.stop());
+    // Do NOT call track.stop() on shared stream so browser never re-prompts for mic permission!
+    microphone.enabled = false;
   };
 
   options.signal?.addEventListener("abort", disconnect, { once: true });
