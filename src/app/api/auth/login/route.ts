@@ -6,7 +6,8 @@ import {
   findUserByEmail,
   verifyPassword,
   getLegacyAuthCredentials,
-  ADMIN_EMAIL
+  ADMIN_EMAIL,
+  isMasterAdmin
 } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -27,18 +28,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Verificação de credenciais de admin legadas / ambiente
-    const legacy = getLegacyAuthCredentials();
-    const isAdminLegacy =
-      (emailOrUser === legacy.username.toLowerCase() || emailOrUser === ADMIN_EMAIL) &&
-      password === legacy.password;
-
-    if (isAdminLegacy) {
+    // 1. Verificação de credenciais de admin (suporta johandias083@gmail.com / 2020eumando e variáveis de ambiente)
+    if (isMasterAdmin(emailOrUser, password)) {
       const response = NextResponse.json({
         ok: true,
         role: "admin",
         status: "approved",
-        redirectTo: "/admin"
+        redirectTo: "/practice"
       });
 
       const token = createAuthToken({
@@ -102,7 +98,7 @@ export async function POST(request: Request) {
     }
 
     // 5. Login aprovado
-    const defaultRedirect = user.role === "admin" ? "/admin" : "/practice";
+    const defaultRedirect = "/practice";
     const response = NextResponse.json({
       ok: true,
       role: user.role,
