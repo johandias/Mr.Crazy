@@ -3,7 +3,7 @@
 import { useState, useEffect, type CSSProperties } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
-export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup";
+export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup" | "watergun";
 
 type EntranceStage = "hammock" | "alert" | "jumping" | "standing";
 
@@ -320,6 +320,29 @@ export function RpgCharacter({
                   <g className="rpg-thumb-sparkle">
                     <path d="M 125 54 L 127 48 L 129 54 L 135 56 L 129 58 L 127 64 L 125 58 L 119 56 Z" fill="#fbbf24" />
                     <circle cx="127" cy="56" r="2" fill="#ffffff" />
+                  </g>
+                </g>
+              )}
+
+              {/* GESTO 5: ARMINHA D'ÁGUA DE BRINQUEDO (WATERGUN) */}
+              {gesture === "watergun" && (
+                <g className="rpg-gesture-watergun">
+                  <rect x="106" y="80" width="16" height="26" fill="#163d45" />
+                  <rect x="104" y="74" width="16" height="14" fill="#3d2817" />
+                  <rect x="94" y="66" width="18" height="12" fill="#ef9a85" />
+                  {/* Pistola de água neon */}
+                  <rect x="74" y="64" width="26" height="10" rx="2" fill="#22c55e" stroke="#15803d" strokeWidth="1" />
+                  <rect x="78" y="58" width="14" height="7" rx="3" fill="#38bdf8" opacity="0.85" />
+                  <rect x="70" y="66" width="6" height="5" fill="#ea580c" />
+                  <rect x="88" y="73" width="8" height="10" fill="#f97316" />
+                  {/* Jatos de água espirrando em direção ao aluno */}
+                  <g className="water-squirt-stream">
+                    <circle cx="64" cy="68" r="3" fill="#0284c7" />
+                    <circle cx="54" cy="67" r="3.5" fill="#38bdf8" />
+                    <circle cx="42" cy="69" r="4" fill="#0ea5e9" />
+                    <path d="M 68 68 Q 50 66 30 72" stroke="#38bdf8" strokeWidth="2.5" fill="none" strokeDasharray="4 2" />
+                    <circle cx="34" cy="63" r="1.5" fill="#67e8f9" />
+                    <circle cx="26" cy="74" r="2" fill="#67e8f9" />
                   </g>
                 </g>
               )}

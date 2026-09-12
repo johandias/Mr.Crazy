@@ -415,9 +415,9 @@ export function PracticeExperience() {
   };
 
   const handleAvatarTap = () => {
-    const gestures: CharacterGesture[] = ["finger", "smoke", "heart", "thumbsup"];
+    const gestures: CharacterGesture[] = ["watergun", "smoke", "finger", "thumbsup", "heart"];
     const currentIndex = gestures.indexOf(activeGesture);
-    const nextGesture = gestures[(currentIndex + 1) % gestures.length] || "thumbsup";
+    const nextGesture = gestures[(currentIndex + 1) % gestures.length] || "watergun";
     triggerGesture(nextGesture);
   };
   const introSpokenRef = useRef(false);
@@ -657,6 +657,10 @@ export function PracticeExperience() {
 
     if (!result.correct) {
       setMistakes((current) => [result.mistake_type, ...current].slice(0, 12));
+      const errorGestures: CharacterGesture[] = ["watergun", "smoke", "finger"];
+      triggerGesture(errorGestures[Math.floor(Math.random() * errorGestures.length)]);
+    } else {
+      triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
     }
 
     setHistory((current) =>
@@ -807,6 +811,18 @@ export function PracticeExperience() {
             });
             setRealtimeReply("");
             lastScoredTranscriptRef.current = "";
+
+            // Disparo automático de gestos conforme a reação do Mr.Crazy
+            const lower = clean.toLowerCase();
+            const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou)/i.test(lower);
+            const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete)/i.test(lower);
+
+            if (isPraise) {
+              triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
+            } else if (isCorrection) {
+              const options: CharacterGesture[] = ["watergun", "smoke", "finger"];
+              triggerGesture(options[Math.floor(Math.random() * options.length)]);
+            }
           }
         },
         onError: setErrorMessage
@@ -1157,6 +1173,14 @@ export function PracticeExperience() {
                 title="Gesto: Joinha"
               >
                 👍 Joinha
+              </button>
+              <button
+                type="button"
+                className={`gesture-btn ${activeGesture === "watergun" ? "active" : ""}`}
+                onClick={() => triggerGesture("watergun")}
+                title="Gesto: Arminha d'água de brinquedo"
+              >
+                🔫 Água
               </button>
             </div>
             {errorMessage ? <p className="avatar-mic-error">{errorMessage}</p> : null}
