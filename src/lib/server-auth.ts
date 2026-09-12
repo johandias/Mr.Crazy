@@ -1,21 +1,76 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { AUTH_COOKIE_NAME, verifyAuthToken } from "./auth";
+import {
+  AUTH_COOKIE_NAME,
+  verifyAuthToken,
+  findUserById,
+  findUserByEmail,
+  type UserProfile,
+  type SessionTokenPayload
+} from "./auth";
 
-export async function isAuthenticated() {
+export async function getCurrentSession(): Promise<SessionTokenPayload | null> {
   const cookieStore = await cookies();
-  return verifyAuthToken(cookieStore.get(AUTH_COOKIE_NAME)?.value);
+  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+  return verifyAuthToken(token);
+}
+
+export async function getCurrentUser(): Promise<UserProfile | null> {
+  const session = await getCurrentSession();
+  if (!session) return null;
+
+  if (session.userId && session.userId !== "legacy-admin") {
+    const user = await findUserById(session.userId);
+    if (user) return user;
+  }
+
+  return findUserByEmail(session.email);
+}
+
+export async function isAuthenticated(): Promise<boolean> {
+  const session = await getCurrentSession();
+  return Boolean(session && session.status === "approved");
+}
+
+export async function isAdmin(): Promise<boolean> {
+  const session = await getCurrentSession();
+  return Boolean(session && session.role === "admin" && session.status === "approved");
 }
 
 export async function requireAuth(nextPath = "/practice") {
-  if (await isAuthenticated()) return;
+  const session = await getCurrentSession();
 
-  const loginUrl = `/login?next=${encodeURIComponent(nextPath)}`;
-  redirect(loginUrl);
+  if (!session) {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
+
+  if (session.status === "pending") {
+    redirect("/login?pending=1");
+  }
+
+  if (session.status === "rejected") {
+    redirect("/login?rejected=1");
+  }
+}
+
+export async function requireAdminAuth(nextPath = "/admin") {
+  const session = await getCurrentSession();
+
+  if (!session) {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
+
+  if (session.role !== "admin" || session.status !== "approved") {
+    redirect("/practice");
+  }
 }
 
 export async function redirectAuthenticated(to = "/practice") {
-  if (await isAuthenticated()) {
+  const session = await getCurrentSession();
+  if (session && session.status === "approved") {
+    if (session.role === "admin") {
+      redirect("/admin");
+    }
     redirect(to);
   }
 }

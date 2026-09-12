@@ -175,8 +175,26 @@ function getTrainingBriefing(level: LearningLevel, mode: string) {
   return byMode[mode]?.[level] ?? fallback[level];
 }
 
-function buildOpeningLine(level: LearningLevel, mode: string, openingIndex: number) {
-  const greeting = openingGreetings[openingIndex % openingGreetings.length] ?? openingGreetings[0];
+function buildOpeningLine(
+  level: LearningLevel,
+  mode: string,
+  openingIndex: number,
+  nickname?: string,
+  gender?: string
+) {
+  const isFemale = gender === "feminino";
+  const namePart = nickname?.trim() ? ` ${nickname.trim()}` : "";
+  const readyWord = isFemale ? "pronta" : "pronto";
+  const welcomeWord = isFemale ? "bem-vinda" : "bem-vindo";
+
+  const customGreetings = [
+    `Fala${namePart}! Tudo ${readyWord} pro treino de hoje?`,
+    `E aí${namePart}! Seja ${welcomeWord}.`,
+    `Tudo certo${namePart}? Bora destravar essa fala hoje!`,
+    `Opa${namePart}! Mais um dia ${isFemale ? "focada" : "focado"} no inglês.`
+  ];
+
+  const greeting = customGreetings[openingIndex % customGreetings.length] ?? customGreetings[0];
 
   if (mode === "free-conversation") {
     const invitations: Record<LearningLevel, string> = {
@@ -413,14 +431,57 @@ export function PracticeExperience() {
     contextHistory: [] as ConversationTurn[]
   });
 
+  const [studentProfile, setStudentProfile] = useState<{
+    nickname?: string;
+    gender?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok && data.profile) {
+          setStudentProfile({
+            nickname: data.profile.nickname,
+            gender: data.profile.gender
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Telemetria de tempo de prática ativo e XP acumulado
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (voiceState === "listening" || voiceState === "speaking" || voiceState === "analyzing") {
+      interval = setInterval(() => {
+        fetch("/api/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addPracticeSeconds: 15, addXp: 2 })
+        }).catch(() => {});
+      }, 15000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [voiceState]);
+
   const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]);
   const activeLevel = useMemo(
     () => levelOptions.find((level) => level.id === selectedLevel) ?? levelOptions[0],
     [selectedLevel]
   );
   const openingLine = useMemo(
-    () => buildOpeningLine(selectedLevel, selectedMode, openingIndex),
-    [openingIndex, selectedLevel, selectedMode]
+    () =>
+      buildOpeningLine(
+        selectedLevel,
+        selectedMode,
+        openingIndex,
+        studentProfile?.nickname,
+        studentProfile?.gender
+      ),
+    [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname]
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationContainerRef = useRef<HTMLDivElement>(null);

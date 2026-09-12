@@ -1,5 +1,8 @@
 import { AppShell } from "@/components/AppShell";
 import { requireAuth } from "@/lib/server-auth";
+import { ProfileSettingsForm } from "@/components/ProfileSettingsForm";
+
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   await requireAuth("/settings");
@@ -8,35 +11,14 @@ export default async function SettingsPage() {
     <AppShell>
       <main className="secondary-main settings-main">
         <section className="secondary-hero">
-          <p className="eyebrow">Configurações</p>
-          <h1>Calibre o professor sem domesticar demais.</h1>
+          <p className="eyebrow">Personalização do Aluno</p>
+          <h1>Calibre o Mr.Crazy para o seu jeito e ritmo.</h1>
+          <p className="hero-subtext">
+            O professor usa seu apelido, ajusta os verbos para o seu sexo e foca exatamente nas suas dificuldades de pronúncia.
+          </p>
         </section>
-        <form className="settings-form">
-          <label>
-            Voz
-            <select defaultValue="young-neutral">
-              <option value="young-neutral">Jovem neutra</option>
-              <option value="male-expressive">Masculina expressiva</option>
-              <option value="slow-clear">Mais lenta e clara</option>
-            </select>
-          </label>
-          <label>
-            Intensidade
-            <select defaultValue="balanced">
-              <option value="balanced">Balanceada</option>
-              <option value="crazy">Crazy Mode</option>
-              <option value="soft">Menos provocativa</option>
-            </select>
-          </label>
-          <label className="toggle-row">
-            <input type="checkbox" defaultChecked />
-            Legendas durante a conversa
-          </label>
-          <label className="toggle-row">
-            <input type="checkbox" />
-            Modo sem áudio
-          </label>
-        </form>
+
+        <ProfileSettingsForm />
       </main>
     </AppShell>
   );

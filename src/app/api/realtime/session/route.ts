@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { isAuthenticated } from "@/lib/server-auth";
+import { isAuthenticated, getCurrentUser } from "@/lib/server-auth";
 import { buildRealtimeSession } from "@/lib/realtime-session";
 
 export const runtime = "nodejs";
@@ -12,6 +12,8 @@ export async function POST(request: Request) {
   if (!(await isAuthenticated())) {
     return NextResponse.json({ error: "Acesso não autorizado." }, { status: 401 });
   }
+
+  const user = await getCurrentUser();
 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -30,14 +32,20 @@ export async function POST(request: Request) {
     }
 
     const url = new URL(request.url);
-    const session = buildRealtimeSession(url.searchParams.get("level"), url.searchParams.get("mode"));
+    const session = buildRealtimeSession(
+      url.searchParams.get("level"),
+      url.searchParams.get("mode"),
+      user
+    );
+
     const formData = new FormData();
     formData.set("sdp", sdp);
     formData.set("session", JSON.stringify(session));
 
     const safetyIdentifier = createHash("sha256")
-      .update(process.env.MRCRAZY_AUTH_USER?.trim() || "mr-crazy-authenticated-user")
+      .update(user?.email || "mr-crazy-authenticated-user")
       .digest("hex");
+
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
       headers: {

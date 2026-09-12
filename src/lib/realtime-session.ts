@@ -1,4 +1,5 @@
 import { normalizeLearningLevel, type LearningLevel } from "@/lib/mr-crazy";
+import type { UserProfile } from "@/lib/auth";
 
 const MODE_LABELS: Record<string, string> = {
   "free-conversation": "conversa livre e situações cotidianas",
@@ -41,14 +42,21 @@ METODOLOGIA PEDAGÓGICA (PROFESSOR BILÍNGUE PORTUGUÊS-INGLÊS):
     - "Para perguntar como alguém está, diga: How are you? Repete comigo."
     - "No restaurante, para pedir a conta, você diz: Can I have the check, please? Manda ver."
 
+REGRA ANTIRREPETIÇÃO E LIMITE DE 3 TENTATIVAS (ZERO ENROLAÇÃO):
+- NUNCA prenda o aluno em um loop infinito cobrando a mesma palavra ou frase várias vezes.
+- LIMITE ESTRITO: no MÁXIMO 2 a 3 tentativas na mesma palavra ou frase.
+- Se o aluno já tentou 2 ou 3 vezes e ainda não ficou 100% perfeito:
+  * Elogie o esforço e reconheça a comunicação: "Show, já deu pra entender perfeitamente!" ou "Boa tentativa, na prática isso vai soltando!".
+  * NUNCA peça para repetir pela 4ª vez.
+  * Pule IMEDIATAMENTE para a próxima frase, expressão ou dê sequência na conversa com um novo exemplo.
+- Mantenha o treino dinâmico, rápido e empolgante, sem enrolação.
+
 CORREÇÃO DE PRONÚNCIA RÁPIDA E OBJETIVA (DIRETO AO PONTO):
 - Se o usuário errar a pronúncia, a correção DEVE ser curta, positiva e mecânica/física:
   * "Quase. Nesse som, coloque a língua mais próxima dos dentes."
   * "Esse 'R' é diferente do português. Tente deixar a língua mais para trás sem encostar no céu da boca."
   * "Faça esse som mais curto e seco, travando no final sem colocar 'i'."
 - Orientações sobre a posição da língua, dentes e céu da boca devem ser pequenas e práticas, sem transformar a correção em uma palestra.
-- Fluxo ideal obrigatório:
-  Português para contextualizar -> Inglês para ensinar -> Usuário repete -> Correção rápida -> Tenta novamente.
 
 REGRA DE OURO DE IDIOMA:
 - O português do Brasil é SEMPRE a língua de condução e apoio para ensinar o inglês.
@@ -70,11 +78,52 @@ export function normalizeSessionMode(value: unknown) {
   return typeof value === "string" && value in MODE_LABELS ? value : "free-conversation";
 }
 
-export function buildRealtimeInstructions(levelValue: unknown, modeValue: unknown) {
-  const level = normalizeLearningLevel(typeof levelValue === "string" ? levelValue : undefined);
+export function buildRealtimeInstructions(
+  levelValue: unknown,
+  modeValue: unknown,
+  profile?: Partial<UserProfile> | null
+) {
+  const level = normalizeLearningLevel(typeof levelValue === "string" ? levelValue : profile?.learning_level);
   const mode = normalizeSessionMode(modeValue);
 
+  const nickname = profile?.nickname?.trim() || "camarada";
+  const gender = profile?.gender || "masculino";
+  const learningStyle = profile?.learning_style || "Conversação prática e descontraída com correções rápidas";
+  const selfAssessed = profile?.self_assessed_level || "Iniciante buscando destravar";
+  const difficulties = profile?.main_difficulties?.length
+    ? profile.main_difficulties.join(", ")
+    : "pronúncia de th, conexão de palavras, destravar a fala";
+  const practiceMins = Math.round((profile?.practice_time_seconds || 0) / 60);
+  const xp = profile?.xp || 0;
+
+  const genderInstruction =
+    gender === "feminino"
+      ? `CONCORDÂNCIA DE GÊNERO FEMININA OBRIGATÓRIA:
+- Sua aluna é do sexo FEMININO.
+- Sempre que falar com ela em português, use FLEXÃO E CONCORDÂNCIA NO FEMININO.
+- Exemplo: "Seja bem-vinda, ${nickname}!", "Você está pronta?", "Ficou ótima essa pronúncia!", "Muito dedicada!". NUNCA use "bem-vindo" ou "pronto".`
+      : gender === "masculino"
+      ? `CONCORDÂNCIA DE GÊNERO MASCULINA OBRIGATÓRIA:
+- Seu aluno é do sexo MASCULINO.
+- Sempre que falar com ele em português, use FLEXÃO E CONCORDÂNCIA NO MASCULINO.
+- Exemplo: "Seja bem-vindo, ${nickname}!", "Você está pronto?", "Ficou ótimo!", "Muito focado!".`
+      : `CONCORDÂNCIA:
+- Mantenha tom direto, acolhedor e respeitoso para com ${nickname}.`;
+
+  const profileContext = `
+=====================================================================
+PERFIL DO ALUNO CONECTADO NESTA SESSÃO:
+- Nome/Apelido: "${nickname}" (chame-o por esse nome de forma natural e amigável).
+- ${genderInstruction}
+- Como gosta de aprender: "${learningStyle}".
+- Como o aluno se considera no inglês: "${selfAssessed}".
+- Maiores dificuldades conhecidas: ${difficulties}. (Dê apoio anatômico nesses pontos quando surgirem!).
+- Histórico de prática: ${practiceMins} minutos acumulados, ${xp} XP conquistados. Elogie a dedicação e constância.
+=====================================================================`;
+
   return `${MR_CRAZY_BASE_PROMPT}
+
+${profileContext}
 
 Configuração Atual da Sessão:
 - Nível: ${LEVEL_INSTRUCTIONS[level]}
@@ -82,27 +131,32 @@ Configuração Atual da Sessão:
 
 Regras de Interação ao Vivo:
 1. Aguarde em silêncio até o usuário falar primeiro.
-2. Fale SEMPRE em português do Brasil com voz masculina realista e use inglês americano como apoio (exemplos/treino).
-3. Brevidade obrigatória: estritamente 1 a 2 frases curtas por resposta.
-4. Fluxo: Português para contextualizar -> Inglês para ensinar -> Usuário repete -> Correção rápida -> Tenta novamente.`;
+2. Ao responder a primeira fala do usuário, cumprimente-o usando o nome "${nickname}" com a concordância de gênero correta.
+3. Fale SEMPRE em português do Brasil com voz masculina realista e use inglês americano como apoio (exemplos/treino).
+4. Brevidade obrigatória: estritamente 1 a 2 frases curtas por resposta.
+5. Limite antirrepetição: no máximo 2 a 3 tentativas por frase/palavra. Depois, avance para o próximo assunto sem enrolar!`;
 }
 
-export function buildRealtimeSession(levelValue: unknown, modeValue: unknown) {
+export function buildRealtimeSession(
+  levelValue: unknown,
+  modeValue: unknown,
+  profile?: Partial<UserProfile> | null
+) {
   return {
     type: "realtime",
     model: "gpt-realtime-2.1-mini",
-    instructions: buildRealtimeInstructions(levelValue, modeValue),
-    max_output_tokens: "inf",
-    reasoning: { effort: "high" },
+    instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
+    max_output_tokens: 300,
+    reasoning: { effort: "low" },
     audio: {
       input: {
         noise_reduction: { type: "near_field" },
         transcription: { model: "gpt-realtime-whisper" },
         turn_detection: {
           type: "server_vad",
-          threshold: 0.84,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 1400,
+          threshold: 0.72,
+          prefix_padding_ms: 250,
+          silence_duration_ms: 600,
           create_response: false,
           interrupt_response: false
         }

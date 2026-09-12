@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'mr-crazy-pwa-v1';
+const CACHE_NAME = 'mr-crazy-pwa-v' + Date.now();
 const PRECACHE_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -9,31 +9,47 @@ const PRECACHE_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Ativa imediatamente a nova versão baixada sem esperar o usuário fechar as abas
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS)).catch(() => {})
   );
 });
 
 self.addEventListener('activate', (event) => {
+  // Assume controle de todas as abas e clientes abertos instantaneamente
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
-  // Do not intercept non-GET or dynamic API / realtime routes
   const url = new URL(event.request.url);
+
+  // Não intercepta chamadas de API, autenticação, OpenAI ou websockets
   if (
     event.request.method !== 'GET' ||
     url.pathname.startsWith('/api/') ||
-    url.hostname.includes('openai.com')
+    url.hostname.includes('openai.com') ||
+    url.hostname.includes('supabase.co')
   ) {
     return;
   }
 
-  // Network-first strategy with cache fallback
+  // Network-first com fallback para cache
   event.respondWith(
     fetch(event.request)
       .then((response) => {
