@@ -3948,7 +3948,7 @@ meter {
 }
 
 /* ==========================================================================
-   Evolution Dashboard & AI Learning Insights (Gemini)
+   Evolution Dashboard & AI Learning Insights (IA)
    ========================================================================== */
 
 .evolution-dashboard {
@@ -4544,6 +4544,298 @@ meter {
   color: var(--cyan);
 }
 
+/* Dicas e cabeçalhos de seções */
+.mobile-swipe-hint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cyan);
+  background: rgba(111, 184, 201, 0.1);
+  border: 1px solid rgba(111, 184, 201, 0.25);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  margin-bottom: 12px;
+  width: fit-content;
+}
+
+.desktop-hide {
+  display: none;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 0 12px;
+}
+
+.swipe-badge-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--cyan);
+  background: rgba(111, 184, 201, 0.12);
+  border: 1px solid rgba(111, 184, 201, 0.25);
+  padding: 3px 8px;
+  border-radius: 9999px;
+}
+
+/* Sons & Sílabas */
+.sound-syllables-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.sound-insight-card {
+  background: rgba(16, 20, 24, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.sound-insight-card:hover {
+  border-color: rgba(111, 184, 201, 0.35);
+  transform: translateY(-2px);
+}
+
+.sound-badge {
+  display: inline-block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.sound-anatomy-box,
+.sound-obs-box,
+.sound-help-box {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.sound-anatomy-box strong,
+.sound-obs-box strong,
+.sound-help-box strong {
+  display: block;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.sound-anatomy-box strong {
+  color: #a78bfa;
+}
+
+.sound-obs-box strong {
+  color: #facc15;
+}
+
+.sound-help-box strong {
+  color: #4ade80;
+}
+
+.drill-chips-wrap {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.drill-chips-wrap small {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.drill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.drill-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* Correções do Agente */
+.corrections-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.correction-insight-card {
+  background: rgba(16, 20, 24, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.correction-insight-card:hover {
+  border-color: rgba(74, 222, 128, 0.35);
+  transform: translateY(-2px);
+}
+
+.correction-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4ade80;
+}
+
+.correction-card-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.corr-block {
+  font-size: 0.82rem;
+}
+
+.corr-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.corr-pattern {
+  margin: 0;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.corr-block.solution .corr-label {
+  color: #4ade80;
+}
+
+.corr-solution {
+  margin: 0;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.08);
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.corr-impact {
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  border-left: 2px solid #38bdf8;
+  padding-left: 8px;
+  margin-top: 4px;
+}
+
+.corr-impact strong {
+  color: #38bdf8;
+}
+
+/* History Page Styles */
+.history-main-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.hero-subtext {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.history-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.history-xp {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #facc15;
+  background: rgba(234, 179, 8, 0.12);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.history-mode {
+  font-size: 1rem;
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.history-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  flex-wrap: wrap;
+}
+
+.history-time,
+.history-focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.history-focus {
+  color: #38bdf8;
+}
+
+.history-cta-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
 .evolution-loading-container {
   display: flex;
   flex-direction: column;
@@ -4589,4 +4881,92 @@ meter {
     padding: 10px 8px;
     font-size: 0.8rem;
   }
+
+  /* Exibir avisos de deslize lateral no celular */
+  .mobile-swipe-hint {
+    display: inline-flex;
+  }
+  .desktop-hide {
+    display: inline-block;
+  }
+
+  /* Layout Horizontal Deslizável (Arraste para o lado) para telas de celular */
+  .horizontal-swipe-track {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 12px !important;
+    padding: 4px 16px 16px !important;
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+    scrollbar-width: none !important;
+  }
+
+  .horizontal-swipe-track::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Cards mais compridos horizontalmente no celular */
+  .swipe-card-wide {
+    flex: 0 0 84vw !important;
+    min-width: 82vw !important;
+    max-width: 360px !important;
+    scroll-snap-align: center !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+
+  .metric-card.swipe-card-wide {
+    padding: 16px 18px !important;
+  }
+
+  .technique-card.swipe-card-wide {
+    padding: 16px 18px !important;
+  }
+
+  .technique-steps {
+    padding: 8px 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .technique-steps ol {
+    font-size: 0.78rem !important;
+  }
+
+  .technique-example {
+    padding: 8px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .sound-insight-card.swipe-card-wide,
+  .correction-insight-card.swipe-card-wide,
+  .focus-card.swipe-card-wide {
+    padding: 16px !important;
+  }
+
+  .history-list.horizontal-swipe-track {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 12px !important;
+    padding: 4px 16px 16px !important;
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+    scrollbar-width: none !important;
+  }
+
+  .history-list.horizontal-swipe-track .history-row {
+    padding: 16px !important;
+    border-radius: 12px !important;
+    background: rgba(16, 18, 20, 0.9) !important;
+    border: 1px solid var(--line) !important;
+  }
 }
+

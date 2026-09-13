@@ -809,22 +809,34 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         if (complete && text.trim()) {
           const clean = text.trim();
           setContextHistory((current) => {
-            const last = current[current.length - 1];
-            if (last && last.role === "user" && last.text === clean) return current;
-            return [...current.slice(-49), { role: "user", text: clean }];
+            const base =
+              current.length === 0 && openingLine.trim()
+                ? [{ role: "crazy" as const, text: openingLine.trim() }]
+                : current;
+            const last = base[base.length - 1];
+            if (last && last.role === "user" && last.text === clean) return base;
+            return [...base.slice(-49), { role: "user", text: clean }];
           });
           setTranscript("");
           transcriptRef.current = "";
         }
       },
       onAssistantTranscript: (text, complete) => {
-        setRealtimeReply(text);
-        if (complete && text.trim()) {
-          const clean = text.trim();
+        if (!complete) {
+          setRealtimeReply(text);
+          return;
+        }
+
+        const clean = text.trim();
+        if (clean) {
           setContextHistory((current) => {
-            const last = current[current.length - 1];
-            if (last && last.role === "crazy" && last.text === clean) return current;
-            return [...current.slice(-49), { role: "crazy", text: clean }];
+            const base =
+              current.length === 0 && openingLine.trim()
+                ? [{ role: "crazy" as const, text: openingLine.trim() }]
+                : current;
+            const last = base[base.length - 1];
+            if (last && last.role === "crazy" && last.text === clean) return base;
+            return [...base.slice(-49), { role: "crazy", text: clean }];
           });
           setRealtimeReply("");
 

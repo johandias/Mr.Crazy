@@ -4,7 +4,31 @@ type RealtimeServerEvent = {
   type?: string;
   delta?: string;
   transcript?: string;
+  text?: string;
   error?: { message?: string };
+  item?: {
+    id?: string;
+    type?: string;
+    role?: string;
+    content?: Array<{
+      type?: string;
+      text?: string;
+      transcript?: string;
+    }>;
+  };
+  response?: {
+    id?: string;
+    status?: string;
+    output?: Array<{
+      type?: string;
+      role?: string;
+      content?: Array<{
+        type?: string;
+        text?: string;
+        transcript?: string;
+      }>;
+    }>;
+  };
 };
 
 export type RealtimeConnectionStatus = "connecting" | "connected" | "failed";
@@ -40,6 +64,26 @@ function buildInitialResponse(level: LearningLevel, mode: string) {
   return "Inicie a sessão agora. Pergunte em português o que o usuário quer aprender hoje, diga em poucas palavras o foco do treino escolhido e termine com uma pergunta em inglês adequada ao nível. Não espere o usuário falar primeiro.";
 }
 
+function isGreetingOrCasualStart(text: string): boolean {
+  const t = text.toLowerCase().trim().replace(/[.,!?;:()]/g, "");
+  if (!t) return false;
+  const greetings = [
+    "oi", "olá", "ola", "e aí", "e ai", "opa", "fala", "fala aí", "fala ai",
+    "fala mr crazy", "fala mister crazy", "oi mr crazy", "oi mister crazy",
+    "ola mr crazy", "salve", "hey", "hello", "hi", "bom dia", "boa tarde",
+    "boa noite", "tudo bem", "tudo bom", "como vai", "beleza", "tranquilo",
+    "como você tá", "como voce ta", "como cê tá", "como ce ta", "tudo certo",
+    "e aí mr crazy", "e ai mr crazy", "eae", "opa mr crazy"
+  ];
+  if (greetings.includes(t)) return true;
+  const words = t.split(/\s+/);
+  if (words.length <= 5) {
+    const firstTwo = words.slice(0, 2).join(" ");
+    if (greetings.includes(words[0]) || greetings.includes(firstTwo)) return true;
+  }
+  return false;
+}
+
 function buildTranscriptBoundResponse(
   transcript: string,
   recentTurns: { role: string; text: string }[] = []
@@ -48,6 +92,8 @@ function buildTranscriptBoundResponse(
   if (!cleanTranscript) {
     return "O último áudio não gerou transcrição nítida. Peça em uma única frase curta em português do Brasil para o usuário repetir.";
   }
+
+  const isGreeting = isGreetingOrCasualStart(cleanTranscript);
 
   const contextSection =
     recentTurns.length > 0
@@ -59,36 +105,56 @@ ${recentTurns
     (turn) =>
       `- ${turn.role === "user" ? "Aluno" : "Mr.Crazy (você)"}: "${turn.text}"`
   )
-  .join("\n")}
+  .join("\n")}`
+      : "";
 
+  let dynamicDirective = "";
+  if (isGreeting) {
+    dynamicDirective = `
+DIRETRIZ CRÍTICA DE CUMPRIMENTO:
+- O aluno acabou de te cumprimentar ou iniciar o contato: "${cleanTranscript}".
+- ATENÇÃO: ISSO NÃO É UM EXERCÍCIO DE INGLÊS. NUNCA diga "você acertou", "muito bom", "parabéns" nem avalie pronúncia aqui!
+- CUMPRIMENTE DE VOLTA com calor humano, amizade e energia em PORTUGUÊS DO BRASIL (ex: "E aí! Tudo ótimo por aqui, e com você? Bora treinar inglês ou quer bater um papo primeiro?").
+- Mantenha a conversa livre, espontânea e acolhedora.`;
+  } else {
+    dynamicDirective = `
 DIRETRIZ DE CONTINUIDADE DO DIÁLOGO:
 - O aluno acabou de falar agora: "${cleanTranscript}".
-- Use o contexto acima para entender exatamente o que está acontecendo: se no turno anterior você ensinou uma expressão ou pediu para o aluno repetir uma palavra/frase, avalie a tentativa dele agora e dê continuidade ao ciclo de prática.
-- Se o aluno estiver respondendo a uma pergunta sua ou trazendo uma dúvida, responda diretamente em português do Brasil.`
-      : `O aluno acabou de falar: "${cleanTranscript}".`;
+- Analise o contexto: se no turno anterior você pediu para ele praticar uma frase ou palavra em inglês, avalie com a regra dos 70% e dê sequência.
+- Se o aluno estiver conversando em português, tirando dúvidas, contando algo do dia ou fazendo perguntas: RESPONDA DIRETAMENTE AO PAPO OU À DÚVIDA EM PORTUGUÊS! NUNCA diga "você acertou" se ele estava apenas conversando em português.
+- Deixe o algoritmo livre: seja um tutor parceiro, inteligente e descontraído, sem cobranças mecânicas.`;
+  }
 
   return `${contextSection}
-Você é Mr.Crazy: professor de inglês americano (en-US) para alunos brasileiros. Sua língua principal de comunicação e ensino é SEMPRE o PORTUGUÊS DO BRASIL.
+${dynamicDirective}
 
-DIRETRIZES DE IDIOMA E ENSINO:
+Você é Mr.Crazy: mentor e professor brasileiro ensinando inglês americano autêntico (en-US) para alunos brasileiros. Sua língua principal de comunicação e ensino é SEMPRE o PORTUGUÊS DO BRASIL.
+
+DIRETRIZES DE FLUXO LIVRE E ENSINO:
 1. LÍNGUA PRINCIPAL: PORTUGUÊS DO BRASIL
    - Fale sempre em português para acolher, orientar, conversar, tirar dúvidas e dar feedbacks.
-   - Como ensinar exemplos e frases: Diga a explicação em português e forneça em inglês APENAS a frase ou expressão exata que o aluno tem que praticar. Exemplo: "Para pedir a conta, você diz: 'Could I have the check, please?'. Tenta falar essa frase."
-   - ÚNICA EXCEÇÃO PARA FALAR EM INGLÊS COM O ALUNO: Você SÓ deve falar diretamente em inglês se o aluno pedir explicitamente para ter uma conversa em inglês (ex: "vamos falar em inglês", "fala em inglês comigo", "let's speak in English"). Nessa exceção, converse em inglês simulando uma pessoa real batendo papo com outra.
+   - Como ensinar frases: Diga a explicação em português e forneça em inglês APENAS a frase ou expressão exata que o aluno tem que praticar. Exemplo: "Para pedir água, você diz: 'Could I get some water, please?'. Tenta falar essa frase."
+   - ÚNICA EXCEÇÃO PARA FALAR EM INGLÊS: Você SÓ deve bater papo em inglês se o aluno pedir explicitamente para falar em inglês (ex: "vamos falar em inglês", "fala em inglês comigo", "let's speak in English").
 
-2. RESPOSTA DIRETA A DÚVIDAS E PERGUNTAS:
-   - Se o aluno fez uma pergunta (dúvidas de inglês, vocabulário, gramática ou qualquer outro assunto), RESPONDA DIRETAMENTE à pergunta dele em português com didática e carisma.
-   - NUNCA force o aluno a repetir quando ele estiver tirando dúvidas ou conversando. Dialogue como um professor de verdade.
+2. CUMPRIMENTOS E BATE-PAPO LIVRE:
+   - Cumprimentos ("oi", "tudo bem?") NUNCA são avaliados como acerto ou erro. Cumprimente de volta como um amigo.
+   - Se o aluno estiver conversando sobre a vida, trabalho ou tirando dúvidas, responda em português com carisma. Não force exercícios a todo momento.
 
-3. REPETIÇÃO INTELIGENTE (SEM TRAVAMENTO E REGRA DOS 70%):
-   - REGRA DOS 70%: Se o aluno falou cerca de 70% certo ou compreensível de primeira, CONSIDERE VÁLIDO! Elogie ("Boa!", "Perfeito!", "Deu pra entender muito bem!") e AVANCE PARA OUTRAS PALAVRAS ou continue a conversa. NÃO peça repetição se a mensagem já foi transmitida!
-   - Se o aluno errar de primeira: apenas aponte o ajuste com carinho em português ("quase, na próxima lembra de...") e avance para praticar outra frase/situação.
-   - Só peça repetição se ele errar MUITO a ponto de quebrar totalmente a compreensão.
-   - LIMITE ESTRITO: no MÁXIMO 3 tentativas no total. Chegou na 3ª, elogie a evolução e PULE IMEDIATAMENTE para outra palavra. NUNCA peça pela 4ª vez!
-   - EXCEÇÃO: Só peça repetições contínuas se o próprio aluno pedir para treinar aquela palavra ou frase até ficar perfeita (ex: "quero falar essa direito", "deixa eu tentar de novo"). Quando for ele que quer, aí sim peça repetições.
+3. TÉCNICAS FÍSICAS DE PRONÚNCIA (BOCA, LÍNGUA E DENTES):
+   - Quando ensinar ou corrigir sons em inglês americano, ensine a técnica anatômica curta:
+     * Som do 'TH' (think, thank, the, that): "Ponta da língua levemente entre os dentes da frente soprando o ar, sem som de 'f' nem de 'd'."
+     * 'R' americano / retroflexo (car, red, work, world): "Enrola a ponta da língua pra trás no meio da boca sem encostar no céu da boca (igual sotaque do interior)."
+     * Consoantes finais secas (stop, bad, like, job, cat): "Corta o som seco na boca sem colocar a vogal 'i' no final (não fale 'stopi')."
+     * 'L' final / Dark L (call, milk, feel): "A ponta da língua sobe atrás dos dentes da frente e o fundo da boca abre, sem virar som de 'u'."
+     * 'W' (water, wait): "Faz um biquinho redondo de beijo no início."
+     * Vogais curtas frouxas (sheet vs shit, beach vs bitch): "No 'i' curto, relaxa o maxilar e faz quase som de 'ê'."
 
-4. CONCISÃO E NATURALIDADE:
-   - Seja conciso: 1 a 2 frases objetivas e humanas por intervenção. Mantenha o ritmo de bate-papo ágil.`;
+4. REGRA DOS 70% (SEM TRAVAR O ALUNO):
+   - Se a tentativa de inglês foi cerca de 70% compreensível, CONSIDERE VÁLIDO! Elogie ("Boa!", "Perfeito, deu pra entender certinho!") e AVANCE para outra frase ou assunto.
+   - Máximo de 2 a 3 tentativas. Se não saiu perfeito, elogie o esforço e pule para a próxima palavra.
+
+5. CONCISÃO E NATURALIDADE:
+   - Seja conciso: 1 a 2 frases objetivas por resposta. Mantenha o ritmo de bate-papo ágil.`;
 }
 
 export function isAbortError(error: unknown): boolean {
@@ -320,6 +386,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   const channel = peer.createDataChannel("oai-events");
   let userTranscript = "";
   let assistantTranscript = "";
+  let lastCommittedAssistantTranscript = "";
   let microphoneEnabled = true;
   let assistantAudioActive = false;
   let audioPlaying = false;
@@ -369,6 +436,20 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       return external.slice(-6);
     }
     return localSessionTurns.slice(-6);
+  };
+
+  const commitAssistantTurn = (explicitText?: string) => {
+    const raw = (explicitText ?? assistantTranscript).trim();
+    if (!raw) return;
+    if (raw === lastCommittedAssistantTranscript) return;
+
+    lastCommittedAssistantTranscript = raw;
+    assistantTranscript = "";
+
+    localSessionTurns.push({ role: "crazy", text: raw });
+    if (localSessionTurns.length > 12) localSessionTurns.shift();
+
+    options.onAssistantTranscript(raw, true);
   };
 
   let activeResponseInProgress = false;
@@ -448,6 +529,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
     switch (event.type) {
       case "input_audio_buffer.speech_started":
+        if (assistantTranscript.trim()) {
+          commitAssistantTurn(assistantTranscript);
+        }
         userTranscript = "";
         options.onUserTranscript("", false);
         options.onVoiceState("listening");
@@ -499,6 +583,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         }
         break;
       case "response.output_item.added":
+        if (assistantTranscript.trim()) {
+          commitAssistantTurn(assistantTranscript);
+        }
         assistantTranscript = "";
         options.onAssistantTranscript("", false);
         break;
@@ -509,16 +596,43 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           options.onVoiceState("speaking");
         }
         break;
+      case "response.text.delta":
+        if (typeof event.delta === "string") {
+          assistantTranscript += event.delta;
+          options.onAssistantTranscript(assistantTranscript, false);
+          options.onVoiceState("speaking");
+        }
+        break;
       case "response.audio_transcript.done":
-        if (typeof event.transcript === "string") {
+        if (typeof event.transcript === "string" && event.transcript.trim()) {
           assistantTranscript = event.transcript.trim();
         }
         if (assistantTranscript.trim()) {
-          localSessionTurns.push({ role: "crazy", text: assistantTranscript.trim() });
-          if (localSessionTurns.length > 12) localSessionTurns.shift();
+          commitAssistantTurn(assistantTranscript);
         }
-        options.onAssistantTranscript(assistantTranscript, true);
         options.onVoiceState("speaking");
+        break;
+      case "response.text.done":
+        if (typeof event.text === "string" && event.text.trim()) {
+          assistantTranscript = event.text.trim();
+        }
+        if (assistantTranscript.trim()) {
+          commitAssistantTurn(assistantTranscript);
+        }
+        break;
+      case "response.output_item.done":
+        if (event.item?.content && Array.isArray(event.item.content)) {
+          for (const c of event.item.content) {
+            if (typeof c?.transcript === "string" && c.transcript.trim()) {
+              assistantTranscript = c.transcript.trim();
+            } else if (typeof c?.text === "string" && c.text.trim()) {
+              assistantTranscript = c.text.trim();
+            }
+          }
+        }
+        if (assistantTranscript.trim()) {
+          commitAssistantTurn(assistantTranscript);
+        }
         break;
       case "output_audio_buffer.started":
         clearInterruptionTimer();
@@ -531,6 +645,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         audioPlaying = false;
         assistantAudioActive = false;
         activeResponseInProgress = false;
+        if (assistantTranscript.trim()) {
+          commitAssistantTurn(assistantTranscript);
+        }
         options.onVoiceState("listening");
         break;
       case "response.created":
@@ -538,6 +655,22 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "response.done":
         activeResponseInProgress = false;
+        if (event.response?.output && Array.isArray(event.response.output)) {
+          for (const item of event.response.output) {
+            if (item?.content && Array.isArray(item.content)) {
+              for (const c of item.content) {
+                if (typeof c?.transcript === "string" && c.transcript.trim()) {
+                  assistantTranscript = c.transcript.trim();
+                } else if (typeof c?.text === "string" && c.text.trim()) {
+                  assistantTranscript = c.text.trim();
+                }
+              }
+            }
+          }
+        }
+        if (assistantTranscript.trim()) {
+          commitAssistantTurn(assistantTranscript);
+        }
         if (!audioPlaying && !assistantAudioActive) {
           options.onVoiceState("listening");
         }
@@ -632,6 +765,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       sendText(text: string) {
         const cleanText = text.trim();
         if (!cleanText) return false;
+        if (assistantTranscript.trim()) {
+          commitAssistantTurn(assistantTranscript);
+        }
         userTranscript = cleanText;
         options.onUserTranscript(cleanText, true);
         options.onVoiceState("analyzing");

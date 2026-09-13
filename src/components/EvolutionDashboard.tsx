@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -15,7 +15,10 @@ import {
   ArrowRight,
   Target,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Volume2,
+  Sliders,
+  ChevronRight
 } from "lucide-react";
 import type { UserProfile } from "@/lib/auth";
 import type { LearningInsightData } from "@/app/api/insights/route";
@@ -70,6 +73,7 @@ export function EvolutionDashboard() {
       }
     }
     loadData();
+    fetchInsights();
   }, []);
 
   async function fetchInsights(force = false) {
@@ -90,12 +94,6 @@ export function EvolutionDashboard() {
       setLoadingInsights(false);
     }
   }
-
-  useEffect(() => {
-    if (activeTab === "techniques" && !insights && !loadingInsights) {
-      fetchInsights();
-    }
-  }, [activeTab]);
 
   const practiceMinutes = Math.round((profile?.practice_time_seconds || 0) / 60);
   const formatPracticeTime = (mins: number) => {
@@ -137,11 +135,11 @@ export function EvolutionDashboard() {
           className={`evolution-tab-btn ${activeTab === "techniques" ? "active" : ""}`}
           onClick={() => {
             setActiveTab("techniques");
-            fetchInsights();
+            if (!insights) fetchInsights();
           }}
         >
           <Sparkles size={18} />
-          <span>Técnicas com IA (Gemini)</span>
+          <span>Técnicas com IA</span>
         </button>
       </div>
 
@@ -150,10 +148,10 @@ export function EvolutionDashboard() {
         <div className="evolution-section-content">
           <div className="evolution-banner-header">
             <div>
-              <span className="badge-pill">Dados Reais Capturados</span>
+              <span className="badge-pill">Dados Reais das suas Aulas</span>
               <h2>Olá, {profile?.nickname || "Aluno"}!</h2>
               <p>
-                Estas métricas refletem sua dedicação real no Mr.Crazy, tempo de fala ativa acumulado e seu momento no aprendizado.
+                Estas métricas refletem sua dedicação real no Mr.Crazy, tempo de fala ativa acumulado e os padrões de pronúncia que a IA está acompanhando.
               </p>
             </div>
             <Link href="/practice" className="primary-link quick-practice-btn">
@@ -162,31 +160,36 @@ export function EvolutionDashboard() {
             </Link>
           </div>
 
-          {/* Grid de Métricas Principais */}
-          <div className="stats-metric-grid">
-            <div className="metric-card highlight-metric">
+          {/* Dica de deslize no mobile */}
+          <div className="mobile-swipe-hint">
+            <span>👉 Arraste para o lado para ver suas métricas</span>
+          </div>
+
+          {/* Grid / Carrossel de Métricas Principais */}
+          <div className="stats-metric-grid horizontal-swipe-track">
+            <div className="metric-card highlight-metric swipe-card-wide">
               <div className="metric-icon-box clock-color">
                 <Clock size={22} />
               </div>
               <div className="metric-body">
-                <span className="metric-label">Tempo Real de Uso</span>
+                <span className="metric-label">Tempo Real de Fala</span>
                 <strong className="metric-value">{formatPracticeTime(practiceMinutes)}</strong>
-                <span className="metric-footnote">Medição real de prática de fala</span>
+                <span className="metric-footnote">Medição real de prática oral</span>
               </div>
             </div>
 
-            <div className="metric-card highlight-metric">
+            <div className="metric-card highlight-metric swipe-card-wide">
               <div className="metric-icon-box flame-color">
                 <Flame size={22} />
               </div>
               <div className="metric-body">
-                <span className="metric-label">Dias de Acesso (Sequência)</span>
+                <span className="metric-label">Sequência de Dias</span>
                 <strong className="metric-value">{profile?.streak_days || 1} dias</strong>
                 <span className="metric-footnote">Constância registrada</span>
               </div>
             </div>
 
-            <div className="metric-card highlight-metric">
+            <div className="metric-card highlight-metric swipe-card-wide">
               <div className="metric-icon-box target-color">
                 <Target size={22} />
               </div>
@@ -197,26 +200,121 @@ export function EvolutionDashboard() {
               </div>
             </div>
 
-            <div className="metric-card highlight-metric">
+            <div className="metric-card highlight-metric swipe-card-wide">
               <div className="metric-icon-box xp-color">
                 <Award size={22} />
               </div>
               <div className="metric-body">
-                <span className="metric-label">XP Acumulado</span>
+                <span className="metric-label">XP & Evolução</span>
                 <strong className="metric-value">{profile?.xp || 0} XP</strong>
                 <span className="metric-footnote">Score de evolução: {profile?.evolution_score || 0}%</span>
               </div>
             </div>
           </div>
 
+          {/* Seção 1: Sons e Sílabas Monitorados pela IA */}
+          {insights?.soundSyllables && insights.soundSyllables.length > 0 && (
+            <div className="evolution-card-panel">
+              <div className="panel-header">
+                <Volume2 size={20} />
+                <h3>Diagnóstico de Sons & Sílabas nas Aulas</h3>
+              </div>
+              <p className="panel-subtext">
+                O Mr.Crazy monitora a anatomia da sua boca nas conversas. Arraste para o lado para ver como destravar cada som desafiador:
+              </p>
+
+              <div className="mobile-swipe-hint">
+                <span>👉 Arraste para o lado para ver todos os sons</span>
+              </div>
+
+              <div className="sound-syllables-track horizontal-swipe-track">
+                {insights.soundSyllables.map((item) => (
+                  <div key={item.sound} className="sound-insight-card swipe-card-wide">
+                    <div className="sound-card-header">
+                      <span className="sound-badge">{item.sound}</span>
+                    </div>
+
+                    <div className="sound-anatomy-box">
+                      <strong>Anatomia da boca:</strong>
+                      <p>{item.anatomy}</p>
+                    </div>
+
+                    <div className="sound-obs-box">
+                      <strong>O que a IA identificou:</strong>
+                      <p>{item.observation}</p>
+                    </div>
+
+                    <div className="sound-help-box">
+                      <strong>Como o Mr.Crazy ajuda nas aulas:</strong>
+                      <p>{item.agentHelp}</p>
+                    </div>
+
+                    {item.drillWords && item.drillWords.length > 0 && (
+                      <div className="drill-chips-wrap">
+                        <small>Palavras de treino:</small>
+                        <div className="drill-chips">
+                          {item.drillWords.map((word) => (
+                            <span key={word} className="drill-chip">{word}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Seção 2: Correções Frequentes da IA nas Aulas */}
+          {insights?.agentCorrections && insights.agentCorrections.length > 0 && (
+            <div className="evolution-card-panel">
+              <div className="panel-header">
+                <Sliders size={20} />
+                <h3>Onde a IA Mais Está Intervindo nas Suas Aulas</h3>
+              </div>
+              <p className="panel-subtext">
+                Padrões recorrentes observados durante seus diálogos para acelerar sua fluência:
+              </p>
+
+              <div className="mobile-swipe-hint">
+                <span>👉 Arraste para o lado para ver as correções</span>
+              </div>
+
+              <div className="corrections-track horizontal-swipe-track">
+                {insights.agentCorrections.map((corr) => (
+                  <div key={corr.area} className="correction-insight-card swipe-card-wide">
+                    <div className="correction-card-header">
+                      <CheckCircle2 size={18} />
+                      <h4>{corr.area}</h4>
+                    </div>
+
+                    <div className="corr-block">
+                      <span className="corr-label">Padrão comum nas falas:</span>
+                      <p className="corr-pattern">{corr.pattern}</p>
+                    </div>
+
+                    <div className="corr-block solution">
+                      <span className="corr-label">Como falar corretamente:</span>
+                      <p className="corr-solution">{corr.solution}</p>
+                    </div>
+
+                    <div className="corr-impact">
+                      <strong>Impacto:</strong> {corr.impact}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Dificuldades cadastradas e monitoradas */}
           <div className="evolution-card-panel">
             <div className="panel-header">
               <BookOpen size={18} />
-              <h3>Pontos de Dificuldade Mapeados</h3>
+              <h3>Pontos de Foco Cadastrados</h3>
             </div>
             <p className="panel-subtext">
-              O Mr.Crazy presta atenção especial nestes pontos durante os diálogos para corrigir a anatomia da boca e destravar sua fluência:
+              Preferências selecionadas para calibrar a sensibilidade de correção do professor:
             </p>
             {profile?.main_difficulties && profile.main_difficulties.length > 0 ? (
               <div className="difficulties-chip-grid">
@@ -235,14 +333,14 @@ export function EvolutionDashboard() {
             )}
           </div>
 
-          {/* Chamada para técnicas do Gemini */}
+          {/* Chamada para técnicas com IA */}
           <div className="ai-insight-cta-card" onClick={() => setActiveTab("techniques")}>
             <div className="cta-icon-wrap">
               <Sparkles size={26} />
             </div>
             <div className="cta-text">
               <h4>Quer saber exatamente como acelerar seu aprendizado?</h4>
-              <p>Acesse as Técnicas com IA (Gemini) para dicas de filmes, séries, músicas e leitura adaptadas para o seu nível.</p>
+              <p>Acesse os Insights & Técnicas com IA para dicas de filmes, séries, músicas e leitura adaptadas para o seu nível.</p>
             </div>
             <button type="button" className="ghost-cta-btn">
               <span>Ver Técnicas</span>
@@ -252,17 +350,17 @@ export function EvolutionDashboard() {
         </div>
       )}
 
-      {/* ABA 2: TÉCNICAS E INSIGHTS COM GEMINI */}
+      {/* ABA 2: TÉCNICAS E INSIGHTS COM IA */}
       {activeTab === "techniques" && (
         <div className="evolution-section-content">
           <div className="evolution-banner-header">
             <div>
               <span className="badge-pill ai-badge">
-                <Sparkles size={13} /> Análise com Gemini
+                <Sparkles size={13} /> Análise com IA
               </span>
-              <h2>Técnicas para o Dia a Dia</h2>
+              <h2>Técnicas e Hábitos para o Dia a Dia</h2>
               <p>
-                Aprenda inglês com métodos que funcionam de verdade na rotina: usando filmes, séries, músicas e leitura ativa.
+                Aprenda inglês com métodos que funcionam de verdade na sua rotina: usando filmes, séries, músicas e leitura ativa.
               </p>
             </div>
             <button
@@ -272,7 +370,7 @@ export function EvolutionDashboard() {
               onClick={() => fetchInsights(true)}
             >
               <RefreshCw size={16} className={loadingInsights ? "spinning" : ""} />
-              <span>{loadingInsights ? "Atualizando..." : "Atualizar com Gemini"}</span>
+              <span>{loadingInsights ? "Atualizando..." : "Atualizar com IA"}</span>
             </button>
           </div>
 
@@ -286,7 +384,7 @@ export function EvolutionDashboard() {
           {loadingInsights && !insights ? (
             <div className="evolution-loading-container">
               <div className="evolution-spinner" />
-              <p>O Mr.Crazy está gerando técnicas personalizadas com o Gemini...</p>
+              <p>O Mr.Crazy está gerando técnicas e insights personalizados com a IA...</p>
             </div>
           ) : null}
 
@@ -296,7 +394,7 @@ export function EvolutionDashboard() {
               <div className="ai-diagnostic-card">
                 <div className="diagnostic-header">
                   <Sparkles size={18} />
-                  <strong>Diagnóstico do Momento Atual</strong>
+                  <strong>Diagnóstico das suas Aulas</strong>
                 </div>
                 <p>{insights.diagnostic}</p>
               </div>
@@ -312,15 +410,19 @@ export function EvolutionDashboard() {
                 </div>
               )}
 
-              {/* Lista de Técnicas Práticas */}
-              <h3 className="section-subtitle">Técnicas que Realmente Funcionam</h3>
-              <div className="techniques-grid">
+              {/* Lista de Técnicas Práticas - Com Carrossel Horizontal Mobile */}
+              <div className="section-title-row">
+                <h3 className="section-subtitle">Técnicas que Realmente Funcionam</h3>
+                <span className="desktop-hide swipe-badge-pill">👉 Arraste para o lado</span>
+              </div>
+
+              <div className="techniques-grid horizontal-swipe-track">
                 {insights.techniques.map((tech) => {
                   const CategoryIcon =
                     tech.category === "movies" ? Film : tech.category === "music" ? Music : BookOpen;
 
                   return (
-                    <article key={tech.title} className="technique-card">
+                    <article key={tech.title} className="technique-card swipe-card-wide">
                       <div className="technique-card-top">
                         <div className={`technique-category-icon ${tech.category}`}>
                           <CategoryIcon size={20} />
@@ -353,13 +455,17 @@ export function EvolutionDashboard() {
                 })}
               </div>
 
-              {/* Áreas de Foco Imediato */}
+              {/* Áreas de Foco Imediato - Com Carrossel Horizontal Mobile */}
               {insights.focusAreas && insights.focusAreas.length > 0 && (
                 <div className="focus-areas-container">
-                  <h3 className="section-subtitle">Onde Focar Agora</h3>
-                  <div className="focus-grid">
+                  <div className="section-title-row">
+                    <h3 className="section-subtitle">Onde Focar Agora</h3>
+                    <span className="desktop-hide swipe-badge-pill">👉 Arraste para o lado</span>
+                  </div>
+
+                  <div className="focus-grid horizontal-swipe-track">
                     {insights.focusAreas.map((focus) => (
-                      <div key={focus.title} className="focus-card">
+                      <div key={focus.title} className="focus-card swipe-card-wide">
                         <div className="focus-header">
                           <CheckCircle2 size={18} />
                           <strong>{focus.title}</strong>
