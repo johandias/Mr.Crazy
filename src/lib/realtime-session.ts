@@ -158,7 +158,8 @@ export function buildRealtimeSession(
     type: "realtime",
     model: modelName,
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
-    max_output_tokens: 300,
+    max_output_tokens: 1024,
+    max_response_output_tokens: 1024,
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
@@ -168,9 +169,9 @@ export function buildRealtimeSession(
         },
         turn_detection: {
           type: "server_vad",
-          threshold: 0.45,
-          prefix_padding_ms: 350,
-          silence_duration_ms: 900,
+          threshold: 0.38,
+          prefix_padding_ms: 250,
+          silence_duration_ms: 480,
           create_response: false,
           interrupt_response: false
         }

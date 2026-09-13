@@ -38,6 +38,7 @@ export type RealtimeController = {
   finishTurn: () => void;
   sendText: (text: string) => boolean;
   setMicrophoneEnabled: (enabled: boolean) => void;
+  interrupt: () => void;
 };
 
 type ConnectRealtimeOptions = {
@@ -490,16 +491,16 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
   const cancelAssistantPlayback = () => {
     clearInterruptionTimer();
-    if (audioPlaying || assistantAudioActive || activeResponseInProgress) {
-      audioPlaying = false;
-      assistantAudioActive = false;
-      audio.muted = true;
-      audio.pause();
-      if (activeResponseInProgress) {
-        activeResponseInProgress = false;
-        send({ type: "response.cancel" });
-      }
+    audioPlaying = false;
+    assistantAudioActive = false;
+    audio.muted = true;
+    audio.pause();
+    if (activeResponseInProgress) {
+      activeResponseInProgress = false;
+      send({ type: "response.cancel" });
     }
+    syncMicrophone();
+    options.onVoiceState("listening");
   };
 
   const disconnect = () => {
@@ -541,18 +542,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
     switch (event.type) {
       case "input_audio_buffer.speech_started":
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
+        clearTranscriptionSafetyTimer();
         userTranscript = "";
         options.onUserTranscript("", false);
-        options.onVoiceState("listening");
-        if (audioPlaying || assistantAudioActive || activeResponseInProgress) {
-          clearInterruptionTimer();
-          interruptionTimer = window.setTimeout(() => {
-            cancelAssistantPlayback();
-          }, 320);
-        }
+        options.onVoiceState("transcribing");
         break;
       case "input_audio_buffer.speech_stopped":
         clearInterruptionTimer();
@@ -651,6 +644,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         audioPlaying = true;
         assistantAudioActive = true;
         activeResponseInProgress = true;
+        // Isola o microfone para impedir eco acústico do alto-falante cortando a fala do professor
+        microphone.enabled = false;
         options.onVoiceState("speaking");
         break;
       case "output_audio_buffer.stopped":
@@ -660,6 +655,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         if (assistantTranscript.trim()) {
           commitAssistantTurn(assistantTranscript);
         }
+        syncMicrophone();
         options.onVoiceState("listening");
         break;
       case "response.created":
@@ -684,6 +680,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           commitAssistantTurn(assistantTranscript);
         }
         if (!audioPlaying && !assistantAudioActive) {
+          syncMicrophone();
           options.onVoiceState("listening");
         }
         break;
@@ -709,20 +706,27 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
 
-    // Aguarda gathering dos candidatos ICE (host + STUN) para incluir no SDP offer
-    if (peer.iceGatheringState !== "complete") {
+    // Aguarda gathering rápido (host candidates já vêm no offer, máx 180ms para acelerar a conexão no mobile)
+    if (peer.iceGatheringState !== "complete" && !peer.localDescription?.sdp?.includes("a=candidate:")) {
       await new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          peer.removeEventListener("icegatheringstatechange", onState);
+          peer.removeEventListener("icecandidate", onCandidate);
+          resolve();
+        };
+        const timer = setTimeout(finish, 180);
         const onState = () => {
-          if (peer.iceGatheringState === "complete") {
-            peer.removeEventListener("icegatheringstatechange", onState);
-            resolve();
-          }
+          if (peer.iceGatheringState === "complete") finish();
+        };
+        const onCandidate = (event: RTCPeerConnectionIceEvent) => {
+          if (event.candidate) finish();
         };
         peer.addEventListener("icegatheringstatechange", onState);
-        setTimeout(() => {
-          peer.removeEventListener("icegatheringstatechange", onState);
-          resolve();
-        }, 1200);
+        peer.addEventListener("icecandidate", onCandidate);
       });
     }
 
@@ -774,6 +778,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     return {
       disconnect,
       setMicrophoneEnabled,
+      interrupt: cancelAssistantPlayback,
       sendText(text: string) {
         const cleanText = text.trim();
         if (!cleanText) return false;

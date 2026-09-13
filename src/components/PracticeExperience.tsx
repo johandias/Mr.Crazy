@@ -433,6 +433,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   };
 
   const handleAvatarTap = () => {
+    if (voiceState === "speaking" && realtimeRef.current) {
+      realtimeRef.current.interrupt();
+      setVoiceState("listening");
+    }
     const gestures: CharacterGesture[] = ["watergun", "smoke", "finger", "thumbsup", "heart"];
     const currentIndex = gestures.indexOf(activeGesture);
     const nextGesture = gestures[(currentIndex + 1) % gestures.length] || "watergun";
@@ -1206,6 +1210,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
 
+    // Se o Mr. Crazy estiver falando, o toque no microfone interrompe o professor e abre pro aluno falar
+    if (voiceState === "speaking") {
+      realtimeRef.current.interrupt();
+      setVoiceState("listening");
+      return;
+    }
+
     const nextEnabled = !microphoneEnabled;
     realtimeRef.current.setMicrophoneEnabled(nextEnabled);
     setMicrophoneEnabled(nextEnabled);
@@ -1277,19 +1288,21 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               <button
                 type="button"
                 className={`avatar-mic-btn large-round ${
-                  realtimeStatus === "connected" && microphoneEnabled && voiceState === "listening"
+                  realtimeStatus === "connected" && microphoneEnabled && (voiceState === "listening" || voiceState === "transcribing")
                     ? "listening"
-                    : realtimeStatus === "connected" && microphoneEnabled
-                      ? "active"
-                      : realtimeStatus === "connecting"
-                        ? "connecting"
-                        : "muted"
+                    : realtimeStatus === "connected" && microphoneEnabled && voiceState === "speaking"
+                      ? "speaking"
+                      : realtimeStatus === "connected" && microphoneEnabled
+                        ? "active"
+                        : realtimeStatus === "connecting"
+                          ? "connecting"
+                          : "muted"
                 }`}
                 onClick={handleAvatarMicClick}
                 aria-label={microphoneEnabled && realtimeStatus === "connected" ? "Mutar microfone" : "Ativar microfone"}
                 title={
                   realtimeStatus === "connected"
-                    ? (microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone")
+                    ? (voiceState === "speaking" ? "Toque para interromper o Mr.Crazy" : microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone")
                     : "Toque para ativar o microfone"
                 }
               >
@@ -1298,16 +1311,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   {realtimeStatus === "connecting"
                     ? "Conectando microfone..."
                     : realtimeStatus === "failed"
-                      ? "Toque para ativar microfone"
-                      : !micGranted && realtimeStatus === "idle"
-                        ? "Toque para ativar microfone uma única vez"
-                        : voiceState === "speaking"
-                          ? "Mr.Crazy falando..."
-                          : voiceState === "analyzing" || voiceState === "transcribing"
-                            ? "Ouvindo você..."
-                            : microphoneEnabled && realtimeStatus === "connected"
-                              ? "Microfone Ativo (Pode falar)"
-                              : "Toque para falar"}
+                      ? "Toque para reconectar microfone"
+                      : voiceState === "speaking"
+                        ? "Mr.Crazy falando (toque p/ interromper)"
+                        : voiceState === "analyzing" || voiceState === "transcribing"
+                          ? "Ouvindo você..."
+                          : microphoneEnabled && realtimeStatus === "connected"
+                            ? "Microfone Ativo (Pode falar direto)"
+                            : "Microfone pausado (toque para ativar)"}
                 </span>
               </button>
             </div>
@@ -1328,7 +1339,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 </button>
               </div>
             ) : null}
-            <ListeningWave active={voiceState === "listening" || voiceState === "speaking"} />
+            <ListeningWave active={voiceState === "listening" || voiceState === "speaking" || voiceState === "transcribing" || voiceState === "analyzing"} />
           </motion.div>
 
           <motion.aside
