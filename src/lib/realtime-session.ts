@@ -152,7 +152,7 @@ export function buildRealtimeSession(
   levelValue: unknown,
   modeValue: unknown,
   profile?: Partial<UserProfile> | null,
-  modelName: string = "gpt-realtime-2"
+  modelName: string = "gpt-4o-mini-realtime-preview"
 ) {
   return {
     type: "realtime",

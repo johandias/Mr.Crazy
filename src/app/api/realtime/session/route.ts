@@ -13,12 +13,10 @@ const MAX_SDP_LENGTH = 120_000;
 let cachedWorkingModel: string | null = null;
 
 const DEFAULT_REALTIME_MODELS = [
-  "gpt-realtime-2",
+  "gpt-4o-mini-realtime-preview",
   "gpt-4o-realtime-preview",
-  "gpt-4o-realtime-preview-2024-12-17",
-  "gpt-4o-realtime-preview-2024-10-01",
   "gpt-4o-mini-realtime-preview-2024-12-17",
-  "gpt-4o-mini-realtime-preview"
+  "gpt-4o-realtime-preview-2024-12-17"
 ];
 
 export async function POST(request: Request) {

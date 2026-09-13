@@ -19,9 +19,12 @@ import {
   Sparkles,
   Volume2,
   UserRound,
+  PictureInPicture2,
+  ExternalLink,
   X
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { PictureInPictureManager, type PictureInPictureManagerHandle } from "@/components/PictureInPictureManager";
 import { ConversationBubble } from "@/components/ConversationBubble";
 import { ListeningWave } from "@/components/ListeningWave";
 import { RpgCharacter, type CharacterGesture } from "@/components/RpgCharacter";
@@ -423,6 +426,25 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const transcriptRef = useRef("");
   const analysisQueuedRef = useRef(false);
   const silenceTimerRef = useRef<number | null>(null);
+  const pipRef = useRef<PictureInPictureManagerHandle | null>(null);
+  const [isPipActive, setIsPipActive] = useState(false);
+  const [isPopupMode, setIsPopupMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsPopupMode(window.location.search.includes("popup=true"));
+    }
+  }, []);
+
+  const handleTogglePiP = async () => {
+    if (!pipRef.current) return;
+    const active = await pipRef.current.togglePiP();
+    setIsPipActive(active);
+  };
+
+  const handleOpenStandalonePopup = () => {
+    pipRef.current?.openStandalonePopup();
+  };
 
   const triggerGesture = (gesture: CharacterGesture) => {
     if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
@@ -1254,19 +1276,58 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   return (
     <AppShell isAdmin={isAdmin}>
-      <main className="practice-main clean-layout">
+      <main className={`practice-main clean-layout ${isPopupMode ? "popup-compact" : ""}`}>
+        <PictureInPictureManager
+          ref={pipRef}
+          voiceState={voiceState}
+          realtimeStatus={realtimeStatus}
+          currentText={
+            (voiceState === "speaking" ? liveCrazyItem?.text || realtimeReply : liveUserItem?.text || transcript) ||
+            (contextHistory[contextHistory.length - 1]?.text ?? openingLine)
+          }
+          microphoneEnabled={microphoneEnabled}
+        />
+
         <div className="practice-header-bar">
           <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
-          <button
-            type="button"
-            className="hamburger-btn"
-            onClick={() => setIsMenuOpen(true)}
-            aria-label="Abrir menu de configurações e digitação"
-            title="Opções de nível, tema e digitação"
-          >
-            <Menu size={22} />
-          </button>
+          <div className="header-actions-group">
+            <button
+              type="button"
+              className={`pip-btn ${isPipActive ? "active" : ""}`}
+              onClick={handleTogglePiP}
+              aria-label="Ativar Modo Pop-up Flutuante"
+              title="Pop-up Flutuante (Picture-in-Picture): use outros apps (WhatsApp, navegador) enquanto treina inglês"
+            >
+              <PictureInPicture2 size={20} />
+              {isPipActive && <span className="pip-badge-active" />}
+            </button>
+            <button
+              type="button"
+              className="pip-btn"
+              onClick={handleOpenStandalonePopup}
+              aria-label="Abrir em Janela Pop-up Pequena"
+              title="Abrir em Janela Pop-up separada para usar ao lado de outros programas"
+            >
+              <ExternalLink size={20} />
+            </button>
+            <button
+              type="button"
+              className="hamburger-btn"
+              onClick={() => setIsMenuOpen(true)}
+              aria-label="Abrir menu de configurações e digitação"
+              title="Opções de nível, tema e digitação"
+            >
+              <Menu size={22} />
+            </button>
+          </div>
         </div>
+
+        {isPopupMode && (
+          <div className="popup-banner-tip">
+            <Sparkles size={16} />
+            <span>Modo Janela Pop-up Ativo — Treine enquanto navega ou trabalha em outras janelas!</span>
+          </div>
+        )}
 
         <section className="practice-stage clean-stage">
           <motion.div
@@ -1408,6 +1469,37 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               </div>
 
               <div className="drawer-body">
+                <div className="drawer-group">
+                  <span className="drawer-group-title">Modo Multitarefa (Pop-up & PiP)</span>
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-soft)", margin: "4px 0 10px", lineHeight: "1.4" }}>
+                    Treine seu inglês enquanto mexe no WhatsApp, lê notícias ou estuda em outros apps.
+                  </p>
+                  <div className="drawer-pip-actions">
+                    <button
+                      type="button"
+                      className="drawer-action-btn primary"
+                      onClick={() => {
+                        void handleTogglePiP();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <PictureInPicture2 size={18} />
+                      {isPipActive ? "Fechar Pop-up (PiP)" : "Ativar Pop-up Flutuante (PiP)"}
+                    </button>
+                    <button
+                      type="button"
+                      className="drawer-action-btn secondary"
+                      onClick={() => {
+                        handleOpenStandalonePopup();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <ExternalLink size={18} />
+                      Abrir em Janela Pop-up Separada
+                    </button>
+                  </div>
+                </div>
+
                 <div className="drawer-group">
                   <span className="drawer-group-title">Nível de Inglês</span>
                   <div className="drawer-level-options">

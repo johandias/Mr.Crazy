@@ -718,7 +718,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           peer.removeEventListener("icecandidate", onCandidate);
           resolve();
         };
-        const timer = setTimeout(finish, 180);
+        const timer = setTimeout(finish, 60);
         const onState = () => {
           if (peer.iceGatheringState === "complete") finish();
         };
