@@ -383,8 +383,24 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [analysisSource, setAnalysisSource] = useState<"manual" | "voice">("manual");
+  const [micGranted, setMicGranted] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      return window.localStorage.getItem("mr-crazy-mic-granted") === "true";
+    } catch {
+      return true;
+    }
+  });
   const [realtimeReply, setRealtimeReply] = useState("");
-  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>("connecting");
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>(() => {
+    if (typeof window === "undefined") return "connecting";
+    try {
+      const isGranted = window.localStorage.getItem("mr-crazy-mic-granted") === "true";
+      return isGranted ? "connecting" : "idle";
+    } catch {
+      return "connecting";
+    }
+  });
   const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
   const [openingIndex, setOpeningIndex] = useState(0);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
@@ -893,8 +909,19 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     if (!storageReady || hasAutoConnectedRef.current) return;
-    hasAutoConnectedRef.current = true;
 
+    // No iPhone / Safari: se o microfone ainda não foi liberado neste aparelho,
+    // NÃO executamos chamada em background no mount para não disparar popup temporário do WebKit.
+    // O usuário dá 1 toque no botão do microfone, o Safari salva a permissão permanente, e nunca mais pede!
+    const isGranted = typeof window !== "undefined" && window.localStorage.getItem("mr-crazy-mic-granted") === "true";
+    if (!isGranted) {
+      setRealtimeStatus("idle");
+      setVoiceState("idle");
+      setMicrophoneEnabled(false);
+      return;
+    }
+
+    hasAutoConnectedRef.current = true;
     const timeoutId = window.setTimeout(() => {
       void connectSession();
     }, 50);
@@ -1162,6 +1189,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }
 
   function handleAvatarMicClick() {
+    setMicGranted(true);
+    try {
+      window.localStorage.setItem("mr-crazy-mic-granted", "true");
+    } catch {}
+
     // Se a conexão não está ativa ou falhou, o toque no microfone inicia/reconecta diretamente
     if (realtimeStatus !== "connected" || !realtimeRef.current) {
       setErrorMessage("");
@@ -1267,13 +1299,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     ? "Conectando microfone..."
                     : realtimeStatus === "failed"
                       ? "Toque para ativar microfone"
-                      : voiceState === "speaking"
-                        ? "Mr.Crazy falando..."
-                        : voiceState === "analyzing" || voiceState === "transcribing"
-                          ? "Ouvindo você..."
-                          : microphoneEnabled && realtimeStatus === "connected"
-                            ? "Microfone Ativo (Pode falar)"
-                            : "Toque para falar"}
+                      : !micGranted && realtimeStatus === "idle"
+                        ? "Toque para ativar microfone uma única vez"
+                        : voiceState === "speaking"
+                          ? "Mr.Crazy falando..."
+                          : voiceState === "analyzing" || voiceState === "transcribing"
+                            ? "Ouvindo você..."
+                            : microphoneEnabled && realtimeStatus === "connected"
+                              ? "Microfone Ativo (Pode falar)"
+                              : "Toque para falar"}
                 </span>
               </button>
             </div>

@@ -191,7 +191,7 @@ export function getConnectionError(error: unknown) {
   }
 
   if (error instanceof DOMException && error.name === "NotAllowedError") {
-    return "Permita o acesso ao microfone para conversar com o Mr.Crazy.";
+    return "Microfone bloqueado. No iPhone, toque no ícone 'aA' ao lado do endereço do site > Ajustes do Site > Microfone: Permitir.";
   }
 
   if (error instanceof Error && error.message) {
@@ -305,11 +305,12 @@ function setupVisibilityListener() {
     }
   });
 
-  // Encerra completamente o hardware quando o usuário fecha a aba ou sai do site
+  // Silencia o microfone quando o usuário minimiza, bloqueia a tela ou sai temporariamente da aba
   window.addEventListener("pagehide", () => {
     if (masterMicrophoneStream) {
-      masterMicrophoneStream.getTracks().forEach((t) => t.stop());
-      masterMicrophoneStream = null;
+      masterMicrophoneStream.getAudioTracks().forEach((t) => {
+        t.enabled = false;
+      });
     }
   });
 }
@@ -317,8 +318,16 @@ function setupVisibilityListener() {
 export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamTrack; stream: MediaStream }> {
   setupVisibilityListener();
 
-  // Sempre libera streams anteriores para garantir uma faixa 100% nova e com transmissão ativa no WebKit/iOS
-  releasePersistentMicrophoneStream();
+  // 1. REUTILIZAÇÃO PERSISTENTE: Se já possuímos uma faixa de áudio ativa no dispositivo, reutilizamos sem chamar getUserMedia()
+  // No iPhone/WebKit, isso evita 100% que o sistema reabra o hardware ou solicite permissão novamente ao navegar
+  if (masterMicrophoneStream) {
+    const liveTrack = masterMicrophoneStream.getAudioTracks().find((t) => t.readyState === "live");
+    if (liveTrack) {
+      liveTrack.enabled = true;
+      return { track: liveTrack, stream: masterMicrophoneStream };
+    }
+    masterMicrophoneStream = null;
+  }
 
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
     throw new Error("Seu navegador não suporta captura de áudio ou a página não está em conexão segura (HTTPS).");
@@ -349,7 +358,17 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
   return { track, stream };
 }
 
-export function releasePersistentMicrophoneStream() {
+export function releasePersistentMicrophoneStream(force = false) {
+  if (!force) {
+    // Em vez de matar a faixa no iOS (o que força o Safari a pedir permissão de novo), apenas silencia
+    if (masterMicrophoneStream) {
+      masterMicrophoneStream.getAudioTracks().forEach((t) => {
+        t.enabled = false;
+      });
+    }
+    return;
+  }
+
   if (masterMicrophoneStream) {
     masterMicrophoneStream.getTracks().forEach((t) => {
       try {
@@ -498,16 +517,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       peer.close();
     } catch {}
     try {
-      microphone.stop();
+      // Silencia a captação sem destruir a faixa no hardware, garantindo que o iOS não volte a pedir permissão
+      microphone.enabled = false;
     } catch {}
-    if (masterMicrophoneStream) {
-      masterMicrophoneStream.getTracks().forEach((t) => {
-        try {
-          t.stop();
-        } catch {}
-      });
-      masterMicrophoneStream = null;
-    }
   };
 
   options.signal?.addEventListener("abort", disconnect, { once: true });
