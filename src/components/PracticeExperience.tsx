@@ -1452,7 +1452,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
         {isMenuOpen && (
           <div className="drawer-overlay" onClick={() => setIsMenuOpen(false)}>
-            <aside className="drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <aside className="drawer-panel" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
               <div className="drawer-header">
                 <div className="drawer-title">
                   <Menu size={18} />
