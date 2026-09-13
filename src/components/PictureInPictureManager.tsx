@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import type { VoiceState } from "@/lib/speech-service";
 import type { RealtimeConnectionStatus } from "@/lib/realtime-client";
@@ -42,9 +43,10 @@ function drawRoundedRect(
 
 export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle, Props>(
   function PictureInPictureManager(
-    { voiceState, realtimeStatus, currentText, microphoneEnabled },
-    ref
+    props: Props,
+    ref: React.Ref<PictureInPictureManagerHandle>
   ) {
+    const { voiceState, realtimeStatus, currentText, microphoneEnabled } = props;
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isPiPActive, setIsPiPActive] = useState(false);

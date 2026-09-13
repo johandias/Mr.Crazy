@@ -1563,7 +1563,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   <span className="drawer-group-title">Modo Digitação (Texto)</span>
                   <form
                     className="drawer-text-form"
-                    onSubmit={(e) => {
+                    onSubmit={(e: FormEvent) => {
                       handleSubmit(e);
                       setIsMenuOpen(false);
                     }}
@@ -1571,7 +1571,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     <input
                       ref={textInputRef}
                       value={manualText}
-                      onChange={(e) => setManualText(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setManualText(e.target.value)}
                       placeholder={activeLevel.placeholder}
                       aria-label="Digite sua frase em inglês"
                     />
@@ -1588,7 +1588,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   <div className="drawer-examples-box">
                     <small>Frases sugeridas para testar:</small>
                     <div className="drawer-chips">
-                      {activeLevel.examples.map((example) => (
+                      {activeLevel.examples.map((example: string) => (
                         <button
                           key={example}
                           type="button"
