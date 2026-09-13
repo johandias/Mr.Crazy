@@ -392,7 +392,19 @@ const WHISPER_HALLUCINATIONS = [
   "transcrição:",
   "transcrito por",
   "todos os direitos reservados",
-  "curta e compartilhe"
+  "curta e compartilhe",
+  "não inventar",
+  "nao inventar",
+  "ruídos de respiração",
+  "ruidos de respiracao",
+  "legendas de vídeo",
+  "legendas de video",
+  "máxima fidelidade",
+  "maxima fidelidade",
+  "não inventar palavras",
+  "nao inventar palavras",
+  "boa noite, triângulos",
+  "boa noite triângulos"
 ];
 
 function isWhisperHallucination(text: string): boolean {
@@ -593,8 +605,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       case "conversation.item.input_audio_transcription.delta":
         if (typeof event.delta === "string") {
           userTranscript += event.delta;
-          options.onUserTranscript(userTranscript, false);
-          options.onVoiceState("listening");
+          if (!isWhisperHallucination(userTranscript)) {
+            options.onUserTranscript(userTranscript, false);
+            options.onVoiceState("listening");
+          }
         }
         break;
       case "conversation.item.input_audio_transcription.completed":
@@ -603,20 +617,24 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           const rawTranscript = event.transcript.trim();
           if (rawTranscript && !isWhisperHallucination(rawTranscript)) {
             userTranscript = rawTranscript;
+          } else {
+            userTranscript = "";
           }
         }
 
         const candidateText = userTranscript.trim();
         userTranscript = "";
 
-        // Se for alucinação ou texto vazio, descarta silenciosamente
+        // Se for alucinação ou texto vazio, descarta silenciosamente e limpa qualquer bolha transitória
         if (!candidateText || isWhisperHallucination(candidateText)) {
+          options.onUserTranscript("", true);
           return;
         }
 
         // Se o professor estiver falando ou no cooldown de eco acústico, NÃO interrompe o professor!
         if (activeResponseInProgress || assistantAudioActive || audioPlaying) {
           console.warn("[Realtime] Descartando áudio captado durante a fala do professor (eco do alto-falante):", candidateText);
+          options.onUserTranscript("", true);
           return;
         }
 

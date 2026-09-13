@@ -162,7 +162,7 @@ export function buildRealtimeSession(
       input: {
         transcription: {
           model: "whisper-1",
-          prompt: "Conversa em português do Brasil e prática de pronúncia e frases em inglês (en-US). Frases do dia a dia, dúvidas e vocabulário. Transcrever com máxima fidelidade o áudio real falado pelo aluno. Não inventar palavras, legendas de vídeo ou ruídos de respiração."
+          prompt: "Hello, how are you? I'm good. Let's practice. What does this mean? Could you help me with this? Nice to meet you. Conversa em português e frases de inglês do dia a dia."
         },
         turn_detection: {
           type: "server_vad",

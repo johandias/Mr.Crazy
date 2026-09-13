@@ -548,11 +548,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const conversationContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback((smooth = true) => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: smooth ? "smooth" : "auto",
-        block: "end"
+    const container = conversationContainerRef.current;
+    if (!container) return;
+    if (smooth) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth"
       });
+    } else {
+      container.scrollTop = container.scrollHeight;
     }
   }, []);
 
@@ -598,8 +602,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [contextHistory, liveUserItem, realtimeReply, voiceState]);
 
   useEffect(() => {
-    scrollToBottom(true);
-  }, [contextHistory, transcript, realtimeReply, voiceState, scrollToBottom]);
+    const timer = window.setTimeout(() => {
+      scrollToBottom(true);
+    }, 45);
+    return () => window.clearTimeout(timer);
+  }, [contextHistory, transcript, realtimeReply, voiceState, liveUserItem, liveCrazyItem, scrollToBottom]);
 
   useEffect(() => {
     if (storageReady) {
