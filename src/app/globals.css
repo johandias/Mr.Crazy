@@ -2199,6 +2199,42 @@ meter {
   animation: mic-pulse 1.2s ease-in-out infinite alternate;
 }
 
+.avatar-mic-btn.compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  min-height: 34px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.avatar-mic-btn.compact.is-on {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(16, 85, 45, 0.9));
+  border-color: rgba(74, 222, 128, 0.7);
+  color: #4ade80;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.35);
+}
+
+.avatar-mic-btn.compact.is-off {
+  background: rgba(45, 20, 25, 0.85);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #f87171;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.avatar-mic-btn.compact .avatar-mic-state,
+.avatar-mic-btn.compact .avatar-mic-tag {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
 .avatar-mic-label {
   letter-spacing: 0.3px;
 }
@@ -2352,6 +2388,13 @@ meter {
     min-height: 46px;
     gap: 8px;
     border-radius: 9999px;
+  }
+
+  .avatar-mic-btn.compact {
+    padding: 5px 12px;
+    min-height: 32px;
+    font-size: 0.76rem;
+    gap: 5px;
   }
 
   .gesture-action-bar {

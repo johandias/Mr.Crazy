@@ -473,6 +473,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   };
 
   let activeResponseInProgress = false;
+  let pendingResponsePayload: { instructions?: string } | null = null;
   let interruptionTimer: number | null = null;
   const clearInterruptionTimer = () => {
     if (interruptionTimer !== null) {
@@ -509,6 +510,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     clearInterruptionTimer();
     clearTranscriptionSafetyTimer();
     activeResponseInProgress = false;
+    pendingResponsePayload = null;
     audio.pause();
     audio.srcObject = null;
     try {
@@ -579,10 +581,27 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           options.onUserTranscript(finalUserText, true);
           options.onVoiceState("analyzing");
           const recentTurns = getContextSnapshot();
-          send({
-            type: "response.create",
-            response: { instructions: buildTranscriptBoundResponse(finalUserText, recentTurns) }
-          });
+          const instructions = buildTranscriptBoundResponse(finalUserText, recentTurns);
+
+          if (activeResponseInProgress) {
+            pendingResponsePayload = { instructions };
+            send({ type: "response.cancel" });
+            window.setTimeout(() => {
+              if (pendingResponsePayload && !disconnected) {
+                send({
+                  type: "response.create",
+                  response: pendingResponsePayload
+                });
+                pendingResponsePayload = null;
+              }
+            }, 180);
+          } else {
+            pendingResponsePayload = null;
+            send({
+              type: "response.create",
+              response: { instructions }
+            });
+          }
         } else {
           options.onVoiceState("listening");
         }
@@ -663,6 +682,14 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "response.done":
         activeResponseInProgress = false;
+        if (pendingResponsePayload && !disconnected) {
+          const payload = pendingResponsePayload;
+          pendingResponsePayload = null;
+          send({
+            type: "response.create",
+            response: payload
+          });
+        }
         if (event.response?.output && Array.isArray(event.response.output)) {
           for (const item of event.response.output) {
             if (item?.content && Array.isArray(item.content)) {
@@ -686,14 +713,30 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "error": {
         const errorMsg = event.error?.message || "";
+        const lower = errorMsg.toLowerCase();
         if (
-          errorMsg.includes("buffer is empty") ||
-          errorMsg.includes("already active") ||
-          errorMsg.includes("cancelled") ||
-          errorMsg.includes("session.type") ||
-          errorMsg.includes("session.update")
+          lower.includes("buffer is empty") ||
+          lower.includes("already active") ||
+          lower.includes("active response") ||
+          lower.includes("in progress") ||
+          lower.includes("cancelled") ||
+          lower.includes("session.type") ||
+          lower.includes("session.update")
         ) {
           console.warn("[Realtime] Aviso não crítico ignorado:", errorMsg);
+          if (lower.includes("active response") || lower.includes("in progress")) {
+            if (pendingResponsePayload && !disconnected) {
+              window.setTimeout(() => {
+                if (pendingResponsePayload && !disconnected) {
+                  send({
+                    type: "response.create",
+                    response: pendingResponsePayload
+                  });
+                  pendingResponsePayload = null;
+                }
+              }, 250);
+            }
+          }
           break;
         }
         options.onError(errorMsg || "A API de voz retornou um erro.");

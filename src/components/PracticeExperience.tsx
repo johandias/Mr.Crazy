@@ -898,6 +898,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       onError: (err) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           clearWatchdog();
+          const lower = String(err).toLowerCase();
+          if (
+            lower.includes("active response") ||
+            lower.includes("already active") ||
+            lower.includes("in progress")
+          ) {
+            console.warn("[Practice] Ignorando aviso não-crítico do provedor:", err);
+            return;
+          }
           if (!isAbortError(err)) {
             setErrorMessage(err);
             setRealtimeStatus("failed");
@@ -1232,13 +1241,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
 
-    // Se o Mr. Crazy estiver falando, o toque no microfone interrompe o professor e abre pro aluno falar
-    if (voiceState === "speaking") {
-      realtimeRef.current.interrupt();
-      setVoiceState("listening");
-      return;
-    }
-
+    // O botão tem a função exclusiva de ligar ou desligar a captação da voz do celular (ON / OFF)
     const nextEnabled = !microphoneEnabled;
     realtimeRef.current.setMicrophoneEnabled(nextEnabled);
     setMicrophoneEnabled(nextEnabled);
@@ -1344,43 +1347,34 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               onTap={handleAvatarTap}
             />
 
-            {/* Mute/Microfone abaixo do boneco: Grande e Arredondado */}
+            {/* Botão de Microfone Compacto (ON / OFF) para ligar ou desligar a captação de voz */}
             <div className="avatar-mic-dock">
               <button
                 type="button"
-                className={`avatar-mic-btn large-round ${
-                  realtimeStatus === "connected" && microphoneEnabled && (voiceState === "listening" || voiceState === "transcribing")
-                    ? "listening"
-                    : realtimeStatus === "connected" && microphoneEnabled && voiceState === "speaking"
-                      ? "speaking"
-                      : realtimeStatus === "connected" && microphoneEnabled
-                        ? "active"
-                        : realtimeStatus === "connecting"
-                          ? "connecting"
-                          : "muted"
+                className={`avatar-mic-btn compact ${
+                  realtimeStatus === "connected" && microphoneEnabled
+                    ? "is-on"
+                    : "is-off"
                 }`}
                 onClick={handleAvatarMicClick}
-                aria-label={microphoneEnabled && realtimeStatus === "connected" ? "Mutar microfone" : "Ativar microfone"}
+                aria-label={realtimeStatus === "connected" && microphoneEnabled ? "Microfone ligado (ON)" : "Microfone desligado (OFF)"}
                 title={
-                  realtimeStatus === "connected"
-                    ? (voiceState === "speaking" ? "Toque para interromper o Mr.Crazy" : microphoneEnabled ? "Toque para mutar o microfone" : "Toque para ativar o microfone")
-                    : "Toque para ativar o microfone"
+                  realtimeStatus === "connected" && microphoneEnabled
+                    ? "Microfone ligado (toque para desligar - OFF)"
+                    : "Microfone desligado (toque para ligar - ON)"
                 }
               >
-                {microphoneEnabled && realtimeStatus === "connected" ? <Mic size={22} /> : <MicOff size={22} />}
-                <span className="avatar-mic-label">
-                  {realtimeStatus === "connecting"
-                    ? "Conectando microfone..."
-                    : realtimeStatus === "failed"
-                      ? "Toque para reconectar microfone"
-                      : voiceState === "speaking"
-                        ? "Mr.Crazy falando (toque p/ interromper)"
-                        : voiceState === "analyzing" || voiceState === "transcribing"
-                          ? "Ouvindo você..."
-                          : microphoneEnabled && realtimeStatus === "connected"
-                            ? "Microfone Ativo (Pode falar direto)"
-                            : "Microfone pausado (toque para ativar)"}
-                </span>
+                {realtimeStatus === "connected" && microphoneEnabled ? (
+                  <>
+                    <Mic size={18} />
+                    <span className="avatar-mic-state">ON</span>
+                  </>
+                ) : (
+                  <>
+                    <MicOff size={18} />
+                    <span className="avatar-mic-state">OFF</span>
+                  </>
+                )}
               </button>
             </div>
 
