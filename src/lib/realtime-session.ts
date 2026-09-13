@@ -158,7 +158,6 @@ export function buildRealtimeSession(
     type: "realtime",
     model: modelName,
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
-    max_response_output_tokens: 1024,
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
