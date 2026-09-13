@@ -167,9 +167,9 @@ export function buildRealtimeSession(
         },
         turn_detection: {
           type: "server_vad",
-          threshold: 0.38,
-          prefix_padding_ms: 250,
-          silence_duration_ms: 480,
+          threshold: 0.58,
+          prefix_padding_ms: 280,
+          silence_duration_ms: 650,
           create_response: false,
           interrupt_response: false
         }

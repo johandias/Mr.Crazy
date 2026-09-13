@@ -300,7 +300,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
     const togglePiP = useCallback(async (): Promise<boolean> => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (!video || !canvas) return false;
+      if (!video) return false;
 
       try {
         const anyDoc = document as unknown as {
@@ -314,28 +314,53 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
           return false;
         }
 
-        if (!video.srcObject) {
-          const anyCanvas = canvas as unknown as { captureStream?: (fps?: number) => MediaStream };
-          if (anyCanvas.captureStream) {
-            video.srcObject = anyCanvas.captureStream(24);
-          }
-        }
-
-        await video.play();
-
         const anyVideo = video as unknown as {
           requestPictureInPicture?: () => Promise<unknown>;
           webkitSetPresentationMode?: (mode: string) => void;
+          webkitPresentationMode?: string;
         };
 
-        if (anyVideo.requestPictureInPicture) {
-          await anyVideo.requestPictureInPicture();
-          setIsPiPActive(true);
-          return true;
+        if (anyVideo.webkitPresentationMode === "picture-in-picture" && anyVideo.webkitSetPresentationMode) {
+          anyVideo.webkitSetPresentationMode("inline");
+          setIsPiPActive(false);
+          return false;
         }
 
-        if (anyVideo.webkitSetPresentationMode) {
-          anyVideo.webkitSetPresentationMode("picture-in-picture");
+        // Se o navegador suporta captureStream do canvas (Desktop / Android), tenta associar
+        if (!video.srcObject && canvas) {
+          const anyCanvas = canvas as unknown as { captureStream?: (fps?: number) => MediaStream };
+          try {
+            if (typeof anyCanvas.captureStream === "function") {
+              const stream = anyCanvas.captureStream(20);
+              if (stream && stream.getVideoTracks().length > 0) {
+                video.srcObject = stream;
+              }
+            }
+          } catch {
+            // Usa o fallback em video.src = "/mr-crazy-pip.mp4"
+          }
+        }
+
+        // Inicia reprodução síncrona
+        const playPromise = video.play();
+
+        // 1. Safari no iPhone / iPad (WebKit): DEVE ser disparado sincronamente no gesto de toque
+        if (typeof anyVideo.webkitSetPresentationMode === "function") {
+          try {
+            anyVideo.webkitSetPresentationMode("picture-in-picture");
+            setIsPiPActive(true);
+            return true;
+          } catch (err) {
+            console.warn("[PiP] Falha no webkitSetPresentationMode:", err);
+          }
+        }
+
+        // 2. API padrão W3C (Chrome, Edge, Firefox, Android)
+        if (typeof anyVideo.requestPictureInPicture === "function") {
+          if (playPromise) {
+            await playPromise.catch(() => {});
+          }
+          await anyVideo.requestPictureInPicture();
           setIsPiPActive(true);
           return true;
         }
@@ -349,6 +374,17 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
 
     const openStandalonePopup = useCallback(() => {
       if (typeof window === "undefined") return;
+
+      const isMobile =
+        window.innerWidth <= 768 ||
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+
+      if (isMobile) {
+        // No celular, não existem janelas flutuantes do SO via window.open; o pop-up nativo é o Picture-in-Picture!
+        void togglePiP();
+        return;
+      }
+
       const url = new URL(window.location.href);
       url.searchParams.set("popup", "true");
 
@@ -370,7 +406,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
       ].join(",");
 
       window.open(url.toString(), "MrCrazyPopUp", windowFeatures);
-    }, []);
+    }, [togglePiP]);
 
     useImperativeHandle(
       ref,
@@ -384,9 +420,29 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
     );
 
     return (
-      <div style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none" }}>
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          right: 0,
+          width: 160,
+          height: 90,
+          overflow: "hidden",
+          opacity: 0.01,
+          pointerEvents: "none",
+          zIndex: -9999
+        }}
+      >
         <canvas ref={canvasRef} width={480} height={270} />
-        <video ref={videoRef} playsInline muted autoPlay />
+        <video
+          ref={videoRef}
+          src="/mr-crazy-pip.mp4"
+          playsInline
+          muted
+          loop
+          preload="auto"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
       </div>
     );
   }

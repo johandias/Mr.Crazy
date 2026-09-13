@@ -1997,6 +1997,13 @@ meter {
   animation: fadeIn 0.3s ease;
 }
 
+.pip-floating-toast {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.95), rgba(67, 56, 202, 0.95));
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #eff6ff;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);
+}
+
 .drawer-pip-actions {
   display: flex;
   flex-direction: column;
@@ -2395,6 +2402,10 @@ meter {
     min-height: 32px;
     font-size: 0.76rem;
     gap: 5px;
+  }
+
+  .pip-standalone-btn {
+    display: none !important;
   }
 
   .gesture-action-bar {

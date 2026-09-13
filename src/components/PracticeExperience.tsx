@@ -429,6 +429,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const pipRef = useRef<PictureInPictureManagerHandle | null>(null);
   const [isPipActive, setIsPipActive] = useState(false);
   const [isPopupMode, setIsPopupMode] = useState(false);
+  const [pipNotification, setPipNotification] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -436,10 +437,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
   }, []);
 
-  const handleTogglePiP = async () => {
+  const handleTogglePiP = () => {
     if (!pipRef.current) return;
-    const active = await pipRef.current.togglePiP();
-    setIsPipActive(active);
+    void pipRef.current.togglePiP().then((active) => {
+      setIsPipActive(active);
+      if (active) {
+        setPipNotification("Modo Pop-up Flutuante Ativo! Você já pode abrir o WhatsApp ou outros apps que o Mr. Crazy continuará conversando.");
+        window.setTimeout(() => setPipNotification(""), 5000);
+      }
+    });
   };
 
   const handleOpenStandalonePopup = () => {
@@ -1306,7 +1312,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             </button>
             <button
               type="button"
-              className="pip-btn"
+              className="pip-btn pip-standalone-btn"
               onClick={handleOpenStandalonePopup}
               aria-label="Abrir em Janela Pop-up Pequena"
               title="Abrir em Janela Pop-up separada para usar ao lado de outros programas"
@@ -1324,6 +1330,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             </button>
           </div>
         </div>
+
+        {pipNotification && (
+          <div className="popup-banner-tip pip-floating-toast">
+            <Sparkles size={16} />
+            <span>{pipNotification}</span>
+          </div>
+        )}
 
         {isPopupMode && (
           <div className="popup-banner-tip">
