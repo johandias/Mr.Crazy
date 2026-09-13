@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import type { VoiceState } from "@/lib/speech-service";
@@ -17,6 +17,28 @@ type Props = {
   currentText: string;
   microphoneEnabled: boolean;
 };
+
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
 
 export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle, Props>(
   function PictureInPictureManager(
@@ -43,9 +65,11 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
 
     useEffect(() => {
       if (typeof document === "undefined") return;
+      const anyDoc = document as unknown as { pictureInPictureEnabled?: boolean };
+      const anyProto = (typeof HTMLVideoElement !== "undefined" ? HTMLVideoElement.prototype : {}) as Record<string, unknown>;
       const supported =
-        ("pictureInPictureEnabled" in document && Boolean(document.pictureInPictureEnabled)) ||
-        ("webkitSupportsPresentationMode" in HTMLVideoElement.prototype);
+        Boolean(anyDoc.pictureInPictureEnabled) ||
+        Boolean(anyProto.webkitSupportsPresentationMode);
       setIsSupported(supported);
     }, []);
 
@@ -64,6 +88,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
         const w = canvas.width;
         const h = canvas.height;
 
+        // Fundo Gradiente Futurista
         const bgGrad = ctx.createLinearGradient(0, 0, w, h);
         bgGrad.addColorStop(0, "#080c16");
         bgGrad.addColorStop(0.5, "#0f172a");
@@ -71,6 +96,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, w, h);
 
+        // Grid sutil
         ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
         ctx.lineWidth = 1;
         for (let x = 20; x < w; x += 30) {
@@ -80,6 +106,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
           ctx.stroke();
         }
 
+        // Barra de Topo
         ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
         ctx.fillRect(0, 0, w, 36);
 
@@ -117,6 +144,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
         ctx.textAlign = "right";
         ctx.fillText(statusLabel, w - 32, 22);
 
+        // Avatar Central
         const cx = w / 2;
         const cy = 110;
         const avatarRadius = 38;
@@ -150,11 +178,13 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
         ctx.fill();
         ctx.shadowBlur = 0;
 
+        // Óculos escuros
         ctx.fillStyle = "#09090b";
-        ctx.beginPath();
-        ctx.roundRect(cx - 24, cy - 10, 20, 13, 3);
-        ctx.roundRect(cx + 4, cy - 10, 20, 13, 3);
-        ctx.roundRect(cx - 5, cy - 7, 10, 3, 1);
+        drawRoundedRect(ctx, cx - 24, cy - 10, 20, 13, 3);
+        ctx.fill();
+        drawRoundedRect(ctx, cx + 4, cy - 10, 20, 13, 3);
+        ctx.fill();
+        drawRoundedRect(ctx, cx - 5, cy - 7, 10, 3, 1);
         ctx.fill();
 
         ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
@@ -166,11 +196,13 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
         ctx.lineTo(cx + 18, cy - 2);
         ctx.stroke();
 
+        // Boca
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         if (isSpeaking) {
           const mouthOpen = 4 + (Math.sin(phase * 6) + 1) * 3;
           ctx.ellipse(cx, cy + 14, 10, mouthOpen, 0, 0, Math.PI * 2);
+          ctx.fill();
         } else if (isListening) {
           ctx.arc(cx, cy + 10, 8, 0.2, Math.PI - 0.2);
           ctx.lineWidth = 2.5;
@@ -182,8 +214,8 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
           ctx.strokeStyle = "#ffffff";
           ctx.stroke();
         }
-        if (isSpeaking) ctx.fill();
 
+        // Equalizador
         if (isSpeaking || isListening) {
           const barColor = isSpeaking ? "#e9d5ff" : "#bbf7d0";
           for (let i = -3; i <= 3; i++) {
@@ -191,19 +223,18 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
             const barX = cx + i * 18;
             const barH = 6 + Math.abs(Math.sin(phase * 4 + i)) * 18;
             ctx.fillStyle = barColor;
-            ctx.beginPath();
-            ctx.roundRect(barX - 2, cy + 28, 4, barH, 2);
+            drawRoundedRect(ctx, barX - 2, cy + 28, 4, barH, 2);
             ctx.fill();
           }
         }
 
+        // Caixa de Legenda
         const boxY = 175;
         const boxH = 78;
         ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
         ctx.strokeStyle = "rgba(148, 163, 184, 0.18)";
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(14, boxY, w - 28, boxH, 8);
+        drawRoundedRect(ctx, 14, boxY, w - 28, boxH, 8);
         ctx.fill();
         ctx.stroke();
 
@@ -247,15 +278,20 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
       const video = videoRef.current;
       if (!video) return;
 
+      const anyVideo = video as unknown as {
+        addEventListener: (event: string, handler: () => void) => void;
+        removeEventListener: (event: string, handler: () => void) => void;
+      };
+
       const onEnter = () => setIsPiPActive(true);
       const onLeave = () => setIsPiPActive(false);
 
-      video.addEventListener("enterpictureinpicture", onEnter);
-      video.addEventListener("leavepictureinpicture", onLeave);
+      anyVideo.addEventListener("enterpictureinpicture", onEnter);
+      anyVideo.addEventListener("leavepictureinpicture", onLeave);
 
       return () => {
-        video.removeEventListener("enterpictureinpicture", onEnter);
-        video.removeEventListener("leavepictureinpicture", onLeave);
+        anyVideo.removeEventListener("enterpictureinpicture", onEnter);
+        anyVideo.removeEventListener("leavepictureinpicture", onLeave);
       };
     }, []);
 
@@ -265,28 +301,39 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
       if (!video || !canvas) return false;
 
       try {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
+        const anyDoc = document as unknown as {
+          pictureInPictureElement?: Element | null;
+          exitPictureInPicture?: () => Promise<unknown>;
+        };
+
+        if (anyDoc.pictureInPictureElement && anyDoc.exitPictureInPicture) {
+          await anyDoc.exitPictureInPicture();
           setIsPiPActive(false);
           return false;
         }
 
         if (!video.srcObject) {
-          const stream = canvas.captureStream(24);
-          video.srcObject = stream;
+          const anyCanvas = canvas as unknown as { captureStream?: (fps?: number) => MediaStream };
+          if (anyCanvas.captureStream) {
+            video.srcObject = anyCanvas.captureStream(24);
+          }
         }
 
         await video.play();
 
-        if (video.requestPictureInPicture) {
-          await video.requestPictureInPicture();
+        const anyVideo = video as unknown as {
+          requestPictureInPicture?: () => Promise<unknown>;
+          webkitSetPresentationMode?: (mode: string) => void;
+        };
+
+        if (anyVideo.requestPictureInPicture) {
+          await anyVideo.requestPictureInPicture();
           setIsPiPActive(true);
           return true;
         }
 
-        if ("webkitSetPresentationMode" in video) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (video as any).webkitSetPresentationMode("picture-in-picture");
+        if (anyVideo.webkitSetPresentationMode) {
+          anyVideo.webkitSetPresentationMode("picture-in-picture");
           setIsPiPActive(true);
           return true;
         }
@@ -305,14 +352,22 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
 
       const width = 380;
       const height = 620;
-      const left = window.screen.width - width - 24;
+      const left = typeof window.screen !== "undefined" ? window.screen.width - width - 24 : 100;
       const top = 80;
 
-      window.open(
-        url.toString(),
-        "MrCrazyPopUp",
-        width=,height=,left=,top=,menubar=no,toolbar=no,location=no,status=no,resizable=yes
-      );
+      const windowFeatures = [
+        "width=" + width,
+        "height=" + height,
+        "left=" + left,
+        "top=" + top,
+        "menubar=no",
+        "toolbar=no",
+        "location=no",
+        "status=no",
+        "resizable=yes"
+      ].join(",");
+
+      window.open(url.toString(), "MrCrazyPopUp", windowFeatures);
     }, []);
 
     useImperativeHandle(
