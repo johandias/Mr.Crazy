@@ -160,10 +160,9 @@ export function buildRealtimeSession(
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
     audio: {
       input: {
-        noise_reduction: { type: "far_field" },
         transcription: {
           model: "whisper-1",
-          prompt: "Transcrição fiel em português do Brasil e inglês americano (en-US). Inclui dúvidas, bate-papo, termos e pronúncia."
+          prompt: "Conversa em português do Brasil e prática de pronúncia e frases em inglês (en-US). Frases do dia a dia, dúvidas e vocabulário. Transcrever com máxima fidelidade o áudio real falado pelo aluno. Não inventar palavras, legendas de vídeo ou ruídos de respiração."
         },
         turn_detection: {
           type: "server_vad",

@@ -380,6 +380,27 @@ export function releasePersistentMicrophoneStream(force = false) {
   }
 }
 
+const WHISPER_HALLUCINATIONS = [
+  "amara.org",
+  "legendas pela",
+  "legendado por",
+  "subtitles by",
+  "obrigado por assistir",
+  "obrigada por assistir",
+  "deixe seu like",
+  "inscreva-se no canal",
+  "transcrição:",
+  "transcrito por",
+  "todos os direitos reservados",
+  "curta e compartilhe"
+];
+
+function isWhisperHallucination(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  if (!lower) return true;
+  return WHISPER_HALLUCINATIONS.some((h) => lower.includes(h));
+}
+
 export async function connectRealtime(options: ConnectRealtimeOptions): Promise<RealtimeController> {
   options.onStatus("connecting");
   const peer = new RTCPeerConnection({
@@ -490,8 +511,17 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     }
   };
 
+  let echoCooldownTimer: number | null = null;
+  const clearEchoCooldown = () => {
+    if (echoCooldownTimer !== null) {
+      window.clearTimeout(echoCooldownTimer);
+      echoCooldownTimer = null;
+    }
+  };
+
   const cancelAssistantPlayback = () => {
     clearInterruptionTimer();
+    clearEchoCooldown();
     audioPlaying = false;
     assistantAudioActive = false;
     audio.muted = true;
@@ -509,6 +539,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     disconnected = true;
     clearInterruptionTimer();
     clearTranscriptionSafetyTimer();
+    clearEchoCooldown();
     activeResponseInProgress = false;
     pendingResponsePayload = null;
     audio.pause();
@@ -570,41 +601,37 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         clearTranscriptionSafetyTimer();
         if (typeof event.transcript === "string") {
           const rawTranscript = event.transcript.trim();
-          if (rawTranscript) {
+          if (rawTranscript && !isWhisperHallucination(rawTranscript)) {
             userTranscript = rawTranscript;
           }
         }
-        if (userTranscript.trim()) {
-          const finalUserText = userTranscript.trim();
-          localSessionTurns.push({ role: "user", text: finalUserText });
-          if (localSessionTurns.length > 12) localSessionTurns.shift();
-          options.onUserTranscript(finalUserText, true);
-          options.onVoiceState("analyzing");
-          const recentTurns = getContextSnapshot();
-          const instructions = buildTranscriptBoundResponse(finalUserText, recentTurns);
 
-          if (activeResponseInProgress) {
-            pendingResponsePayload = { instructions };
-            send({ type: "response.cancel" });
-            window.setTimeout(() => {
-              if (pendingResponsePayload && !disconnected) {
-                send({
-                  type: "response.create",
-                  response: pendingResponsePayload
-                });
-                pendingResponsePayload = null;
-              }
-            }, 180);
-          } else {
-            pendingResponsePayload = null;
-            send({
-              type: "response.create",
-              response: { instructions }
-            });
-          }
-        } else {
-          options.onVoiceState("listening");
+        const candidateText = userTranscript.trim();
+        userTranscript = "";
+
+        // Se for alucinação ou texto vazio, descarta silenciosamente
+        if (!candidateText || isWhisperHallucination(candidateText)) {
+          return;
         }
+
+        // Se o professor estiver falando ou no cooldown de eco acústico, NÃO interrompe o professor!
+        if (activeResponseInProgress || assistantAudioActive || audioPlaying) {
+          console.warn("[Realtime] Descartando áudio captado durante a fala do professor (eco do alto-falante):", candidateText);
+          return;
+        }
+
+        localSessionTurns.push({ role: "user", text: candidateText });
+        if (localSessionTurns.length > 12) localSessionTurns.shift();
+        options.onUserTranscript(candidateText, true);
+        options.onVoiceState("analyzing");
+        const recentTurns = getContextSnapshot();
+        const instructions = buildTranscriptBoundResponse(candidateText, recentTurns);
+
+        pendingResponsePayload = null;
+        send({
+          type: "response.create",
+          response: { instructions }
+        });
         break;
       case "response.output_item.added":
         if (assistantTranscript.trim()) {
@@ -660,25 +687,34 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "output_audio_buffer.started":
         clearInterruptionTimer();
+        clearEchoCooldown();
         audioPlaying = true;
         assistantAudioActive = true;
         activeResponseInProgress = true;
-        // Isola o microfone para impedir eco acústico do alto-falante cortando a fala do professor
+        // Isola completamente o microfone para impedir eco acústico do alto-falante
         microphone.enabled = false;
         options.onVoiceState("speaking");
         break;
       case "output_audio_buffer.stopped":
         audioPlaying = false;
-        assistantAudioActive = false;
-        activeResponseInProgress = false;
         if (assistantTranscript.trim()) {
           commitAssistantTurn(assistantTranscript);
         }
-        syncMicrophone();
-        options.onVoiceState("listening");
+        // Cooldown de 600ms após o término do áudio antes de reativar o microfone (evita eco da reverberação)
+        clearEchoCooldown();
+        echoCooldownTimer = window.setTimeout(() => {
+          assistantAudioActive = false;
+          activeResponseInProgress = false;
+          syncMicrophone();
+          options.onVoiceState("listening");
+        }, 600);
         break;
       case "response.created":
         activeResponseInProgress = true;
+        assistantAudioActive = true;
+        clearEchoCooldown();
+        // Muta imediatamente no início da resposta
+        microphone.enabled = false;
         break;
       case "response.done":
         activeResponseInProgress = false;
