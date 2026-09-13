@@ -31,7 +31,7 @@ type RealtimeServerEvent = {
   };
 };
 
-export type RealtimeConnectionStatus = "connecting" | "connected" | "failed";
+export type RealtimeConnectionStatus = "idle" | "connecting" | "connected" | "failed";
 
 export type RealtimeController = {
   disconnect: () => void;
