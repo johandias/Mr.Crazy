@@ -13,6 +13,8 @@ interface StageCheckpointProps {
   progressPercent: number;
   isActiveSelection: boolean;
   onSelect: (module: LearningModule) => void;
+  onEnterStage?: (moduleId: string) => void;
+  onStartExam?: (moduleId: string) => void;
 }
 
 export function StageCheckpoint({
@@ -20,7 +22,9 @@ export function StageCheckpoint({
   status,
   progressPercent,
   isActiveSelection,
-  onSelect
+  onSelect,
+  onEnterStage,
+  onStartExam
 }: StageCheckpointProps) {
   const isCurrent = status === "current";
   const isCompleted = status === "completed";
@@ -34,6 +38,20 @@ export function StageCheckpoint({
     return "Liberado";
   };
 
+  const handleNodeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isLocked) {
+      onSelect(module);
+      return;
+    }
+    // Se o usuário clicar no checkpoint, inicia diretamente se tiver onEnterStage
+    if (onEnterStage) {
+      onEnterStage(module.id);
+    } else {
+      onSelect(module);
+    }
+  };
+
   return (
     <div
       className={`map-checkpoint-node status-${status} ${
@@ -43,15 +61,8 @@ export function StageCheckpoint({
         left: `${module.mapCoords.xPct}%`,
         top: `${module.mapCoords.yPct}%`
       }}
-      onClick={() => onSelect(module)}
-      role="button"
-      tabIndex={0}
+      role="group"
       aria-label={`Etapa ${module.stageNumber}: ${module.cleanTitle}`}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          onSelect(module);
-        }
-      }}
     >
       {/* Personagem Mr. Crazy em pé ao lado da etapa atual */}
       {isCurrent && (
@@ -65,8 +76,12 @@ export function StageCheckpoint({
         </div>
       )}
 
-      {/* Círculo do Checkpoint (1 a 7) */}
-      <div className="checkpoint-circle-wrap">
+      {/* Círculo do Checkpoint (1 a 7) - Clicável para iniciar diretamente */}
+      <div
+        className="checkpoint-circle-wrap"
+        onClick={handleNodeClick}
+        title={isLocked ? "Etapa bloqueada" : `Clique para entrar na Etapa ${module.stageNumber}`}
+      >
         {/* Glow e Pulsos para etapa atual */}
         {isCurrent && <div className="checkpoint-pulse-ring" />}
 
@@ -80,25 +95,79 @@ export function StageCheckpoint({
         </div>
       </div>
 
-      {/* Card Flutuante da Etapa (Fiel à referência visual) */}
+      {/* Card Flutuante da Etapa com Ações Diretas */}
       <div className={`checkpoint-card-pill ${isCurrent ? "card-current-glow" : ""}`}>
-        <div className="checkpoint-card-header">
+        <div
+          className="checkpoint-card-header"
+          onClick={() => onSelect(module)}
+          title="Ver resumo da etapa"
+          style={{ cursor: "pointer" }}
+        >
           <span className="checkpoint-card-title">{module.title}</span>
-          {isCurrent && <ArrowRight size={13} className="current-arrow-icon" />}
-        </div>
-
-        <div className="checkpoint-card-footer">
           <span className={`level-pill-badge badge-${module.difficulty}`}>
             {module.levelBadge}
           </span>
+        </div>
 
+        <div className="checkpoint-card-status-row">
           <div className="checkpoint-card-status">
             {isCurrent && <span className="status-indicator-dot dot-active" />}
             {isCompleted && <span className="status-indicator-dot dot-completed" />}
             {isLocked && <Lock size={11} className="status-lock-mini" />}
             <span className="status-label">{getStatusText()}</span>
           </div>
+
+          {!isLocked && (
+            <button
+              type="button"
+              className="checkpoint-details-link"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(module);
+              }}
+              title="Ver detalhes dos conceitos"
+            >
+              Info
+            </button>
+          )}
         </div>
+
+        {/* Botões de Ação Direta no próprio card do mapa */}
+        {!isLocked && (
+          <div className="checkpoint-card-actions">
+            <button
+              type="button"
+              className="checkpoint-direct-start-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onEnterStage) {
+                  onEnterStage(module.id);
+                } else {
+                  onSelect(module);
+                }
+              }}
+              title={`Iniciar prática da Etapa ${module.stageNumber}`}
+            >
+              <ArrowRight size={12} className="inline-block mr-1" />
+              {isCurrent ? "Praticar" : isCompleted ? "Revisar" : "Iniciar"}
+            </button>
+
+            {onStartExam && (
+              <button
+                type="button"
+                className="checkpoint-direct-exam-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartExam(module.id);
+                }}
+                title="Fazer Prova prática em inglês com o Avatar"
+              >
+                <Sparkles size={11} className="inline-block mr-1" />
+                Prova
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

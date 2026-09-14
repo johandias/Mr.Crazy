@@ -48,96 +48,135 @@ export function StageDetailDrawer({
   return (
     <div className="stage-drawer-backdrop animate-fade-in" onClick={onClose}>
       <div
-        className="stage-drawer-panel animate-slide-up"
+        className="stage-drawer-panel stage-horizontal-modal animate-scale-up"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={`Detalhes da ${module.title}`}
+        aria-label={`Resumo da ${module.title}`}
       >
-        {/* Header do Drawer */}
-        <div className="stage-drawer-header">
+        {/* Header Compacto com Ações Diretas */}
+        <div className="stage-drawer-header compact-header">
           <div className="drawer-title-group">
             <div className="drawer-stage-pill">
               <span className="stage-number">ETAPA {module.stageNumber}</span>
               <span className="stage-level">{module.levelBadge}</span>
+              <span className="stage-xp-tag">+{module.xpReward} XP</span>
             </div>
             <h2 className="drawer-title">{module.cleanTitle}</h2>
-            <p className="drawer-subtitle">{module.subtitle}</p>
           </div>
 
-          <button
-            type="button"
-            className="drawer-close-btn"
-            onClick={onClose}
-            title="Fechar detalhes"
-          >
-            <X size={20} />
-          </button>
+          <div className="drawer-header-actions">
+            {onStartExam && (
+              <button
+                type="button"
+                className="drawer-header-exam-btn"
+                onClick={() => {
+                  onStartExam(module.id);
+                  onClose();
+                }}
+                title="Fazer prova prática com avatar nativo"
+              >
+                <Award size={15} />
+                <span>Fazer Prova</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="drawer-header-play-btn"
+              onClick={() => {
+                onEnterStage(module.id);
+                onClose();
+              }}
+            >
+              <ArrowRight size={15} />
+              <span>{isCurrent ? "Continuar" : isCompleted ? "Praticar" : "Iniciar"}</span>
+            </button>
+
+            <button
+              type="button"
+              className="drawer-close-btn"
+              onClick={onClose}
+              title="Fechar"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Corpo com Scroll */}
-        <div className="stage-drawer-body custom-scrollbar">
-          {/* Barra de Progresso da Etapa */}
-          <div className="drawer-progress-card">
-            <div className="drawer-progress-info">
-              <span className="drawer-progress-label">Progresso da Etapa</span>
-              <span className="drawer-progress-value">{progressPercent}%</span>
+        {/* Corpo Horizontal em 2 Colunas */}
+        <div className="stage-drawer-horizontal-body">
+          {/* Coluna Esquerda: Briefing Executivo Resumido */}
+          <div className="stage-briefing-col">
+            {/* Missão e Cenário Rápidos */}
+            <div className="compact-card-box">
+              <div className="compact-box-header">
+                <Target size={13} className="text-amber-400" />
+                <span>Missão da Etapa</span>
+              </div>
+              <p className="compact-box-text">{module.mission}</p>
             </div>
-            <div className="drawer-progress-track">
-              <div
-                className="drawer-progress-bar"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="drawer-progress-meta">
-              <span>{currentTurns} rodadas de conversação</span>
-              <span className="xp-reward">+{module.xpReward} XP ao dominar</span>
-            </div>
-          </div>
 
-          {/* Missão Principal */}
-          <div className="drawer-mission-box">
-            <div className="mission-tag">
-              <Target size={14} />
-              <span>Missão Principal</span>
+            {/* Cenário */}
+            <div className="compact-card-box">
+              <span className="compact-box-sublabel">Cenário:</span>
+              <p className="compact-box-text">{module.scenario}</p>
             </div>
-            <p className="mission-desc">{module.mission}</p>
-          </div>
 
-          {/* Cenário de Prática */}
-          <div className="drawer-scenario-box">
-            <span className="scenario-label">Cenário:</span>
-            <p className="scenario-text">{module.scenario}</p>
-          </div>
+            {/* Examinador Oficial */}
+            <div className="compact-examiner-badge">
+              <div className="examiner-line-top">
+                <span className="examiner-label">
+                  <Award size={12} /> Examinador Nativo
+                </span>
+                <span className="examiner-nota">Nota mín: 6.0</span>
+              </div>
+              <p className="examiner-desc">
+                <strong>{module.examNpc.name}</strong> ({module.examNpc.rolePt}). Fala 100% inglês sem dicas do professor.
+              </p>
+            </div>
 
-          {/* Card do Examinador da Prova */}
-          <div className="drawer-examiner-preview">
-            <div className="examiner-preview-top">
-              <span className="examiner-tag">
-                <Award size={13} /> Examinador Oficial da Prova
+            {/* Frases-chave */}
+            <div className="compact-phrases-row">
+              <span className="phrases-mini-label">
+                <Volume2 size={12} /> Expressões:
               </span>
-              <span className="examiner-threshold">Nota mínima: 6.0</span>
+              <div className="phrases-horizontal-chips">
+                {module.samplePhrases.slice(0, 3).map((phrase, i) => (
+                  <span key={i} className="mini-phrase-chip">
+                    &ldquo;{phrase}&rdquo;
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="examiner-details">
-              <strong className="examiner-name">{module.examNpc.name}</strong>
-              <span className="examiner-role">({module.examNpc.rolePt})</span>
-            </div>
-            <p className="examiner-rule">
-              Fala 100% em inglês sem auxílio do professor. Se você falar português ou hesitar, ele demonstrará dúvida!
-            </p>
+
+            {/* Avaliação prévia */}
+            {evaluation && onViewEvaluation && (
+              <div className="compact-eval-bar">
+                <span>Nota: <strong>{evaluation.overall_score}/100</strong></span>
+                <button
+                  type="button"
+                  className="compact-eval-link"
+                  onClick={() => onViewEvaluation(evaluation)}
+                >
+                  Ver Relatório
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Lista de Conceitos Progressivos (4 a 10 etapas escalonadas) */}
-          <div className="drawer-concepts-section">
-            <div className="concepts-header">
-              <BookOpen size={16} className="text-amber-400" />
-              <h3>Conceitos e Desafios Progressivos ({module.concepts.length})</h3>
+          {/* Coluna Direita: Pipeline Horizontal de Conceitos */}
+          <div className="stage-pipeline-col">
+            <div className="pipeline-header-row">
+              <div className="pipeline-title-group">
+                <BookOpen size={14} className="text-amber-400" />
+                <span className="pipeline-title">Conceitos & Desafios ({module.concepts.length})</span>
+              </div>
+              <span className="pipeline-swipe-hint">Deslize para o lado →</span>
             </div>
-            <p className="concepts-subinfo">
-              Suba degrau por degrau até a Prova Prática com o avatar nativo:
-            </p>
 
-            <div className="concepts-flow-list">
+            {/* Trilha Horizontal de Conceitos (Scroll/Swipe Lateral) */}
+            <div className="horizontal-concepts-track custom-scrollbar">
               {module.concepts.map((concept, idx) => {
                 const conceptCompleted = progressPercent >= Math.round(((idx + 1) / module.concepts.length) * 100);
                 const isExamItem = Boolean(concept.isExam);
@@ -145,7 +184,7 @@ export function StageDetailDrawer({
                 return (
                   <div
                     key={concept.id}
-                    className={`concept-flow-card ${conceptCompleted ? "completed" : ""} ${isExamItem ? "exam-card-highlight" : ""}`}
+                    className={`horizontal-concept-card ${conceptCompleted ? "completed" : ""} ${isExamItem ? "exam-card-accent" : ""}`}
                     onClick={() => {
                       if (isExamItem && onStartExam) {
                         onStartExam(module.id);
@@ -155,104 +194,50 @@ export function StageDetailDrawer({
                     style={{ cursor: isExamItem ? "pointer" : "default" }}
                     title={isExamItem ? "Clique para iniciar a Prova da Etapa!" : undefined}
                   >
-                    <div className="concept-order-badge">
-                      {conceptCompleted ? (
-                        <CheckCircle2 size={16} className="concept-check-icon" />
+                    <div className="concept-card-top">
+                      <div className="concept-number-badge">
+                        {conceptCompleted ? (
+                          <CheckCircle2 size={14} className="text-emerald-400" />
+                        ) : (
+                          <span>{idx + 1}</span>
+                        )}
+                      </div>
+
+                      {isExamItem ? (
+                        <span className="exam-pill-badge">
+                          <Award size={10} /> PROVA
+                        </span>
                       ) : (
-                        <span>{idx + 1}</span>
+                        <span className="step-pill-badge">Passo {idx + 1}</span>
                       )}
                     </div>
 
-                    <div className="concept-info-col">
-                      <div className="concept-row-top">
-                        <span className="concept-item-title">{concept.title}</span>
-                        {isExamItem && (
-                          <span className="concept-exam-tag">
-                            <Award size={11} /> Fazer Prova
-                          </span>
-                        )}
-                      </div>
-                      <p className="concept-item-desc">{concept.description}</p>
-                      <small className="concept-item-obj">
-                        Objetivo: {concept.objective}
-                      </small>
+                    <strong className="concept-title-text">{concept.title}</strong>
+                    <p className="concept-desc-text">{concept.description}</p>
+                    <div className="concept-obj-box">
+                      <small>Foco: {concept.objective}</small>
                     </div>
+
+                    {isExamItem && (
+                      <button
+                        type="button"
+                        className="concept-exam-launch-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onStartExam) {
+                            onStartExam(module.id);
+                            onClose();
+                          }
+                        }}
+                      >
+                        <Sparkles size={11} /> Iniciar Prova
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
-
-          {/* Frases Modelo Essenciais */}
-          <div className="drawer-phrases-box">
-            <span className="phrases-header-label">
-              <Volume2 size={13} /> Frases essenciais que você vai dominar:
-            </span>
-            <div className="phrases-list-pills">
-              {module.samplePhrases.map((phrase, i) => (
-                <span key={i} className="drawer-phrase-pill">
-                  &ldquo;{phrase}&rdquo;
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Banner de Avaliação Prévia se houver */}
-          {evaluation && (
-            <div className="drawer-eval-preview">
-              <div className="eval-preview-top">
-                <Award size={16} className="eval-star" />
-                <span>
-                  Sua última nota: <strong>{evaluation.overall_score}/100</strong> ({evaluation.performance_level})
-                </span>
-              </div>
-              {onViewEvaluation && (
-                <button
-                  type="button"
-                  className="eval-preview-btn"
-                  onClick={() => onViewEvaluation(evaluation)}
-                >
-                  Ver Relatório do Mr. Crazy
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer com Botões de Ação */}
-        <div className="stage-drawer-footer">
-          {onStartExam && (
-            <button
-              type="button"
-              className="drawer-exam-action-btn"
-              onClick={() => {
-                onStartExam(module.id);
-                onClose();
-              }}
-              title="Iniciar simulação da prova 100% em inglês com o avatar"
-            >
-              <Award size={18} />
-              <span>Fazer Prova da Etapa</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="drawer-action-btn"
-            onClick={() => {
-              onEnterStage(module.id);
-              onClose();
-            }}
-          >
-            <span>
-              {isCurrent
-                ? "Continuar Treino nesta Etapa"
-                : isCompleted
-                ? "Praticar Novamente esta Etapa"
-                : "Entrar nesta Etapa"}
-            </span>
-            <ArrowRight size={18} />
-          </button>
         </div>
       </div>
     </div>

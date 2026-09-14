@@ -6296,9 +6296,19 @@ meter {
 }
 
 /* 2. Map Canvas Viewport & Stage */
+.learning-map-page-view {
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .map-scroll-outer-viewport {
   position: relative;
   width: 100%;
+  height: clamp(480px, 66vh, 670px);
   border-radius: 16px;
   background: #0B0E10;
   border: 1px solid #252B30;
@@ -6308,12 +6318,14 @@ meter {
 
 .map-scroll-viewport {
   width: 100%;
+  height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   position: relative;
   scrollbar-width: thin;
   scrollbar-color: #252B30 #0B0E10;
   user-select: none;
+  touch-action: pan-x;
 }
 
 .map-scroll-viewport::-webkit-scrollbar {
@@ -6340,8 +6352,9 @@ meter {
 .map-canvas-stage {
   position: relative;
   width: 100%;
-  min-width: 1024px;
-  aspect-ratio: 1024 / 576;
+  min-width: 1320px;
+  height: 100%;
+  aspect-ratio: 1024 / 450;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -6510,21 +6523,22 @@ meter {
 
 /* Floating Stage Card attached to Checkpoint */
 .checkpoint-card-pill {
-  background: rgba(17, 21, 24, 0.92);
+  background: rgba(17, 21, 24, 0.94);
   backdrop-filter: blur(8px);
   border: 1px solid #252B30;
-  border-radius: 8px;
+  border-radius: 9px;
   padding: 6px 10px;
-  min-width: 140px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
-  pointer-events: none;
+  min-width: 145px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
+  pointer-events: auto;
   transition: all 0.2s ease;
+  z-index: 10;
 }
 
 .card-current-glow {
   border-color: rgba(245, 158, 11, 0.85);
   box-shadow: 0 0 18px rgba(245, 158, 11, 0.4), 0 6px 20px rgba(0, 0, 0, 0.7);
-  background: rgba(21, 26, 30, 0.95);
+  background: rgba(21, 26, 30, 0.96);
 }
 
 .checkpoint-card-header {
@@ -6532,25 +6546,14 @@ meter {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .checkpoint-card-title {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #F8FAFC;
   white-space: nowrap;
-}
-
-.current-arrow-icon {
-  color: #F59E0B;
-}
-
-.checkpoint-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
 }
 
 .level-pill-badge {
@@ -6579,11 +6582,19 @@ meter {
   border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
+.checkpoint-card-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
 .checkpoint-card-status {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.66rem;
+  font-size: 0.65rem;
   color: #94A3B8;
 }
 
@@ -6604,6 +6615,74 @@ meter {
 
 .status-lock-mini {
   color: #64748B;
+}
+
+.checkpoint-details-link {
+  background: transparent;
+  border: none;
+  color: #38BDF8;
+  font-size: 0.64rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+
+.checkpoint-details-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* Direct Action Buttons on Map Checkpoint */
+.checkpoint-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.checkpoint-direct-start-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border: 1px solid #FDE68A;
+  color: #07090A;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+}
+
+.checkpoint-direct-start-btn:hover {
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  transform: translateY(-1px);
+}
+
+.checkpoint-direct-exam-btn {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #FBBF24;
+  font-size: 0.68rem;
+  font-weight: 750;
+  padding: 3px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.checkpoint-direct-exam-btn:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: #F59E0B;
+  color: #FFFFFF;
 }
 
 /* Character standing beside active checkpoint */
@@ -6982,283 +7061,359 @@ meter {
   transform: translateX(2px);
 }
 
-/* 6. Stage Detail Drawer / Modal */
-.stage-drawer-overlay {
+/* 6. Stage Detail Modal / Horizontal Executive Briefing */
+.stage-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(7, 9, 10, 0.75);
+  background: rgba(7, 9, 10, 0.84);
   backdrop-filter: blur(8px);
   z-index: 999;
   display: flex;
-  justify-content: flex-end;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 }
 
-.stage-drawer-panel {
-  width: 100%;
-  max-width: 480px;
+.stage-horizontal-modal {
+  width: min(1040px, 94vw);
+  max-height: 85vh;
   background: #111518;
-  border-left: 1px solid #252B30;
+  border: 1px solid #252B30;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
-  height: 100vh;
+  overflow: hidden;
 }
 
-.stage-drawer-header {
+.stage-drawer-header.compact-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid #1E252B;
+  background: #151A1E;
+  flex-shrink: 0;
 }
 
-.drawer-title-group {
+.drawer-stage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.stage-number {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #F59E0B;
+  letter-spacing: 0.6px;
+}
+
+.stage-level {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: #1E252B;
+  color: #38BDF8;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.stage-xp-tag {
+  font-size: 0.68rem;
+  font-weight: 750;
+  color: #FBBF24;
+}
+
+.drawer-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.drawer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawer-header-exam-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #FBBF24;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.drawer-header-exam-btn:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: #F59E0B;
+  color: #fff;
+}
+
+.drawer-header-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border: 1px solid #FDE68A;
+  color: #07090A;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+}
+
+.drawer-header-play-btn:hover {
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  transform: translateY(-1px);
+}
+
+.stage-drawer-horizontal-body {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: calc(85vh - 70px);
+}
+
+.stage-briefing-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid #1E252B;
+  padding-right: 16px;
+}
+
+.compact-card-box {
+  background: #151A1E;
+  border: 1px solid #252B30;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.compact-box-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #FBBF24;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.compact-box-sublabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94A3B8;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.compact-box-text {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: #E2E8F0;
+  margin: 0;
+}
+
+.compact-examiner-badge {
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.examiner-line-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.examiner-label {
+  font-size: 0.7rem;
+  font-weight: 750;
+  color: #FBBF24;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.examiner-nota {
+  font-size: 0.66rem;
+  background: #1E252B;
+  color: #CBD5E1;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.examiner-desc {
+  font-size: 0.76rem;
+  color: #94A3B8;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.compact-phrases-row {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.drawer-stage-tag {
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: #F59E0B;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-}
-
-.drawer-stage-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #FFFFFF;
-  margin: 0;
-}
-
-.drawer-close-btn {
-  background: #1B2228;
-  border: 1px solid #252B30;
+.phrases-mini-label {
+  font-size: 0.7rem;
+  font-weight: 700;
   color: #94A3B8;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  gap: 4px;
 }
 
-.drawer-close-btn:hover {
-  color: #fff;
-  border-color: #CBD5E1;
-}
-
-.stage-drawer-scrollable {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px;
+.phrases-horizontal-chips {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
-.drawer-stage-desc {
-  font-size: 0.88rem;
-  line-height: 1.5;
-  color: #CBD5E1;
-  margin: 0;
-}
-
-.drawer-scenario-box {
-  background: #151A1E;
+.mini-phrase-chip {
+  background: #181E24;
   border: 1px solid #252B30;
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-
-.drawer-section-label {
-  font-size: 0.72rem;
-  font-weight: 750;
-  color: #94A3B8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.drawer-scenario-text {
-  font-size: 0.84rem;
-  color: #F1F5F9;
-  line-height: 1.4;
-  margin: 0;
-}
-
-.drawer-meta-card {
-  background: #151A1E;
-  border: 1px solid #252B30;
-  border-radius: 10px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.drawer-progress-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.82rem;
-  color: #94A3B8;
-}
-
-.drawer-turns-badge {
-  background: #1E252B;
   color: #CBD5E1;
   font-size: 0.72rem;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 4px;
 }
 
-.drawer-xp-pill {
+.compact-eval-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #FBBF24;
-  font-size: 0.78rem;
-  font-weight: 700;
+  justify-content: space-between;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #A7F3D0;
 }
 
-.drawer-mission-card {
-  background: rgba(245, 158, 11, 0.05);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-
-.drawer-mission-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #FBBF24;
-  margin-bottom: 6px;
-}
-
-.drawer-mission-title {
-  font-size: 0.82rem;
+.compact-eval-link {
+  background: transparent;
+  border: none;
+  color: #34D399;
   font-weight: 750;
-  text-transform: uppercase;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
-.drawer-mission-body {
-  font-size: 0.85rem;
-  color: #F8FAFC;
-  line-height: 1.45;
-  margin: 0;
-}
-
-/* Concepts Section */
-.drawer-concepts-section {
+/* Coluna Direita: Pipeline Horizontal */
+.stage-pipeline-col {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: hidden;
 }
 
-.drawer-concepts-header {
+.pipeline-header-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+}
+
+.pipeline-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pipeline-title {
+  font-size: 0.85rem;
+  font-weight: 750;
   color: #E2E8F0;
 }
 
-.concepts-title {
-  font-size: 0.88rem;
-  font-weight: 750;
+.pipeline-swipe-hint {
+  font-size: 0.72rem;
+  color: #64748B;
 }
 
-.concepts-subtitle {
-  font-size: 0.78rem;
-  color: #94A3B8;
-  margin: 0 0 4px;
-}
-
-.drawer-concepts-list {
+.horizontal-concepts-track {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 10px 2px;
+  scroll-snap-type: x mandatory;
 }
 
-.concept-item-row {
+.horizontal-concept-card {
+  flex: 0 0 205px;
+  scroll-snap-align: start;
   background: #151A1E;
   border: 1px solid #252B30;
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: 10px;
+  padding: 12px;
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   transition: all 0.2s ease;
 }
 
-.concept-item-row.concept-active {
-  border-color: #F59E0B;
-  background: rgba(245, 158, 11, 0.06);
+.horizontal-concept-card:hover {
+  border-color: #38BDF8;
+  transform: translateY(-2px);
 }
 
-.concept-item-row.concept-completed {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: rgba(16, 185, 129, 0.04);
+.horizontal-concept-card.completed {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.03);
 }
 
-.concept-item-row.concept-exam-row {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(21, 26, 30, 0.6) 100%);
+.horizontal-concept-card.exam-card-accent {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(21, 26, 30, 0.8) 100%);
 }
 
-.concept-order-badge {
-  width: 24px;
-  height: 24px;
+.concept-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.concept-number-badge {
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #1E252B;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 750;
-  color: #94A3B8;
-  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #CBD5E1;
 }
 
-.concept-completed .concept-order-badge {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10B981;
-}
-
-.concept-active .concept-order-badge {
-  background: #F59E0B;
-  color: #07090A;
-}
-
-.concept-info-col {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-
-.concept-row-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.concept-item-title {
-  font-size: 0.84rem;
+.step-pill-badge {
+  font-size: 0.64rem;
+  color: #64748B;
   font-weight: 700;
-  color: #FFFFFF;
 }
 
-.concept-exam-tag {
-  font-size: 0.66rem;
+.exam-pill-badge {
+  font-size: 0.64rem;
   font-weight: 800;
   background: #F59E0B;
   color: #07090A;
@@ -7266,110 +7421,46 @@ meter {
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
-.concept-item-desc {
-  font-size: 0.78rem;
+.concept-title-text {
+  font-size: 0.8rem;
+  font-weight: 750;
+  color: #FFFFFF;
+  line-height: 1.25;
+}
+
+.concept-desc-text {
+  font-size: 0.74rem;
   color: #94A3B8;
   line-height: 1.35;
   margin: 0;
+  flex: 1;
 }
 
-.concept-item-obj {
-  font-size: 0.72rem;
-  color: #FBBF24;
-  margin-top: 2px;
-}
-
-.drawer-phrases-box {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.phrases-header-label {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #94A3B8;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.phrases-list-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.drawer-phrase-pill {
-  background: #1A2026;
-  border: 1px solid #252B30;
-  color: #E2E8F0;
-  font-size: 0.76rem;
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-
-.drawer-eval-preview {
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.eval-preview-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
-  color: #A7F3D0;
-}
-
-.eval-preview-btn {
-  background: #10B981;
-  color: #07090A;
-  font-size: 0.78rem;
-  font-weight: 750;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  align-self: flex-start;
-}
-
-.stage-drawer-footer {
-  padding: 18px 24px;
-  border-top: 1px solid #1E252B;
+.concept-obj-box {
   background: #111518;
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 0.68rem;
+  color: #FBBF24;
 }
 
-.drawer-action-btn {
-  width: 100%;
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+.concept-exam-launch-btn {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
   border: 1px solid #FDE68A;
   color: #07090A;
-  font-size: 0.95rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  padding: 13px 20px;
-  border-radius: 10px;
+  padding: 5px 8px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4);
-  transition: all 0.2s ease;
-}
-
-.drawer-action-btn:hover {
-  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
+  gap: 4px;
+  margin-top: 4px;
 }
 
 /* Responsiveness */
@@ -7385,6 +7476,16 @@ meter {
   .map-footer-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+  .stage-drawer-horizontal-body {
+    grid-template-columns: 1fr;
+    max-height: calc(88vh - 75px);
+  }
+  .stage-briefing-col {
+    border-right: none;
+    border-bottom: 1px solid #1E252B;
+    padding-right: 0;
+    padding-bottom: 14px;
   }
 }
 
@@ -7402,8 +7503,24 @@ meter {
     font-size: 0.74rem;
     padding: 4px 10px;
   }
-  .stage-drawer-panel {
-    max-width: 100%;
+  .stage-horizontal-modal {
+    width: 96vw;
+    max-height: 90vh;
+  }
+  .checkpoint-card-pill {
+    min-width: 130px;
+    padding: 4px 7px;
+  }
+  .checkpoint-card-title {
+    font-size: 0.7rem;
+  }
+  .checkpoint-direct-start-btn {
+    font-size: 0.65rem;
+    padding: 2px 4px;
+  }
+  .checkpoint-direct-exam-btn {
+    font-size: 0.62rem;
+    padding: 2px 4px;
   }
 }
 

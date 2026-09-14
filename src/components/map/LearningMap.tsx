@@ -35,7 +35,7 @@ export function LearningMap({
   const [selectedDrawerModule, setSelectedDrawerModule] = useState<LearningModule | null>(null);
   const [activeModalEvaluation, setActiveModalEvaluation] = useState<ModuleEvaluationItem | null>(null);
   const [examModuleId, setExamModuleId] = useState<string | null>(null);
-  const [zoom, setZoom] = useState<number>(1);
+  const [zoom, setZoom] = useState<number>(1.05);
 
   const mapScrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef<boolean>(false);
@@ -86,6 +86,18 @@ export function LearningMap({
     (p) => p.status === "completed" || p.progress_percent >= 100
   ).length;
 
+  // Detecção de viewport inicial: celular inicia com mais zoom (1.45) para evitar sobreposição
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        setZoom(1.45);
+      } else {
+        setZoom(1.05);
+      }
+    }
+  }, []);
+
   // Centraliza o scroll do mapa na etapa ativa
   const centerOnStage = useCallback((stageNum: number) => {
     const container = mapScrollRef.current;
@@ -104,17 +116,16 @@ export function LearningMap({
     });
   }, [currentActiveModule]);
 
-  // Centralização automática ao carregar a página
+  // Centralização automática ao carregar a página e após ajuste de zoom
   useEffect(() => {
     const timer = setTimeout(() => {
       centerOnStage(currentStageNumber);
-    }, 250);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [currentStageNumber, centerOnStage]);
+  }, [currentStageNumber, zoom, centerOnStage]);
 
   // Handlers para arrastar com o mouse (Pan / Drag)
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Evita drag se clicou em um checkpoint ou botão
     if ((e.target as HTMLElement).closest(".map-checkpoint-node, button")) return;
     isDraggingRef.current = true;
     startXRef.current = e.pageX - (mapScrollRef.current?.offsetLeft || 0);
@@ -133,10 +144,32 @@ export function LearningMap({
     isDraggingRef.current = false;
   };
 
+  // Handlers para touch em telas de celular (Swipe / Pan)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest(".map-checkpoint-node, button")) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.touches[0].pageX - (mapScrollRef.current?.offsetLeft || 0);
+    scrollLeftRef.current = mapScrollRef.current?.scrollLeft || 0;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current || !mapScrollRef.current) return;
+    const x = e.touches[0].pageX - (mapScrollRef.current.offsetLeft || 0);
+    const walk = (x - startXRef.current) * 1.3;
+    mapScrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleTouchEnd = () => {
+    isDraggingRef.current = false;
+  };
+
   // Controles de zoom
-  const handleZoomIn = () => setZoom((prev) => Math.min(1.6, prev + 0.15));
-  const handleZoomOut = () => setZoom((prev) => Math.max(0.75, prev - 0.15));
-  const handleResetZoom = () => setZoom(1);
+  const handleZoomIn = () => setZoom((prev) => Math.min(1.8, Number((prev + 0.15).toFixed(2))));
+  const handleZoomOut = () => setZoom((prev) => Math.max(0.75, Number((prev - 0.15).toFixed(2))));
+  const handleResetZoom = () => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    setZoom(isMobile ? 1.45 : 1.05);
+  };
 
   // Determina o status de cada etapa (locked, current, completed, available)
   const getStageStatus = (module: LearningModule): StageStatus => {
@@ -176,6 +209,9 @@ export function LearningMap({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <div
             className="map-canvas-stage"
@@ -188,7 +224,7 @@ export function LearningMap({
                 completedStagesCount={completedStagesCount}
               />
 
-              {/* Checkpoints Interativos (1 a 7) */}
+              {/* Checkpoints Interativos (1 a 7) com Início Direto */}
               {LEARNING_MODULES.map((module) => {
                 const status = getStageStatus(module);
                 const prog = progressMap[module.id];
@@ -202,6 +238,13 @@ export function LearningMap({
                     progressPercent={progressPct}
                     isActiveSelection={selectedDrawerModule?.id === module.id}
                     onSelect={(mod) => setSelectedDrawerModule(mod)}
+                    onEnterStage={(modId) => {
+                      onSelectModule(modId);
+                      if (onClose) onClose();
+                    }}
+                    onStartExam={(modId) => {
+                      setExamModuleId(modId);
+                    }}
                   />
                 );
               })}
