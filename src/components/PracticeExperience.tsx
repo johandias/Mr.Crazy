@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
+  Award,
   BookOpen,
   BriefcaseBusiness,
   Mic,
@@ -29,6 +30,16 @@ import { ConversationBubble } from "@/components/ConversationBubble";
 import { ListeningWave } from "@/components/ListeningWave";
 import { RpgCharacter, type CharacterGesture } from "@/components/RpgCharacter";
 import { SessionHeader } from "@/components/SessionHeader";
+import {
+  LEARNING_MODULES,
+  getModuleById,
+  getStoredModuleId,
+  setStoredModuleId,
+  DEFAULT_MODULE_ID
+} from "@/lib/modules";
+import { ModuleSelector } from "@/components/ModuleSelector";
+import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
+import { ModuleEvaluationModal } from "@/components/ModuleEvaluationModal";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
 import {
   connectRealtime,
@@ -186,11 +197,21 @@ function buildOpeningLine(
   openingIndex: number,
   nickname?: string,
   gender?: string
+  gender?: string,
+  moduleId?: string
 ) {
   const isFemale = gender === "feminino";
   const namePart = nickname?.trim() ? ` ${nickname.trim()}` : "";
   const readyWord = isFemale ? "pronta" : "pronto";
   const welcomeWord = isFemale ? "bem-vinda" : "bem-vindo";
+
+  if (moduleId) {
+    const mod = getModuleById(moduleId);
+    if (mod.id === "free-conversation") {
+      return `Hey${namePart}! Good to see you! We're in free conversation mode now. Let's talk in English! How are you doing today?`;
+    }
+    return `Fala${namePart}! ${mod.initialGreeting.pt}`;
+  }
 
   const customGreetings = [
     `Fala${namePart}! Tudo ${readyWord} pro treino de hoje?`,
@@ -407,6 +428,22 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
   const [openingIndex, setOpeningIndex] = useState(0);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
+  const [selectedModuleId, setSelectedModuleId] = useState<string>(() => {
+    if (typeof window === "undefined") return DEFAULT_MODULE_ID;
+    return getStoredModuleId();
+  });
+  const [isSelectingModule, setIsSelectingModule] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("practice") === "1" || urlParams.get("treino") === "1") {
+        return false;
+      }
+    }
+    return true;
+  });
+  const [moduleTurnsCount, setModuleTurnsCount] = useState(0);
+  const [currentEvaluation, setCurrentEvaluation] = useState<ModuleEvaluationItem | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("rpg");
   const [activeGesture, setActiveGesture] = useState<CharacterGesture>("idle");
@@ -488,6 +525,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     mistakes: [] as MistakeCategory[],
     crazyLevel: 16,
     selectedMode: "free-conversation",
+    selectedModuleId: DEFAULT_MODULE_ID,
     selectedLevel: "basic" as LearningLevel,
     contextHistory: [] as ConversationTurn[]
   });
@@ -533,6 +571,47 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     () => levelOptions.find((level) => level.id === selectedLevel) ?? levelOptions[0],
     [selectedLevel]
   );
+  const activeModule = useMemo(() => getModuleById(selectedModuleId), [selectedModuleId]);
+
+  const handleSelectModule = useCallback((moduleId: string) => {
+    setSelectedModuleId(moduleId);
+    setStoredModuleId(moduleId);
+    scoringContextRef.current.selectedModuleId = moduleId;
+    try {
+      window.sessionStorage.setItem("mr-crazy-module-entered", "true");
+    } catch {}
+    setModuleTurnsCount(0);
+    setCurrentEvaluation(null);
+    setIsSelectingModule(false);
+
+    if (moduleId === "free-conversation") {
+      setSelectedMode("free-conversation");
+      scoringContextRef.current.selectedMode = "free-conversation";
+    }
+
+    cancelSpeech();
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
+    clearSilenceTimer();
+    setAnalysis(null);
+    setAnalysisSource("manual");
+    setRealtimeReply("");
+    setTranscript("");
+    transcriptRef.current = "";
+    setVoiceState("idle");
+    introSpokenRef.current = false;
+    setContextHistory([]);
+    setOpeningIndex(getNextOpeningIndex());
+
+    if (realtimeRef.current) {
+      realtimeRef.current.disconnect();
+      realtimeRef.current = null;
+      setRealtimeStatus("connecting");
+      isConnectingRef.current = false;
+      window.setTimeout(() => void connectSession(), 100);
+    }
+  }, []);
+
   const openingLine = useMemo(
     () =>
       buildOpeningLine(
@@ -541,8 +620,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         openingIndex,
         studentProfile?.nickname,
         studentProfile?.gender
+        studentProfile?.gender,
+        selectedModuleId
       ),
     [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname]
+    [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname, selectedModuleId]
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -622,6 +704,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   useEffect(() => {
     scoringContextRef.current = { mistakes, crazyLevel, selectedMode, selectedLevel, contextHistory };
   }, [contextHistory, crazyLevel, mistakes, selectedLevel, selectedMode]);
+    scoringContextRef.current = {
+      mistakes,
+      crazyLevel,
+      selectedMode,
+      selectedModuleId,
+      selectedLevel,
+      contextHistory
+    };
+  }, [contextHistory, crazyLevel, mistakes, selectedLevel, selectedMode, selectedModuleId]);
 
   useEffect(() => {
     if (!canSpeak) return;
@@ -750,7 +841,53 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         { role: "crazy", text: `${result.reaction} ${result.correction} ${result.follow_up}` }
       ]);
     }
+
+    setModuleTurnsCount((prev) => {
+      const nextTurns = prev + 1;
+      fetch("/api/modules/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moduleId: scoringContextRef.current.selectedModuleId,
+          addTurns: 1
+        })
+      }).catch(() => {});
+      return nextTurns;
+    });
   }, []);
+
+  const handleEvaluateModule = useCallback(async () => {
+    if (isEvaluating) return;
+    setIsEvaluating(true);
+    try {
+      const response = await fetch("/api/modules/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moduleId: selectedModuleId,
+          turns: Math.max(1, moduleTurnsCount),
+          contextHistory: contextHistory.slice(-8),
+          contextHistory: contextHistory.slice(-2),
+          mistakes: mistakes.slice(0, 5)
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && data.evaluation) {
+          setCurrentEvaluation(data.evaluation);
+          triggerGesture("heart");
+          speak(
+            `Sensacional! Você concluiu a avaliação do módulo ${activeModule.title} com nota ${data.evaluation.overall_score}! ${data.evaluation.summary_feedback}`
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to evaluate module:", err);
+    } finally {
+      setIsEvaluating(false);
+    }
+  }, [isEvaluating, selectedModuleId, moduleTurnsCount, contextHistory, mistakes, activeModule.title, speak]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -838,13 +975,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
     const level = scoringContextRef.current.selectedLevel;
     const mode = scoringContextRef.current.selectedMode;
+    const moduleId = scoringContextRef.current.selectedModuleId || selectedModuleId;
 
     return connectRealtime({
       level,
       mode,
+      moduleId,
       signal: abortController.signal,
       getRecentContext: () =>
         scoringContextRef.current.contextHistory.map((turn) => ({
+        scoringContextRef.current.contextHistory.slice(-2).map((turn) => ({
           role: turn.role,
           text: turn.text
         })),
@@ -1075,10 +1215,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           previousMistakes: mistakes.slice(0, 5),
           crazyLevel,
           mode: selectedMode,
+          moduleId: selectedModuleId,
           learningLevel: selectedLevel,
           inputSource: "manual",
           contextHistory: [
             ...contextHistory.slice(-4),
+            ...contextHistory.slice(-1),
             { role: "user", text: cleanSentence }
           ]
         })
@@ -1290,6 +1432,23 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     speak(analysis.corrected_sentence, "waiting_for_repeat", "en-US");
   }
 
+  if (isSelectingModule) {
+    return (
+      <AppShell isAdmin={isAdmin}>
+        <main className="practice-main clean-layout">
+          <ModuleSelector
+            activeModuleId={selectedModuleId}
+            onSelectModule={handleSelectModule}
+            onClose={() => setIsSelectingModule(false)}
+            userName={studentProfile?.nickname || "Aluno"}
+            streakDays={7}
+            xp={xp}
+          />
+        </main>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell isAdmin={isAdmin}>
       <main className={`practice-main clean-layout ${isPopupMode ? "popup-compact" : ""}`}>
@@ -1306,6 +1465,26 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
         <div className="practice-header-bar">
           <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
+          <button
+            type="button"
+            className="active-module-pill-btn"
+            onClick={() => setIsSelectingModule(true)}
+            title="Trocar módulo de aprendizado (Saudações, Restaurante, Viagens, etc.)"
+          >
+            <BookOpen size={14} />
+            <span className="module-pill-title">{activeModule.title.replace(/^\d+\.\s*/, "")}</span>
+            <span className="module-pill-badge">{activeModule.levelBadge.split(" ")[0]}</span>
+          </button>
+          <button
+            type="button"
+            className="module-evaluate-action-btn"
+            onClick={handleEvaluateModule}
+            disabled={isEvaluating}
+            title="Concluir este módulo e receber sua avaliação do Mr. Crazy"
+          >
+            <Award size={14} />
+            <span>{isEvaluating ? "Avaliando..." : "Avaliar Módulo"}</span>
+          </button>
           <div className="header-actions-group">
             <button
               type="button"
@@ -1484,6 +1663,41 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
               <div className="drawer-body">
                 <div className="drawer-group">
+                  <span className="drawer-group-title">Módulo Pedagógico</span>
+                  <div className="drawer-module-preview-box">
+                    <div className="drawer-module-info">
+                      <strong className="drawer-module-name">{activeModule.title}</strong>
+                      <span className="drawer-module-badge">{activeModule.levelBadge}</span>
+                    </div>
+                    <p className="drawer-module-scenario">{activeModule.subtitle}</p>
+                    <button
+                      type="button"
+                      className="drawer-action-btn secondary"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsSelectingModule(true);
+                      }}
+                    >
+                      <BookOpen size={16} />
+                      Trocar Módulo de Estudo
+                    </button>
+                    <button
+                      type="button"
+                      className="drawer-action-btn primary"
+                      style={{ marginTop: "6px" }}
+                      disabled={isEvaluating}
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        handleEvaluateModule();
+                      }}
+                    >
+                      <Award size={16} />
+                      Concluir & Avaliar Desempenho
+                    </button>
+                  </div>
+                </div>
+
+                <div className="drawer-group">
                   <span className="drawer-group-title">Modo Multitarefa (Pop-up & PiP)</span>
                   <p style={{ fontSize: "0.82rem", color: "var(--text-soft)", margin: "4px 0 10px", lineHeight: "1.4" }}>
                     Treine seu inglês enquanto mexe no WhatsApp, lê notícias ou estuda em outros apps.
@@ -1637,6 +1851,20 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             </aside>
           </div>
         )}
+
+        <ModuleEvaluationModal
+          evaluation={currentEvaluation}
+          isLoading={isEvaluating}
+          onClose={() => setCurrentEvaluation(null)}
+          onActionAgain={(modId) => {
+            handleSelectModule(modId);
+            setCurrentEvaluation(null);
+          }}
+          onNextModule={() => {
+            setCurrentEvaluation(null);
+            setIsSelectingModule(true);
+          }}
+        />
       </main>
     </AppShell>
   );

@@ -44,6 +44,7 @@ export type RealtimeController = {
 type ConnectRealtimeOptions = {
   level: LearningLevel;
   mode: string;
+  moduleId?: string;
   signal?: AbortSignal;
   getRecentContext?: () => { role: string; text: string }[];
   onStatus: (status: RealtimeConnectionStatus) => void;
@@ -100,8 +101,10 @@ function buildTranscriptBoundResponse(
     recentTurns.length > 0
       ? `
 CONTEXTO DA CONVERSA NESTA INSTÂNCIA ATUAL (MEMÓRIA TEMPORÁRIA DA SESSÃO):
+CONTEXTO DA CONVERSA NESTA INSTÂNCIA ATUAL (MEMÓRIA TEMPORÁRIA DA SESSÃO - ÚLTIMAS 2 MENSAGENS):
 ${recentTurns
   .slice(-6)
+  .slice(-2)
   .map(
     (turn) =>
       `- ${turn.role === "user" ? "Aluno" : "Mr.Crazy (você)"}: "${turn.text}"`
@@ -487,8 +490,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     const external = options.getRecentContext?.() ?? [];
     if (external.length > 0) {
       return external.slice(-6);
+      return external.slice(-2);
     }
     return localSessionTurns.slice(-6);
+    return localSessionTurns.slice(-2);
   };
 
   const commitAssistantTurn = (explicitText?: string) => {
@@ -836,6 +841,12 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       response = await fetch(
         `/api/realtime/session?level=${encodeURIComponent(options.level)}&mode=${encodeURIComponent(options.mode)}`,
         {
+      const queryParams = new URLSearchParams({
+        level: options.level,
+        mode: options.mode,
+        ...(options.moduleId ? { moduleId: options.moduleId } : {})
+      });
+      response = await fetch(`/api/realtime/session?${queryParams.toString()}`, {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
           body: sdpToSend,

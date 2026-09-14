@@ -1,5 +1,8 @@
 import { normalizeLearningLevel, type LearningLevel } from "@/lib/mr-crazy";
 import type { UserProfile } from "@/lib/auth";
+import { normalizeLearningLevel, type LearningLevel } from "./mr-crazy";
+import type { UserProfile } from "./auth";
+import { getModuleById } from "./modules";
 
 const MODE_LABELS: Record<string, string> = {
   "free-conversation": "conversa livre e situações cotidianas",
@@ -92,9 +95,12 @@ export function buildRealtimeInstructions(
   levelValue: unknown,
   modeValue: unknown,
   profile?: Partial<UserProfile> | null
+  profile?: Partial<UserProfile> | null,
+  moduleIdValue?: unknown
 ) {
   const level = normalizeLearningLevel(typeof levelValue === "string" ? levelValue : profile?.learning_level);
   const mode = normalizeSessionMode(modeValue);
+  const activeModule = moduleIdValue ? getModuleById(String(moduleIdValue)) : null;
 
   const nickname = profile?.nickname?.trim() || "camarada";
   const gender = profile?.gender || "masculino";
@@ -131,6 +137,28 @@ PERFIL DO ALUNO CONECTADO NESTA SESSÃO:
 - Histórico de prática: ${practiceMins} minutos acumulados, ${xp} XP conquistados. Elogie a dedicação e constância.
 =====================================================================`;
 
+  const isFreeConversation = activeModule?.id === "free-conversation" || mode === "free-conversation";
+
+  const moduleSection = activeModule
+    ? `
+MÓDULO ATIVO: ${activeModule.title} (${activeModule.levelBadge})
+CENÁRIO: ${activeModule.scenario}
+MISSÃO: ${activeModule.mission}
+${
+  isFreeConversation
+    ? `DIRETRIZ DE CONVERSAÇÃO LIVRE:
+- O aluno quer treinar bate-papo em inglês!
+- Inicie e converse diretamente em inglês americano fluente e amigável.
+- Você é um professor brasileiro ensinando em inglês: caso o aluno trave, demonstre dúvida ou peça ajuda em português, apoie-o em português imediatamente, ensine a frase em inglês e continue estimulando o diálogo em inglês.`
+    : `DIRETRIZ DE FOCO ESTRITO NO MÓDULO:
+- Mantenha o aluno 100% focado no cenário deste módulo (${activeModule.title}).
+- NÃO fuja do tema e não mude de assunto.
+- Guie a prática passo a passo através das situações reais descritas no cenário.`
+}`
+    : `Configuração Atual da Sessão:
+- Nível: ${LEVEL_INSTRUCTIONS[level]}
+- Modo / Tema: ${MODE_LABELS[mode]}. ${MODE_INSTRUCTIONS[mode]}`;
+
   return `${MR_CRAZY_BASE_PROMPT}
 
 ${profileContext}
@@ -138,11 +166,14 @@ ${profileContext}
 Configuração Atual da Sessão:
 - Nível: ${LEVEL_INSTRUCTIONS[level]}
 - Modo / Tema: ${MODE_LABELS[mode]}. ${MODE_INSTRUCTIONS[mode]}
+${moduleSection}
 
 Regras de Interação ao Vivo:
 1. Aguarde em silêncio até o usuário falar primeiro.
 2. Ao responder a primeira fala do usuário: se for um cumprimento (ex: "oi", "e aí", "tudo bem?"), APENAS CUMPRIMENTE DE VOLTA usando o nome "${nickname}" com simpatia e descontração em português. NUNCA diga "você acertou" nem trate cumprimento como exercício!
 3. Língua principal: Fale SEMPRE em português do Brasil com voz masculina realista. Use o inglês americano APENAS para os exemplos e frases que o aluno deve praticar (a não ser que ele peça explicitamente para conversar em inglês, simulando um diálogo direto).
+2. Ao responder a primeira fala do usuário: se for um cumprimento (ex: "oi", "e aí", "tudo bem?"), APENAS CUMPRIMENTE DE VOLTA usando o nome "${nickname}" com simpatia e descontração em português (ou em inglês se estiver no modo Conversação Livre). NUNCA diga "você acertou" nem trate cumprimento como exercício!
+3. Língua principal: Fale em português do Brasil com voz masculina realista para ensinar e apoiar. Se estiver no modo Conversação Livre ou se o aluno pedir para falar em inglês, converse diretamente em inglês americano.
 4. Técnicas físicas de pronúncia: quando o aluno tiver dificuldade com sons americanos (TH, R retroflexo, Dark L, consoantes mudas), dê a dica física curta de boca e língua em português.
 5. Brevidade obrigatória: estritamente 1 a 2 frases curtas por resposta.
 6. Limite antirrepetição: no máximo 2 a 3 tentativas por frase/palavra. Se estiver compreensível (regra dos 70%), elogie e avance!`;
@@ -153,11 +184,14 @@ export function buildRealtimeSession(
   modeValue: unknown,
   profile?: Partial<UserProfile> | null,
   modelName: string = "gpt-4o-mini-realtime-preview"
+  modelName: string = "gpt-4o-mini-realtime-preview",
+  moduleIdValue?: unknown
 ) {
   return {
     type: "realtime",
     model: modelName,
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
+    instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue),
     audio: {
       input: {
         transcription: {

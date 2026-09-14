@@ -81,8 +81,10 @@ export async function POST(request: Request) {
       previousMistakes: Array.isArray(body.previousMistakes) ? body.previousMistakes.slice(0, 6) : [],
       crazyLevel: typeof body.crazyLevel === "number" ? body.crazyLevel : 14,
       mode: typeof body.mode === "string" ? body.mode : "free-conversation",
+      moduleId: typeof body.moduleId === "string" ? body.moduleId : undefined,
       learningLevel: normalizeLearningLevel(body.learningLevel),
       contextHistory: normalizeContextHistory(body.contextHistory),
+      contextHistory: normalizeContextHistory(body.contextHistory).slice(-2),
       inputSource:
         body.inputSource === "voice_realtime" || body.inputSource === "voice_fallback" ? body.inputSource : "manual"
     };

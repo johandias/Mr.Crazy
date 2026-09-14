@@ -36,6 +36,7 @@ export interface AnalysisRequest {
   previousMistakes?: string[];
   crazyLevel?: number;
   mode?: string;
+  moduleId?: string;
   learningLevel?: LearningLevel;
   contextHistory?: ConversationTurn[];
   inputSource?: "manual" | "voice_realtime" | "voice_fallback";
@@ -540,6 +541,21 @@ function getConversationPrompt(level: LearningLevel, mode?: string, sentence = "
   }
 
   if (mode === "work-english") {
+  if (mode === "greetings") {
+    return "Introduce yourself and tell me where you are from.";
+  }
+
+  if (mode === "restaurant") {
+    return level === "basic"
+      ? "Ask for a table for two."
+      : "Order a drink and ask what the waiter recommends.";
+  }
+
+  if (mode === "shopping") {
+    return "Ask how much this item costs and if they have your size.";
+  }
+
+  if (mode === "work" || mode === "work-english") {
     return level === "basic"
       ? "Tell me what you did at work today."
       : level === "intermediate"
@@ -548,6 +564,7 @@ function getConversationPrompt(level: LearningLevel, mode?: string, sentence = "
   }
 
   if (mode === "job-interview") {
+  if (mode === "interview" || mode === "job-interview") {
     return level === "basic"
       ? "Tell me one strength you have."
       : level === "intermediate"

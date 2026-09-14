@@ -64,6 +64,9 @@ export async function POST(request: Request) {
       url.searchParams.get("level"),
       url.searchParams.get("mode"),
       user
+      user,
+      "gpt-4o-mini-realtime-preview",
+      url.searchParams.get("moduleId")
     );
 
     const formData = new FormData();
@@ -95,6 +98,7 @@ export async function POST(request: Request) {
     let response: Response | null = null;
     let responseBody = "";
     let usedModel = candidateModels[0] || "gpt-4o-realtime-preview";
+    let usedModel = candidateModels[0] || "gpt-4o-mini-realtime-preview";
 
     try {
       // Itera sobre os modelos candidatos suportados pelo endpoint GA oficial da OpenAI (/v1/realtime/calls)

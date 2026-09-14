@@ -1,23 +1,8 @@
-import { NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/server-auth";
-import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-
-export async function GET() {
-  const session = await getCurrentSession();
-  if (!session || session.role !== "admin" || session.status !== "approved") {
-    return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
-  }
-
-  const migrationSql = `-- =====================================================================
--- MR.CRAZY - MIGRATION: IDADE, SEXO, OBJETIVO DE APRENDIZADO E ONBOARDING
--- MR.CRAZY - MIGRATION: PROGRESSO E AVALIAÇÕES DE MÓDULOS
 -- =====================================================================
-ALTER TABLE public.mrcrazy_users
-ADD COLUMN IF NOT EXISTS age INTEGER,
-ADD COLUMN IF NOT EXISTS learning_goal TEXT,
-ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN IF NOT EXISTS assessment_score INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS assessment_answers JSONB DEFAULT '[]'::jsonb;
+-- MR.CRAZY - MIGRATION: PROGRESSO POR MÓDULO E AVALIAÇÃO DE DESEMPENHO
+-- =====================================================================
+
+-- 1. TABELA DE PROGRESSO POR MÓDULO
 CREATE TABLE IF NOT EXISTS public.mrcrazy_module_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.mrcrazy_users(id) ON DELETE CASCADE,
@@ -33,8 +18,7 @@ CREATE TABLE IF NOT EXISTS public.mrcrazy_module_progress (
     CONSTRAINT unique_user_module_progress UNIQUE (user_email, module_id)
 );
 
-ALTER TABLE public.mrcrazy_users 
-DROP CONSTRAINT IF EXISTS mrcrazy_users_gender_check;
+-- 2. TABELA DE AVALIAÇÃO DE DESEMPENHO E FEEDBACK DO MÓDULO
 CREATE TABLE IF NOT EXISTS public.mrcrazy_module_evaluations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.mrcrazy_users(id) ON DELETE CASCADE,
@@ -52,31 +36,26 @@ CREATE TABLE IF NOT EXISTS public.mrcrazy_module_evaluations (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.mrcrazy_users 
-ADD CONSTRAINT mrcrazy_users_gender_check 
-CHECK (gender IN ('masculino', 'feminino', 'outro', 'prefiro_nao_dizer'));
+-- 3. ÍNDICES DE PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_module_progress_user ON public.mrcrazy_module_progress(user_email, module_id);
 CREATE INDEX IF NOT EXISTS idx_module_evaluations_user ON public.mrcrazy_module_evaluations(user_email, module_id);
+CREATE INDEX IF NOT EXISTS idx_module_evaluations_date ON public.mrcrazy_module_evaluations(evaluated_at);
 
-UPDATE public.mrcrazy_users
-SET onboarding_completed = true,
-    learning_goal = 'Administração e testes do sistema'
-WHERE email = 'johandias083@gmail.com' OR role = 'admin';
+-- 4. ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.mrcrazy_module_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mrcrazy_module_evaluations ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow public read/write for module progress" ON public.mrcrazy_module_progress;
 CREATE POLICY "Allow public read/write for module progress"
-    ON public.mrcrazy_module_progress FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+    ON public.mrcrazy_module_progress FOR ALL
+    TO anon, authenticated
+    USING (true)
+    WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow public read/write for module evaluations" ON public.mrcrazy_module_evaluations;
 CREATE POLICY "Allow public read/write for module evaluations"
-    ON public.mrcrazy_module_evaluations FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
-`;
+    ON public.mrcrazy_module_evaluations FOR ALL
+    TO anon, authenticated
+    USING (true)
+    WITH CHECK (true);
 
-  return NextResponse.json({
-    ok: true,
-    sql: migrationSql,
-    isSupabaseConfigured
-  });
-}
