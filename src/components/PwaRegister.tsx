@@ -16,6 +16,7 @@ export function PwaRegister() {
 
       // Proteção: não reinicia se o usuário estiver ativamente falando no microfone
       const isVoiceActive =
+        document.querySelector(".avatar-mic-circle-btn.is-active") !== null ||
         document.querySelector(".avatar-mic-btn.listening") !== null ||
         document.querySelector(".avatar-mic-btn.active") !== null;
 
@@ -26,6 +27,7 @@ export function PwaRegister() {
         // Se estiver em chamada, agenda o reload assim que a chamada parar
         const checkCallEnd = setInterval(() => {
           const stillActive =
+            document.querySelector(".avatar-mic-circle-btn.is-active") !== null ||
             document.querySelector(".avatar-mic-btn.listening") !== null ||
             document.querySelector(".avatar-mic-btn.active") !== null;
           if (!stillActive) {

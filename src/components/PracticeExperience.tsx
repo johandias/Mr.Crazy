@@ -1383,23 +1383,50 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       window.localStorage.setItem("mr-crazy-mic-granted", "true");
     } catch {}
 
-    // Se a conexão não está ativa ou falhou, o toque no microfone inicia/reconecta diretamente
-    if (realtimeStatus !== "connected" || !realtimeRef.current) {
-      setErrorMessage("");
-      isConnectingRef.current = false;
-      if (connectAbortRef.current) {
-        connectAbortRef.current.abort();
-        connectAbortRef.current = null;
-      }
-      void connectSession();
+    // Limpa mensagens de erro transitórias para liberar a experiência
+    setErrorMessage("");
+
+    // 1. Se o canal Realtime WebRTC estiver ativo e conectado:
+    if (realtimeStatus === "connected" && realtimeRef.current) {
+      const nextEnabled = !microphoneEnabled;
+      realtimeRef.current.setMicrophoneEnabled(nextEnabled);
+      setMicrophoneEnabled(nextEnabled);
+      setVoiceState(nextEnabled ? "listening" : "idle");
       return;
     }
 
-    // O botão tem a função exclusiva de ligar ou desligar a captação da voz do celular (ON / OFF)
-    const nextEnabled = !microphoneEnabled;
-    realtimeRef.current.setMicrophoneEnabled(nextEnabled);
-    setMicrophoneEnabled(nextEnabled);
-    setVoiceState(nextEnabled ? "listening" : "idle");
+    // 2. Se Realtime estiver desconectado/em falha, usa reconhecimento de voz nativo do navegador
+    if (hasSpeechRecognition) {
+      if (voiceState === "listening") {
+        stopListeningAndAnalyze();
+        setMicrophoneEnabled(false);
+      } else {
+        setMicrophoneEnabled(true);
+        startListening();
+      }
+
+      // Em segundo plano, tenta restabelecer o Realtime sem travar a fala do aluno
+      if (realtimeStatus !== "connecting") {
+        isConnectingRef.current = false;
+        if (connectAbortRef.current) {
+          connectAbortRef.current.abort();
+          connectAbortRef.current = null;
+        }
+        void connectSession();
+      }
+      return;
+    }
+
+    // 3. Fallback de reconexão Realtime caso o browser não tenha Web Speech
+    isConnectingRef.current = false;
+    if (connectAbortRef.current) {
+      connectAbortRef.current.abort();
+      connectAbortRef.current = null;
+    }
+    setRealtimeStatus("connecting");
+    setMicrophoneEnabled(true);
+    setVoiceState("preparing_speech");
+    void connectSession();
   }
 
   function finishRealtimeTurn() {
@@ -1554,35 +1581,31 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               onTap={handleAvatarTap}
             />
 
-            {/* Botão de Microfone Compacto (ON / OFF) para ligar ou desligar a captação de voz */}
+            {/* Botão de Microfone Circular Elegante (Sem ON/OFF, apenas ícone e cores de estado) */}
             <div className="avatar-mic-dock">
-              <button
-                type="button"
-                className={`avatar-mic-btn compact ${
-                  realtimeStatus === "connected" && microphoneEnabled
-                    ? "is-on"
-                    : "is-off"
-                }`}
-                onClick={handleAvatarMicClick}
-                aria-label={realtimeStatus === "connected" && microphoneEnabled ? "Microfone ligado (ON)" : "Microfone desligado (OFF)"}
-                title={
-                  realtimeStatus === "connected" && microphoneEnabled
-                    ? "Microfone ligado (toque para desligar - OFF)"
-                    : "Microfone desligado (toque para ligar - ON)"
-                }
-              >
-                {realtimeStatus === "connected" && microphoneEnabled ? (
-                  <>
-                    <Mic size={18} />
-                    <span className="avatar-mic-state">ON</span>
-                  </>
-                ) : (
-                  <>
-                    <MicOff size={18} />
-                    <span className="avatar-mic-state">OFF</span>
-                  </>
-                )}
-              </button>
+              {(() => {
+                const isListening = voiceState === "listening" || (realtimeStatus === "connected" && microphoneEnabled);
+                const isConnecting = realtimeStatus === "connecting";
+
+                return (
+                  <button
+                    type="button"
+                    className={`avatar-mic-circle-btn ${
+                      isListening ? "is-active" : "is-inactive"
+                    } ${isConnecting ? "is-connecting" : ""}`}
+                    onClick={handleAvatarMicClick}
+                    aria-label={isListening ? "Microfone ligado. Toque para silenciar." : "Microfone desligado. Toque para falar."}
+                    title={isListening ? "Microfone ligado (Toque para desligar)" : "Microfone desligado (Toque para falar)"}
+                  >
+                    {isListening && <span className="mic-circle-pulse-ring" />}
+                    {isListening ? (
+                      <Mic size={24} className="mic-circle-icon icon-active" />
+                    ) : (
+                      <MicOff size={22} className="mic-circle-icon icon-inactive" />
+                    )}
+                  </button>
+                );
+              })()}
             </div>
 
             {errorMessage ? (

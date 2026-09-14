@@ -20,15 +20,15 @@ interface ActionLimits {
 }
 
 const STUDENT_LIMITS: Record<RateLimitAction, ActionLimits> = {
-  analyze: { perMinute: 20, perDay: 300 },
-  speech: { perMinute: 30, perDay: 500 },
-  realtime: { perMinute: 15, perDay: 150 }
+  analyze: { perMinute: 60, perDay: 1500 },
+  speech: { perMinute: 60, perDay: 1500 },
+  realtime: { perMinute: 60, perDay: 1500 }
 };
 
 const ADMIN_LIMITS: Record<RateLimitAction, ActionLimits> = {
-  analyze: { perMinute: 60, perDay: 10000 },
-  speech: { perMinute: 60, perDay: 10000 },
-  realtime: { perMinute: 30, perDay: 10000 }
+  analyze: { perMinute: 120, perDay: 10000 },
+  speech: { perMinute: 120, perDay: 10000 },
+  realtime: { perMinute: 120, perDay: 10000 }
 };
 
 // Armazenamento em memória de janelas deslizantes (por minuto)
