@@ -2162,7 +2162,7 @@ meter {
   z-index: 10;
 }
 
-/* Botão de Microfone Circular Compacto (Sem texto ON/OFF, apenas ícone e cores) */
+/* Botão de Microfone Circular Compacto (Sem texto ON/OFF, apenas ícone e cores de estado) */
 .avatar-mic-circle-btn {
   position: relative;
   width: 54px;
@@ -2173,11 +2173,11 @@ meter {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   border: 2px solid transparent;
   outline: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
   user-select: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
 }
 
@@ -2218,7 +2218,7 @@ meter {
     opacity: 0.9;
   }
   100% {
-    transform: scale(1.4);
+    transform: scale(1.45);
     opacity: 0;
   }
 }
@@ -2257,10 +2257,6 @@ meter {
   100% {
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.75);
   }
-}
-
-.avatar-mic-label {
-  letter-spacing: 0.3px;
 }
 
 .avatar-mic-error-box {

@@ -1277,7 +1277,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setErrorMessage("");
 
     if (!hasSpeechRecognition) {
-      setErrorMessage("Reconhecimento de voz indisponível neste navegador.");
+      setErrorMessage("Reconhecimento de voz indisponível neste navegador. Use o campo de texto.");
       textInputRef.current?.focus();
       return;
     }
@@ -1290,47 +1290,70 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setTranscript("");
     transcriptRef.current = "";
     setAnalysis(null);
-    setAnalysisSource("manual");
+    setAnalysisSource("voice");
     analysisQueuedRef.current = false;
     clearSilenceTimer();
-    const recognition = new Recognition();
-    recognition.lang = "pt-BR";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognitionRef.current = recognition;
 
-    recognition.onresult = (event) => {
-      if (recognitionRef.current !== recognition) return;
-      const text = Array.from(event.results)
-        .map((result) => result[0]?.transcript ?? "")
-        .join(" ")
-        .trim();
-      setTranscript(text);
-      transcriptRef.current = text;
+    try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
+      }
 
-      const lastResult = event.results[event.results.length - 1];
-      const isLastFinal = lastResult?.isFinal;
-      scheduleSilenceAnalysis(text, isLastFinal ? 1200 : 2200);
-    };
+      const recognition = new Recognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognitionRef.current = recognition;
 
-    recognition.onerror = () => {
-      if (recognitionRef.current !== recognition) return;
-      setErrorMessage("Não consegui capturar o áudio. O modo texto está pronto.");
-      setTranscript("");
-      transcriptRef.current = "";
-      clearSilenceTimer();
+      recognition.onstart = () => {
+        setVoiceState("listening");
+        setMicrophoneEnabled(true);
+      };
+
+      recognition.onresult = (event) => {
+        if (recognitionRef.current !== recognition) return;
+        const text = Array.from(event.results)
+          .map((result) => result[0]?.transcript ?? "")
+          .join(" ")
+          .trim();
+        setTranscript(text);
+        transcriptRef.current = text;
+
+        const lastResult = event.results[event.results.length - 1];
+        const isLastFinal = lastResult?.isFinal;
+        scheduleSilenceAnalysis(text, isLastFinal ? 1400 : 2500);
+      };
+
+      recognition.onerror = (e: any) => {
+        console.warn("[SpeechRecognition] error:", e?.error);
+        if (recognitionRef.current !== recognition) return;
+        if (e?.error === "no-speech") return;
+        if (e?.error === "not-allowed" || e?.error === "service-not-allowed") {
+          setErrorMessage("Permissão do microfone negada. Permita o microfone nos ajustes do site.");
+        }
+        clearSilenceTimer();
+        setVoiceState("idle");
+        setMicrophoneEnabled(false);
+      };
+
+      recognition.onend = () => {
+        if (recognitionRef.current !== recognition) return;
+        recognitionRef.current = null;
+        setVoiceState((current) => (current === "listening" ? "idle" : current));
+        setMicrophoneEnabled(false);
+      };
+
+      setVoiceState("listening");
+      setMicrophoneEnabled(true);
+      recognition.start();
+    } catch (err) {
+      console.error("Erro ao iniciar SpeechRecognition:", err);
       setVoiceState("idle");
-      textInputRef.current?.focus();
-    };
-
-    recognition.onend = () => {
-      if (recognitionRef.current !== recognition) return;
-      recognitionRef.current = null;
-      setVoiceState((current) => (current === "listening" ? "idle" : current));
-    };
-
-    setVoiceState("listening");
-    recognition.start();
+      setMicrophoneEnabled(false);
+    }
   }
 
   function stopListeningAndAnalyze() {
@@ -1341,13 +1364,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
 
     clearSilenceTimer();
-    recognitionRef.current?.stop();
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
     recognitionRef.current = null;
     setTranscript("");
     transcriptRef.current = "";
     setVoiceState("idle");
-    setErrorMessage("Não ouvi nada aproveitável. Fala mais alto ou usa o modo texto.");
-    textInputRef.current?.focus();
+    setMicrophoneEnabled(false);
   }
 
   function handleVoiceClick() {
@@ -1383,29 +1407,42 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       window.localStorage.setItem("mr-crazy-mic-granted", "true");
     } catch {}
 
-    // Limpa mensagens de erro transitórias para liberar a experiência
     setErrorMessage("");
 
-    // 1. Se o canal Realtime WebRTC estiver ativo e conectado:
-    if (realtimeStatus === "connected" && realtimeRef.current) {
-      const nextEnabled = !microphoneEnabled;
-      realtimeRef.current.setMicrophoneEnabled(nextEnabled);
-      setMicrophoneEnabled(nextEnabled);
-      setVoiceState(nextEnabled ? "listening" : "idle");
+    const isCurrentlyActive =
+      microphoneEnabled &&
+      (voiceState === "listening" || (realtimeStatus === "connected" && voiceState !== "idle"));
+
+    if (isCurrentlyActive) {
+      if (realtimeStatus === "connected" && realtimeRef.current) {
+        try {
+          realtimeRef.current.setMicrophoneEnabled(false);
+        } catch {}
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+      clearSilenceTimer();
+      setMicrophoneEnabled(false);
+      setVoiceState("idle");
       return;
     }
 
-    // 2. Se Realtime estiver desconectado/em falha, usa reconhecimento de voz nativo do navegador
-    if (hasSpeechRecognition) {
-      if (voiceState === "listening") {
-        stopListeningAndAnalyze();
-        setMicrophoneEnabled(false);
-      } else {
-        setMicrophoneEnabled(true);
-        startListening();
-      }
+    if (realtimeStatus === "connected" && realtimeRef.current) {
+      try {
+        realtimeRef.current.setMicrophoneEnabled(true);
+      } catch {}
+      setMicrophoneEnabled(true);
+      setVoiceState("listening");
+      return;
+    }
 
-      // Em segundo plano, tenta restabelecer o Realtime sem travar a fala do aluno
+    if (hasSpeechRecognition) {
+      startListening();
+
       if (realtimeStatus !== "connecting") {
         isConnectingRef.current = false;
         if (connectAbortRef.current) {
@@ -1417,16 +1454,28 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
 
-    // 3. Fallback de reconexão Realtime caso o browser não tenha Web Speech
-    isConnectingRef.current = false;
-    if (connectAbortRef.current) {
-      connectAbortRef.current.abort();
-      connectAbortRef.current = null;
-    }
-    setRealtimeStatus("connecting");
     setMicrophoneEnabled(true);
-    setVoiceState("preparing_speech");
-    void connectSession();
+    setVoiceState("listening");
+    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then(() => {
+          isConnectingRef.current = false;
+          if (connectAbortRef.current) {
+            connectAbortRef.current.abort();
+            connectAbortRef.current = null;
+          }
+          void connectSession();
+        })
+        .catch(() => {
+          setErrorMessage("Permissão do microfone negada. Toque nos ajustes do navegador para permitir.");
+          setMicrophoneEnabled(false);
+          setVoiceState("idle");
+        });
+    } else {
+      isConnectingRef.current = false;
+      void connectSession();
+    }
   }
 
   function finishRealtimeTurn() {
@@ -1581,10 +1630,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               onTap={handleAvatarTap}
             />
 
-            {/* Botão de Microfone Circular Elegante (Sem ON/OFF, apenas ícone e cores de estado) */}
+            {/* Botão de Microfone Circular Elegante (Sem texto ON/OFF, apenas ícone e cores de estado) */}
             <div className="avatar-mic-dock">
               {(() => {
-                const isListening = voiceState === "listening" || (realtimeStatus === "connected" && microphoneEnabled);
+                const isListening =
+                  microphoneEnabled &&
+                  (voiceState === "listening" || (realtimeStatus === "connected" && voiceState !== "idle"));
                 const isConnecting = realtimeStatus === "connecting";
 
                 return (
