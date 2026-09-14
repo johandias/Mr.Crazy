@@ -6078,5 +6078,65 @@ meter {
   }
 }
 
+/* ==========================================================================
+   ESTILOS DE MAPA DE ETAPAS & JORNADA PEDAGÓGICA
+   ========================================================================== */
+
+.module-journey-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.journey-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.journey-stat-pill strong {
+  color: #fff;
+}
+
+.journey-stat-pill.streak {
+  border-color: rgba(255, 99, 72, 0.3);
+  color: #ff6348;
+}
+
+.journey-stat-pill.xp {
+  border-color: rgba(240, 179, 74, 0.3);
+  color: #f0b34a;
+}
+
+.module-stage-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stage-badge-number {
+  background: linear-gradient(135deg, #f0b34a 0%, #ff9f1c 100%);
+  color: #070809;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.module-card.is-completed {
+  border-color: rgba(56, 239, 125, 0.4);
+  background: rgba(56, 239, 125, 0.04);
+}
+
+
 
 

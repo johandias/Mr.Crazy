@@ -37,7 +37,6 @@ import {
   setStoredModuleId,
   DEFAULT_MODULE_ID
 } from "@/lib/modules";
-import { ModuleSelector } from "@/components/ModuleSelector";
 import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
 import { ModuleEvaluationModal } from "@/components/ModuleEvaluationModal";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
@@ -196,7 +195,6 @@ function buildOpeningLine(
   mode: string,
   openingIndex: number,
   nickname?: string,
-  gender?: string
   gender?: string,
   moduleId?: string
 ) {
@@ -619,11 +617,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         selectedMode,
         openingIndex,
         studentProfile?.nickname,
-        studentProfile?.gender
         studentProfile?.gender,
         selectedModuleId
       ),
-    [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname]
     [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname, selectedModuleId]
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -702,8 +698,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     typeof window !== "undefined" && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   useEffect(() => {
-    scoringContextRef.current = { mistakes, crazyLevel, selectedMode, selectedLevel, contextHistory };
-  }, [contextHistory, crazyLevel, mistakes, selectedLevel, selectedMode]);
     scoringContextRef.current = {
       mistakes,
       crazyLevel,
@@ -866,7 +860,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         body: JSON.stringify({
           moduleId: selectedModuleId,
           turns: Math.max(1, moduleTurnsCount),
-          contextHistory: contextHistory.slice(-8),
           contextHistory: contextHistory.slice(-2),
           mistakes: mistakes.slice(0, 5)
         })
@@ -983,7 +976,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       moduleId,
       signal: abortController.signal,
       getRecentContext: () =>
-        scoringContextRef.current.contextHistory.map((turn) => ({
         scoringContextRef.current.contextHistory.slice(-2).map((turn) => ({
           role: turn.role,
           text: turn.text
@@ -1791,7 +1783,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   <span className="drawer-group-title">Modo Digitação (Texto)</span>
                   <form
                     className="drawer-text-form"
-                    onSubmit={(e: FormEvent) => {
+                    onSubmit={(e: FormEvent<HTMLFormElement>) => {
                       handleSubmit(e);
                       setIsMenuOpen(false);
                     }}

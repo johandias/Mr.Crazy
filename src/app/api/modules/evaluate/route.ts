@@ -52,7 +52,6 @@ export async function POST(request: Request) {
     const currentModule = getModuleById(moduleId);
     const turns = Math.max(1, body.turns || 1);
     const mistakes = Array.isArray(body.mistakes) ? body.mistakes : [];
-    const context = Array.isArray(body.contextHistory) ? body.contextHistory.slice(-8) : [];
     const context = Array.isArray(body.contextHistory) ? body.contextHistory.slice(-2) : [];
     const completedMissions = Array.isArray(body.completedMissions) ? body.completedMissions : [];
 

@@ -836,23 +836,20 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
     const { signal: fetchSignal, cleanup: cleanupFetchSignal } = createMergedTimeoutSignal(options.signal, 18000);
 
+    const queryParams = new URLSearchParams({
+      level: options.level,
+      mode: options.mode,
+      ...(options.moduleId ? { moduleId: options.moduleId } : {})
+    });
+
     let response: Response;
     try {
-      response = await fetch(
-        `/api/realtime/session?level=${encodeURIComponent(options.level)}&mode=${encodeURIComponent(options.mode)}`,
-        {
-      const queryParams = new URLSearchParams({
-        level: options.level,
-        mode: options.mode,
-        ...(options.moduleId ? { moduleId: options.moduleId } : {})
-      });
       response = await fetch(`/api/realtime/session?${queryParams.toString()}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/sdp" },
-          body: sdpToSend,
-          signal: fetchSignal
-        }
-      );
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: sdpToSend,
+        signal: fetchSignal
+      });
     } finally {
       cleanupFetchSignal();
     }

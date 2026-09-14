@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from "react";
-import type { VoiceState } from "@/lib/speech-service";
+import type { VoiceState } from "@/lib/mr-crazy";
 import type { RealtimeConnectionStatus } from "@/lib/realtime-client";
 
 export type PictureInPictureManagerHandle = {

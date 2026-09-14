@@ -63,7 +63,6 @@ export async function POST(request: Request) {
     const session = buildRealtimeSession(
       url.searchParams.get("level"),
       url.searchParams.get("mode"),
-      user
       user,
       "gpt-4o-mini-realtime-preview",
       url.searchParams.get("moduleId")
@@ -97,7 +96,6 @@ export async function POST(request: Request) {
 
     let response: Response | null = null;
     let responseBody = "";
-    let usedModel = candidateModels[0] || "gpt-4o-realtime-preview";
     let usedModel = candidateModels[0] || "gpt-4o-mini-realtime-preview";
 
     try {

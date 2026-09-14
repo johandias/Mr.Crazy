@@ -1,5 +1,3 @@
-import { normalizeLearningLevel, type LearningLevel } from "@/lib/mr-crazy";
-import type { UserProfile } from "@/lib/auth";
 import { normalizeLearningLevel, type LearningLevel } from "./mr-crazy";
 import type { UserProfile } from "./auth";
 import { getModuleById } from "./modules";
@@ -94,7 +92,6 @@ export function normalizeSessionMode(value: unknown) {
 export function buildRealtimeInstructions(
   levelValue: unknown,
   modeValue: unknown,
-  profile?: Partial<UserProfile> | null
   profile?: Partial<UserProfile> | null,
   moduleIdValue?: unknown
 ) {
@@ -183,14 +180,12 @@ export function buildRealtimeSession(
   levelValue: unknown,
   modeValue: unknown,
   profile?: Partial<UserProfile> | null,
-  modelName: string = "gpt-4o-mini-realtime-preview"
   modelName: string = "gpt-4o-mini-realtime-preview",
   moduleIdValue?: unknown
 ) {
   return {
     type: "realtime",
     model: modelName,
-    instructions: buildRealtimeInstructions(levelValue, modeValue, profile),
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue),
     audio: {
       input: {

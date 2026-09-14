@@ -540,7 +540,6 @@ function getConversationPrompt(level: LearningLevel, mode?: string, sentence = "
     return topicPrompts[level];
   }
 
-  if (mode === "work-english") {
   if (mode === "greetings") {
     return "Introduce yourself and tell me where you are from.";
   }
@@ -563,7 +562,6 @@ function getConversationPrompt(level: LearningLevel, mode?: string, sentence = "
         : "Explain a difficult decision at work and the trade-off behind it.";
   }
 
-  if (mode === "job-interview") {
   if (mode === "interview" || mode === "job-interview") {
     return level === "basic"
       ? "Tell me one strength you have."

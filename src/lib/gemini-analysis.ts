@@ -173,7 +173,6 @@ function stripJsonFences(text: string) {
 function getGeminiModels() {
   return Array.from(
     new Set(
-      [process.env.GEMINI_MODEL, "gemini-2.5-flash-lite", "gemini-2.0-flash"]
       [
         process.env.GEMINI_MODEL,
         "gemini-2.0-flash-lite",
@@ -189,7 +188,6 @@ function getGeminiModels() {
 
 function buildPrompt(request: AnalysisRequest) {
   const learningLevel = normalizeLearningLevel(request.learningLevel);
-  const isFreeConversation = request.mode === "free-conversation";
   const activeModule = request.moduleId ? getModuleById(request.moduleId) : null;
   const isFreeConversation = request.mode === "free-conversation" || request.moduleId === "free-conversation";
   const previousMistakes = (request.previousMistakes ?? []).slice(0, 5);
@@ -197,7 +195,6 @@ function buildPrompt(request: AnalysisRequest) {
     ? "\nFonte da entrada: voz transcrita. Avalie o texto reconhecido, nao invente erro de pronuncia que nao aparece no transcript e nao diga que errou se o transcript esta gramaticalmente correto e adequado ao contexto."
     : "";
   const contextSnippet = request.contextHistory && request.contextHistory.length > 0
-    ? `\nHistorico recente da conversa:\n${request.contextHistory.slice(-4).map((turn) => `${turn.role === "user" ? "Aluno" : "Mr.Crazy"}: "${turn.text}"`).join("\n")}\n`
     ? `\nHistorico recente da conversa (ultimas 2 mensagens):\n${request.contextHistory.slice(-2).map((turn) => `${turn.role === "user" ? "Aluno" : "Mr.Crazy"}: "${turn.text}"`).join("\n")}\n`
     : "";
 
@@ -217,7 +214,6 @@ Entrada atual:
 ${JSON.stringify({
   sentence: request.sentence,
   learningLevel,
-  mode: request.mode ?? "free-conversation",
   mode: request.mode ?? (activeModule ? activeModule.id : "free-conversation"),
   moduleId: activeModule?.id,
   crazyLevel: request.crazyLevel ?? 14,
@@ -322,10 +318,6 @@ async function requestGemini(apiKey: string, prompt: string) {
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.95,
-              topP: 0.95,
-              maxOutputTokens: 450,
-              responseMimeType: "application/json"
               temperature: 0.85,
               topP: 0.9,
               maxOutputTokens: 260,
