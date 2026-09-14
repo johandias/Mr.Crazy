@@ -167,8 +167,6 @@ ${moduleSection}
 
 Regras de Interação ao Vivo:
 1. Aguarde em silêncio até o usuário falar primeiro.
-2. Ao responder a primeira fala do usuário: se for um cumprimento (ex: "oi", "e aí", "tudo bem?"), APENAS CUMPRIMENTE DE VOLTA usando o nome "${nickname}" com simpatia e descontração em português. NUNCA diga "você acertou" nem trate cumprimento como exercício!
-3. Língua principal: Fale SEMPRE em português do Brasil com voz masculina realista. Use o inglês americano APENAS para os exemplos e frases que o aluno deve praticar (a não ser que ele peça explicitamente para conversar em inglês, simulando um diálogo direto).
 2. Ao responder a primeira fala do usuário: se for um cumprimento (ex: "oi", "e aí", "tudo bem?"), APENAS CUMPRIMENTE DE VOLTA usando o nome "${nickname}" com simpatia e descontração em português (ou em inglês se estiver no modo Conversação Livre). NUNCA diga "você acertou" nem trate cumprimento como exercício!
 3. Língua principal: Fale em português do Brasil com voz masculina realista para ensinar e apoiar. Se estiver no modo Conversação Livre ou se o aluno pedir para falar em inglês, converse diretamente em inglês americano.
 4. Técnicas físicas de pronúncia: quando o aluno tiver dificuldade com sons americanos (TH, R retroflexo, Dark L, consoantes mudas), dê a dica física curta de boca e língua em português.
@@ -180,9 +178,10 @@ export function buildRealtimeSession(
   levelValue: unknown,
   modeValue: unknown,
   profile?: Partial<UserProfile> | null,
-  modelName: string = "gpt-4o-mini-realtime-preview",
+  modelName: string = "gpt-realtime-2.1-mini",
   moduleIdValue?: unknown
 ) {
+  const isGptRealtime = modelName.startsWith("gpt-realtime");
   return {
     type: "realtime",
     model: modelName,
@@ -190,7 +189,7 @@ export function buildRealtimeSession(
     audio: {
       input: {
         transcription: {
-          model: "whisper-1",
+          model: isGptRealtime ? "gpt-realtime-whisper" : "whisper-1",
           prompt: "Hello, how are you? I'm good. Let's practice. What does this mean? Could you help me with this? Nice to meet you. Conversa em português e frases de inglês do dia a dia."
         },
         turn_detection: {

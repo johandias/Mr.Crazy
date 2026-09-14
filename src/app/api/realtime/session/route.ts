@@ -13,6 +13,9 @@ const MAX_SDP_LENGTH = 120_000;
 let cachedWorkingModel: string | null = null;
 
 const DEFAULT_REALTIME_MODELS = [
+  "gpt-realtime-2.1-mini",
+  "gpt-realtime-mini",
+  "gpt-realtime-2.1",
   "gpt-4o-mini-realtime-preview",
   "gpt-4o-realtime-preview",
   "gpt-4o-mini-realtime-preview-2024-12-17",
@@ -60,18 +63,6 @@ export async function POST(request: Request) {
     }
 
     const url = new URL(request.url);
-    const session = buildRealtimeSession(
-      url.searchParams.get("level"),
-      url.searchParams.get("mode"),
-      user,
-      "gpt-4o-mini-realtime-preview",
-      url.searchParams.get("moduleId")
-    );
-
-    const formData = new FormData();
-    formData.set("sdp", sdp);
-    formData.set("session", JSON.stringify(session));
-
     const safetyIdentifier = createHash("sha256")
       .update(user?.email || sessionUser.email || "mr-crazy-authenticated-user")
       .digest("hex");
@@ -96,7 +87,7 @@ export async function POST(request: Request) {
 
     let response: Response | null = null;
     let responseBody = "";
-    let usedModel = candidateModels[0] || "gpt-4o-mini-realtime-preview";
+    let usedModel = candidateModels[0] || "gpt-realtime-2.1-mini";
 
     try {
       // Itera sobre os modelos candidatos suportados pelo endpoint GA oficial da OpenAI (/v1/realtime/calls)
@@ -104,10 +95,17 @@ export async function POST(request: Request) {
         if (controller.signal.aborted) break;
         usedModel = candidate;
 
-        const sessionWithModel = { ...session, model: candidate };
+        const candidateSession = buildRealtimeSession(
+          url.searchParams.get("level"),
+          url.searchParams.get("mode"),
+          user,
+          candidate,
+          url.searchParams.get("moduleId")
+        );
+
         const formData = new FormData();
         formData.set("sdp", sdp);
-        formData.set("session", JSON.stringify(sessionWithModel));
+        formData.set("session", JSON.stringify(candidateSession));
 
         const res = await fetch("https://api.openai.com/v1/realtime/calls", {
           method: "POST",
@@ -129,8 +127,15 @@ export async function POST(request: Request) {
         }
 
         // Se o modelo não foi encontrado na conta, tenta o próximo candidato
-        if (res.status === 404 && (body.includes("model_not_found") || body.includes("does not exist"))) {
-          console.warn(`[Realtime] Model '${candidate}' not found on account, trying next candidate...`);
+        const isModelNotFound =
+          (res.status === 404 || res.status === 400) &&
+          (body.includes("model_not_found") ||
+           body.includes("does not exist") ||
+           body.includes("do not have access to it") ||
+           body.includes("not supported with the current model"));
+
+        if (isModelNotFound) {
+          console.warn(`[Realtime] Model '${candidate}' not available on account, trying next candidate...`);
           continue;
         }
 

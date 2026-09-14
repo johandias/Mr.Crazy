@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { Settings, TimerReset, ShieldCheck } from "lucide-react";
+import { Settings, TimerReset, Flame, ShieldCheck } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 
 interface AppShellProps {
@@ -35,6 +35,14 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
         <Link className="brand-mark" href="/practice" aria-label="Prática Mr.Crazy">
           <span className="brand-pulse" />
           Mr.Crazy
+          <img
+            src="/assets/character/mr_crazy_avatar_clean.png"
+            alt="Mr.Crazy"
+            className="brand-avatar-pixel"
+            width={28}
+            height={28}
+          />
+          <span className="brand-title-text">Mr.Crazy</span>
         </Link>
         <nav className="top-nav" aria-label="Navegação principal">
           <Link href="/practice">Praticar</Link>
@@ -54,6 +62,7 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
           ) : null}
           <span className="streak-pill">
             <TimerReset size={15} />
+            <Flame size={15} className="streak-flame-icon" />
             7d
           </span>
           <Link className="icon-link" href="/settings" aria-label="Configurações e Perfil">

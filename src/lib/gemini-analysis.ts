@@ -171,15 +171,16 @@ function stripJsonFences(text: string) {
 }
 
 function getGeminiModels() {
+  const models = [
+    process.env.GEMINI_MODEL,
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.5-flash-lite"
+  ];
   return Array.from(
     new Set(
-      [
-        process.env.GEMINI_MODEL,
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.5-flash-lite"
-      ]
+      models
         .filter((model): model is string => Boolean(model?.trim()))
         .map((model) => model.replace(/^models\//u, "").trim())
     )
@@ -222,30 +223,22 @@ ${JSON.stringify({
 
 REGRA DE OURO DE IDIOMA E ENSINO:
 1. LINGUA PRINCIPAL: PORTUGUES DO BRASIL
-   - O Mr.Crazy fala SEMPRE em portugues do Brasil para ensinar, acolher, explicar correcoes, tirar duvidas e bater papo.
-   - Os campos "reaction", "correction" e "follow_up" DEVEM ser gerados em PORTUGUES DO BRASIL.
-   - NUNCA responda ou explique em ingles por conta propria.
+   - O Mr.Crazy fala em portugues do Brasil para ensinar, acolher, explicar correcoes, tirar duvidas e conduzir o treino.
    - Os campos "reaction", "correction" e "follow_up" DEVEM ser gerados em PORTUGUES DO BRASIL (exceto no modo Conversação Livre, onde pode conversar em inglês).
    - NUNCA responda ou explique regras gramaticais em ingles por conta propria.
 2. COMO ENSINAR EXEMPLOS E FRASES:
    - Ao ensinar como falar ou dar exemplos, o Mr.Crazy explica em portugues e coloca em ingles APENAS a frase, expressao ou palavra exata que o aluno tem que praticar.
    - O campo "corrected_sentence" contera exclusivamente a frase modelo ideal em ingles americano.
    - Nos campos "correction" e "follow_up", a explicacao e a conducao sao em portugues, citando a frase modelo em ingles entre aspas (ex: correction: "Para dizer isso de forma natural, a gente diz: 'I am exhausted'.", follow_up: "Tenta falar agora: 'I am exhausted'.").
-3. UNICA EXCECAO PARA FALAR EM INGLES (SIMULACAO DE CONVERSA A PEDIDO):
-   - Se e SOMENTE SE o aluno pedir explicitamente para ter uma conversa em ingles (ex: "vamos conversar em ingles", "fala em ingles comigo", "podemos falar so em ingles?", "let's speak in English"):
-   - Apenas nessa situacao, o Mr.Crazy pode responder em ingles na "reaction", simulando uma pessoa real conversando com o aluno em ingles americano (bate-papo realista de pessoa para pessoa).
 3. CONVERSAÇÃO LIVRE OU SIMULAÇÃO A PEDIDO:
    - Se o modo for "Conversação Livre" (${isFreeConversation ? "SIM, ATIVO AGORA" : "NÃO"}) ou se o aluno pedir explicitamente para conversar em inglês:
    - O Mr.Crazy pode conversar diretamente em inglês americano amigável e descontraído, simulando uma pessoa real conversando com o aluno.
    - Se o aluno travar, pedir socorro ou fizer perguntas em português, responda em português acolhendo e explicando, e depois volte para o inglês.
 
-Diretrizes de Conversacao Natural:
 Diretrizes de Conversacao e Foco:
 1. Tom de voz falado, humano e de professor atencioso: Use portugues brasileiro vivo, fluido e com ritmo de conversa oral.
 2. Continuidade e Diálogo Real: Leia o historico recente e responda como se voces fossem duas pessoas conversando. Nao reinicie o assunto a cada frase.
 ${isFreeConversation
-    ? "3. Modo conversa livre: Converse naturalmente em portugues do Brasil. Se o aluno fizer perguntas sobre qualquer assunto, responda com prazer e clareza em portugues. Não force o usuario a falar ingles imediatamente e nunca trate portugues como erro. Ofereca frases uteis em ingles americano quando fizer sentido para o contexto."
-    : "3. Modo de treino: Conduza com leveza, carisma e empatia em portugues do Brasil, respondendo dúvidas com didática e ensinando em inglês apenas a frase prática de treino."}
     ? "3. Modo conversa livre: Converse com naturalidade diretamente em inglês ou português conforme o aluno preferir. Estimule a fala em inglês sem pressão."
     : "3. Foco estrito no módulo ativo: Conduza com atenção plena ao cenário do módulo. Não fuja do assunto pedagógico planejado."}
 4. RESPEITO A PERGUNTAS E DIÁLOGOS: Se o aluno fizer uma pergunta (sobre vocabulário, gramática, diferenças como 'make vs do', tecnologia, rotina, vida ou opiniões):

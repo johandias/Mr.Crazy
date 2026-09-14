@@ -19,6 +19,8 @@ type EvaluateRequestBody = {
   contextHistory?: Array<{ role: string; text: string }>;
   mistakes?: string[];
   completedMissions?: string[];
+  isExam?: boolean;
+  confusionCount?: number;
 };
 
 function getGeminiApiKey(): string | null {
@@ -51,8 +53,10 @@ export async function POST(request: Request) {
 
     const currentModule = getModuleById(moduleId);
     const turns = Math.max(1, body.turns || 1);
+    const isExam = Boolean(body.isExam);
+    const confusionCount = Math.max(0, body.confusionCount || 0);
     const mistakes = Array.isArray(body.mistakes) ? body.mistakes : [];
-    const context = Array.isArray(body.contextHistory) ? body.contextHistory.slice(-2) : [];
+    const context = Array.isArray(body.contextHistory) ? body.contextHistory.slice(-10) : [];
     const completedMissions = Array.isArray(body.completedMissions) ? body.completedMissions : [];
 
     const apiKey = getGeminiApiKey();
@@ -70,10 +74,42 @@ export async function POST(request: Request) {
     if (apiKey) {
       try {
         const conversationSnippet = context
-          .map((m) => `${m.role === "user" ? "Aluno" : "Mr. Crazy"}: "${m.text}"`)
+          .map((m) => `${m.role === "user" ? "Aluno" : currentModule.examNpc.name}: "${m.text}"`)
           .join("\n");
 
-        const prompt = `Você é o Mr. Crazy, o professor de inglês mais carismático, acelerado e motivador do Brasil!
+        const prompt = isExam
+          ? `Você é o avaliador oficial da PROVA PRÁTICA DE INGLÊS do curso Mr. Crazy!
+O aluno acaba de realizar a prova do módulo comunicando-se diretamente com o avatar:
+- Módulo: "${currentModule.title}" (${currentModule.levelBadge})
+- Examinador: "${currentModule.examNpc.name}" (${currentModule.examNpc.rolePt})
+- Cenário: "${currentModule.scenario}"
+- Objetivo do Aluno: "${currentModule.examNpc.scenarioGoal}"
+
+Dados da Prova:
+- Total de falas do aluno: ${turns}
+- Vezes em que o examinador NÃO ENTENDEU (ficou com cara de confuso): ${confusionCount}
+- Diálogo realizado:
+${conversationSnippet || "(Diálogo prático em inglês)"}
+
+REGRAS DE PONTUAÇÃO (Escala 0 a 100):
+- Se a nota final for MENOR que 60 (equivalente a < 6.0), o aluno é REPROVADO.
+- Se a nota for 60 ou mais (>= 6.0), o aluno é APROVADO.
+- Se o aluno falou em português, não conseguiu se comunicar ou teve muitas confusões, a nota DEVE ser abaixo de 60.
+- Se conseguiu cumprir o objetivo em inglês, atribua de 60 a 100 baseado na clareza e vocabulário.
+
+Responda em formato JSON estrito:
+{
+  "overall_score": número inteiro de 0 a 100,
+  "pronunciation_score": número inteiro de 0 a 100,
+  "grammar_score": número inteiro de 0 a 100,
+  "fluency_score": número inteiro de 0 a 100,
+  "performance_level": "Bom",
+  "summary_feedback": "Mensagem avaliativa direta indicando se foi aprovado ou reprovado (nota mínima 6.0), o que o avatar compreendeu e o que precisa ser ajustado.",
+  "strengths": ["Ponto forte 1", "Ponto forte 2"],
+  "improvement_areas": ["Ponto de melhoria 1", "Ponto de melhoria 2"]
+}
+Observação: performance_level deve ser exatamente um destes: "Iniciante", "Em Desenvolvimento", "Bom", "Excelente" ou "Dominado". Responda apenas com JSON puro.`
+          : `Você é o Mr. Crazy, o professor de inglês mais carismático e motivador do Brasil!
 Você acabou de concluir uma sessão de treino prático com seu aluno no módulo de conversação:
 - Módulo: "${currentModule.title}" (${currentModule.levelBadge})
 - Cenário: "${currentModule.subtitle}" - ${currentModule.description}
@@ -112,8 +148,8 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
                 body: JSON.stringify({
                   contents: [{ role: "user", parts: [{ text: prompt }] }],
                   generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 350,
+                    temperature: 0.6,
+                    maxOutputTokens: 380,
                     responseMimeType: "application/json",
                     thinkingConfig: { thinkingBudget: 0 }
                   }
@@ -131,16 +167,16 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
                 const parsed = JSON.parse(stripJsonFences(textContent));
                 if (typeof parsed.overall_score === "number") {
                   evaluationData = {
-                    overall_score: Math.min(100, Math.max(50, Math.round(parsed.overall_score))),
-                    pronunciation_score: Math.min(100, Math.max(50, Math.round(parsed.pronunciation_score || 85))),
-                    grammar_score: Math.min(100, Math.max(50, Math.round(parsed.grammar_score || 82))),
-                    fluency_score: Math.min(100, Math.max(50, Math.round(parsed.fluency_score || 84))),
+                    overall_score: Math.min(100, Math.max(0, Math.round(parsed.overall_score))),
+                    pronunciation_score: Math.min(100, Math.max(0, Math.round(parsed.pronunciation_score || 75))),
+                    grammar_score: Math.min(100, Math.max(0, Math.round(parsed.grammar_score || 72))),
+                    fluency_score: Math.min(100, Math.max(0, Math.round(parsed.fluency_score || 74))),
                     performance_level: ["Iniciante", "Em Desenvolvimento", "Bom", "Excelente", "Dominado"].includes(parsed.performance_level)
                       ? parsed.performance_level
                       : "Bom",
-                    summary_feedback: String(parsed.summary_feedback || `Sensacional treino no módulo ${currentModule.title}! Você encarou a conversa com energia. Keep pushing!`),
-                    strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 3) : ["Coragem de falar", "Boa compreensão do cenário"],
-                    improvement_areas: Array.isArray(parsed.improvement_areas) ? parsed.improvement_areas.slice(0, 3) : ["Praticar mais conectivos", "Ajustar preposições"]
+                    summary_feedback: String(parsed.summary_feedback || `Avaliação concluída no módulo ${currentModule.title}.`),
+                    strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 3) : ["Participou da conversa", "Compreensão geral"],
+                    improvement_areas: Array.isArray(parsed.improvement_areas) ? parsed.improvement_areas.slice(0, 3) : ["Aumentar vocabulário", "Mais precisão gramatical"]
                   };
                   break;
                 }
@@ -157,31 +193,59 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
 
     // Heurística de fallback em caso de ausência ou falha de LLM
     if (!evaluationData) {
-      const calculatedScore = Math.min(98, Math.max(65, 70 + turns * 3 - mistakes.length * 4));
+      let calculatedScore: number;
+      if (isExam) {
+        // Na prova: cada confusão retira 15 pontos; cada turno adiciona 18 pontos (base 30)
+        calculatedScore = Math.min(100, Math.max(20, 35 + turns * 16 - confusionCount * 18));
+      } else {
+        calculatedScore = Math.min(98, Math.max(65, 70 + turns * 3 - mistakes.length * 4));
+      }
+
       const performanceLevel =
-        calculatedScore >= 92 ? "Dominado" :
-        calculatedScore >= 84 ? "Excelente" :
-        calculatedScore >= 74 ? "Bom" :
-        calculatedScore >= 60 ? "Em Desenvolvimento" : "Iniciante";
+        calculatedScore >= 90 ? "Dominado" :
+        calculatedScore >= 80 ? "Excelente" :
+        calculatedScore >= 60 ? "Bom" :
+        calculatedScore >= 45 ? "Em Desenvolvimento" : "Iniciante";
+
+      const score10 = (calculatedScore / 10).toFixed(1);
+
+      const feedback = isExam
+        ? calculatedScore >= 60
+          ? `Parabéns! Você foi APROVADO na prova com nota ${score10}/10.0! O avatar ${currentModule.examNpc.name} compreendeu bem seus pedidos. Etapa liberada com sucesso!`
+          : `Você obteve nota ${score10}/10.0. Como a nota mínima para aprovação é 6.0, você foi REPROVADO nesta tentativa. Revise os conceitos com o Mr. Crazy e tente novamente!`
+        : `Great job, campeão! Você completou ${turns} rodadas intensas no módulo ${currentModule.title}. O segredo do inglês não é perfeição, é consistência e ousadia!`;
 
       evaluationData = {
         overall_score: calculatedScore,
-        pronunciation_score: Math.min(100, calculatedScore + 2),
-        grammar_score: Math.max(50, calculatedScore - mistakes.length * 2),
-        fluency_score: Math.min(96, 68 + turns * 4),
+        pronunciation_score: Math.min(100, Math.max(20, calculatedScore + (isExam ? 0 : 2))),
+        grammar_score: Math.max(20, calculatedScore - confusionCount * 6),
+        fluency_score: Math.min(96, Math.max(20, calculatedScore + (turns > 3 ? 4 : -5))),
         performance_level: performanceLevel,
-        summary_feedback: `Great job, campeão! Você completou ${turns} rodadas intensas no módulo ${currentModule.title}. O segredo do inglês não é perfeição, é consistência e ousadia!`,
-        strengths: [
-          "Enfrentou o cenário sem medo de errar",
-          `Praticou ${turns} rodadas com consistência no vocabulário de ${currentModule.title}`,
-          "Excelente assimilação das dicas do Mr. Crazy"
-        ],
-        improvement_areas: [
-          mistakes.length > 0 ? `Atenção aos deslizes de ${mistakes[0]}` : "Continue expandindo respostas mais longas",
-          "Revisite as frases-chave para ganhar mais naturalidade"
-        ]
+        summary_feedback: feedback,
+        strengths: isExam
+          ? [
+              "Enfrentou o diálogo sem auxílio em português",
+              `Manteve ${turns} turnos de interação direta em inglês`,
+              "Focou na missão do cenário"
+            ]
+          : [
+              "Enfrentou o cenário sem medo de errar",
+              `Praticou ${turns} rodadas com consistência no vocabulário de ${currentModule.title}`,
+              "Excelente assimilação das dicas do Mr. Crazy"
+            ],
+        improvement_areas: isExam
+          ? [
+              confusionCount > 0 ? `Evite pausas e palavras em português (${confusionCount} dúvidas do avatar)` : "Fale com ritmo mais natural",
+              "Estruture respostas completas para passar segurança"
+            ]
+          : [
+              mistakes.length > 0 ? `Atenção aos deslizes de ${mistakes[0]}` : "Continue expandindo respostas mais longas",
+              "Revisite as frases-chave para ganhar mais naturalidade"
+            ]
       };
     }
+
+    const isApproved = evaluationData.overall_score >= 60;
 
     const evaluationRecord: ModuleEvaluationRecord = {
       user_email: userEmail,
@@ -197,17 +261,30 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
       evaluated_at: new Date().toISOString()
     };
 
-    // Atualiza progresso do módulo para concluído (100%)
+    // Atualiza progresso do módulo:
+    // Se for prova e reprovado (nota < 6.0), NÃO marca completed!
     const memoryKey = getMemoryKey(userEmail, moduleId);
     const existingProg = memoryProgress.get(memoryKey);
     const updatedTurns = (existingProg?.total_turns ?? 0) + turns;
-    const allMissions = Array.from(new Set([...(existingProg?.completed_missions ?? []), ...completedMissions, currentModule.mission]));
+    const allMissions = isApproved
+      ? Array.from(new Set([...(existingProg?.completed_missions ?? []), ...completedMissions, currentModule.mission]))
+      : (existingProg?.completed_missions ?? []);
+
+    const progressPercent = isApproved
+      ? 100
+      : Math.max(existingProg?.progress_percent ?? 50, 75);
+
+    const progressStatus = isApproved
+      ? "completed"
+      : existingProg?.status === "completed"
+      ? "completed"
+      : "in_progress";
 
     const progressRecord: ModuleProgressRecord = {
       user_email: userEmail,
       module_id: moduleId,
-      status: "completed",
-      progress_percent: 100,
+      status: progressStatus,
+      progress_percent: progressPercent,
       total_turns: updatedTurns,
       completed_missions: allMissions,
       last_practiced_at: new Date().toISOString()
@@ -241,8 +318,8 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
               user_id: session.userId || null,
               user_email: userEmail,
               module_id: moduleId,
-              status: "completed",
-              progress_percent: 100,
+              status: progressRecord.status,
+              progress_percent: progressRecord.progress_percent,
               total_turns: updatedTurns,
               completed_missions: allMissions,
               last_practiced_at: progressRecord.last_practiced_at,
@@ -259,11 +336,12 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
     return NextResponse.json({
       ok: true,
       evaluation: evaluationRecord,
-      progress: progressRecord
+      progress: progressRecord,
+      isApproved,
+      score10: +(evaluationData.overall_score / 10).toFixed(1)
     });
   } catch (error) {
     console.error("[Module Evaluate POST] Error:", error);
     return NextResponse.json({ error: "Erro ao gerar avaliação do módulo." }, { status: 500 });
   }
 }
-

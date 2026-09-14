@@ -39,6 +39,7 @@ import {
 } from "@/lib/modules";
 import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
 import { ModuleEvaluationModal } from "@/components/ModuleEvaluationModal";
+import { ExamModal } from "@/components/exam/ExamModal";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
 import {
   connectRealtime,
@@ -442,6 +443,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [moduleTurnsCount, setModuleTurnsCount] = useState(0);
   const [currentEvaluation, setCurrentEvaluation] = useState<ModuleEvaluationItem | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<LearningLevel>("basic");
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("rpg");
   const [activeGesture, setActiveGesture] = useState<CharacterGesture>("idle");
@@ -1469,6 +1471,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           </button>
           <button
             type="button"
+            className="stage-exam-action-btn"
+            onClick={() => setIsExamModalOpen(true)}
+            title={`Fazer a prova do módulo 100% em inglês com o avatar ${activeModule.examNpc.name}`}
+          >
+            <Award size={14} />
+            <span>Prova da Etapa</span>
+          </button>
+          <button
+            type="button"
             className="module-evaluate-action-btn"
             onClick={handleEvaluateModule}
             disabled={isEvaluating}
@@ -1855,6 +1866,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           onNextModule={() => {
             setCurrentEvaluation(null);
             setIsSelectingModule(true);
+          }}
+        />
+
+        <ExamModal
+          isOpen={isExamModalOpen}
+          moduleId={selectedModuleId}
+          onClose={() => setIsExamModalOpen(false)}
+          onSuccessApproved={(evalItem) => {
+            setCurrentEvaluation(evalItem);
           }}
         />
       </main>
