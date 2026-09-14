@@ -146,7 +146,7 @@ export function calibrateAttemptMetrics({
     return {
       score: Math.max(levelFloor[learningLevel], Math.min(98, Math.round(rawScore))),
       xpDelta: Math.max(14, Math.min(20, rawXpDelta)),
-      crazyDelta: Math.min(-2, rawCrazyDelta)
+      crazyDelta: Math.min(-10, -Math.abs(rawCrazyDelta || 12))
     };
   }
 
@@ -157,17 +157,17 @@ export function calibrateAttemptMetrics({
     advanced: { minor: 79, medium: 70, major: 61 }
   };
   const rawAdjustment = Math.max(-3, Math.min(3, Math.round(rawScore) - 80));
-  const score = scoreBase[learningLevel][severity] + rawAdjustment - (repeated ? 3 : 0);
+  const score = scoreBase[learningLevel][severity] + rawAdjustment - (repeated ? 5 : 0);
   const crazyBase: Record<LearningLevel, Record<MistakeSeverity, number>> = {
-    basic: { minor: 2, medium: 4, major: 7 },
-    intermediate: { minor: 3, medium: 6, major: 9 },
-    advanced: { minor: 5, medium: 8, major: 12 }
+    basic: { minor: 8, medium: 14, major: 20 },
+    intermediate: { minor: 10, medium: 16, major: 24 },
+    advanced: { minor: 12, medium: 20, major: 28 }
   };
 
   return {
-    score: Math.max(45, Math.min(89, score)),
-    xpDelta: Math.max(6, Math.min(13, rawXpDelta)),
-    crazyDelta: Math.max(1, Math.min(14, crazyBase[learningLevel][severity] + (repeated ? 2 : 0)))
+    score: Math.max(40, Math.min(89, score)),
+    xpDelta: Math.max(4, Math.min(10, rawXpDelta)),
+    crazyDelta: Math.max(8, Math.min(32, crazyBase[learningLevel][severity] + (repeated ? 10 : 0)))
   };
 }
 
@@ -245,41 +245,40 @@ function pickVariant(values: readonly string[]) {
 }
 
 const positiveReactions = [
-  "Boa, essa saiu natural.",
-  "Agora sim, frase limpa.",
-  "Aí sim, sem gambiarra gramatical.",
-  "Essa ficou redonda.",
-  "Funcionou bem, olha o milagre.",
-  "Mandou certo, continua nesse ritmo.",
-  "Frase clara e útil.",
-  "Gostei, isso dá para usar na vida real.",
-  "Sem drama nessa, ficou boa.",
-  "Até que enfim uma resposta alinhada."
+  "ALELUIA! Finalmente uma frase limpa sem gambiarra!",
+  "AÍ SIM! Minha pressão arterial até baixou agora!",
+  "GLÓRIA A DEUS! Viu só como você consegue quando para de inventar moda?!",
+  "Sensacional! Até que enfim você me ouviu e mandou bem!",
+  "Agora sim! Isso é inglês de verdade, mandou com autoridade!",
+  "MILAGRE! Saiu perfeito, sem vícios e no ritmo certo!",
+  "Aí eu dou valor! Destravou a fala como gente grande!",
+  "Perfeito! Se continuar acertando assim eu não vou enfartar hoje!"
 ];
 
 const positiveCorrections = [
-  "Estrutura boa para essa situação.",
-  "Gramática no lugar e vocabulário natural.",
-  "Frase fluida e correta para o dia a dia.",
-  "Pode usar essa sem inventar moda.",
-  "Zero ressalvas importantes para esse nível."
+  "Estrutura impecável, direta e sem enrolação.",
+  "Gramática no lugar e vocabulário de nativo.",
+  "Frase fluida e correta, é exatamente assim que se fala!",
+  "Pode usar essa com orgulho no dia a dia.",
+  "Zero ressalvas! Orgulho do professor!"
 ];
 
 const wrongIntros = [
-  "Opa, quase lá!",
-  "Peraí, peraí!",
-  "Calma lá!",
-  "Mandou bem na coragem, mas",
-  "Peguei você no pulo!",
-  "Não foi dessa vez, mas a gente ajusta rápido:",
-  "Quase passou batido, só que"
+  "NÃÃO! Que barbaridade foi essa?! Para tudo!",
+  "Pelo amor dos meus filhinhos! Você tá inventando moda em inglês?!",
+  "Ai meus neurônios! Não acredito que você mandou uma gafe dessa!",
+  "Tá de sacanagem comigo?! Que gambiarra gramatical horrorosa!",
+  "Para o mundo que eu quero descer! Olha o erro aí gritando!",
+  "Meus olhos e ouvidos estão sangrando com essa frase! Presta atenção!",
+  "Acorda pra vida, criatura! Você sabe muito bem que não se fala assim!"
 ];
 
 const repeatedWrongIntros = [
-  "Opa, esse mesmo tropeço de novo! Vamos fixar:",
-  "Calma lá, lembra do detalhe que vimos agora há pouco:",
-  "Atenção redobrada aqui, é o mesmo ponto:",
-  "Respira fundo, foco nessa forma que a gente acabou de ver:"
+  "DE NOVO O MESMO ERRO?! Você tá querendo me enlouquecer de vez?!",
+  "EU NÃO ACREDITO! Eu acabei de te dar a bronca desse exato ponto e você repetiu?!",
+  "Tá de brincadeira com a minha cara?! Travou no mesmo erro pela segunda vez!",
+  "Foco, criatura! Se você errar essa mesma regra de novo eu vou arrancar meus cabelos!",
+  "Chega de teimosia! Já é a terceira vez que você comete esse mesmo deslize absurdo!"
 ];
 
 function getPositiveReaction() {

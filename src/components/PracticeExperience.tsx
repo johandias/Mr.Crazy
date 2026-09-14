@@ -807,13 +807,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   ) => {
     setAnalysis(result);
     setAnalysisSource(source);
-    setCrazyLevel((current) => clampCrazyLevel(current + result.crazy_delta));
+    const nextLevel = clampCrazyLevel(crazyLevel + result.crazy_delta);
+    setCrazyLevel(nextLevel);
     setXp((current) => current + result.xp_delta);
 
     if (!result.correct) {
       setMistakes((current) => [result.mistake_type, ...current].slice(0, 12));
-      const errorGestures: CharacterGesture[] = ["watergun", "smoke", "finger"];
-      triggerGesture(errorGestures[Math.floor(Math.random() * errorGestures.length)]);
+      if (nextLevel >= 50) {
+        triggerGesture(Math.random() > 0.35 ? "finger" : "smoke");
+      } else {
+        const errorGestures: CharacterGesture[] = ["watergun", "smoke", "finger"];
+        triggerGesture(errorGestures[Math.floor(Math.random() * errorGestures.length)]);
+      }
     } else {
       triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
     }

@@ -380,3 +380,4 @@ export function PixelNpcCharacter({
     </div>
   );
 }
+
