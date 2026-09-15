@@ -1946,6 +1946,23 @@ meter {
   width: 100%;
 }
 
+.practice-header-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.practice-header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.practice-header-stats-row {
+  display: flex;
+  align-items: center;
+}
+
 .practice-header-bar .session-header {
   flex: 1;
 }
@@ -6407,6 +6424,8 @@ meter {
   grid-template-columns: 1fr auto;
   gap: 24px;
   align-items: center;
+  position: relative;
+  padding: 6px 4px 12px;
   width: 100%;
 }
 
@@ -7948,6 +7967,7 @@ meter {
 
 /* Responsiveness */
 @media (max-width: 1024px) {
+  .map-header-container {
   .map-desktop-header-content {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -7986,6 +8006,9 @@ meter {
   }
 }
 
+@media (max-width: 640px) {
+  .map-hero-title {
+    font-size: 1.45rem;
 @media (max-width: 768px) {
   /* No celular: ativa header ultra-compacto em linha única (sem rolagem e sem texto cortado no topo) */
   .map-mobile-compact-header {
@@ -7999,25 +8022,36 @@ meter {
     border-radius: 12px;
     margin-bottom: 6px;
   }
+  .map-hero-subtitle {
+    font-size: 0.84rem;
   .map-desktop-header-content {
     display: none !important;
   }
+  .map-stats-bar {
   .map-mobile-title-col {
     display: flex;
     align-items: baseline;
     gap: 8px;
   }
+  .map-stat-chip {
+    font-size: 0.74rem;
+    padding: 4px 10px;
   .map-mobile-heading {
     font-size: 0.95rem;
     font-weight: 800;
     color: #fff;
     margin: 0;
   }
+  .stage-drawer-panel {
+    max-width: 100%;
   .map-mobile-stage-badge {
     font-size: 0.7rem;
     color: #FBBF24;
     font-weight: 600;
   }
+  .stage-horizontal-modal {
+    width: 96vw;
+    max-height: 90vh;
   .map-mobile-stats-row {
     display: flex;
     align-items: center;
@@ -8059,12 +8093,139 @@ meter {
     display: none !important;
   }
 
+  /* Mapa responsivo: enquadramento proporcional e navegação fluida */
+  .map-scroll-viewport {
+    width: 100%;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    touch-action: pan-x;
+  }
+
+  .map-canvas-stage {
+    height: 100% !important;
+    min-width: 1100px !important;
+    width: auto !important;
+    aspect-ratio: 16 / 9 !important;
+  }
+
+  /* Cabeçalho de Prática Responsivo e Compacto no Mobile */
+  .practice-main {
+    padding: 6px 8px 76px !important;
+    gap: 8px !important;
+  }
+
+  .practice-header-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .practice-header-nav-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+
+  .active-module-pill-btn {
+    flex: 1 !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 110px) !important;
+    padding: 5px 10px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .practice-header-actions-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .stage-exam-action-btn {
+    padding: 5px 10px !important;
+    font-size: 0.74rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .desktop-only-btn {
+    display: none !important;
+  }
+
+  .practice-header-stats-row {
+    width: 100% !important;
+  }
+
+  .practice-header-bar .session-header,
+  .session-header {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 5px !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding: 2px 0 !important;
+  }
+
+  .session-header::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .session-stat,
+  .crazy-meter {
+    flex-shrink: 0 !important;
+    min-height: 26px !important;
+    height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 0.74rem !important;
+    border-radius: 9999px !important;
+  }
+
+  .session-stat svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .hamburger-btn {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+  }
+
+  .conversation-panel.clean-conversation {
+    max-height: 36vh !important;
+  }
+
+  .clean-stage {
+    padding: 6px 0 !important;
+    gap: 6px !important;
+  }
+
+  .quick-text-input-bar {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
   /* Previne sobreposição e quebra estranha de letras no card do checkpoint ("letras embaixo de letras") */
   .checkpoint-card-pill {
+    min-width: 135px;
+    max-width: 175px;
+    width: max-content;
     min-width: 125px;
     max-width: 195px;
     width: auto;
     padding: 5px 8px;
+    background: #111518;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
     white-space: nowrap;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9);
   }
@@ -8073,6 +8234,7 @@ meter {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 110px;
     max-width: 120px;
   }
   .checkpoint-card-status-row {
@@ -8088,11 +8250,15 @@ meter {
     gap: 4px;
   }
   .checkpoint-direct-start-btn {
+    font-size: 0.68rem;
+    padding: 3px 6px;
     font-size: 0.7rem;
     padding: 3px 8px;
     white-space: nowrap;
   }
   .checkpoint-direct-exam-btn {
+    font-size: 0.65rem;
+    padding: 3px 6px;
     font-size: 0.68rem;
     padding: 3px 8px;
     white-space: nowrap;

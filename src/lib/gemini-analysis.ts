@@ -173,10 +173,9 @@ function stripJsonFences(text: string) {
 function getGeminiModels() {
   const models = [
     process.env.GEMINI_MODEL,
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.5-flash-lite"
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-2.5-flash"
   ];
   return Array.from(
     new Set(
@@ -326,10 +325,7 @@ async function requestGemini(apiKey: string, prompt: string) {
               temperature: 0.85,
               topP: 0.9,
               maxOutputTokens: 260,
-              responseMimeType: "application/json",
-              thinkingConfig: {
-                thinkingBudget: 0
-              }
+              responseMimeType: "application/json"
             }
           }),
           signal: controller.signal

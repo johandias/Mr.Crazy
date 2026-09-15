@@ -2,6 +2,7 @@ import type { LearningLevel, VoiceState } from "@/lib/mr-crazy";
 
 type RealtimeServerEvent = {
   type?: string;
+  item_id?: string;
   delta?: string;
   transcript?: string;
   text?: string;
@@ -19,6 +20,7 @@ type RealtimeServerEvent = {
   response?: {
     id?: string;
     status?: string;
+    status_details?: { error?: { message?: string } };
     output?: Array<{
       type?: string;
       role?: string;
@@ -196,7 +198,7 @@ export function getConnectionError(error: unknown) {
 
   if (error instanceof DOMException) {
     if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-      return "Microfone bloqueado. Toque no ícone de cadeado/ajustes do site ao lado do endereço e selecione 'Microfone: Permitir'.";
+      return "Microfone bloqueado. Permita o acesso ao microfone nos ajustes do navegador para falar.";
     }
     if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError" || error.name === "OverconstrainedError") {
       return "Nenhum microfone encontrado. Conecte um fone de ouvido ou verifique se o microfone está ativo no seu aparelho.";
@@ -322,7 +324,7 @@ function setupVisibilityListener() {
       masterMicrophoneStream.getAudioTracks().forEach((track) => {
         // Microfone SÓ fica ativo enquanto o usuário está usando o sistema na tela.
         // Se minimizado, aba trocada ou tela bloqueada, a captação é desativada no hardware.
-        track.enabled = isPageVisible;
+        if (!isPageVisible) track.enabled = false;
       });
     }
   });
@@ -346,7 +348,8 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
     const liveTrack = masterMicrophoneStream.getAudioTracks().find((t) => t.readyState === "live");
     if (liveTrack) {
       liveTrack.enabled = true;
-      return { track: liveTrack, stream: masterMicrophoneStream };
+      const sessionStream = masterMicrophoneStream.clone();
+      return { track: sessionStream.getAudioTracks()[0], stream: sessionStream };
     }
     masterMicrophoneStream = null;
   }
@@ -368,6 +371,7 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
       }
     });
   } catch (err) {
+    if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
     lastError = err;
     console.warn("[Microphone] Falha com restrições avançadas, tentando fallback { audio: true }:", err);
   }
@@ -416,7 +420,8 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
     }
   } catch {}
 
-  return { track, stream };
+  const sessionStream = stream.clone();
+  return { track: sessionStream.getAudioTracks()[0], stream: sessionStream };
 }
 
 export function releasePersistentMicrophoneStream(force = false) {
@@ -488,6 +493,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     const sessionMedia = await getMicrophoneSessionMedia();
     microphone = sessionMedia.track;
     stream = sessionMedia.stream;
+    if (options.signal?.aborted) {
+      microphone.stop();
+      throw new DOMException("Aborted", "AbortError");
+    }
   } catch (error) {
     peer.close();
     if (!isAbortError(error) && !options.signal?.aborted) {
@@ -504,6 +513,12 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   let assistantAudioActive = false;
   let audioPlaying = false;
   let disconnected = false;
+  let responseTimer: number | null = null;
+  const completedTranscripts = new Set<string>();
+  const resumeAudio = () => {
+    if (!disconnected && audio.srcObject) void audio.play().catch(() => {});
+  };
+  window.addEventListener("pointerdown", resumeAudio);
 
   audio.autoplay = true;
   audio.setAttribute("playsinline", "");
@@ -512,11 +527,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     void audio.play().catch(() => {
       // No Safari / iOS, autoplay é adiado pelo navegador até o primeiro toque na tela.
       // NÃO derrubamos a conexão! O áudio é retomado automaticamente no próximo toque.
-      const resume = () => {
-        void audio.play().catch(() => {});
-      };
-      window.addEventListener("touchstart", resume, { once: true, passive: true });
-      window.addEventListener("click", resume, { once: true });
+      options.onError("Toque na tela para liberar o áudio do professor.");
     });
   };
   peer.addTrack(microphone, stream);
@@ -528,7 +539,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   };
 
   const syncMicrophone = () => {
-    const shouldEnable = microphoneEnabled && isPageVisible;
+    const shouldEnable = microphoneEnabled && document.visibilityState !== "hidden" && !assistantAudioActive;
     microphone.enabled = shouldEnable;
     if (masterMicrophoneStream) {
       masterMicrophoneStream.getAudioTracks().forEach((t) => {
@@ -542,15 +553,19 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     syncMicrophone();
   };
 
+  const onVisibility = () => {
+    syncMicrophone();
+    if (document.visibilityState !== "hidden") resumeAudio();
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+
   const localSessionTurns: { role: string; text: string }[] = [];
   const getContextSnapshot = (): { role: string; text: string }[] => {
     const external = options.getRecentContext?.() ?? [];
     if (external.length > 0) {
       return external.slice(-6);
-      return external.slice(-2);
     }
     return localSessionTurns.slice(-6);
-    return localSessionTurns.slice(-2);
   };
 
   const commitAssistantTurn = (explicitText?: string) => {
@@ -593,19 +608,41 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     }
   };
 
+  const clearResponseTimer = () => {
+    if (responseTimer !== null) window.clearTimeout(responseTimer);
+    responseTimer = null;
+  };
+  const returnToListening = () => {
+    clearResponseTimer();
+    clearEchoCooldown();
+    audioPlaying = false;
+    assistantAudioActive = false;
+    activeResponseInProgress = false;
+    syncMicrophone();
+    options.onVoiceState(microphoneEnabled ? "listening" : "idle");
+  };
+  const watchResponse = () => {
+    clearResponseTimer();
+    responseTimer = window.setTimeout(() => {
+      if (disconnected) return;
+      cancelAssistantPlayback();
+      returnToListening();
+      options.onError("A resposta demorou. Pode falar novamente ou reconectar o microfone.");
+    }, 30_000);
+  };
+
   const cancelAssistantPlayback = () => {
     clearInterruptionTimer();
     clearEchoCooldown();
     audioPlaying = false;
     assistantAudioActive = false;
-    audio.muted = true;
-    audio.pause();
+    send({ type: "output_audio_buffer.clear" });
     if (activeResponseInProgress) {
       activeResponseInProgress = false;
       send({ type: "response.cancel" });
     }
     syncMicrophone();
-    options.onVoiceState("listening");
+    returnToListening();
   };
 
   const disconnect = () => {
@@ -614,6 +651,10 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     clearInterruptionTimer();
     clearTranscriptionSafetyTimer();
     clearEchoCooldown();
+    clearResponseTimer();
+    options.signal?.removeEventListener("abort", disconnect);
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pointerdown", resumeAudio);
     activeResponseInProgress = false;
     pendingResponsePayload = null;
     audio.pause();
@@ -626,13 +667,14 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     } catch {}
     try {
       // Silencia a captação sem destruir a faixa no hardware, garantindo que o iOS não volte a pedir permissão
-      microphone.enabled = false;
+      microphone.stop();
     } catch {}
   };
 
   options.signal?.addEventListener("abort", disconnect, { once: true });
   peer.addEventListener("connectionstatechange", () => {
     if (!disconnected && (peer.connectionState === "failed" || peer.connectionState === "disconnected")) {
+      disconnect();
       options.onStatus("failed");
       options.onVoiceState("idle");
       options.onError("A conexão de voz caiu. Use o controle manual enquanto ela é restabelecida.");
@@ -640,6 +682,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   });
 
   channel.addEventListener("message", (message) => {
+    if (disconnected) return;
     let event: RealtimeServerEvent;
     try {
       event = JSON.parse(String(message.data)) as RealtimeServerEvent;
@@ -652,15 +695,15 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         clearTranscriptionSafetyTimer();
         userTranscript = "";
         options.onUserTranscript("", false);
-        options.onVoiceState("transcribing");
+        if (!assistantAudioActive) options.onVoiceState("listening");
         break;
       case "input_audio_buffer.speech_stopped":
         clearInterruptionTimer();
-        options.onVoiceState("transcribing");
+        options.onVoiceState("analyzing");
+        watchResponse();
         clearTranscriptionSafetyTimer();
         transcriptionSafetyTimer = window.setTimeout(() => {
           if (!activeResponseInProgress) {
-            options.onVoiceState("listening");
           }
         }, 3500);
         break;
@@ -675,6 +718,11 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         break;
       case "conversation.item.input_audio_transcription.completed":
         clearTranscriptionSafetyTimer();
+        if (event.item_id && completedTranscripts.has(event.item_id)) break;
+        if (event.item_id) {
+          completedTranscripts.add(event.item_id);
+          if (completedTranscripts.size > 100) completedTranscripts.delete(completedTranscripts.values().next().value!);
+        }
         if (typeof event.transcript === "string") {
           const rawTranscript = event.transcript.trim();
           if (rawTranscript && !isWhisperHallucination(rawTranscript)) {
@@ -693,25 +741,16 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           return;
         }
 
-        // Se o professor estiver falando ou no cooldown de eco acústico, NÃO interrompe o professor!
-        if (activeResponseInProgress || assistantAudioActive || audioPlaying) {
-          console.warn("[Realtime] Descartando áudio captado durante a fala do professor (eco do alto-falante):", candidateText);
-          options.onUserTranscript("", true);
-          return;
-        }
-
         localSessionTurns.push({ role: "user", text: candidateText });
         if (localSessionTurns.length > 12) localSessionTurns.shift();
         options.onUserTranscript(candidateText, true);
-        options.onVoiceState("analyzing");
-        const recentTurns = getContextSnapshot();
-        const instructions = buildTranscriptBoundResponse(candidateText, recentTurns);
-
-        pendingResponsePayload = null;
-        send({
-          type: "response.create",
-          response: { instructions }
-        });
+        // VAD creates the response from audio. Transcription is only a display event,
+        // and may arrive after the assistant has already started answering.
+        break;
+      case "conversation.item.input_audio_transcription.failed":
+        clearTranscriptionSafetyTimer();
+        options.onUserTranscript("", true);
+        options.onError("Não consegui exibir a transcrição deste áudio.");
         break;
       case "response.output_item.added":
         if (assistantTranscript.trim()) {
@@ -720,20 +759,21 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         assistantTranscript = "";
         options.onAssistantTranscript("", false);
         break;
+      case "response.output_audio_transcript.delta":
       case "response.audio_transcript.delta":
         if (typeof event.delta === "string") {
           assistantTranscript += event.delta;
           options.onAssistantTranscript(assistantTranscript, false);
-          options.onVoiceState("speaking");
         }
         break;
+      case "response.output_text.delta":
       case "response.text.delta":
         if (typeof event.delta === "string") {
           assistantTranscript += event.delta;
           options.onAssistantTranscript(assistantTranscript, false);
-          options.onVoiceState("speaking");
         }
         break;
+      case "response.output_audio_transcript.done":
       case "response.audio_transcript.done":
         if (typeof event.transcript === "string" && event.transcript.trim()) {
           assistantTranscript = event.transcript.trim();
@@ -741,8 +781,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         if (assistantTranscript.trim()) {
           commitAssistantTurn(assistantTranscript);
         }
-        options.onVoiceState("speaking");
         break;
+      case "response.output_text.done":
       case "response.text.done":
         if (typeof event.text === "string" && event.text.trim()) {
           assistantTranscript = event.text.trim();
@@ -766,15 +806,16 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         }
         break;
       case "output_audio_buffer.started":
+        clearResponseTimer();
         clearInterruptionTimer();
         clearEchoCooldown();
         audioPlaying = true;
         assistantAudioActive = true;
-        activeResponseInProgress = true;
         // Isola completamente o microfone para impedir eco acústico do alto-falante
         microphone.enabled = false;
         options.onVoiceState("speaking");
         break;
+      case "output_audio_buffer.cleared":
       case "output_audio_buffer.stopped":
         audioPlaying = false;
         if (assistantTranscript.trim()) {
@@ -783,18 +824,14 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         // Cooldown de 600ms após o término do áudio antes de reativar o microfone (evita eco da reverberação)
         clearEchoCooldown();
         echoCooldownTimer = window.setTimeout(() => {
-          assistantAudioActive = false;
-          activeResponseInProgress = false;
-          syncMicrophone();
-          options.onVoiceState("listening");
-        }, 600);
+          returnToListening();
+        }, 200);
         break;
       case "response.created":
         activeResponseInProgress = true;
-        assistantAudioActive = true;
         clearEchoCooldown();
-        // Muta imediatamente no início da resposta
-        microphone.enabled = false;
+        watchResponse();
+        options.onVoiceState("analyzing");
         break;
       case "response.done":
         activeResponseInProgress = false;
@@ -822,9 +859,11 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         if (assistantTranscript.trim()) {
           commitAssistantTurn(assistantTranscript);
         }
-        if (!audioPlaying && !assistantAudioActive) {
-          syncMicrophone();
-          options.onVoiceState("listening");
+        if (!audioPlaying) {
+          returnToListening();
+        }
+        if (event.response?.status === "failed") {
+          options.onError(event.response.status_details?.error?.message || "A IA não conseguiu responder. Tente novamente.");
         }
         break;
       case "error": {
@@ -855,6 +894,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           }
           break;
         }
+        returnToListening();
         options.onError(errorMsg || "A API de voz retornou um erro.");
         break;
       }
@@ -931,8 +971,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     await waitForDataChannel(channel, peer, options.signal);
     if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
-    microphone.enabled = true;
     microphoneEnabled = true;
+    syncMicrophone();
 
     options.onStatus("connected");
     options.onVoiceState("listening");
@@ -943,7 +983,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       interrupt: cancelAssistantPlayback,
       sendText(text: string) {
         const cleanText = text.trim();
-        if (!cleanText) return false;
+        if (!cleanText || disconnected || channel.readyState !== "open" || activeResponseInProgress || audioPlaying) return false;
         if (assistantTranscript.trim()) {
           commitAssistantTurn(assistantTranscript);
         }
@@ -962,6 +1002,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
             content: [{ type: "input_text", text: cleanText }]
           }
         });
+        watchResponse();
+        activeResponseInProgress = true;
         return created && send({
           type: "response.create",
           response: { instructions: buildTranscriptBoundResponse(cleanText, currentContext) }

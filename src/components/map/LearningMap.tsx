@@ -86,19 +86,10 @@ export function LearningMap({
     (p) => p.status === "completed" || p.progress_percent >= 100
   ).length;
 
-  // Detecção de viewport inicial: celular inicia com mais zoom (1.45) para evitar sobreposição
-  // Detecção de viewport inicial: celular inicia com mais zoom (1.45) para foco, desktop largo cabe o mapa todo (1.0)
+  // Detecção de viewport inicial: zoom 1.0 garante proporção perfeita do cenário e checkpoints
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const isMobile = window.innerWidth < 768;
-      const isWide = window.innerWidth >= 1440;
-      if (isMobile) {
-        setZoom(1.45);
-      } else if (isWide) {
-        setZoom(1.0);
-      } else {
-        setZoom(1.05);
-      }
+      setZoom(1.0);
     }
   }, []);
 
@@ -171,10 +162,7 @@ export function LearningMap({
   const handleZoomIn = () => setZoom((prev) => Math.min(1.8, Number((prev + 0.15).toFixed(2))));
   const handleZoomOut = () => setZoom((prev) => Math.max(0.75, Number((prev - 0.15).toFixed(2))));
   const handleResetZoom = () => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    setZoom(isMobile ? 1.45 : 1.05);
-    const isWide = typeof window !== "undefined" && window.innerWidth >= 1440;
-    setZoom(isMobile ? 1.45 : isWide ? 1.0 : 1.05);
+    setZoom(1.0);
   };
 
   // Determina o status de cada etapa (locked, current, completed, available)

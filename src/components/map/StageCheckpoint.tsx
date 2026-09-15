@@ -116,6 +116,20 @@ export function StageCheckpoint({
             {isLocked && <Lock size={11} className="status-lock-mini" />}
             <span className="status-label">{getStatusText()}</span>
           </div>
+
+          {!isLocked && (
+            <button
+              type="button"
+              className="checkpoint-details-link"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(module);
+              }}
+              title="Ver detalhes dos conceitos"
+            >
+              Info
+            </button>
+          )}
         </div>
 
         {/* Botões de Ação Direta no próprio card do mapa */}

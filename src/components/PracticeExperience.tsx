@@ -953,9 +953,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setVoiceState("preparing_speech");
     setAnalysisSource("manual");
 
-    // Watchdog de segurança (13s): se a conexão não abrir nem falhar, destrava a UI
+    // Covers the SDP request and data-channel handshake; cancels stale connections.
     watchdogTimerRef.current = window.setTimeout(() => {
       if (connectAbortRef.current === abortController) {
+        abortController.abort();
         isConnectingRef.current = false;
         realtimeRef.current?.disconnect();
         realtimeRef.current = null;
@@ -963,7 +964,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         setVoiceState("idle");
         setErrorMessage("A conexão demorou a responder. Toque no botão para tentar novamente.");
       }
-    }, 13000);
+    }, 35000);
 
     const level = scoringContextRef.current.selectedLevel;
     const mode = scoringContextRef.current.selectedMode;
@@ -990,6 +991,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
       },
       onUserTranscript: (text, complete) => {
+        if (connectAbortRef.current !== abortController || abortController.signal.aborted) return;
         setTranscript(text);
         transcriptRef.current = text;
         if (complete && text.trim()) {
@@ -1008,6 +1010,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
       },
       onAssistantTranscript: (text, complete) => {
+        if (connectAbortRef.current !== abortController || abortController.signal.aborted) return;
         if (!complete) {
           setRealtimeReply(text);
           return;
@@ -1042,6 +1045,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       onError: (err) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           clearWatchdog();
+          setErrorMessage(err);
+          if (realtimeRef.current) return;
           const lower = String(err).toLowerCase();
           if (
             lower.includes("active response") ||
@@ -1054,17 +1059,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           if (!isAbortError(err)) {
             setRealtimeStatus("failed");
             setVoiceState("idle");
-            if (hasSpeechRecognition) {
-              console.warn("[Practice] Realtime indisponível, usando reconhecimento nativo:", err);
-              setErrorMessage("");
-            } else {
-              setErrorMessage(err);
-            }
+            setMicrophoneEnabled(false);
+            setErrorMessage(err);
           }
         }
       }
     }).then((controller) => {
-      if (abortController.signal.aborted) {
+      if (abortController.signal.aborted || connectAbortRef.current !== abortController) {
         controller.disconnect();
         return null;
       }
@@ -1080,12 +1081,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         if (!isAbortError(err)) {
           setRealtimeStatus("failed");
           setVoiceState("idle");
-          if (hasSpeechRecognition) {
-            console.warn("[Practice] Falha na conexão Realtime, alternando para reconhecimento nativo:", err);
-            setErrorMessage("");
-          } else {
-            setErrorMessage(getConnectionError(err));
-          }
+          setMicrophoneEnabled(false);
+          setErrorMessage(getConnectionError(err));
         }
       }
       return null;
@@ -1116,42 +1113,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     };
   }, [clearWatchdog]);
 
-  // Garante que o microfone fique ativo ESTRITAMENTE enquanto o usuário está usando o sistema
-  useEffect(() => {
-    const handleHide = () => {
-      if (document.visibilityState === "hidden") {
-        if (realtimeRef.current) {
-          realtimeRef.current.setMicrophoneEnabled(false);
-        }
-      }
-    };
-
-    const handleShow = () => {
-      if (document.visibilityState !== "hidden" && realtimeRef.current) {
-        realtimeRef.current.setMicrophoneEnabled(true);
-        setMicrophoneEnabled(true);
-        setVoiceState("listening");
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        handleHide();
-      } else {
-        handleShow();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleShow);
-    window.addEventListener("pageshow", handleShow);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleShow);
-      window.removeEventListener("pageshow", handleShow);
-    };
-  }, []);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -1185,11 +1146,22 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     recognitionRef.current = null;
     analysisQueuedRef.current = true;
     setErrorMessage("");
-    setTranscript(cleanSentence);
-    transcriptRef.current = cleanSentence;
+    setTranscript("");
+    transcriptRef.current = "";
     setAnalysis(null);
     setAnalysisSource("manual");
     setVoiceState("analyzing");
+
+    // Adiciona imediatamente a mensagem do usuário ao histórico visual para feedback instantâneo
+    setContextHistory((current) => {
+      const base =
+        current.length === 0 && openingLine.trim()
+          ? [{ role: "crazy" as const, text: openingLine.trim() }]
+          : current;
+      const last = base[base.length - 1];
+      if (last && last.role === "user" && last.text === cleanSentence) return base;
+      return [...base.slice(-49), { role: "user" as const, text: cleanSentence }];
+    });
 
     try {
       const response = await fetch("/api/analyze", {
@@ -1205,14 +1177,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           inputSource: "manual",
           contextHistory: [
             ...contextHistory.slice(-4),
-            ...contextHistory.slice(-1),
             { role: "user", text: cleanSentence }
           ]
         })
       });
 
       if (!response.ok) {
-        let errMessage = "A análise falhou. Digite uma frase e tente de novo.";
+        let errMessage = "A análise demorou a responder. Tente novamente.";
         try {
           const errData = (await response.json()) as { error?: string };
           if (errData?.error) errMessage = errData.error;
@@ -1223,10 +1194,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       }
 
       const result = (await response.json()) as AnalysisResponse;
-      applyAnalysisResult(result, cleanSentence, true);
+      applyAnalysisResult(result, cleanSentence, false);
+      setContextHistory((current) => [
+        ...current.slice(-49),
+        { role: "crazy" as const, text: `${result.reaction} ${result.correction} ${result.follow_up}` }
+      ]);
       speak(`${result.reaction} ${result.correction} ${result.follow_up}`);
     } catch {
-      setErrorMessage("A análise falhou. Digite uma frase e tente de novo.");
+      setErrorMessage("A análise demorou a responder. Tente novamente.");
       setVoiceState("idle");
     } finally {
       analysisQueuedRef.current = false;
@@ -1395,9 +1370,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
     setErrorMessage("");
 
-    const isCurrentlyActive =
-      microphoneEnabled &&
-      (voiceState === "listening" || (realtimeStatus === "connected" && voiceState !== "idle"));
+    const isCurrentlyActive = microphoneEnabled && realtimeStatus === "connected";
 
     if (isCurrentlyActive) {
       if (realtimeStatus === "connected" && realtimeRef.current) {
@@ -1427,10 +1400,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         connectAbortRef.current.abort();
         connectAbortRef.current = null;
       }
+      isConnectingRef.current = false;
+      clearWatchdog();
+      setMicrophoneEnabled(false);
       setRealtimeStatus("idle");
+      setVoiceState("idle");
+      return;
     }
 
-    // Se a conexão já existe e está pronta, ativa o microfone nela
+    // Se a conexão WebRTC já existe e está pronta, ativa o microfone nela
     if (realtimeStatus === "connected" && realtimeRef.current) {
       try {
         realtimeRef.current.setMicrophoneEnabled(true);
@@ -1440,15 +1418,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
 
-    // Se a conexão WebRTC falhou ou está inativa, tenta reconectar ativamente
-    if (realtimeStatus === "failed" || realtimeStatus === "idle") {
+    // Se WebRTC estiver inativo ou falhou, tenta conectar
+    if (realtimeStatus === "idle" || realtimeStatus === "failed") {
       void connectSession();
-      return;
-    }
-
-    // Modo Web Speech API nativo (alta fidelidade e sem dependência de modelo preview)
-    if (hasSpeechRecognition) {
-      startListening();
       return;
     }
 
@@ -1460,6 +1432,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           if (hasSpeechRecognition) {
             startListening();
           } else {
+            setMicrophoneEnabled(true);
+            setVoiceState("listening");
             void connectSession();
           }
         })
@@ -1536,65 +1510,71 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         />
 
         <div className="practice-header-bar">
-          <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
-          <button
-            type="button"
-            className="active-module-pill-btn"
-            onClick={() => setIsSelectingModule(true)}
-            title="Trocar módulo de aprendizado (Saudações, Restaurante, Viagens, etc.)"
-          >
-            <BookOpen size={14} />
-            <span className="module-pill-title">{activeModule.title.replace(/^\d+\.\s*/, "")}</span>
-            <span className="module-pill-badge">{activeModule.levelBadge.split(" ")[0]}</span>
-          </button>
-          <button
-            type="button"
-            className="stage-exam-action-btn"
-            onClick={() => setIsExamModalOpen(true)}
-            title={`Fazer a prova do módulo 100% em inglês com o avatar ${activeModule.examNpc.name}`}
-          >
-            <Award size={14} />
-            <span>Prova da Etapa</span>
-          </button>
-          <button
-            type="button"
-            className="module-evaluate-action-btn"
-            onClick={handleEvaluateModule}
-            disabled={isEvaluating}
-            title="Concluir este módulo e receber sua avaliação do Mr. Crazy"
-          >
-            <Award size={14} />
-            <span>{isEvaluating ? "Avaliando..." : "Avaliar Módulo"}</span>
-          </button>
-          <div className="header-actions-group">
+          <div className="practice-header-nav-row">
             <button
               type="button"
-              className={`pip-btn ${isPipActive ? "active" : ""}`}
-              onClick={handleTogglePiP}
-              aria-label="Ativar Modo Pop-up Flutuante"
-              title="Pop-up Flutuante (Picture-in-Picture): use outros apps (WhatsApp, navegador) enquanto treina inglês"
+              className="active-module-pill-btn"
+              onClick={() => setIsSelectingModule(true)}
+              title="Trocar módulo de aprendizado (Saudações, Restaurante, Viagens, etc.)"
             >
-              <PictureInPicture2 size={20} />
-              {isPipActive && <span className="pip-badge-active" />}
+              <BookOpen size={14} />
+              <span className="module-pill-title">{activeModule.title.replace(/^\d+\.\s*/, "")}</span>
+              <span className="module-pill-badge">{activeModule.levelBadge.split(" ")[0]}</span>
             </button>
-            <button
-              type="button"
-              className="pip-btn pip-standalone-btn"
-              onClick={handleOpenStandalonePopup}
-              aria-label="Abrir em Janela Pop-up Pequena"
-              title="Abrir em Janela Pop-up separada para usar ao lado de outros programas"
-            >
-              <ExternalLink size={20} />
-            </button>
-            <button
-              type="button"
-              className="hamburger-btn"
-              onClick={() => setIsMenuOpen(true)}
-              aria-label="Abrir menu de configurações e digitação"
-              title="Opções de nível, tema e digitação"
-            >
-              <Menu size={22} />
-            </button>
+            <div className="practice-header-actions-group">
+              <button
+                type="button"
+                className="stage-exam-action-btn"
+                onClick={() => setIsExamModalOpen(true)}
+                title={`Fazer a prova do módulo 100% em inglês com o avatar ${activeModule.examNpc.name}`}
+              >
+                <Award size={14} />
+                <span>Prova</span>
+              </button>
+              <button
+                type="button"
+                className="module-evaluate-action-btn desktop-only-btn"
+                onClick={handleEvaluateModule}
+                disabled={isEvaluating}
+                title="Concluir este módulo e receber sua avaliação do Mr. Crazy"
+              >
+                <Award size={14} />
+                <span>{isEvaluating ? "Avaliando..." : "Avaliar"}</span>
+              </button>
+              <div className="header-actions-group">
+                <button
+                  type="button"
+                  className={`pip-btn desktop-only-btn ${isPipActive ? "active" : ""}`}
+                  onClick={handleTogglePiP}
+                  aria-label="Ativar Modo Pop-up Flutuante"
+                  title="Pop-up Flutuante"
+                >
+                  <PictureInPicture2 size={20} />
+                  {isPipActive && <span className="pip-badge-active" />}
+                </button>
+                <button
+                  type="button"
+                  className="pip-btn pip-standalone-btn desktop-only-btn"
+                  onClick={handleOpenStandalonePopup}
+                  aria-label="Abrir em Janela Pop-up Pequena"
+                  title="Abrir em Janela Pop-up separada"
+                >
+                  <ExternalLink size={20} />
+                </button>
+                <button
+                  type="button"
+                  className="hamburger-btn"
+                  onClick={() => setIsMenuOpen(true)}
+                  aria-label="Abrir menu de configurações e digitação"
+                  title="Opções de nível, tema e digitação"
+                >
+                  <Menu size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="practice-header-stats-row">
+            <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
           </div>
         </div>
 
@@ -1664,10 +1644,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   className="retry-connection-btn"
                   onClick={() => {
                     setErrorMessage("");
+                    handleAvatarMicClick();
                     void connectSession();
                   }}
                 >
-                  Tentar reconectar microfone
+                  Ativar microfone para falar
                 </button>
               </div>
             ) : null}

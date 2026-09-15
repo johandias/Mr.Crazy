@@ -196,16 +196,17 @@ export function buildRealtimeSession(
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue),
     audio: {
       input: {
+        noise_reduction: { type: "far_field" },
         transcription: {
           model: isGptRealtime ? "gpt-realtime-whisper" : "whisper-1",
-          prompt: "Hello, how are you? I'm good. Let's practice. What does this mean? Could you help me with this? Nice to meet you. Conversa em português e frases de inglês do dia a dia."
+          prompt: "Conversa bilíngue: português brasileiro e inglês americano. Preserve as palavras no idioma falado, sem traduzir. Pedidos de ajuda em português não são tentativas de inglês."
         },
         turn_detection: {
           type: "server_vad",
-          threshold: 0.58,
-          prefix_padding_ms: 280,
-          silence_duration_ms: 650,
-          create_response: false,
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 900,
+          create_response: true,
           interrupt_response: false
         }
       },

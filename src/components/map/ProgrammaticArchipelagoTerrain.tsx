@@ -8,7 +8,7 @@ export function ProgrammaticArchipelagoTerrain() {
       <svg
         className="archipelago-svg-canvas"
         viewBox="0 0 1440 720"
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
