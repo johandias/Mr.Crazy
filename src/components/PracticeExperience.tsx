@@ -1501,7 +1501,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   if (isSelectingModule) {
     return (
       <AppShell isAdmin={isAdmin}>
-        <main className="practice-main clean-layout">
         <main className="practice-main map-desktop-expanded-view">
           <ModuleSelector
             activeModuleId={selectedModuleId}

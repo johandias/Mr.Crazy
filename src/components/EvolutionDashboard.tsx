@@ -237,55 +237,38 @@ export function EvolutionDashboard() {
             <div className="evolution-card-panel">
               <div className="panel-header">
                 <Volume2 size={20} />
-                <h3>Diagnóstico de Sons & Sílabas nas Aulas</h3>
                 <div>
                   <h3>Ajustes Fonéticos Recomendados</h3>
                   <p className="panel-subtext">Posicionamento muscular direto para destravar sons nativos:</p>
                 </div>
               </div>
-              <p className="panel-subtext">
-                O Mr.Crazy monitora a anatomia da sua boca nas conversas. Arraste para o lado para ver como destravar cada som desafiador:
-              </p>
 
-              <div className="mobile-swipe-hint">
-                <span>👉 Arraste para o lado para ver todos os sons</span>
-              </div>
-
-              <div className="sound-syllables-track horizontal-swipe-track">
               <div className="sound-syllables-clean-grid">
                 {insights.soundSyllables.map((item) => (
-                  <div key={item.sound} className="sound-insight-card swipe-card-wide">
                   <div key={item.sound} className="sound-insight-clean-card">
                     <div className="sound-card-header">
                       <span className="sound-badge">{item.sound}</span>
                     </div>
 
-                    <div className="sound-anatomy-box">
-                      <strong>Anatomia da boca:</strong>
-                      <p>{item.anatomy}</p>
-                    </div>
                     <p className="sound-clean-tip">
                       <strong>Como posicionar:</strong> {item.anatomy}
                     </p>
 
-                    <div className="sound-obs-box">
-                      <strong>O que a IA identificou:</strong>
-                      <p>{item.observation}</p>
-                    </div>
+                    {item.observation && (
+                      <div className="sound-obs-box">
+                        <strong>O que a IA identificou:</strong>
+                        <p>{item.observation}</p>
+                      </div>
+                    )}
 
-                    <div className="sound-help-box">
-                      <strong>Como o Mr.Crazy ajuda nas aulas:</strong>
-                      <p>{item.agentHelp}</p>
-                    </div>
+                    {item.agentHelp && (
+                      <div className="sound-help-box">
+                        <strong>Como o Mr.Crazy ajuda nas aulas:</strong>
+                        <p>{item.agentHelp}</p>
+                      </div>
+                    )}
 
                     {item.drillWords && item.drillWords.length > 0 && (
-                      <div className="drill-chips-wrap">
-                        <small>Palavras de treino:</small>
-                        <div className="drill-chips">
-                          {item.drillWords.map((word) => (
-                            <span key={word} className="drill-chip">{word}</span>
-                          ))}
-                        </div>
                       <div className="drill-chips-clean">
                         {item.drillWords.map((word) => (
                           <span key={word} className="drill-chip">{word}</span>
@@ -298,40 +281,25 @@ export function EvolutionDashboard() {
             </div>
           )}
 
-          {/* Seção 2: Correções Frequentes da IA nas Aulas */}
           {/* Seção 2: Correções Práticas (Evite ➔ Diga) */}
           {insights?.agentCorrections && insights.agentCorrections.length > 0 && (
             <div className="evolution-card-panel">
               <div className="panel-header">
                 <Sliders size={20} />
-                <h3>Onde a IA Mais Está Intervindo nas Suas Aulas</h3>
                 <div>
                   <h3>Padrões de Correção da IA</h3>
                   <p className="panel-subtext">Substitua vícios comuns por estruturas de nativos:</p>
                 </div>
               </div>
-              <p className="panel-subtext">
-                Padrões recorrentes observados durante seus diálogos para acelerar sua fluência:
-              </p>
 
-              <div className="mobile-swipe-hint">
-                <span>👉 Arraste para o lado para ver as correções</span>
-              </div>
-
-              <div className="corrections-track horizontal-swipe-track">
               <div className="corrections-clean-grid">
                 {insights.agentCorrections.map((corr) => (
-                  <div key={corr.area} className="correction-insight-card swipe-card-wide">
                   <div key={corr.area} className="correction-clean-card">
                     <div className="correction-card-header">
-                      <CheckCircle2 size={18} />
                       <CheckCircle2 size={16} className="text-emerald-400" />
                       <h4>{corr.area}</h4>
                     </div>
 
-                    <div className="corr-block">
-                      <span className="corr-label">Padrão comum nas falas:</span>
-                      <p className="corr-pattern">{corr.pattern}</p>
                     <div className="corr-comparison-row">
                       <div className="corr-pill-avoid">
                         <span className="pill-tag">Evite</span>
@@ -343,14 +311,11 @@ export function EvolutionDashboard() {
                       </div>
                     </div>
 
-                    <div className="corr-block solution">
-                      <span className="corr-label">Como falar corretamente:</span>
-                      <p className="corr-solution">{corr.solution}</p>
-                    </div>
-
-                    <div className="corr-impact">
-                      <strong>Impacto:</strong> {corr.impact}
-                    </div>
+                    {corr.impact && (
+                      <div className="corr-impact">
+                        <strong>Impacto:</strong> {corr.impact}
+                      </div>
+                    )}
                     <p className="corr-quick-rule">
                       <strong>Regra:</strong> {corr.solution}
                     </p>

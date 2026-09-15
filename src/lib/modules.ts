@@ -145,7 +145,6 @@ export const LEARNING_MODULES: LearningModule[] = [
       pt: "Opa! Bora começar do começo na vila inicial: Greetings & Introductions! Como você se apresenta quando conhece alguém nos EUA? Fala pra mim: 'Hi, my name is [seu nome]'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 1. Greetings & Introductions (A1). FOCO ESTRITO: O aluno deve treinar saudações, apresentações, nome, origem e como responder cumprimentos. NUNCA fuja desse tema. Ensine a frase em português e forneça o modelo em inglês para o aluno praticar.",
-    mapCoords: { xPct: 12.5, yPct: 58 }
     mapCoords: { xPct: 12.5, yPct: 58.3 }
   },
   {
@@ -232,7 +231,6 @@ export const LEARNING_MODULES: LearningModule[] = [
       pt: "Bem-vindo à cafeteria e restaurante do mapa! Como você pede uma mesa para dois ao garçom? Diga: 'A table for two, please'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 2. Restaurant & Café (A2). FOCO ESTRITO: O aluno deve treinar pedidos de comida, mesa, bebidas e a conta. Simule o atendimento do garçom americano de forma didática.",
-    mapCoords: { xPct: 26.5, yPct: 43 }
     mapCoords: { xPct: 25.5, yPct: 34.5 }
   },
   {
@@ -319,7 +317,6 @@ export const LEARNING_MODULES: LearningModule[] = [
       pt: "Chegamos ao centro comercial do mapa! Como você pergunta o preço de uma camiseta para a atendente? Diga: 'How much is this t-shirt?'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 3. Shopping & Daily Life (A2-B1). FOCO ESTRITO: Treinar compras, preços, tamanhos, provador e pagamento em inglês.",
-    mapCoords: { xPct: 40.5, yPct: 37 }
     mapCoords: { xPct: 38.5, yPct: 60.5 }
   },
   {
@@ -406,7 +403,6 @@ export const LEARNING_MODULES: LearningModule[] = [
       pt: "Você acabou de aterrissar no aeroporto internacional! O oficial de imigração te pergunta: 'What is the purpose of your visit?'. Responda: 'I'm here on vacation'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 4. Travel & Airport (B1). FOCO ESTRITO: Treinar imigração, aeroporto, táxi e check-in no hotel em inglês.",
-    mapCoords: { xPct: 53.5, yPct: 49 }
     mapCoords: { xPct: 52.1, yPct: 32 }
   },
   {
@@ -493,7 +489,6 @@ export const LEARNING_MODULES: LearningModule[] = [
       pt: "Estamos no escritório moderno do mapa! Me conta em inglês o que você fez no último fim de semana. Comece dizendo: 'Last weekend I went to...'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 5. Intermediate Conversations (B1-B2). FOCO ESTRITO: Treinar narração no passado, dar opiniões, falar de trabalho e rotina.",
-    mapCoords: { xPct: 65, yPct: 38 }
     mapCoords: { xPct: 64.6, yPct: 60.5 }
   },
   {
@@ -580,7 +575,6 @@ export const LEARNING_MODULES: LearningModule[] = [
       pt: "Você entrou na sala executiva do topo da torre! Imagine que o entrevistador perguntou: 'Tell me about yourself'. Faça um pitch profissional em inglês começando com 'I specialize in...'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 6. Advanced Communication (B2-C1). FOCO ESTRITO: Treinar entrevistas avançadas, argumentação executiva, debates e precisão em inglês.",
-    mapCoords: { xPct: 77, yPct: 44 }
     mapCoords: { xPct: 76.4, yPct: 34 }
   },
   {
@@ -668,7 +662,6 @@ export const LEARNING_MODULES: LearningModule[] = [
       en: "Welcome to the Citadel! You've traversed the entire map. Are you ready to prove your fluency once and for all?"
     },
     promptContext: "MÓDULO ATIVO: Etapa 7. Final Challenge (C1 Boss Challenge). FOCO ESTRITO: O teste supremo de fluência. Fale em inglês americano autêntico, desafiador, espirituoso e veloz. Teste o aluno em vocabulário, ritmo e respostas rápidas. Acolha com orgulho quando ele demonstrar domínio!",
-    mapCoords: { xPct: 88, yPct: 54 }
     mapCoords: { xPct: 88.5, yPct: 48 }
   }
 ];
