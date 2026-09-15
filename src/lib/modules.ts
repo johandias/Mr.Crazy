@@ -146,6 +146,7 @@ export const LEARNING_MODULES: LearningModule[] = [
     },
     promptContext: "MÓDULO ATIVO: Etapa 1. Greetings & Introductions (A1). FOCO ESTRITO: O aluno deve treinar saudações, apresentações, nome, origem e como responder cumprimentos. NUNCA fuja desse tema. Ensine a frase em português e forneça o modelo em inglês para o aluno praticar.",
     mapCoords: { xPct: 12.5, yPct: 58 }
+    mapCoords: { xPct: 12.5, yPct: 58.3 }
   },
   {
     id: "restaurant",
@@ -232,6 +233,7 @@ export const LEARNING_MODULES: LearningModule[] = [
     },
     promptContext: "MÓDULO ATIVO: Etapa 2. Restaurant & Café (A2). FOCO ESTRITO: O aluno deve treinar pedidos de comida, mesa, bebidas e a conta. Simule o atendimento do garçom americano de forma didática.",
     mapCoords: { xPct: 26.5, yPct: 43 }
+    mapCoords: { xPct: 25.5, yPct: 34.5 }
   },
   {
     id: "shopping",
@@ -318,6 +320,7 @@ export const LEARNING_MODULES: LearningModule[] = [
     },
     promptContext: "MÓDULO ATIVO: Etapa 3. Shopping & Daily Life (A2-B1). FOCO ESTRITO: Treinar compras, preços, tamanhos, provador e pagamento em inglês.",
     mapCoords: { xPct: 40.5, yPct: 37 }
+    mapCoords: { xPct: 38.5, yPct: 60.5 }
   },
   {
     id: "travel",
@@ -404,6 +407,7 @@ export const LEARNING_MODULES: LearningModule[] = [
     },
     promptContext: "MÓDULO ATIVO: Etapa 4. Travel & Airport (B1). FOCO ESTRITO: Treinar imigração, aeroporto, táxi e check-in no hotel em inglês.",
     mapCoords: { xPct: 53.5, yPct: 49 }
+    mapCoords: { xPct: 52.1, yPct: 32 }
   },
   {
     id: "intermediate-conversations",
@@ -490,6 +494,7 @@ export const LEARNING_MODULES: LearningModule[] = [
     },
     promptContext: "MÓDULO ATIVO: Etapa 5. Intermediate Conversations (B1-B2). FOCO ESTRITO: Treinar narração no passado, dar opiniões, falar de trabalho e rotina.",
     mapCoords: { xPct: 65, yPct: 38 }
+    mapCoords: { xPct: 64.6, yPct: 60.5 }
   },
   {
     id: "advanced-communication",
@@ -576,6 +581,7 @@ export const LEARNING_MODULES: LearningModule[] = [
     },
     promptContext: "MÓDULO ATIVO: Etapa 6. Advanced Communication (B2-C1). FOCO ESTRITO: Treinar entrevistas avançadas, argumentação executiva, debates e precisão em inglês.",
     mapCoords: { xPct: 77, yPct: 44 }
+    mapCoords: { xPct: 76.4, yPct: 34 }
   },
   {
     id: "final-challenge",
@@ -663,6 +669,7 @@ export const LEARNING_MODULES: LearningModule[] = [
     },
     promptContext: "MÓDULO ATIVO: Etapa 7. Final Challenge (C1 Boss Challenge). FOCO ESTRITO: O teste supremo de fluência. Fale em inglês americano autêntico, desafiador, espirituoso e veloz. Teste o aluno em vocabulário, ritmo e respostas rápidas. Acolha com orgulho quando ele demonstrar domínio!",
     mapCoords: { xPct: 88, yPct: 54 }
+    mapCoords: { xPct: 88.5, yPct: 48 }
   }
 ];
 

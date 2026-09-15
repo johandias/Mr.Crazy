@@ -4763,6 +4763,181 @@ meter {
   border-radius: 9999px;
 }
 
+/* Clean Diagnostic Banner */
+.clean-diagnostic-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.04));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+.clean-diagnostic-banner .diagnostic-icon {
+  color: #F59E0B;
+  flex-shrink: 0;
+}
+.clean-diagnostic-banner p {
+  font-size: 0.9rem;
+  color: #FDE68A;
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Daily Challenge Card */
+.daily-challenge-clean-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 22px;
+}
+.daily-challenge-clean-card .challenge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #10B981;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.daily-challenge-clean-card .challenge-text {
+  font-size: 0.88rem;
+  color: #D1FAE5;
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* Grids Clean */
+.sound-syllables-clean-grid,
+.corrections-clean-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+/* Sound Insight Clean Card */
+.sound-insight-clean-card {
+  background: rgba(16, 20, 24, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+.sound-insight-clean-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-2px);
+}
+.sound-clean-tip {
+  font-size: 0.82rem;
+  color: #CBD5E1;
+  margin: 0;
+  line-height: 1.4;
+}
+.sound-clean-tip strong {
+  color: #38BDF8;
+}
+.drill-chips-clean {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Correction Clean Card */
+.correction-clean-card {
+  background: rgba(16, 20, 24, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+.correction-clean-card:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+.correction-clean-card .correction-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.correction-clean-card .correction-card-header h4 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #F1F5F9;
+  margin: 0;
+}
+.corr-comparison-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0;
+}
+.corr-pill-avoid,
+.corr-pill-say {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+.corr-pill-avoid {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #FCA5A5;
+}
+.corr-pill-avoid .pill-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #EF4444;
+  text-transform: uppercase;
+  background: rgba(239, 68, 68, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.corr-pill-say {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #6EE7B7;
+}
+.corr-pill-say .pill-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #10B981;
+  text-transform: uppercase;
+  background: rgba(16, 185, 129, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.corr-quick-rule {
+  font-size: 0.78rem;
+  color: #94A3B8;
+  margin: 0;
+  line-height: 1.35;
+}
+.corr-quick-rule strong {
+  color: #F8FAFC;
+}
+
 /* Sons & Sílabas */
 .sound-syllables-track {
   display: grid;
@@ -6285,13 +6460,33 @@ meter {
 }
 
 /* 2. Map Canvas Viewport & Stage */
+/* 2. Map Canvas Viewport & Stage - Desktop Expanded Layout */
+.map-desktop-expanded-view {
+  width: 100%;
+  max-width: 1840px;
+  margin: 0 auto;
+  padding: 14px 20px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@media (min-width: 1280px) {
+  .map-desktop-expanded-view {
+    width: 98vw;
+    padding: 16px 24px 40px;
+  }
+}
+
 .learning-map-page-view {
   width: 100%;
   max-width: 1560px;
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  gap: 18px;
 }
 
 .map-scroll-outer-viewport {
@@ -6302,6 +6497,11 @@ meter {
   background: #0B0E10;
   border: 1px solid #252B30;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  height: clamp(560px, 75vh, 860px);
+  border-radius: 20px;
+  background: #06090D;
+  border: 1px solid #202730;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
   overflow: hidden;
 }
 
@@ -6344,12 +6544,15 @@ meter {
   min-width: 1024px;
   aspect-ratio: 1024 / 576;
   min-width: 1320px;
+  min-width: 1440px;
   height: 100%;
   aspect-ratio: 1024 / 450;
+  aspect-ratio: 1440 / 720;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Terrain Background */
+/* Programmatic Archipelago Scenery */
 .map-terrain-container {
   position: relative;
   width: 100%;
@@ -6365,9 +6568,19 @@ meter {
 }
 
 .terrain-base-img {
+.programmatic-archipelago-wrap {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  overflow: hidden;
+  user-select: none;
+}
+
+.archipelago-svg-canvas {
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
@@ -6383,6 +6596,160 @@ meter {
   position: absolute;
   inset: 0;
   z-index: 3;
+}
+
+/* ==========================================================================
+   ANIMATED SCENERY KEYFRAMES & MOVEMENTS
+   ========================================================================== */
+/* Ondas do mar */
+.animated-ocean-waves path {
+  animation: oceanWaveDrift 8s ease-in-out infinite alternate;
+}
+@keyframes oceanWaveDrift {
+  0% { transform: translateX(0) scaleY(1); opacity: 0.5; }
+  50% { transform: translateX(12px) scaleY(1.15); opacity: 0.85; }
+  100% { transform: translateX(-8px) scaleY(0.95); opacity: 0.6; }
+}
+
+/* Espuma da costa */
+.animated-shore-foam {
+  animation: shoreFoamPulse 3.5s ease-in-out infinite alternate;
+}
+@keyframes shoreFoamPulse {
+  0% { stroke-opacity: 0.3; stroke-dashoffset: 0; }
+  100% { stroke-opacity: 0.85; stroke-dashoffset: 14; }
+}
+
+/* Barco a vela balançando */
+.scenery-sailboat {
+  animation: sailboatBob 4.5s ease-in-out infinite alternate;
+  transform-origin: 940px 560px;
+}
+@keyframes sailboatBob {
+  0% { transform: translate(940px, 560px) rotate(-2.5deg); }
+  100% { transform: translate(943px, 564px) rotate(2deg); }
+}
+
+/* Fogueira da Vila (Etapa 1) */
+.animated-campfire .flame-core {
+  animation: campfireFlicker 1.2s ease-in-out infinite alternate;
+  transform-origin: 25px 42px;
+}
+@keyframes campfireFlicker {
+  0% { transform: scale(0.92) rotate(-1deg); filter: brightness(1); }
+  50% { transform: scale(1.08) rotate(2deg); filter: brightness(1.25); }
+  100% { transform: scale(0.96) rotate(-2deg); filter: brightness(1.1); }
+}
+.campfire-spark-1 {
+  animation: campfireSpark 1.8s ease-out infinite;
+}
+.campfire-spark-2 {
+  animation: campfireSpark 2.2s 0.7s ease-out infinite;
+}
+@keyframes campfireSpark {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-16px) translateX(4px); opacity: 0; }
+}
+
+/* Vapor do Café (Etapa 2) */
+.animated-steam.steam-1 {
+  animation: steamFloat 2.8s ease-out infinite;
+}
+.animated-steam.steam-2 {
+  animation: steamFloat 3.2s 1.2s ease-out infinite;
+}
+@keyframes steamFloat {
+  0% { stroke-dashoffset: 20; opacity: 0; transform: translateY(0); }
+  40% { opacity: 0.85; }
+  100% { stroke-dashoffset: 0; opacity: 0; transform: translateY(-12px); }
+}
+
+/* Letreiro Neon do Shopping (Etapa 3) */
+.animated-neon-shop {
+  animation: neonShopGlow 2.4s ease-in-out infinite alternate;
+}
+@keyframes neonShopGlow {
+  0% { filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.4)); opacity: 0.9; }
+  100% { filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9)); opacity: 1; }
+}
+
+/* Radar do Aeroporto (Etapa 4) */
+.animated-airport-radar {
+  animation: radarSweep 3.5s linear infinite;
+  transform-origin: 3px -9px;
+}
+@keyframes radarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Luzes da Pista de Pouso */
+.animated-runway-lights .runway-led-1 { animation: runwayLedBlink 1.4s 0s infinite; }
+.animated-runway-lights .runway-led-2 { animation: runwayLedBlink 1.4s 0.35s infinite; }
+.animated-runway-lights .runway-led-3 { animation: runwayLedBlink 1.4s 0.7s infinite; }
+.animated-runway-lights .runway-led-4 { animation: runwayLedBlink 1.4s 1.05s infinite; }
+@keyframes runwayLedBlink {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* Ondulação e Jato da Fonte da Praça (Etapa 5) */
+.fountain-ripple-1 {
+  animation: fountainRippleExpand 2.2s ease-out infinite;
+  transform-origin: 0px 9px;
+}
+.fountain-ripple-2 {
+  animation: fountainRippleExpand 2.2s 1.1s ease-out infinite;
+  transform-origin: 0px 9px;
+}
+@keyframes fountainRippleExpand {
+  0% { transform: scale(0.6); opacity: 1; stroke-width: 1.8; }
+  100% { transform: scale(1.5); opacity: 0; stroke-width: 0.5; }
+}
+.animated-fountain-spray {
+  animation: fountainSprayPulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes fountainSprayPulse {
+  0% { transform: scaleY(0.92); opacity: 0.8; }
+  100% { transform: scaleY(1.1); opacity: 1; }
+}
+
+/* Luz de Sinalização das Torres (Etapa 6) */
+.tower-beacon-blink {
+  animation: beaconPulse 1.8s infinite;
+}
+@keyframes beaconPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; filter: drop-shadow(0 0 6px #ef4444); }
+}
+
+/* Coroa Dourada Flutuante (Etapa 7) */
+.animated-floating-crown {
+  animation: crownLevitate 3.2s ease-in-out infinite alternate;
+}
+@keyframes crownLevitate {
+  0% { transform: translateY(0px) rotate(-1deg); filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5)); }
+  100% { transform: translateY(-7px) rotate(1.5deg); filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.95)); }
+}
+
+/* Feixe de Luz Giratório do Farol (Etapa 7) */
+.animated-lighthouse-sweep {
+  animation: lighthouseLightSweep 6s ease-in-out infinite alternate;
+  transform-origin: 0px -25px;
+}
+@keyframes lighthouseLightSweep {
+  0% { transform: rotate(-35deg) scaleX(0.85); opacity: 0.4; }
+  50% { transform: rotate(15deg) scaleX(1.15); opacity: 0.9; }
+  100% { transform: rotate(65deg) scaleX(0.9); opacity: 0.5; }
+}
+
+/* Nuvens Flutuantes */
+.animated-drifting-clouds {
+  animation: cloudsFloat 28s ease-in-out infinite alternate;
+}
+@keyframes cloudsFloat {
+  0% { transform: translateX(-25px); opacity: 0.7; }
+  100% { transform: translateX(35px); opacity: 0.95; }
 }
 
 /* Road SVG Overlay */
@@ -7544,40 +7911,35 @@ meter {
   color: #07090A;
 }
 
-.concept-info-col {
+.concept-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .concept-number-badge {
   width: 22px;
   height: 22px;
   border-radius: 50%;
   background: #1E252B;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-
-.concept-row-top {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   justify-content: center;
   font-size: 0.72rem;
   font-weight: 800;
   color: #CBD5E1;
 }
 
-.concept-item-title {
-  font-size: 0.84rem;
 .step-pill-badge {
   font-size: 0.64rem;
-  color: #64748B;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #94A3B8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 
-.concept-exam-tag {
-  font-size: 0.66rem;
 .exam-pill-badge {
   font-size: 0.64rem;
   font-weight: 800;
@@ -7587,12 +7949,9 @@ meter {
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
   gap: 3px;
 }
 
-.concept-item-desc {
-  font-size: 0.78rem;
 .concept-title-text {
   font-size: 0.8rem;
   font-weight: 750;
@@ -7608,8 +7967,6 @@ meter {
   flex: 1;
 }
 
-.concept-item-obj {
-  font-size: 0.72rem;
 .concept-obj-box {
   background: #111518;
   border-radius: 5px;
@@ -7727,8 +8084,21 @@ meter {
     max-width: 380px;
   }
   .map-footer-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
     gap: 12px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .map-footer-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .map-footer-card {
+    flex: 0 0 clamp(280px, 85vw, 360px);
+    scroll-snap-align: center;
   }
   .stage-drawer-horizontal-body {
     grid-template-columns: 1fr;
@@ -7758,6 +8128,7 @@ meter {
   }
   .stage-drawer-panel {
     max-width: 100%;
+  }
   .stage-horizontal-modal {
     width: 96vw;
     max-height: 90vh;

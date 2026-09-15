@@ -15,6 +15,8 @@ const ROAD_SEGMENTS = [
     toStage: 2,
     // De 1 (128, 335) a 2 (272, 248)
     d: "M 128 335 C 160 330, 210 290, 272 248",
+    // De 1 (128, 336) Vila Inicial subindo até 2 (261, 199) Restaurante & Café
+    d: "M 128 336 C 165 310, 205 235, 261 199",
   },
   {
     id: "seg-2-3",
@@ -22,6 +24,8 @@ const ROAD_SEGMENTS = [
     toStage: 3,
     // De 2 (272, 248) a 3 (404, 370) descendo pela ponte/colina
     d: "M 272 248 C 340 250, 320 370, 404 370",
+    // De 2 (261, 199) Café descendo em arco pela ponte até 3 (394, 348) Shopping
+    d: "M 261 199 C 320 205, 335 340, 394 348",
   },
   {
     id: "seg-3-4",
@@ -29,6 +33,8 @@ const ROAD_SEGMENTS = [
     toStage: 4,
     // De 3 (404, 370) subindo até o aeroporto (488, 185)
     d: "M 404 370 C 470 370, 420 220, 488 185",
+    // De 3 (394, 348) Shopping subindo pelo viaduto até 4 (533, 184) Aeroporto
+    d: "M 394 348 C 455 350, 475 195, 533 184",
   },
   {
     id: "seg-4-5",
@@ -36,6 +42,8 @@ const ROAD_SEGMENTS = [
     toStage: 5,
     // De 4 (488, 185) contornando até a praça/fonte (615, 362)
     d: "M 488 185 C 550 180, 520 360, 615 362",
+    // De 4 (533, 184) Aeroporto contornando até 5 (661, 348) Praça & Fonte
+    d: "M 533 184 C 595 185, 605 345, 661 348",
   },
   {
     id: "seg-5-6",
@@ -43,6 +51,8 @@ const ROAD_SEGMENTS = [
     toStage: 6,
     // De 5 (615, 362) subindo para os prédios (722, 260)
     d: "M 615 362 C 670 365, 680 290, 722 260",
+    // De 5 (661, 348) Praça subindo até 6 (782, 196) Arranha-céus Metrópole
+    d: "M 661 348 C 715 345, 725 200, 782 196",
   },
   {
     id: "seg-6-7",
@@ -50,6 +60,8 @@ const ROAD_SEGMENTS = [
     toStage: 7,
     // De 6 (722, 260) pela ponte até a Fortaleza (902, 310)
     d: "M 722 260 C 780 260, 830 310, 902 310",
+    // De 6 (782, 196) Metrópole pela ponte suspensa até 7 (906, 276) Cidadela
+    d: "M 782 196 C 835 195, 855 270, 906 276",
   }
 ];
 

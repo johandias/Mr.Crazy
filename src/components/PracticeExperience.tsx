@@ -1060,9 +1060,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             return;
           }
           if (!isAbortError(err)) {
-            setErrorMessage(err);
             setRealtimeStatus("failed");
             setVoiceState("idle");
+            if (hasSpeechRecognition) {
+              console.warn("[Practice] Realtime indisponível, usando reconhecimento de voz nativo + Gemini:", err);
+              setErrorMessage("");
+            } else {
+              setErrorMessage(err);
+            }
           }
         }
       }
@@ -1083,7 +1088,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         if (!isAbortError(err)) {
           setRealtimeStatus("failed");
           setVoiceState("idle");
-          setErrorMessage(getConnectionError(err));
+          if (hasSpeechRecognition) {
+            console.warn("[Practice] Falha na conexão Realtime, alternando para reconhecimento nativo:", err);
+            setErrorMessage("");
+          } else {
+            setErrorMessage(getConnectionError(err));
+          }
         }
       }
       return null;
@@ -1420,6 +1430,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         } catch {}
       }
       if (recognitionRef.current) {
+        if (transcriptRef.current.trim()) {
+          stopListeningAndAnalyze();
+          return;
+        }
         try {
           recognitionRef.current.stop();
         } catch {}
@@ -1431,6 +1445,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
 
+    // Se estava em tentativa pendente de realtime que não concluiu, reseta para liberar o microfone nativo
+    if (realtimeStatus === "connecting" && !realtimeRef.current) {
+      if (connectAbortRef.current) {
+        connectAbortRef.current.abort();
+        connectAbortRef.current = null;
+      }
+      setRealtimeStatus("idle");
+    }
+
     if (realtimeStatus === "connected" && realtimeRef.current) {
       try {
         realtimeRef.current.setMicrophoneEnabled(true);
@@ -1440,17 +1463,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
 
+    // Modo Web Speech API nativo (alta fidelidade e sem dependência de modelo preview)
     if (hasSpeechRecognition) {
       startListening();
-
-      if (realtimeStatus !== "connecting") {
-        isConnectingRef.current = false;
-        if (connectAbortRef.current) {
-          connectAbortRef.current.abort();
-          connectAbortRef.current = null;
-        }
-        void connectSession();
-      }
       return;
     }
 
@@ -1460,15 +1475,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       navigator.mediaDevices
         .getUserMedia({ audio: true })
         .then(() => {
-          isConnectingRef.current = false;
-          if (connectAbortRef.current) {
-            connectAbortRef.current.abort();
-            connectAbortRef.current = null;
+          if (hasSpeechRecognition) {
+            startListening();
+          } else {
+            isConnectingRef.current = false;
+            void connectSession();
           }
-          void connectSession();
         })
         .catch(() => {
-          setErrorMessage("Permissão do microfone negada. Toque nos ajustes do navegador para permitir.");
+          setErrorMessage("Permissão do microfone negada. Permita o microfone nos ajustes do navegador.");
           setMicrophoneEnabled(false);
           setVoiceState("idle");
         });
@@ -1511,6 +1526,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     return (
       <AppShell isAdmin={isAdmin}>
         <main className="practice-main clean-layout">
+        <main className="practice-main map-desktop-expanded-view">
           <ModuleSelector
             activeModuleId={selectedModuleId}
             onSelectModule={handleSelectModule}
