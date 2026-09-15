@@ -13,12 +13,6 @@ export function MapTerrain({ children }: MapTerrainProps) {
       {/* Imagem do arquipélago base com ilhas e relevos em perspectiva isométrica */}
       {/* Cenário 100% programático com ilhas, relevos, oceano e animações vivas */}
       <div className="terrain-archipelago-base">
-        <img
-          src="/assets/map/archipelago_terrain_base.png"
-          alt="Arquipélago Mr.Crazy"
-          className="terrain-base-img"
-          draggable={false}
-        />
         <ProgrammaticArchipelagoTerrain />
       </div>
 

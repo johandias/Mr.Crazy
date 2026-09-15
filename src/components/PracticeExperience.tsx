@@ -415,16 +415,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
   });
   const [realtimeReply, setRealtimeReply] = useState("");
-  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>(() => {
-    if (typeof window === "undefined") return "connecting";
-    try {
-      const isGranted = window.localStorage.getItem("mr-crazy-mic-granted") === "true";
-      return isGranted ? "connecting" : "idle";
-    } catch {
-      return "connecting";
-    }
-  });
-  const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>("idle");
+  const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
   const [openingIndex, setOpeningIndex] = useState(0);
   const [selectedMode, setSelectedMode] = useState("free-conversation");
   const [selectedModuleId, setSelectedModuleId] = useState<string>(() => {
@@ -1063,7 +1055,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             setRealtimeStatus("failed");
             setVoiceState("idle");
             if (hasSpeechRecognition) {
-              console.warn("[Practice] Realtime indisponível, usando reconhecimento de voz nativo + Gemini:", err);
+              console.warn("[Practice] Realtime indisponível, usando reconhecimento nativo:", err);
               setErrorMessage("");
             } else {
               setErrorMessage(err);
@@ -1106,27 +1098,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     if (!storageReady || hasAutoConnectedRef.current) return;
-
-    // No iPhone / Safari: se o microfone ainda não foi liberado neste aparelho,
-    // NÃO executamos chamada em background no mount para não disparar popup temporário do WebKit.
-    // O usuário dá 1 toque no botão do microfone, o Safari salva a permissão permanente, e nunca mais pede!
-    const isGranted = typeof window !== "undefined" && window.localStorage.getItem("mr-crazy-mic-granted") === "true";
-    if (!isGranted) {
-      setRealtimeStatus("idle");
-      setVoiceState("idle");
-      setMicrophoneEnabled(false);
-      return;
-    }
-
     hasAutoConnectedRef.current = true;
-    const timeoutId = window.setTimeout(() => {
-      void connectSession();
-    }, 50);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [connectSession, storageReady]);
+    setRealtimeStatus("idle");
+    setVoiceState("idle");
+    setMicrophoneEnabled(false);
+  }, [storageReady]);
 
   useEffect(() => {
     return () => {
@@ -1469,8 +1445,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
 
-    setMicrophoneEnabled(true);
-    setVoiceState("listening");
+    // Fallback caso navegador necessite de permissão getUserMedia prévia
     if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
       navigator.mediaDevices
         .getUserMedia({ audio: true })
@@ -1478,8 +1453,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           if (hasSpeechRecognition) {
             startListening();
           } else {
-            isConnectingRef.current = false;
-            void connectSession();
+            setMicrophoneEnabled(true);
+            setVoiceState("listening");
           }
         })
         .catch(() => {
@@ -1488,8 +1463,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           setVoiceState("idle");
         });
     } else {
-      isConnectingRef.current = false;
-      void connectSession();
+      setErrorMessage("Reconhecimento de voz indisponível neste navegador. Digite sua frase abaixo.");
+      setMicrophoneEnabled(false);
+      setVoiceState("idle");
     }
   }
 
@@ -1683,11 +1659,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   className="retry-connection-btn"
                   onClick={() => {
                     setErrorMessage("");
-                    isConnectingRef.current = false;
-                    void connectSession();
+                    handleAvatarMicClick();
                   }}
                 >
-                  Tentar reconectar microfone
+                  Ativar microfone para falar
                 </button>
               </div>
             ) : null}

@@ -456,16 +456,12 @@ export function ProgrammaticArchipelagoTerrain() {
             <circle cx="3" cy="-22" r="1" fill="#F59E0B" className="campfire-spark-2" />
           </g>
 
-          {/* Placa de Madeira: "START YOUR JOURNEY" */}
+          {/* Placa de Madeira Decorativa */}
           <g transform="translate(-75, 55)">
             <line x1="8" y1="0" x2="8" y2="16" stroke="#502810" strokeWidth="2.5" />
             <rect x="-8" y="-12" width="50" height="15" fill="#783F1D" rx="2" stroke="#B45309" strokeWidth="1" />
-            <text x="17" y="-2" fill="#FEF08A" fontSize="5.5" fontWeight="800" textAnchor="middle" letterSpacing="0.5">
-              START
-            </text>
-            <text x="17" y="2" fill="#FBBF24" fontSize="4" fontWeight="700" textAnchor="middle">
-              YOUR JOURNEY →
-            </text>
+            <line x1="-4" y1="-6" x2="38" y2="-6" stroke="#92400E" strokeWidth="1.5" />
+            <line x1="-4" y1="-1" x2="28" y2="-1" stroke="#B45309" strokeWidth="1.5" />
           </g>
 
           {/* Pinheiros Isométricos */}
@@ -498,11 +494,9 @@ export function ProgrammaticArchipelagoTerrain() {
           <line x1="22" y1="28" x2="18" y2="36" stroke="#B45309" strokeWidth="3" />
           <line x1="36" y1="28" x2="32" y2="36" stroke="#B45309" strokeWidth="3" />
 
-          {/* Letreiro Neon: "Café" */}
+          {/* Letreiro Neon Bistrô */}
           <rect x="8" y="10" width="34" height="10" fill="#181311" rx="2" stroke="#F59E0B" strokeWidth="1" />
-          <text x="25" y="18" fill="#FDE68A" fontSize="7" fontWeight="900" textAnchor="middle" fontStyle="italic" filter="url(#softGlow)">
-            Café
-          </text>
+          <line x1="13" y1="15" x2="37" y2="15" stroke="#FDE68A" strokeWidth="2.5" strokeLinecap="round" filter="url(#softGlow)" />
 
           {/* XÍCARA DE CAFÉ GIGANTE NO TELHADO COM VAPOR ANIMADO */}
           <g className="steaming-cup-group" transform="translate(62, -8)">
@@ -558,12 +552,10 @@ export function ProgrammaticArchipelagoTerrain() {
           <rect x="8" y="32" width="20" height="26" fill="url(#windowWarmGlow)" rx="1" filter="url(#softGlow)" />
           <rect x="32" y="32" width="20" height="26" fill="url(#windowWarmGlow)" rx="1" filter="url(#softGlow)" />
 
-          {/* Letreiro Neon Pulsante "SHOP" */}
+          {/* Letreiro Neon Pulsante da Fachada */}
           <g className="animated-neon-shop" transform="translate(30, 10)">
             <rect x="-24" y="-8" width="48" height="15" fill="#0B0F17" rx="3" stroke="#F59E0B" strokeWidth="1.5" />
-            <text x="0" y="3" fill="#FBBF24" fontSize="9.5" fontWeight="900" textAnchor="middle" letterSpacing="1.2" filter="url(#softGlow)">
-              SHOP
-            </text>
+            <line x1="-16" y1="-1" x2="16" y2="-1" stroke="#FBBF24" strokeWidth="3" strokeLinecap="round" filter="url(#softGlow)" />
           </g>
 
           {/* Loja 24h ao lado */}
@@ -571,9 +563,7 @@ export function ProgrammaticArchipelagoTerrain() {
             <polygon points="0,15 35,15 35,45 0,45" fill="#161E28" />
             <polygon points="35,15 50,6 50,35 35,45" fill="#0B1017" />
             <rect x="6" y="24" width="22" height="16" fill="rgba(56, 189, 248, 0.35)" stroke="#38BDF8" strokeWidth="0.8" />
-            <text x="17" y="20" fill="#38BDF8" fontSize="5" fontWeight="800" textAnchor="middle">
-              24h MARKET
-            </text>
+            <line x1="8" y1="18" x2="26" y2="18" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" />
           </g>
 
           {/* Postes de Iluminação de Rua com Cone de Luz */}
@@ -598,11 +588,9 @@ export function ProgrammaticArchipelagoTerrain() {
           {/* Terminal do Aeroporto */}
           <polygon points="0,20 70,20 70,60 0,60" fill="#1E293B" stroke="#0F172A" strokeWidth="1.5" />
           <polygon points="70,20 105,6 105,45 70,60" fill="#0F172A" />
-          {/* Letreiro Iluminado: "AIRPORT" */}
+          {/* Letreiro Iluminado do Terminal */}
           <rect x="8" y="10" width="54" height="12" fill="#0284C7" rx="2" stroke="#38BDF8" strokeWidth="1.2" />
-          <text x="35" y="19" fill="#FFFFFF" fontSize="7.5" fontWeight="900" textAnchor="middle" letterSpacing="1" filter="url(#softGlow)">
-            AIRPORT
-          </text>
+          <line x1="14" y1="16" x2="56" y2="16" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" filter="url(#softGlow)" />
           {/* Janelas de Vidro do Terminal */}
           <rect x="6" y="28" width="58" height="16" fill="rgba(56, 189, 248, 0.35)" stroke="#38BDF8" strokeWidth="0.8" />
 
@@ -641,20 +629,14 @@ export function ProgrammaticArchipelagoTerrain() {
             <circle cx="10" cy="-1" r="1" fill="#0F172A" />
           </g>
 
-          {/* Outdoor Luminoso: "EXPLORE • PRACTICE • EVOLVE" */}
+          {/* Painel Luminoso da Pista */}
           <g transform="translate(110, -5)">
             <line x1="0" y1="0" x2="0" y2="18" stroke="#64748B" strokeWidth="2" />
             <line x1="45" y1="0" x2="45" y2="18" stroke="#64748B" strokeWidth="2" />
             <rect x="-4" y="-18" width="54" height="24" fill="#0F172A" rx="2" stroke="#38BDF8" strokeWidth="1" />
-            <text x="23" y="-10" fill="#38BDF8" fontSize="4" fontWeight="800" textAnchor="middle">
-              EXPLORE
-            </text>
-            <text x="23" y="-4" fill="#F8FAFC" fontSize="4.5" fontWeight="800" textAnchor="middle">
-              PRACTICE
-            </text>
-            <text x="23" y="2" fill="#F59E0B" fontSize="4" fontWeight="800" textAnchor="middle">
-              EVOLVE ✈
-            </text>
+            <line x1="2" y1="-10" x2="44" y2="-10" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
+            <line x1="6" y1="-4" x2="40" y2="-4" stroke="#F8FAFC" strokeWidth="1.8" strokeLinecap="round" />
+            <line x1="12" y1="2" x2="34" y2="2" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" />
           </g>
 
           {/* Luzes de Balizamento da Pista Pulsando */}
@@ -699,16 +681,12 @@ export function ProgrammaticArchipelagoTerrain() {
             <circle cx="6" cy="-3" r="2" fill="#FFFFFF" />
           </g>
 
-          {/* Placa Rústica: "SAVE LANGUAGE • BRIDGES DREAMS" */}
+          {/* Placa Rústica Decorativa */}
           <g transform="translate(55, 30)">
             <line x1="0" y1="0" x2="0" y2="18" stroke="#78350F" strokeWidth="2.5" />
             <rect x="-8" y="-16" width="56" height="20" fill="#78350F" rx="2" stroke="#B45309" strokeWidth="1" />
-            <text x="20" y="-8" fill="#FDE68A" fontSize="4.2" fontWeight="800" textAnchor="middle">
-              SAVE LANGUAGE
-            </text>
-            <text x="20" y="-1" fill="#FBBF24" fontSize="3.8" fontWeight="700" textAnchor="middle">
-              BRIDGES DREAMS ✈
-            </text>
+            <line x1="-3" y1="-8" x2="43" y2="-8" stroke="#FDE68A" strokeWidth="1.6" strokeLinecap="round" opacity="0.6" />
+            <line x1="-3" y1="-1" x2="33" y2="-1" stroke="#FBBF24" strokeWidth="1.6" strokeLinecap="round" opacity="0.6" />
           </g>
 
           {/* Bancos de Praça e Postes */}
@@ -766,12 +744,8 @@ export function ProgrammaticArchipelagoTerrain() {
           {/* Telão Digital Corporativo */}
           <g transform="translate(-15, 30)">
             <rect x="-15" y="-12" width="68" height="26" fill="#030712" rx="3" stroke="#38BDF8" strokeWidth="1.5" />
-            <text x="19" y="-4" fill="#38BDF8" fontSize="4.2" fontWeight="800" textAnchor="middle">
-              BIGGER CONVERSATIONS
-            </text>
-            <text x="19" y="3" fill="#F8FAFC" fontSize="4" fontWeight="800" textAnchor="middle">
-              GREATER OPPORTUNITIES
-            </text>
+            <line x1="-8" y1="-4" x2="46" y2="-4" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" filter="url(#softGlow)" />
+            <line x1="-8" y1="3" x2="38" y2="3" stroke="#F8FAFC" strokeWidth="2" strokeLinecap="round" />
           </g>
 
           {/* Arranha-céu 3 (Direito Moderno) */}
@@ -825,11 +799,9 @@ export function ProgrammaticArchipelagoTerrain() {
             <line x1="30" y1="52" x2="50" y2="52" stroke="#F59E0B" strokeWidth="1" />
             <line x1="30" y1="62" x2="50" y2="62" stroke="#F59E0B" strokeWidth="1" />
 
-            {/* Banner Oficial: "MR. CRAZY" */}
+            {/* Brasão Dourado do Castelo */}
             <rect x="18" y="24" width="44" height="12" fill="#78350F" rx="2" stroke="#FBBF24" strokeWidth="1.2" />
-            <text x="40" y="33" fill="#FDE68A" fontSize="6.5" fontWeight="900" textAnchor="middle" letterSpacing="1">
-              MR. CRAZY
-            </text>
+            <line x1="24" y1="30" x2="56" y2="30" stroke="#FDE68A" strokeWidth="2" strokeLinecap="round" filter="url(#softGlow)" />
 
             {/* COROA DOURADA GIGANTE FLUTUANDO SOBRE O CASTELO */}
             <g className="animated-floating-crown" transform="translate(40, -82)">
@@ -850,14 +822,10 @@ export function ProgrammaticArchipelagoTerrain() {
             </g>
           </g>
 
-          {/* Faixa Artística: "FLUENCY LIVES HERE 👑" */}
+          {/* Estandarte Real Dourado */}
           <g transform="translate(15, -120)">
-            <text x="0" y="0" fill="#FDE68A" fontSize="8" fontWeight="900" fontStyle="italic" letterSpacing="0.8" filter="url(#softGlow)">
-              FLUENCY
-            </text>
-            <text x="0" y="10" fill="#FBBF24" fontSize="7.5" fontWeight="900" fontStyle="italic" letterSpacing="0.8">
-              LIVES HERE 👑
-            </text>
+            <ellipse cx="20" cy="5" rx="24" ry="6" fill="rgba(245, 158, 11, 0.25)" filter="url(#softGlow)" />
+            <line x1="0" y1="5" x2="40" y2="5" stroke="#FBBF24" strokeWidth="2.5" strokeLinecap="round" />
           </g>
 
           {/* FAROL COSTEIRO NA PONTA DA ROCHA COM FEIXE DE LUZ GIRATÓRIO */}
