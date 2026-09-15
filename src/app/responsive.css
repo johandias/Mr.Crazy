@@ -1,0 +1,153 @@
+.learning-map-page-view .map-scroll-viewport {
+  overflow: auto;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+}
+
+.learning-map-page-view .map-canvas-stage {
+  min-width: 0 !important;
+  aspect-ratio: auto !important;
+  transition: none;
+}
+
+.map-canvas-size { position: relative; }
+.insight-details > summary { cursor: pointer; color: var(--cyan); font-size: 0.85rem; padding: 8px 0; }
+.insight-details[open] > summary { margin-bottom: 6px; }
+
+@media (max-width: 768px) {
+  .app-shell {
+    --bottom-nav-space: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-shell .mobile-nav {
+    padding-top: 5px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .app-shell .mobile-nav :is(a, .mobile-nav-item) { min-height: 44px; }
+  .app-shell :is(.practice-main, .secondary-main) {
+    padding-bottom: calc(var(--bottom-nav-space) + 12px) !important;
+    min-width: 0;
+  }
+
+  .app-shell .app-header { padding: 10px 12px; gap: 8px; }
+  .app-shell .brand-mark { min-width: 0; gap: 7px; font-size: 1.05rem; }
+  .app-shell .header-actions { gap: 6px; }
+  .app-shell .header-actions .icon-link { width: 40px; height: 40px; }
+
+  .learning-map-page-view {
+    height: auto;
+    padding: 4px 0 0;
+    overflow: visible;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .learning-map-page-view .map-scroll-outer-viewport {
+    flex: none;
+    height: clamp(330px, calc(100svh - 225px - env(safe-area-inset-bottom, 0px)), 540px);
+    border-radius: 8px;
+  }
+
+  .learning-map-page-view .map-canvas-stage {
+    width: auto;
+    height: auto;
+    min-width: 0 !important;
+  }
+
+  .learning-map-page-view .map-mobile-compact-header { flex-wrap: wrap; gap: 6px; padding: 9px; border-radius: 8px; }
+  .learning-map-page-view .map-mobile-title-col { flex-wrap: wrap; gap: 4px 8px; }
+  .learning-map-page-view .map-floating-controls { top: 8px; left: 8px; right: 8px; gap: 6px; justify-content: space-between; }
+  .learning-map-page-view .map-ctrl-btn { min-height: 40px; padding: 8px; font-size: 0.78rem; }
+  .learning-map-page-view .map-zoom-buttons-group { gap: 4px; }
+  .learning-map-page-view .btn-zoom, .learning-map-page-view .btn-reset { width: 40px; }
+  .learning-map-page-view .checkpoint-card-pill { width: 174px; max-width: 174px; min-width: 0; white-space: normal; }
+  .learning-map-page-view .checkpoint-card-title { white-space: normal; overflow-wrap: anywhere; font-size: 0.78rem; line-height: 1.2; }
+  .learning-map-page-view .checkpoint-card-actions { flex-wrap: wrap; }
+  .learning-map-page-view .checkpoint-card-actions button { min-height: 36px; }
+
+  .practice-main .practice-header-nav-row { min-width: 0; }
+  .practice-main .active-module-pill-btn { max-width: none !important; min-height: 40px; }
+  .practice-main .stage-exam-action-btn { min-height: 40px; }
+  .practice-main .session-header { flex-wrap: wrap !important; overflow: visible !important; }
+  .practice-main .conversation-panel.clean-conversation { max-height: 45svh !important; scroll-behavior: auto; }
+  .practice-main .quick-text-input-bar input { min-width: 0; font-size: 16px; }
+  .practice-main .character-column { width: 100%; max-width: 380px; }
+  .practice-main .quick-text-input-bar { min-height: 44px; }
+  .practice-main .quick-text-input-bar input::placeholder { font-size: 0.9rem; }
+  .practice-main .quick-text-input-bar button { width: 36px; height: 36px; }
+
+  .evolution-dashboard { padding: 12px 0; min-width: 0; }
+  .evolution-dashboard .evolution-tabs { gap: 6px; }
+  .evolution-dashboard .evolution-tab-btn { padding: 10px 8px; font-size: 0.85rem; min-width: 0; }
+  .evolution-dashboard .evolution-banner-header { padding: 0; gap: 10px; margin-bottom: 12px; }
+  .evolution-dashboard .evolution-banner-header h2 { font-size: 1.25rem; }
+  .evolution-dashboard .evolution-banner-header p,
+  .evolution-dashboard .metric-footnote,
+  .evolution-dashboard .panel-subtext,
+  .evolution-dashboard .mobile-swipe-hint,
+  .evolution-dashboard .swipe-badge-pill { display: none; }
+  .evolution-dashboard .evolution-card-panel { padding: 12px 0; border: 0; background: transparent; box-shadow: none; }
+  .evolution-dashboard .panel-header h3 { font-size: 1rem; }
+  .evolution-dashboard .horizontal-swipe-track {
+    gap: 10px !important;
+    padding: 3px 0 10px !important;
+    margin: 0 !important;
+    max-width: 100%;
+    align-items: flex-start;
+    scroll-snap-type: x proximity !important;
+  }
+  .evolution-dashboard .swipe-card-wide {
+    flex: 0 0 87% !important;
+    min-width: 0 !important;
+    max-width: 340px !important;
+    padding: 12px !important;
+    border-radius: 8px;
+    scroll-snap-align: start !important;
+    overflow-wrap: anywhere;
+  }
+  .evolution-dashboard .metric-card.swipe-card-wide { flex-basis: 46% !important; min-height: 106px; }
+  .evolution-dashboard .metric-value { font-size: 1.1rem; }
+  .evolution-dashboard .metric-icon-box { width: 28px; height: 28px; }
+  .evolution-dashboard .technique-desc, .evolution-dashboard .focus-desc { font-size: 0.85rem; line-height: 1.45; }
+  .evolution-dashboard .technique-steps { margin: 0; padding: 0 !important; background: transparent; }
+  .evolution-dashboard .ai-insight-cta-card { padding: 12px; gap: 10px; }
+  .evolution-dashboard .cta-text p { display: none; }
+  .evolution-dashboard .cta-text h4 { font-size: 0.9rem; }
+  .evolution-dashboard .ai-diagnostic-card { padding: 12px; border-radius: 8px; }
+  .evolution-dashboard .evolution-tabs { margin-bottom: 14px; }
+  .evolution-dashboard .evolution-banner-header { border: 0; background: transparent; }
+  .evolution-dashboard .evolution-banner-header .badge-pill { display: none; }
+  .evolution-dashboard .evolution-card-panel { margin-bottom: 8px; }
+  .evolution-dashboard .section-title-row { margin: 12px 0 8px; }
+  .evolution-dashboard .section-subtitle { font-size: 1rem; margin: 0; }
+  .evolution-dashboard .focus-areas-container { margin-top: 8px; }
+  .evolution-dashboard .insight-summary-track {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    align-items: flex-start;
+    scroll-snap-type: x proximity;
+    margin: 8px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .evolution-dashboard .insight-summary-track > * {
+    flex: 0 0 87%;
+    margin: 0;
+    min-width: 0;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    scroll-snap-align: start;
+  }
+  .evolution-dashboard .insight-summary-track .daily-challenge-clean-card { display: block; }
+  .evolution-dashboard .insight-summary-track .challenge-text { text-align: left; margin-top: 8px; }
+  .stage-horizontal-modal { max-height: calc(100dvh - 32px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learning-map-page-view *, .rpg-character * { animation: none !important; transition: none !important; }
+}

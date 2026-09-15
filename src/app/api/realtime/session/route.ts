@@ -28,6 +28,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Acesso não autorizado." }, { status: 401 });
   }
 
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    return NextResponse.json({ error: "Conversa de voz não configurada. Entre em contato com o administrador.", code: "realtime_not_configured" }, { status: 503 });
+  }
+
   // 1. Verificação de Limite de Taxa e Cota Diária de Sessões WebRTC
   const rateLimit = await checkRateLimit(sessionUser, "realtime");
   if (!rateLimit.allowed) {
@@ -45,11 +50,6 @@ export async function POST(request: Request) {
   }
 
   const user = await getCurrentUser();
-
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    return NextResponse.json({ error: "Conversa em tempo real não configurada." }, { status: 503 });
-  }
 
   try {
     const contentType = request.headers.get("content-type") ?? "";

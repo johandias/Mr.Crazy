@@ -481,15 +481,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     pipRef.current?.openStandalonePopup();
   };
 
-  const triggerGesture = (gesture: CharacterGesture) => {
+  const triggerGesture = useCallback((gesture: CharacterGesture) => {
     if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
     setActiveGesture(gesture);
     gestureTimeoutRef.current = setTimeout(() => {
       setActiveGesture("idle");
     }, 3800);
-  };
+  }, []);
 
-  const handleAvatarTap = () => {
+  const handleAvatarTap = useCallback(() => {
     if (voiceState === "speaking" && realtimeRef.current) {
       realtimeRef.current.interrupt();
       setVoiceState("listening");
@@ -498,7 +498,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     const currentIndex = gestures.indexOf(activeGesture);
     const nextGesture = gestures[(currentIndex + 1) % gestures.length] || "watergun";
     triggerGesture(nextGesture);
-  };
+  }, [voiceState, activeGesture, triggerGesture]);
   const introSpokenRef = useRef(false);
   const realtimeRef = useRef<RealtimeController | null>(null);
   const connectAbortRef = useRef<AbortController | null>(null);
@@ -675,7 +675,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      scrollToBottom(true);
+      scrollToBottom(false);
     }, 45);
     return () => window.clearTimeout(timer);
   }, [contextHistory, transcript, realtimeReply, voiceState, liveUserItem, liveCrazyItem, scrollToBottom]);
@@ -976,7 +976,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       moduleId,
       signal: abortController.signal,
       getRecentContext: () =>
-        scoringContextRef.current.contextHistory.slice(-2).map((turn) => ({
+        (scoringContextRef.current.contextHistory.length ? scoringContextRef.current.contextHistory : [{ role: "crazy", text: openingLine }]).slice(-6).map((turn) => ({
           role: turn.role,
           text: turn.text
         })),
@@ -1288,7 +1288,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         scheduleSilenceAnalysis(text, isLastFinal ? 1400 : 2500);
       };
 
-      recognition.onerror = (e: any) => {
+      recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
         console.warn("[SpeechRecognition] error:", e?.error);
         if (recognitionRef.current !== recognition) return;
         if (e?.error === "no-speech") return;
@@ -1353,9 +1353,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }
 
   function submitSentence(sentence: string) {
-    if (realtimeStatus === "connected" && realtimeRef.current?.sendText(sentence)) {
-      setAnalysis(null);
-      setAnalysisSource("manual");
+    if (realtimeStatus === "connected" && realtimeRef.current) {
+      if (realtimeRef.current.sendText(sentence)) {
+        setAnalysis(null);
+        setAnalysisSource("manual");
+      } else {
+        setManualText(sentence);
+        setErrorMessage("Aguarde o professor terminar para enviar a mensagem.");
+      }
       return;
     }
 
@@ -1644,7 +1649,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   className="retry-connection-btn"
                   onClick={() => {
                     setErrorMessage("");
-                    handleAvatarMicClick();
                     void connectSession();
                   }}
                 >
@@ -1663,8 +1667,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               <input
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
-                placeholder="Ou digite sua frase em inglês aqui..."
-                aria-label="Digite sua frase em inglês"
+                placeholder="Escreva sua mensagem..."
+                aria-label="Mensagem para o professor"
               />
               <button
                 type="submit"

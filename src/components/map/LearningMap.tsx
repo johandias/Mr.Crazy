@@ -35,7 +35,8 @@ export function LearningMap({
   const [selectedDrawerModule, setSelectedDrawerModule] = useState<LearningModule | null>(null);
   const [activeModalEvaluation, setActiveModalEvaluation] = useState<ModuleEvaluationItem | null>(null);
   const [examModuleId, setExamModuleId] = useState<string | null>(null);
-  const [zoom, setZoom] = useState<number>(1.05);
+  const [zoom, setZoom] = useState<number>(1);
+  const [viewport, setViewport] = useState({ width: 1100, height: 440 });
 
   const mapScrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef<boolean>(false);
@@ -88,10 +89,16 @@ export function LearningMap({
 
   // Detecção de viewport inicial: zoom 1.0 garante proporção perfeita do cenário e checkpoints
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setZoom(1.0);
-    }
+    const container = mapScrollRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setViewport({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
+
+  const canvasWidth = Math.max(viewport.width, 1100);
 
   // Centraliza o scroll do mapa na etapa ativa
   const centerOnStage = useCallback((stageNum: number) => {
@@ -101,21 +108,21 @@ export function LearningMap({
     const targetModule =
       LEARNING_MODULES.find((m) => m.stageNumber === stageNum) || currentActiveModule;
 
-    const scrollWidth = container.scrollWidth;
     const clientWidth = container.clientWidth;
-    const targetX = (targetModule.mapCoords.xPct / 100) * scrollWidth;
+    const targetX = (targetModule.mapCoords.xPct / 100) * canvasWidth * zoom;
 
     container.scrollTo({
       left: Math.max(0, targetX - clientWidth / 2),
-      behavior: "smooth"
+      top: Math.max(0, (targetModule.mapCoords.yPct / 100) * viewport.height * zoom - viewport.height * 0.45),
+      behavior: "auto"
     });
-  }, [currentActiveModule]);
+  }, [currentActiveModule, canvasWidth, viewport.height, zoom]);
 
   // Centralização automática ao carregar a página e após ajuste de zoom
   useEffect(() => {
     const timer = setTimeout(() => {
       centerOnStage(currentStageNumber);
-    }, 350);
+    }, 0);
     return () => clearTimeout(timer);
   }, [currentStageNumber, zoom, centerOnStage]);
 
@@ -136,25 +143,6 @@ export function LearningMap({
   };
 
   const handleMouseUp = () => {
-    isDraggingRef.current = false;
-  };
-
-  // Handlers para touch em telas de celular (Swipe / Pan)
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if ((e.target as HTMLElement).closest(".map-checkpoint-node, button")) return;
-    isDraggingRef.current = true;
-    startXRef.current = e.touches[0].pageX - (mapScrollRef.current?.offsetLeft || 0);
-    scrollLeftRef.current = mapScrollRef.current?.scrollLeft || 0;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDraggingRef.current || !mapScrollRef.current) return;
-    const x = e.touches[0].pageX - (mapScrollRef.current.offsetLeft || 0);
-    const walk = (x - startXRef.current) * 1.3;
-    mapScrollRef.current.scrollLeft = scrollLeftRef.current - walk;
-  };
-
-  const handleTouchEnd = () => {
     isDraggingRef.current = false;
   };
 
@@ -203,13 +191,11 @@ export function LearningMap({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
         >
+          <div className="map-canvas-size" style={{ width: canvasWidth * zoom, height: viewport.height * zoom }}>
           <div
             className="map-canvas-stage"
-            style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
+            style={{ width: canvasWidth, height: viewport.height, transform: `scale(${zoom})`, transformOrigin: "top left" }}
           >
             <MapTerrain>
               {/* Rota Sinuosa Iluminada em SVG */}
@@ -243,6 +229,7 @@ export function LearningMap({
                 );
               })}
             </MapTerrain>
+          </div>
           </div>
         </div>
 

@@ -309,6 +309,20 @@ function waitForDataChannel(
 }
 
 let masterMicrophoneStream: MediaStream | null = null;
+const sessionMicrophones = new Set<MediaStreamTrack>();
+
+function cloneMicrophoneStream(stream: MediaStream) {
+  const sessionStream = stream.clone();
+  const track = sessionStream.getAudioTracks()[0];
+  sessionMicrophones.add(track);
+  return { track, stream: sessionStream };
+}
+
+function releaseSessionMicrophone(track: MediaStreamTrack) {
+  track.stop();
+  sessionMicrophones.delete(track);
+  if (sessionMicrophones.size === 0) releasePersistentMicrophoneStream(true);
+}
 let visibilityHandlerAttached = false;
 let isPageVisible = typeof document !== "undefined" ? document.visibilityState === "visible" : true;
 
@@ -348,8 +362,7 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
     const liveTrack = masterMicrophoneStream.getAudioTracks().find((t) => t.readyState === "live");
     if (liveTrack) {
       liveTrack.enabled = true;
-      const sessionStream = masterMicrophoneStream.clone();
-      return { track: sessionStream.getAudioTracks()[0], stream: sessionStream };
+      return cloneMicrophoneStream(masterMicrophoneStream);
     }
     masterMicrophoneStream = null;
   }
@@ -367,7 +380,8 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
+        channelCount: { ideal: 1 }
       }
     });
   } catch (err) {
@@ -420,8 +434,7 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
     }
   } catch {}
 
-  const sessionStream = stream.clone();
-  return { track: sessionStream.getAudioTracks()[0], stream: sessionStream };
+  return cloneMicrophoneStream(stream);
 }
 
 export function releasePersistentMicrophoneStream(force = false) {
@@ -494,7 +507,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     microphone = sessionMedia.track;
     stream = sessionMedia.stream;
     if (options.signal?.aborted) {
-      microphone.stop();
+      releaseSessionMicrophone(microphone);
       throw new DOMException("Aborted", "AbortError");
     }
   } catch (error) {
@@ -517,6 +530,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   const completedTranscripts = new Set<string>();
   const resumeAudio = () => {
     if (!disconnected && audio.srcObject) void audio.play().catch(() => {});
+  };
+  audio.onplaying = () => {
+    if (assistantAudioActive) options.onVoiceState("speaking");
   };
   window.addEventListener("pointerdown", resumeAudio);
 
@@ -667,11 +683,20 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     } catch {}
     try {
       // Silencia a captação sem destruir a faixa no hardware, garantindo que o iOS não volte a pedir permissão
-      microphone.stop();
+      releaseSessionMicrophone(microphone);
     } catch {}
   };
 
   options.signal?.addEventListener("abort", disconnect, { once: true });
+  const failConnection = () => {
+    if (disconnected) return;
+    disconnect();
+    options.onStatus("failed");
+    options.onVoiceState("idle");
+    options.onError("A conexão de voz foi encerrada. Reconecte o microfone para continuar.");
+  };
+  channel.addEventListener("close", failConnection);
+  microphone.addEventListener("ended", failConnection);
   peer.addEventListener("connectionstatechange", () => {
     if (!disconnected && (peer.connectionState === "failed" || peer.connectionState === "disconnected")) {
       disconnect();
@@ -806,14 +831,14 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         }
         break;
       case "output_audio_buffer.started":
-        clearResponseTimer();
+        watchResponse();
         clearInterruptionTimer();
         clearEchoCooldown();
         audioPlaying = true;
         assistantAudioActive = true;
         // Isola completamente o microfone para impedir eco acústico do alto-falante
         microphone.enabled = false;
-        options.onVoiceState("speaking");
+        options.onVoiceState(audio.paused ? "preparing_speech" : "speaking");
         break;
       case "output_audio_buffer.cleared":
       case "output_audio_buffer.stopped":
@@ -976,6 +1001,17 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
     options.onStatus("connected");
     options.onVoiceState("listening");
+
+    for (const turn of (options.getRecentContext?.() ?? []).slice(-6)) {
+      send({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: turn.role === "user" ? "user" : "assistant",
+          content: [{ type: turn.role === "user" ? "input_text" : "output_text", text: turn.text }]
+        }
+      });
+    }
 
     return {
       disconnect,

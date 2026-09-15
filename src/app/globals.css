@@ -7967,7 +7967,6 @@ meter {
 
 /* Responsiveness */
 @media (max-width: 1024px) {
-  .map-header-container {
   .map-desktop-header-content {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -8009,6 +8008,8 @@ meter {
 @media (max-width: 640px) {
   .map-hero-title {
     font-size: 1.45rem;
+  }
+}
 @media (max-width: 768px) {
   /* No celular: ativa header ultra-compacto em linha única (sem rolagem e sem texto cortado no topo) */
   .map-mobile-compact-header {
@@ -8024,10 +8025,10 @@ meter {
   }
   .map-hero-subtitle {
     font-size: 0.84rem;
+  }
   .map-desktop-header-content {
     display: none !important;
   }
-  .map-stats-bar {
   .map-mobile-title-col {
     display: flex;
     align-items: baseline;
@@ -8036,6 +8037,7 @@ meter {
   .map-stat-chip {
     font-size: 0.74rem;
     padding: 4px 10px;
+  }
   .map-mobile-heading {
     font-size: 0.95rem;
     font-weight: 800;
@@ -8044,6 +8046,7 @@ meter {
   }
   .stage-drawer-panel {
     max-width: 100%;
+  }
   .map-mobile-stage-badge {
     font-size: 0.7rem;
     color: #FBBF24;
@@ -8052,6 +8055,7 @@ meter {
   .stage-horizontal-modal {
     width: 96vw;
     max-height: 90vh;
+  }
   .map-mobile-stats-row {
     display: flex;
     align-items: center;
@@ -8103,10 +8107,8 @@ meter {
   }
 
   .map-canvas-stage {
-    height: 100% !important;
-    min-width: 1100px !important;
-    width: auto !important;
-    aspect-ratio: 16 / 9 !important;
+    min-width: 0;
+    aspect-ratio: auto;
   }
 
   /* Cabeçalho de Prática Responsivo e Compacto no Mobile */

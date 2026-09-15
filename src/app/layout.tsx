@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
+import "./responsive.css";
 
 export const metadata: Metadata = {
   title: "Mr.Crazy",

@@ -27,7 +27,7 @@ export function MapControls({
         title="Centralizar na minha etapa atual"
       >
         <Navigation size={14} className="ctrl-nav-icon" />
-        <span>Voltar para minha etapa</span>
+        <span>Minha etapa</span>
       </button>
 
       <div className="map-zoom-buttons-group">
@@ -35,7 +35,7 @@ export function MapControls({
           type="button"
           className="map-ctrl-btn btn-zoom"
           onClick={onZoomIn}
-          disabled={currentZoom >= 1.6}
+          disabled={currentZoom >= 1.8}
           title="Aproximar mapa"
           aria-label="Aumentar zoom"
         >
@@ -66,4 +66,3 @@ export function MapControls({
     </div>
   );
 }
-

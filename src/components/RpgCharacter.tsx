@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type CSSProperties } from "react";
+import { memo, useState, useEffect, useRef, type CSSProperties } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
 export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup" | "watergun";
@@ -17,7 +17,7 @@ const sparkPixels = [
   [79, 18]
 ] as const;
 
-export function RpgCharacter({
+export const RpgCharacter = memo(function RpgCharacter({
   crazyLevel,
   emotion,
   voiceState,
@@ -34,14 +34,19 @@ export function RpgCharacter({
   // Parallax Pointer Tracking (olhos e cabeça seguem o cursor do usuário)
   const [lookOffset, setLookOffset] = useState({ x: 0, y: 0 });
   // Ciclo procedural de fonemas labiais realistas durante a fala
-  const [phoneme, setPhoneme] = useState(0);
+  const [animatedPhoneme, setPhoneme] = useState(0);
+  const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
   // Animação inicial de entrada: na rede descansando -> vê gente -> pula pra posição normal
   const [entranceStage, setEntranceStage] = useState<EntranceStage>("hammock");
 
   // Rastreamento natural do mouse/toque com amortecimento e retorno suave
   useEffect(() => {
+    if (!window.matchMedia("(pointer: fine)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let timeoutId: number | null = null;
+    let lastMove = 0;
     const handlePointerMove = (e: PointerEvent) => {
+      if (document.visibilityState === "hidden" || performance.now() - lastMove < 50) return;
+      lastMove = performance.now();
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
@@ -66,7 +71,6 @@ export function RpgCharacter({
   // Articulação labial com fonemas vocálicos e consonantais durante a fala do professor
   useEffect(() => {
     if (voiceState !== "speaking") {
-      setPhoneme(0);
       return;
     }
     const phonemeSequence = [0, 1, 0, 2, 1, 3, 0, 2];
@@ -518,4 +522,4 @@ export function RpgCharacter({
       <div className="character-glow" aria-hidden="true" />
     </div>
   );
-}
+});

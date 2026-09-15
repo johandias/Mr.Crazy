@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -51,6 +51,7 @@ export function EvolutionDashboard() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [insightsError, setInsightsError] = useState("");
+  const insightsRequest = useRef(false);
 
   useEffect(() => {
     if (searchParams.get("tab") === "techniques") {
@@ -77,7 +78,8 @@ export function EvolutionDashboard() {
   }, []);
 
   async function fetchInsights(force = false) {
-    if (insights && !force) return;
+    if (insightsRequest.current || (insights && !force)) return;
+    insightsRequest.current = true;
     setLoadingInsights(true);
     setInsightsError("");
     try {
@@ -91,6 +93,7 @@ export function EvolutionDashboard() {
     } catch (err) {
       setInsightsError(err instanceof Error ? err.message : "Erro ao carregar insights.");
     } finally {
+      insightsRequest.current = false;
       setLoadingInsights(false);
     }
   }
@@ -126,7 +129,7 @@ export function EvolutionDashboard() {
           onClick={() => setActiveTab("stats")}
         >
           <Award size={18} />
-          <span>Meu Desenvolvimento Real</span>
+          <span>Minha evolução</span>
         </button>
         <button
           type="button"
@@ -214,6 +217,7 @@ export function EvolutionDashboard() {
 
           {/* Seção 1: Sons e Sílabas Monitorados pela IA */}
           {/* Diagnóstico Executivo de 1 Frase */}
+          <div className="insight-summary-track">
           {insights?.diagnostic && (
             <div className="clean-diagnostic-banner">
               <Sparkles size={18} className="diagnostic-icon" />
@@ -232,6 +236,7 @@ export function EvolutionDashboard() {
             </div>
           )}
 
+          </div>
           {/* Seção 1: Fonemas & Sons Críticos (Clean & Compacto) */}
           {insights?.soundSyllables && insights.soundSyllables.length > 0 && (
             <div className="evolution-card-panel">
@@ -243,9 +248,9 @@ export function EvolutionDashboard() {
                 </div>
               </div>
 
-              <div className="sound-syllables-clean-grid">
+              <div className="sound-syllables-clean-grid horizontal-swipe-track">
                 {insights.soundSyllables.map((item) => (
-                  <div key={item.sound} className="sound-insight-clean-card">
+                  <div key={item.sound} className="sound-insight-clean-card swipe-card-wide">
                     <div className="sound-card-header">
                       <span className="sound-badge">{item.sound}</span>
                     </div>
@@ -254,6 +259,8 @@ export function EvolutionDashboard() {
                       <strong>Como posicionar:</strong> {item.anatomy}
                     </p>
 
+                    <details className="insight-details">
+                      <summary>Ver análise</summary>
                     {item.observation && (
                       <div className="sound-obs-box">
                         <strong>O que a IA identificou:</strong>
@@ -268,6 +275,7 @@ export function EvolutionDashboard() {
                       </div>
                     )}
 
+                    </details>
                     {item.drillWords && item.drillWords.length > 0 && (
                       <div className="drill-chips-clean">
                         {item.drillWords.map((word) => (
@@ -292,9 +300,9 @@ export function EvolutionDashboard() {
                 </div>
               </div>
 
-              <div className="corrections-clean-grid">
+              <div className="corrections-clean-grid horizontal-swipe-track">
                 {insights.agentCorrections.map((corr) => (
-                  <div key={corr.area} className="correction-clean-card">
+                  <div key={corr.area} className="correction-clean-card swipe-card-wide">
                     <div className="correction-card-header">
                       <CheckCircle2 size={16} className="text-emerald-400" />
                       <h4>{corr.area}</h4>
@@ -311,6 +319,8 @@ export function EvolutionDashboard() {
                       </div>
                     </div>
 
+                    <details className="insight-details">
+                      <summary>Entender o ajuste</summary>
                     {corr.impact && (
                       <div className="corr-impact">
                         <strong>Impacto:</strong> {corr.impact}
@@ -319,6 +329,7 @@ export function EvolutionDashboard() {
                     <p className="corr-quick-rule">
                       <strong>Regra:</strong> {corr.solution}
                     </p>
+                    </details>
                   </div>
                 ))}
               </div>
@@ -408,6 +419,7 @@ export function EvolutionDashboard() {
 
           {insights && (
             <div className="insights-feed">
+              <div className="insight-summary-track">
               {/* Diagnóstico Geral */}
               <div className="ai-diagnostic-card">
                 <div className="diagnostic-header">
@@ -428,6 +440,7 @@ export function EvolutionDashboard() {
                 </div>
               )}
 
+              </div>
               {/* Lista de Técnicas Práticas - Com Carrossel Horizontal Mobile */}
               <div className="section-title-row">
                 <h3 className="section-subtitle">Técnicas que Realmente Funcionam</h3>
@@ -453,14 +466,14 @@ export function EvolutionDashboard() {
 
                       <p className="technique-desc">{tech.description}</p>
 
-                      <div className="technique-steps">
-                        <strong>Passo a passo prático:</strong>
+                      <details className="technique-steps insight-details">
+                        <summary>Como praticar</summary>
                         <ol>
                           {tech.stepByStep.map((step, idx) => (
                             <li key={idx}>{step}</li>
                           ))}
                         </ol>
-                      </div>
+                      </details>
 
                       {tech.example && (
                         <div className="technique-example">

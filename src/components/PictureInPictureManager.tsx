@@ -77,7 +77,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
 
     useEffect(() => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas || !isPiPActive) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
@@ -274,7 +274,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
       return () => {
         cancelAnimationFrame(animId);
       };
-    }, []);
+    }, [isPiPActive]);
 
     useEffect(() => {
       const video = videoRef.current;

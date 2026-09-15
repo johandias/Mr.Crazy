@@ -9,8 +9,6 @@ export const dynamic = "force-dynamic";
 export interface SoundSyllableInsight {
   sound: string;
   anatomy: string;
-  observation: string;
-  agentHelp: string;
   observation?: string;
   agentHelp?: string;
   drillWords: string[];

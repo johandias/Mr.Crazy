@@ -34,7 +34,6 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
       <header className="app-header">
         <Link className="brand-mark" href="/practice" aria-label="Prática Mr.Crazy">
           <span className="brand-pulse" />
-          Mr.Crazy
           <img
             src="/assets/character/mr_crazy_avatar_clean.png"
             alt="Mr.Crazy"
