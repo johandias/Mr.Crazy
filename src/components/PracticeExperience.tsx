@@ -1430,12 +1430,19 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       setRealtimeStatus("idle");
     }
 
+    // Se a conexão já existe e está pronta, ativa o microfone nela
     if (realtimeStatus === "connected" && realtimeRef.current) {
       try {
         realtimeRef.current.setMicrophoneEnabled(true);
       } catch {}
       setMicrophoneEnabled(true);
       setVoiceState("listening");
+      return;
+    }
+
+    // Se a conexão WebRTC falhou ou está inativa, tenta reconectar ativamente
+    if (realtimeStatus === "failed" || realtimeStatus === "idle") {
+      void connectSession();
       return;
     }
 
@@ -1453,12 +1460,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           if (hasSpeechRecognition) {
             startListening();
           } else {
-            setMicrophoneEnabled(true);
-            setVoiceState("listening");
+            void connectSession();
           }
         })
-        .catch(() => {
-          setErrorMessage("Permissão do microfone negada. Permita o microfone nos ajustes do navegador.");
+        .catch((err) => {
+          setErrorMessage(getConnectionError(err));
           setMicrophoneEnabled(false);
           setVoiceState("idle");
         });
@@ -1658,13 +1664,35 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   className="retry-connection-btn"
                   onClick={() => {
                     setErrorMessage("");
-                    handleAvatarMicClick();
+                    void connectSession();
                   }}
                 >
-                  Ativar microfone para falar
+                  Tentar reconectar microfone
                 </button>
               </div>
             ) : null}
+
+            {/* Digitação rápida para não travar o aluno se o microfone falhar */}
+            <form
+              className="quick-text-input-bar"
+              onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                handleSubmit(e);
+              }}
+            >
+              <input
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                placeholder="Ou digite sua frase em inglês aqui..."
+                aria-label="Digite sua frase em inglês"
+              />
+              <button
+                type="submit"
+                disabled={!manualText.trim() || voiceState === "analyzing"}
+                title="Enviar frase"
+              >
+                <Send size={15} />
+              </button>
+            </form>
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking" || voiceState === "transcribing" || voiceState === "analyzing"} />
           </motion.div>
 

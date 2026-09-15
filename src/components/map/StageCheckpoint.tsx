@@ -103,7 +103,7 @@ export function StageCheckpoint({
           title="Ver resumo da etapa"
           style={{ cursor: "pointer" }}
         >
-          <span className="checkpoint-card-title">{module.title}</span>
+          <span className="checkpoint-card-title">{module.cleanTitle}</span>
           <span className={`level-pill-badge badge-${module.difficulty}`}>
             {module.levelBadge}
           </span>
@@ -116,20 +116,6 @@ export function StageCheckpoint({
             {isLocked && <Lock size={11} className="status-lock-mini" />}
             <span className="status-label">{getStatusText()}</span>
           </div>
-
-          {!isLocked && (
-            <button
-              type="button"
-              className="checkpoint-details-link"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(module);
-              }}
-              title="Ver detalhes dos conceitos"
-            >
-              Info
-            </button>
-          )}
         </div>
 
         {/* Botões de Ação Direta no próprio card do mapa */}

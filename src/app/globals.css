@@ -2292,6 +2292,66 @@ meter {
   color: #fff;
 }
 
+.quick-text-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 360px;
+  margin: 8px auto 2px;
+  background: rgba(22, 27, 34, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  padding: 3px 4px 3px 14px;
+  transition: all 0.2s ease;
+}
+
+.quick-text-input-bar:focus-within {
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.quick-text-input-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  font-size: 0.82rem;
+  outline: none;
+  min-width: 0;
+}
+
+.quick-text-input-bar input::placeholder {
+  color: rgba(148, 163, 184, 0.7);
+  font-size: 0.78rem;
+}
+
+.quick-text-input-bar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  border: none;
+  background: #38bdf8;
+  color: #0b1329;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.quick-text-input-bar button:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.25);
+  cursor: not-allowed;
+}
+
+.quick-text-input-bar button:not(:disabled):hover {
+  background: #7dd3fc;
+  transform: scale(1.05);
+}
+
 .gesture-action-bar {
   display: flex;
   align-items: center;
@@ -6333,12 +6393,21 @@ meter {
 
 /* 1. Header & Widgets */
 .map-header-container {
+  position: relative;
+  padding: 6px 4px 12px;
+  width: 100%;
+}
+
+.map-mobile-compact-header {
+  display: none;
+}
+
+.map-desktop-header-content {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 24px;
   align-items: center;
-  position: relative;
-  padding: 6px 4px 12px;
+  width: 100%;
 }
 
 .map-header-center {
@@ -7879,7 +7948,7 @@ meter {
 
 /* Responsiveness */
 @media (max-width: 1024px) {
-  .map-header-container {
+  .map-desktop-header-content {
     grid-template-columns: 1fr;
     gap: 16px;
   }
@@ -7917,19 +7986,116 @@ meter {
   }
 }
 
-@media (max-width: 640px) {
-  .map-hero-title {
-    font-size: 1.45rem;
+@media (max-width: 768px) {
+  /* No celular: ativa header ultra-compacto em linha única (sem rolagem e sem texto cortado no topo) */
+  .map-mobile-compact-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 6px 12px;
+    background: rgba(17, 21, 24, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    margin-bottom: 6px;
   }
-  .map-hero-subtitle {
-    font-size: 0.84rem;
+  .map-desktop-header-content {
+    display: none !important;
   }
-  .map-stats-bar {
+  .map-mobile-title-col {
+    display: flex;
+    align-items: baseline;
     gap: 8px;
   }
-  .map-stat-chip {
-    font-size: 0.74rem;
-    padding: 4px 10px;
+  .map-mobile-heading {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+  }
+  .map-mobile-stage-badge {
+    font-size: 0.7rem;
+    color: #FBBF24;
+    font-weight: 600;
+  }
+  .map-mobile-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mobile-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .mobile-stat-pill.chip-streak {
+    color: #f97316;
+    border: 1px solid rgba(249, 115, 22, 0.25);
+  }
+  .mobile-stat-pill.chip-xp {
+    color: #eab308;
+    border: 1px solid rgba(234, 179, 8, 0.25);
+  }
+
+  /* Elimina rolagem vertical excessiva em mobile e ajusta altura */
+  .learning-map-page-view {
+    padding: 6px 8px 80px;
+    gap: 6px;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .map-scroll-outer-viewport {
+    flex: 1;
+    height: calc(100dvh - 120px);
+    margin-bottom: 0;
+    border-radius: 14px;
+  }
+  .map-footer-grid {
+    display: none !important;
+  }
+
+  /* Previne sobreposição e quebra estranha de letras no card do checkpoint ("letras embaixo de letras") */
+  .checkpoint-card-pill {
+    min-width: 125px;
+    max-width: 195px;
+    width: auto;
+    padding: 5px 8px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9);
+  }
+  .checkpoint-card-title {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+  .checkpoint-card-status-row {
+    white-space: nowrap;
+    gap: 4px;
+  }
+  .status-label {
+    white-space: nowrap;
+    font-size: 0.68rem;
+  }
+  .checkpoint-card-actions {
+    margin-top: 4px;
+    gap: 4px;
+  }
+  .checkpoint-direct-start-btn {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+  .checkpoint-direct-exam-btn {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    white-space: nowrap;
   }
   .stage-drawer-panel {
     max-width: 100%;
@@ -7937,31 +8103,6 @@ meter {
   .stage-horizontal-modal {
     width: 96vw;
     max-height: 90vh;
-  }
-  .checkpoint-card-pill {
-    min-width: 135px;
-    max-width: 175px;
-    width: max-content;
-    padding: 5px 8px;
-    background: #111518;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
-  }
-  .checkpoint-card-title {
-    font-size: 0.72rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 110px;
-  }
-  .checkpoint-direct-start-btn {
-    font-size: 0.68rem;
-    padding: 3px 6px;
-    white-space: nowrap;
-  }
-  .checkpoint-direct-exam-btn {
-    font-size: 0.65rem;
-    padding: 3px 6px;
-    white-space: nowrap;
   }
 }
 

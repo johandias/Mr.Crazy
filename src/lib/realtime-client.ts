@@ -194,11 +194,29 @@ export function getConnectionError(error: unknown) {
     return "A conexão demorou a responder. Toque no botão para tentar novamente.";
   }
 
-  if (error instanceof DOMException && error.name === "NotAllowedError") {
-    return "Microfone bloqueado. No iPhone, toque no ícone 'aA' ao lado do endereço do site > Ajustes do Site > Microfone: Permitir.";
+  if (error instanceof DOMException) {
+    if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+      return "Microfone bloqueado. Toque no ícone de cadeado/ajustes do site ao lado do endereço e selecione 'Microfone: Permitir'.";
+    }
+    if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError" || error.name === "OverconstrainedError") {
+      return "Nenhum microfone encontrado. Conecte um fone de ouvido ou verifique se o microfone está ativo no seu aparelho.";
+    }
+    if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+      return "O microfone está sendo usado por outro aplicativo. Feche outros apps ou abas e tente novamente.";
+    }
   }
 
   if (error instanceof Error && error.message) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("requested device not found") || msg.includes("device not found") || msg.includes("notfounderror")) {
+      return "Nenhum microfone encontrado. Conecte um fone de ouvido ou verifique se o microfone está ativo no seu aparelho.";
+    }
+    if (msg.includes("permission denied") || msg.includes("not allowed")) {
+      return "Microfone bloqueado. Permita o acesso ao microfone nos ajustes do navegador para falar.";
+    }
+    if (msg.includes("in use") || msg.includes("already in use") || msg.includes("not readable")) {
+      return "O microfone está sendo usado por outro app. Feche outros apps e tente novamente.";
+    }
     if (error.message === "realtime-unavailable") {
       return "A conversa em tempo real está temporariamente indisponível. Toque para tentar novamente.";
     }
@@ -210,7 +228,7 @@ export function getConnectionError(error: unknown) {
     ) {
       return "A conexão demorou a responder. Toque no botão para tentar novamente.";
     }
-    if (error.message.toLowerCase().includes("abort")) {
+    if (msg.includes("abort")) {
       return "A conexão foi reiniciada. Toque no botão para tentar novamente.";
     }
     return error.message;
@@ -337,13 +355,52 @@ export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamT
     throw new Error("Seu navegador não suporta captura de áudio ou a página não está em conexão segura (HTTPS).");
   }
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
+  let stream: MediaStream | null = null;
+  let lastError: unknown = null;
+
+  // Nível 1: Áudio com processamento avançado (cancelamento de eco e supressão de ruído)
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+  } catch (err) {
+    lastError = err;
+    console.warn("[Microphone] Falha com restrições avançadas, tentando fallback { audio: true }:", err);
+  }
+
+  // Nível 2: Fallback amplo universal (compatível com Android, iOS e fones Bluetooth)
+  if (!stream) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err2) {
+      lastError = err2;
+      console.warn("[Microphone] Falha com { audio: true }, tentando enumerar dispositivos de entrada:", err2);
     }
-  });
+  }
+
+  // Nível 3: Seleção explícita de dispositivo de áudio detectado no sistema
+  if (!stream && typeof navigator.mediaDevices.enumerateDevices === "function") {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInput = devices.find((d) => d.kind === "audioinput" && d.deviceId);
+      if (audioInput) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { ideal: audioInput.deviceId } }
+        });
+      }
+    } catch (err3) {
+      lastError = err3;
+      console.warn("[Microphone] Falha na enumeração de dispositivos:", err3);
+    }
+  }
+
+  if (!stream) {
+    throw lastError || new Error("Nenhum microfone encontrado. Conecte um fone de ouvido ou verifique o microfone do seu aparelho.");
+  }
 
   masterMicrophoneStream = stream;
   const track = stream.getAudioTracks()[0];
