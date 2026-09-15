@@ -1004,7 +1004,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     if (!response.ok) {
       let errorMsg = "realtime-unavailable";
       try {
-        const errorData = (await response.json()) as { error?: string; providerCode?: string; providerMessage?: string; providerBody?: string };
+        const errorData = (await response.json()) as { error?: string; providerCode?: string; providerMessage?: string; providerStatus?: number; diagnosticId?: string };
         if (errorData?.error) {
           errorMsg = errorData.error;
           if (errorData.providerMessage) {
@@ -1012,6 +1012,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           } else if (errorData.providerCode) {
             errorMsg += ` (${errorData.providerCode})`;
           }
+          if (errorData.providerStatus) errorMsg += ` [OpenAI HTTP ${errorData.providerStatus}]`;
+          if (errorData.diagnosticId) errorMsg += ` Referência: ${errorData.diagnosticId}`;
         }
       } catch {}
       throw new Error(errorMsg);

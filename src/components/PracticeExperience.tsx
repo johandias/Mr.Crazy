@@ -8,6 +8,7 @@ import {
   Award,
   BookOpen,
   BriefcaseBusiness,
+  LoaderCircle,
   Mic,
   MicOff,
   Menu,
@@ -1635,11 +1636,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     disabled={isConnecting}
                     aria-busy={isConnecting}
                     aria-pressed={microphoneEnabled && realtimeStatus === "connected"}
-                    aria-label={isListening ? "Microfone ligado. Toque para silenciar." : "Microfone desligado. Toque para falar."}
-                    title={isListening ? "Microfone ligado (Toque para desligar)" : "Microfone desligado (Toque para falar)"}
+                    aria-label={isConnecting ? "Conectando à conversa de voz" : isListening ? "Microfone ligado. Toque para silenciar." : "Microfone desligado. Toque para falar."}
+                    title={isConnecting ? "Conectando à API de voz" : isListening ? "Microfone ligado (Toque para desligar)" : "Microfone desligado (Toque para falar)"}
                   >
                     {isListening && <span className="mic-circle-pulse-ring" />}
-                    {isListening ? (
+                    {isConnecting ? (
+                      <LoaderCircle size={24} className="mic-circle-icon connection-spinner" />
+                    ) : isListening ? (
                       <Mic size={24} className="mic-circle-icon icon-active" />
                     ) : (
                       <MicOff size={22} className="mic-circle-icon icon-inactive" />

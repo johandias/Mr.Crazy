@@ -1,8 +1,9 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getCurrentSession, getCurrentUser } from "@/lib/server-auth";
 import { buildRealtimeSession } from "@/lib/realtime-session";
 import { checkRateLimit } from "@/lib/rate-limiter";
+import { describeRealtimeProviderError, parseRealtimeProviderError } from "@/lib/realtime-provider-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
 
     let response: Response | null = null;
     let responseBody = "";
+    let providerRequestId: string | null = null;
     let usedModel = candidateModels[0] || "gpt-realtime-2.1-mini";
 
     try {
@@ -120,6 +122,7 @@ export async function POST(request: Request) {
         const body = await res.text();
         response = res;
         responseBody = body;
+        providerRequestId = res.headers.get("x-request-id");
 
         if (res.ok) {
           cachedWorkingModel = candidate;
@@ -148,23 +151,24 @@ export async function POST(request: Request) {
 
     if (!response || !response.ok) {
       const status = response?.status ?? 500;
-      console.error("OpenAI Realtime session failed", status, responseBody.slice(0, 500));
-      let providerError: { code?: string; param?: string; message?: string } = {};
-      try {
-        const parsed = JSON.parse(responseBody) as { error?: { code?: string; param?: string; message?: string } };
-        providerError = parsed.error ?? {};
-      } catch {
-        providerError = {};
-      }
+      const providerError = parseRealtimeProviderError(responseBody, apiKey);
+      const diagnosticId = randomUUID();
+      console.error("OpenAI Realtime session failed", {
+        diagnosticId, status, providerRequestId, model: usedModel, ...providerError
+      });
 
       return NextResponse.json(
         {
-          error: "Não foi possível abrir a conversa em tempo real.",
+          error: describeRealtimeProviderError(status, providerError),
+          diagnosticId,
           providerStatus: status,
           providerCode: providerError.code,
-          providerMessage: providerError.message,
-          providerBody: responseBody.slice(0, 300),
-          testedModel: usedModel
+          ...(sessionUser.role === "admin" ? {
+            providerMessage: providerError.message,
+            providerParam: providerError.param,
+            providerRequestId,
+            testedModel: usedModel
+          } : {})
         },
         { status: 502 }
       );

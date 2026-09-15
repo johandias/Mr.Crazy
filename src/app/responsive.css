@@ -2,6 +2,13 @@
   --app-safe-top: env(safe-area-inset-top, 0px);
 }
 
+.connection-spinner { animation: spin 1s linear infinite; }
+.avatar-mic-error { overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-spinner { animation: none; }
+}
+
 .learning-map-page-view .map-scroll-viewport {
   overflow: auto;
   touch-action: pan-x pan-y;

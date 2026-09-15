@@ -82,3 +82,23 @@ o canvas de Picture-in-Picture so anima quando essa janela esta aberta.
   recuperacao gerou uma unica resposta simulada, retomou a escuta e preservou mute.
 - Continua sem validacao da chamada real OpenAI ou microfone fisico do iPhone:
   nao ha chave local e a conexao Vercel disponivel nao concedeu acesso ao projeto.
+
+## Diagnostico da falha de abertura
+
+O print posterior mostra erro de abertura da sessao, antes do transporte ficar
+conectado. O indicador de microfone do sistema operacional confirma apenas que
+o navegador abriu o dispositivo. A borda amarela representa a conexao pendente.
+
+A rota agora reconhece erros JSON, erros em string e respostas em texto da OpenAI,
+classifica status/codigo e registra uma referencia para correlacionar com os logs.
+Detalhes tecnicos sanitizados ficam disponiveis apenas ao administrador. Chaves e
+Bearer tokens sao removidos; corpos HTML e a resposta bruta nao sao expostos.
+O botao exibe um indicador de conexao enquanto aguarda a sessao.
+
+Validacao: 18 testes focados e typecheck passaram. Playwright confirmou que um
+erro HTTP 400 simulado aparece com status e referencia, encerra a captura e
+reativa o botao para nova tentativa, sem overflow em 320 px. O build local desta
+revisao foi bloqueado por EPERM ao limpar um artefato anterior de `.next/static`.
+
+A causa da recusa em producao ainda depende da mensagem do provedor nos logs;
+esta revisao melhora o diagnostico, nao comprova que a conexao real foi corrigida.
