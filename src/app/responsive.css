@@ -1,3 +1,7 @@
+:root {
+  --app-safe-top: env(safe-area-inset-top, 0px);
+}
+
 .learning-map-page-view .map-scroll-viewport {
   overflow: auto;
   touch-action: pan-x pan-y;
@@ -32,7 +36,24 @@
     min-width: 0;
   }
 
-  .app-shell .app-header { padding: 10px 12px; gap: 8px; }
+  .app-shell::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: var(--app-safe-top);
+    background: var(--bg);
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .app-shell .app-header {
+    padding: calc(var(--app-safe-top) + 10px) max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px));
+    gap: 8px;
+    background: var(--bg);
+  }
+  .app-shell .practice-main.clean-layout {
+    padding-top: calc(var(--app-safe-top) + 12px) !important;
+  }
   .app-shell .brand-mark { min-width: 0; gap: 7px; font-size: 1.05rem; }
   .app-shell .header-actions { gap: 6px; }
   .app-shell .header-actions .icon-link { width: 40px; height: 40px; }

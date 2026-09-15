@@ -983,6 +983,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       onStatus: (status) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           setRealtimeStatus(status);
+          if (status === "failed") {
+            realtimeRef.current = null;
+            setMicrophoneEnabled(false);
+            setVoiceState("idle");
+          }
         }
       },
       onVoiceState: (state) => {
@@ -1627,6 +1632,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       isListening ? "is-active" : "is-inactive"
                     } ${isConnecting ? "is-connecting" : ""}`}
                     onClick={handleAvatarMicClick}
+                    disabled={isConnecting}
+                    aria-busy={isConnecting}
+                    aria-pressed={microphoneEnabled && realtimeStatus === "connected"}
                     aria-label={isListening ? "Microfone ligado. Toque para silenciar." : "Microfone desligado. Toque para falar."}
                     title={isListening ? "Microfone ligado (Toque para desligar)" : "Microfone desligado (Toque para falar)"}
                   >
@@ -1652,7 +1660,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     void connectSession();
                   }}
                 >
-                  Ativar microfone para falar
+                  Reconectar conversa de voz
                 </button>
               </div>
             ) : null}

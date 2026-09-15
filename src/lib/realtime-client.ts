@@ -527,6 +527,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   let audioPlaying = false;
   let disconnected = false;
   let responseTimer: number | null = null;
+  let userSpeaking = false;
+  let pendingAudioTurn = false;
   const completedTranscripts = new Set<string>();
   const resumeAudio = () => {
     if (!disconnected && audio.srcObject) void audio.play().catch(() => {});
@@ -538,6 +540,9 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
   audio.autoplay = true;
   audio.setAttribute("playsinline", "");
+  audio.setAttribute("aria-hidden", "true");
+  audio.style.display = "none";
+  document.body.appendChild(audio);
   peer.ontrack = (event) => {
     audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
     void audio.play().catch(() => {
@@ -555,11 +560,12 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   };
 
   const syncMicrophone = () => {
-    const shouldEnable = microphoneEnabled && document.visibilityState !== "hidden" && !assistantAudioActive;
-    microphone.enabled = shouldEnable;
+    const captureEnabled = microphoneEnabled && document.visibilityState !== "hidden";
+    microphone.enabled = captureEnabled && !assistantAudioActive;
     if (masterMicrophoneStream) {
       masterMicrophoneStream.getAudioTracks().forEach((t) => {
-        t.enabled = shouldEnable;
+        // Keep the source alive during playback; only mute the outgoing clone.
+        t.enabled = captureEnabled;
       });
     }
   };
@@ -574,6 +580,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     if (document.visibilityState !== "hidden") resumeAudio();
   };
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("pageshow", onVisibility);
 
   const localSessionTurns: { role: string; text: string }[] = [];
   const getContextSnapshot = (): { role: string; text: string }[] => {
@@ -636,6 +643,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     activeResponseInProgress = false;
     syncMicrophone();
     options.onVoiceState(microphoneEnabled ? "listening" : "idle");
+    scheduleAudioResponse();
   };
   const watchResponse = () => {
     clearResponseTimer();
@@ -645,6 +653,20 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
       returnToListening();
       options.onError("A resposta demorou. Pode falar novamente ou reconectar o microfone.");
     }, 30_000);
+  };
+
+  // VAD normally creates the response. Recover only a committed, unanswered turn.
+  const scheduleAudioResponse = () => {
+    clearTranscriptionSafetyTimer();
+    if (!pendingAudioTurn || userSpeaking || activeResponseInProgress || audioPlaying) return;
+    transcriptionSafetyTimer = window.setTimeout(() => {
+      transcriptionSafetyTimer = null;
+      if (disconnected || !pendingAudioTurn || userSpeaking || activeResponseInProgress || audioPlaying) return;
+      pendingAudioTurn = false;
+      activeResponseInProgress = send({ type: "response.create" });
+      options.onVoiceState("analyzing");
+      watchResponse();
+    }, 1500);
   };
 
   const cancelAssistantPlayback = () => {
@@ -664,17 +686,20 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
   const disconnect = () => {
     if (disconnected) return;
     disconnected = true;
+    pendingAudioTurn = false;
     clearInterruptionTimer();
     clearTranscriptionSafetyTimer();
     clearEchoCooldown();
     clearResponseTimer();
     options.signal?.removeEventListener("abort", disconnect);
     document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pageshow", onVisibility);
     window.removeEventListener("pointerdown", resumeAudio);
     activeResponseInProgress = false;
     pendingResponsePayload = null;
     audio.pause();
     audio.srcObject = null;
+    audio.remove();
     try {
       channel.close();
     } catch {}
@@ -717,32 +742,33 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
 
     switch (event.type) {
       case "input_audio_buffer.speech_started":
+        userSpeaking = true;
         clearTranscriptionSafetyTimer();
+        if (!activeResponseInProgress && !audioPlaying) clearResponseTimer();
         userTranscript = "";
         options.onUserTranscript("", false);
         if (!assistantAudioActive) options.onVoiceState("listening");
         break;
       case "input_audio_buffer.speech_stopped":
+        userSpeaking = false;
         clearInterruptionTimer();
         options.onVoiceState("analyzing");
         watchResponse();
-        clearTranscriptionSafetyTimer();
-        transcriptionSafetyTimer = window.setTimeout(() => {
-          if (!activeResponseInProgress) {
-          }
-        }, 3500);
+        scheduleAudioResponse();
+        break;
+      case "input_audio_buffer.committed":
+        pendingAudioTurn = true;
+        scheduleAudioResponse();
         break;
       case "conversation.item.input_audio_transcription.delta":
         if (typeof event.delta === "string") {
           userTranscript += event.delta;
           if (!isWhisperHallucination(userTranscript)) {
             options.onUserTranscript(userTranscript, false);
-            options.onVoiceState("listening");
           }
         }
         break;
       case "conversation.item.input_audio_transcription.completed":
-        clearTranscriptionSafetyTimer();
         if (event.item_id && completedTranscripts.has(event.item_id)) break;
         if (event.item_id) {
           completedTranscripts.add(event.item_id);
@@ -773,7 +799,6 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         // and may arrive after the assistant has already started answering.
         break;
       case "conversation.item.input_audio_transcription.failed":
-        clearTranscriptionSafetyTimer();
         options.onUserTranscript("", true);
         options.onError("Não consegui exibir a transcrição deste áudio.");
         break;
@@ -846,13 +871,15 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
         if (assistantTranscript.trim()) {
           commitAssistantTurn(assistantTranscript);
         }
-        // Cooldown de 600ms após o término do áudio antes de reativar o microfone (evita eco da reverberação)
+        // Breve intervalo para evitar captar a reverberacao do alto-falante.
         clearEchoCooldown();
         echoCooldownTimer = window.setTimeout(() => {
           returnToListening();
         }, 200);
         break;
       case "response.created":
+        pendingAudioTurn = false;
+        clearTranscriptionSafetyTimer();
         activeResponseInProgress = true;
         clearEchoCooldown();
         watchResponse();
@@ -899,9 +926,7 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           lower.includes("already active") ||
           lower.includes("active response") ||
           lower.includes("in progress") ||
-          lower.includes("cancelled") ||
-          lower.includes("session.type") ||
-          lower.includes("session.update")
+          lower.includes("cancelled")
         ) {
           console.warn("[Realtime] Aviso não crítico ignorado:", errorMsg);
           if (lower.includes("active response") || lower.includes("in progress")) {
@@ -930,8 +955,8 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
 
-    // Aguarda gathering rápido (host candidates já vêm no offer, máx 180ms para acelerar a conexão no mobile)
-    if (peer.iceGatheringState !== "complete" && !peer.localDescription?.sdp?.includes("a=candidate:")) {
+    // The SDP exchange cannot trickle later candidates; allow mobile networks to gather them.
+    if (peer.iceGatheringState !== "complete") {
       await new Promise<void>((resolve) => {
         let settled = false;
         const finish = () => {
@@ -942,12 +967,12 @@ export async function connectRealtime(options: ConnectRealtimeOptions): Promise<
           peer.removeEventListener("icecandidate", onCandidate);
           resolve();
         };
-        const timer = setTimeout(finish, 60);
+        const timer = setTimeout(finish, 1500);
         const onState = () => {
           if (peer.iceGatheringState === "complete") finish();
         };
         const onCandidate = (event: RTCPeerConnectionIceEvent) => {
-          if (event.candidate) finish();
+          if (!event.candidate) finish();
         };
         peer.addEventListener("icegatheringstatechange", onState);
         peer.addEventListener("icecandidate", onCandidate);

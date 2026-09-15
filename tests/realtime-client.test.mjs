@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { connectRealtime, releasePersistentMicrophoneStream } from "../src/lib/realtime-client.ts";
 
 async function setup(t) {
-  const sent = [], states = [], users = [], replies = [], errors = [], tracks = [];
+  const sent = [], states = [], users = [], replies = [], errors = [], tracks = [], statuses = [];
   class Track extends EventTarget {
     enabled = true;
     readyState = "live";
@@ -31,8 +31,8 @@ async function setup(t) {
     async setRemoteDescription() { this.ontrack?.({ streams: [new Stream()] }); }
     close() { this.connectionState = "closed"; }
   }
-  const audio = { paused: false, srcObject: null, muted: false, setAttribute() {}, play: async () => {}, pause() { this.paused = true; } };
-  const doc = Object.assign(new EventTarget(), { visibilityState: "visible", createElement: () => audio });
+  const audio = { paused: false, srcObject: null, muted: false, style: {}, remove() { this.attached = false; }, setAttribute() {}, play: async () => {}, pause() { this.paused = true; } };
+  const doc = Object.assign(new EventTarget(), { visibilityState: "visible", body: { appendChild(element) { element.attached = true; } }, createElement: () => audio });
   const win = Object.assign(new EventTarget(), { setTimeout, clearTimeout, localStorage: { setItem() {} } });
   const originals = new Map();
   for (const [key, value] of Object.entries({ window: win, document: doc, navigator: { mediaDevices: { getUserMedia: async () => new Stream() } }, RTCPeerConnection: Peer, MediaStream: Stream, fetch: async () => new Response("v=0\r\n") })) {
@@ -41,7 +41,7 @@ async function setup(t) {
   }
   releasePersistentMicrophoneStream(true);
   const controller = await connectRealtime({
-    level: "basic", mode: "free-conversation", onStatus() {},
+    level: "basic", mode: "free-conversation", onStatus: status => statuses.push(status),
     onVoiceState: state => states.push(state),
     onUserTranscript: (text, done) => users.push({ text, done }),
     onAssistantTranscript: (text, done) => replies.push({ text, done }),
@@ -56,7 +56,7 @@ async function setup(t) {
     }
   });
   const emit = event => channel.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(event) }));
-  return { controller, sent, states, users, replies, errors, emit, doc, audio, microphone: tracks[1] };
+  return { controller, sent, states, users, replies, errors, emit, doc, win, audio, channel, statuses, source: tracks[0], microphone: tracks[1] };
 }
 
 test("late transcription does not discard Portuguese speech or create a duplicate response", async t => {
@@ -134,4 +134,80 @@ test("missing response events time out and release capture instead of freezing",
   assert.equal(p.states.at(-1), "listening");
   assert.equal(p.errors.length, 1);
   assert.ok(p.sent.some(x => x.type === "response.cancel"));
+});
+
+test("committed audio recovers a missing VAD response without waiting for transcription", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const p = await setup(t);
+  p.emit({ type: "input_audio_buffer.speech_started" });
+  p.emit({ type: "input_audio_buffer.speech_stopped" });
+  p.emit({ type: "input_audio_buffer.committed", item_id: "u1" });
+  p.emit({ type: "conversation.item.input_audio_transcription.completed", item_id: "u1", transcript: "Quero pedir agua" });
+  t.mock.timers.tick(1500);
+  assert.equal(p.sent.filter(x => x.type === "response.create").length, 1);
+  p.emit({ type: "response.created" });
+  p.emit({ type: "response.output_audio_transcript.done", transcript: "Diga: Can I have some water?" });
+  p.emit({ type: "response.done", response: { status: "completed" } });
+  t.mock.timers.tick(5000);
+  assert.equal(p.sent.filter(x => x.type === "response.create").length, 1);
+  assert.match(p.replies.at(-1).text, /some water/);
+  assert.equal(p.microphone.enabled, true);
+});
+
+test("normal automatic response cancels recovery even with delayed transcription", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const p = await setup(t);
+  p.emit({ type: "input_audio_buffer.speech_stopped" });
+  p.emit({ type: "input_audio_buffer.committed", item_id: "u1" });
+  p.emit({ type: "response.created" });
+  p.emit({ type: "output_audio_buffer.started" });
+  p.emit({ type: "conversation.item.input_audio_transcription.delta", delta: "hello" });
+  assert.notEqual(p.states.at(-1), "listening");
+  t.mock.timers.tick(2000);
+  assert.equal(p.sent.filter(x => x.type === "response.create").length, 0);
+});
+
+test("recovery waits while the user continues speaking and never replies to uncommitted silence", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const p = await setup(t);
+  p.emit({ type: "input_audio_buffer.speech_stopped" });
+  t.mock.timers.tick(2000);
+  assert.equal(p.sent.filter(x => x.type === "response.create").length, 0);
+  p.emit({ type: "input_audio_buffer.committed", item_id: "u1" });
+  p.emit({ type: "input_audio_buffer.speech_started" });
+  t.mock.timers.tick(2000);
+  assert.equal(p.sent.filter(x => x.type === "response.create").length, 0);
+  p.emit({ type: "input_audio_buffer.speech_stopped" });
+  p.emit({ type: "input_audio_buffer.committed", item_id: "u2" });
+  t.mock.timers.tick(1500);
+  assert.equal(p.sent.filter(x => x.type === "response.create").length, 1);
+});
+
+test("audio is attached to the page and playback does not shut down the capture source", async t => {
+  const p = await setup(t);
+  assert.equal(p.audio.attached, true);
+  p.emit({ type: "output_audio_buffer.started" });
+  p.doc.dispatchEvent(new Event("visibilitychange"));
+  assert.equal(p.source.enabled, true);
+  assert.equal(p.microphone.enabled, false);
+  p.controller.setMicrophoneEnabled(false);
+  assert.equal(p.source.enabled, false);
+  p.win.dispatchEvent(new Event("pageshow"));
+  assert.equal(p.microphone.enabled, false);
+  p.controller.disconnect();
+  assert.equal(p.audio.attached, false);
+});
+
+test("closed transport is reported as failed and stops capture", async t => {
+  const p = await setup(t);
+  p.channel.dispatchEvent(new Event("close"));
+  assert.equal(p.statuses.at(-1), "failed");
+  assert.equal(p.microphone.readyState, "ended");
+  assert.equal(p.states.at(-1), "idle");
+});
+
+test("invalid session settings are surfaced instead of silently ignored", async t => {
+  const p = await setup(t);
+  p.emit({ type: "error", error: { message: "Invalid session.update field: session.type" } });
+  assert.equal(p.errors.length, 1);
 });

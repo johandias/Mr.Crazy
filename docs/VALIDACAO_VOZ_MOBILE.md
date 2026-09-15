@@ -12,7 +12,7 @@ que pode chegar depois do inicio da fala do professor. O idioma nao e fixado em
 ingles: o aluno pode falar portugues brasileiro ou ingles americano.
 
 O botao de microfone conecta no primeiro toque e depois alterna mute. Durante a
-reproducao do professor a captura e temporariamente suspensa para evitar eco,
+reproducao do professor o envio de audio e temporariamente silenciado para evitar eco,
 retornando ao fim do audio. O mute escolhido pelo aluno e preservado ao trocar de
 aba. Falha, encerramento e ausencia de eventos liberam o estado de espera.
 
@@ -58,3 +58,27 @@ Insights usam resumos e trilhas horizontais com detalhes expansiveis. A navegaca
 inferior reserva o safe-area-inset-bottom completo mais uma margem pequena. O
 personagem evita redesenhos por cada fragmento de transcricao e movimentos de toque;
 o canvas de Picture-in-Picture so anima quando essa janela esta aberta.
+
+## Revisao de 15/09/2026
+
+- Corrigidos dois overrides de CSS que removiam o recuo superior: cabecalho com
+  padding fixo e `.practice-main` com padding de 6 px marcado como `!important`.
+  Cabecalho e pratica agora somam margem ao inset. Uma faixa opaca protege a area
+  da hora durante a rolagem. Novas aberturas do PWA usam status bar nao translucida.
+- Removido o temporizador vazio de resposta. Se o servidor confirmar o audio
+  (`input_audio_buffer.committed`) mas nao iniciar resposta em 1,5 s, o cliente
+  solicita uma resposta. O evento `response.created` cancela essa recuperacao;
+  transcricoes atrasadas nao controlam o turno nem mudam o estado para escuta.
+- A fonte do microfone fica ativa durante a reproducao; apenas a faixa enviada
+  e silenciada. Mute e segundo plano continuam suspendendo a captura. O elemento
+  de audio agora fica no DOM e e removido ao encerrar a sessao.
+- Conexao encerrada atualiza o botao para desligado. Durante a conexao o botao
+  fica desabilitado para impedir cancelamentos acidentais por toques repetidos.
+- A negociacao espera ate 1,5 s pelos candidatos ICE, em vez de apenas 60 ms.
+- Testes: 12 testes do cliente Realtime passaram, alem do typecheck e build.
+  Playwright em 320, 390 e 430 px, inset superior simulado de 59 px: conteudo
+  comeca em 71 px, sem overflow horizontal; sem inset, comeca em 12 px.
+  WebRTC nativo entre dois peers transmitiu mais de 10 KB de audio sintetico;
+  recuperacao gerou uma unica resposta simulada, retomou a escuta e preservou mute.
+- Continua sem validacao da chamada real OpenAI ou microfone fisico do iPhone:
+  nao ha chave local e a conexao Vercel disponivel nao concedeu acesso ao projeto.
