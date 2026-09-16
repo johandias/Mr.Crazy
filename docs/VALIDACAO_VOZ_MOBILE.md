@@ -1,104 +1,83 @@
 # Voz e telas de celular
 
-## Fluxo de voz
+## Captura reconstruida - 15/09/2026
 
-A conversa usa WebRTC para transmitir audio diretamente ao modelo Realtime da
-OpenAI. A captura solicita cancelamento de eco, supressao de ruido, ajuste de ganho
-e um canal mono, sem exigir um dispositivo especifico.
+O fluxo anterior foi substituido por tres modulos:
 
-O servidor detecta silencio (server_vad, 900 ms) e cria a resposta automaticamente.
-A transcricao serve para exibir o que foi dito; a resposta nao espera esse evento,
-que pode chegar depois do inicio da fala do professor. O idioma nao e fixado em
-ingles: o aluno pode falar portugues brasileiro ou ingles americano.
+- `src/lib/voice/microphone.ts`: abre uma unica faixa de microfone por sessao,
+  permite escolher a entrada, mede o sinal e libera os recursos ao encerrar.
+- `src/lib/realtime-client.ts`: envia essa faixa diretamente por WebRTC para a
+  OpenAI, recebe eventos e controla escuta, resposta e reproducao.
+- `src/lib/voice/diagnostics.ts`: erros, etapas, identificadores e limites de tempo.
 
-O botao de microfone conecta no primeiro toque e depois alterna mute. Durante a
-reproducao do professor o envio de audio e temporariamente silenciado para evitar eco,
-retornando ao fim do audio. O mute escolhido pelo aluno e preservado ao trocar de
-aba. Falha, encerramento e ausencia de eventos liberam o estado de espera.
+Nao ha reconhecimento de fala do navegador nem faixa persistente clonada entre
+sessoes. A captura solicita cancelamento de eco, supressao de ruido, ganho
+automatico e mono. Restricoes incompativeis permitem uma tentativa sem restricoes;
+permissao negada e dispositivo selecionado indisponivel nao geram novas tentativas.
 
-Referencias consultadas:
+O primeiro toque conecta; depois, o botao apenas alterna mute. O medidor mostra
+sinal real da faixa capturada, independentemente da deteccao do servidor. A interface
+so informa conexao ativa depois do canal aberto E da confirmacao da sessao da API.
 
-- [OpenAI: deteccao de turnos e respostas automaticas](https://developers.openai.com/api/docs/guides/realtime-vad).
-- [OpenAI: criacao de chamadas WebRTC](https://developers.openai.com/api/reference/typescript/resources/realtime/subresources/calls/methods/create).
+O servidor detecta silencio (server_vad, 900 ms) e responde automaticamente. A
+transcricao nao dispara nem bloqueia a resposta. Quando o audio foi confirmado mas
+nao existe resposta em 1,5 s, o cliente solicita uma unica resposta de recuperacao.
+Nova fala e resposta automatica cancelam esse temporizador.
 
-## Validacao realizada
+Durante a reproducao, o envio e temporariamente silenciado para evitar eco. A
+escuta retorna apos o fim do audio; o mute escolhido pelo aluno e preservado.
+Nao ha troca automatica para reconhecimento fixado em ingles. O prompt, voz e
+configuracao de transcricao permanecem no servidor.
 
-- `npm run typecheck` e `npm run build`: passaram.
-- 15 testes de voz passaram, incluindo seis regressao do cliente Realtime:
-  transcricao atrasada, resposta sem audio/falha, mute persistente, interrupcao,
-  desconexao e timeout sem congelar a captura.
-- Playwright: transporte WebRTC entre dois peers locais, captura de audio sintetico
-  e eventos de resposta simulados. A interface exibiu a fala em portugues e a
-  resposta, preservou a mensagem anterior e voltou a escutar; mute funcionou.
-- Playwright: mapa e insights sem overflow da pagina em 320, 390, 430 e 1440 px;
-  detalhes expansiveis e listas horizontais verificados.
-- Manifesto PWA retorna 200. Removido arquivo publico duplicado que disputava a
-  mesma URL com `src/app/manifest.ts` e causava erro 500.
+Permissao, oferta, API e canal possuem limites de tempo separados. Falha terminal
+fecha faixa, peer, canal e elemento de audio. Permissao concedida depois de um
+cancelamento tambem libera o dispositivo. Uma resposta travada por 30 s libera a
+escuta e exibe erro. Queda breve de rede tem tolerancia de 6 s.
 
-## Limites desta verificacao
+## Diagnostico
 
-O ambiente local nao tem `OPENAI_API_KEY`. O teste de transporte usa um provedor
-simulado, nao comprova a qualidade da transcricao ou da resposta da OpenAI nem a
-captura fisica no iPhone. Esses pontos precisam de uma sessao real com a chave
-configurada e permissao do microfone no aparelho.
+O painel abaixo do microfone permite copiar um JSON com as ultimas 30 ocorrencias:
+etapa, codigo, tempo desde a tentativa e identificador. Erros da API incluem HTTP,
+status/codigo do provedor e ID compartilhado com os logs do servidor. Administradores
+tambem recebem mensagem sanitizada, campo recusado e modelo testado.
 
-A suite geral possui duas falhas preexistentes em `tests/scoring.test.mjs`
-(penalidade por repeticao e vocabulario da resposta). O lint geral tambem possui
-pendencias anteriores em componentes fora do fluxo de voz. Esses resultados nao
-foram ocultados nem corrigidos alterando as expectativas dos testes.
+Na Vercel, pesquisar o ID em `OpenAI Realtime session failed` ou
+`OpenAI Realtime attempt rejected`. Nao sao registrados audio, transcricoes, SDP
+ou identificadores de dispositivos. Chaves e Bearer tokens sao removidos dos erros
+do provedor; corpos HTML nao sao expostos.
 
-## Responsividade e desempenho
+O indicador do sistema operacional significa apenas que o dispositivo esta aberto.
+Nao comprova que a API aceitou a sessao. Um medidor com sinal, seguido de erro na
+etapa `api`, separa problema de configuracao/conta de um problema de captura local.
 
-`src/app/responsive.css` concentra os ajustes de celular. O mapa continua inteiramente
-programatico e dividido nos componentes de `src/components/map`. O tamanho do
-cenario acompanha o viewport via ResizeObserver; o zoom tem dimensoes reais de
-rolagem, e o toque usa a rolagem nativa.
+## Validacao
 
-Insights usam resumos e trilhas horizontais com detalhes expansiveis. A navegacao
-inferior reserva o safe-area-inset-bottom completo mais uma margem pequena. O
-personagem evita redesenhos por cada fragmento de transcricao e movimentos de toque;
-o canvas de Picture-in-Picture so anima quando essa janela esta aberta.
+- Typecheck, build de producao e lint dos novos modulos/controle/rota passaram.
+- 39 testes focados de captura, Realtime, rota, erros e reproducao passaram.
+- Suite completa: 46 passaram e 2 falhas preexistentes em `scoring.test.mjs`
+  permaneceram (penalidade por repeticao e vocabulario). Nao foram alteradas.
+- Playwright: WebRTC nativo entre dois peers locais transmitiu audio sintetico.
+  O medidor apresentou sinal, a fala em portugues foi exibida, houve uma unica
+  resposta simulada e a escuta retornou. Mute zerou o sinal e desabilitou a faixa.
+- Playwright: recusa HTTP 502/OpenAI 400 simulada exibiu campo, modelo e codigo,
+  copiou diagnostico correlacionado, encerrou a faixa e reativou reconexao.
+- Controle de voz sem overflow horizontal em 320, 390, 768 e 1440 px.
 
-## Revisao de 15/09/2026
+## Limites
 
-- Corrigidos dois overrides de CSS que removiam o recuo superior: cabecalho com
-  padding fixo e `.practice-main` com padding de 6 px marcado como `!important`.
-  Cabecalho e pratica agora somam margem ao inset. Uma faixa opaca protege a area
-  da hora durante a rolagem. Novas aberturas do PWA usam status bar nao translucida.
-- Removido o temporizador vazio de resposta. Se o servidor confirmar o audio
-  (`input_audio_buffer.committed`) mas nao iniciar resposta em 1,5 s, o cliente
-  solicita uma resposta. O evento `response.created` cancela essa recuperacao;
-  transcricoes atrasadas nao controlam o turno nem mudam o estado para escuta.
-- A fonte do microfone fica ativa durante a reproducao; apenas a faixa enviada
-  e silenciada. Mute e segundo plano continuam suspendendo a captura. O elemento
-  de audio agora fica no DOM e e removido ao encerrar a sessao.
-- Conexao encerrada atualiza o botao para desligado. Durante a conexao o botao
-  fica desabilitado para impedir cancelamentos acidentais por toques repetidos.
-- A negociacao espera ate 1,5 s pelos candidatos ICE, em vez de apenas 60 ms.
-- Testes: 12 testes do cliente Realtime passaram, alem do typecheck e build.
-  Playwright em 320, 390 e 430 px, inset superior simulado de 59 px: conteudo
-  comeca em 71 px, sem overflow horizontal; sem inset, comeca em 12 px.
-  WebRTC nativo entre dois peers transmitiu mais de 10 KB de audio sintetico;
-  recuperacao gerou uma unica resposta simulada, retomou a escuta e preservou mute.
-- Continua sem validacao da chamada real OpenAI ou microfone fisico do iPhone:
-  nao ha chave local e a conexao Vercel disponivel nao concedeu acesso ao projeto.
+Nao existe `OPENAI_API_KEY` no ambiente local. Transporte e UI foram testados com
+audio sintetico e eventos de provedor simulados, nao com uma chamada real OpenAI.
+A qualidade da transcricao, a permissao/modelo da conta em producao e o microfone
+fisico do iPhone precisam ser verificados em uma sessao real. A causa da recusa
+de producao ainda depende do erro correlacionado, nao apenas do print generico.
 
-## Diagnostico da falha de abertura
+## Responsividade preservada
 
-O print posterior mostra erro de abertura da sessao, antes do transporte ficar
-conectado. O indicador de microfone do sistema operacional confirma apenas que
-o navegador abriu o dispositivo. A borda amarela representa a conexao pendente.
+`src/app/responsive.css` mantem o recuo superior com safe-area e a margem da barra
+inferior. Mapa programatico modular, insights horizontais e otimizacoes do canvas
+de Picture-in-Picture das revisoes anteriores foram preservados.
 
-A rota agora reconhece erros JSON, erros em string e respostas em texto da OpenAI,
-classifica status/codigo e registra uma referencia para correlacionar com os logs.
-Detalhes tecnicos sanitizados ficam disponiveis apenas ao administrador. Chaves e
-Bearer tokens sao removidos; corpos HTML e a resposta bruta nao sao expostos.
-O botao exibe um indicador de conexao enquanto aguarda a sessao.
+## Referencias
 
-Validacao: 18 testes focados e typecheck passaram. Playwright confirmou que um
-erro HTTP 400 simulado aparece com status e referencia, encerra a captura e
-reativa o botao para nova tentativa, sem overflow em 320 px. O build local desta
-revisao foi bloqueado por EPERM ao limpar um artefato anterior de `.next/static`.
-
-A causa da recusa em producao ainda depende da mensagem do provedor nos logs;
-esta revisao melhora o diagnostico, nao comprova que a conexao real foi corrigida.
+- [OpenAI: deteccao de turnos](https://developers.openai.com/api/docs/guides/realtime-vad).
+- [OpenAI: chamadas WebRTC](https://developers.openai.com/api/reference/typescript/resources/realtime/subresources/calls/methods/create).

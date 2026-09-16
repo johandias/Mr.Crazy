@@ -4,6 +4,15 @@
 
 .connection-spinner { animation: spin 1s linear infinite; }
 .avatar-mic-error { overflow-wrap: anywhere; }
+.voice-input-control { width: min(100%, 420px); margin-inline: auto; display: grid; gap: 8px; justify-items: center; min-width: 0; }
+.voice-status { font-size: 0.8rem; color: var(--muted); margin: 0; text-align: center; }
+.voice-input-meter { width: min(100%, 220px); height: 12px; }
+.voice-input-control select { width: min(100%, 280px); min-height: 36px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+.voice-diagnostics { width: 100%; font-size: 0.75rem; color: var(--muted); }
+.voice-diagnostics summary { cursor: pointer; text-align: center; padding: 6px; }
+.voice-diagnostics pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow-y: auto; background: var(--bg); padding: 8px; }
+.voice-diagnostics button, .voice-input-control .retry-connection-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.voice-diagnostics button { padding: 8px; background: transparent; color: inherit; border: 1px solid var(--line); border-radius: 6px; }
 
 @media (prefers-reduced-motion: reduce) {
   .connection-spinner { animation: none; }

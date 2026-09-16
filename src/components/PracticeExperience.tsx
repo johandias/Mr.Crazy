@@ -8,9 +8,6 @@ import {
   Award,
   BookOpen,
   BriefcaseBusiness,
-  LoaderCircle,
-  Mic,
-  MicOff,
   Menu,
   MessagesSquare,
   Plane,
@@ -25,6 +22,8 @@ import {
   ExternalLink,
   X
 } from "lucide-react";
+import { VoiceInputControl } from "@/components/VoiceInputControl";
+import type { VoiceDiagnostic } from "@/lib/realtime-client";
 import { AppShell } from "@/components/AppShell";
 import { PictureInPictureManager, type PictureInPictureManagerHandle } from "@/components/PictureInPictureManager";
 import { ConversationBubble } from "@/components/ConversationBubble";
@@ -407,14 +406,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [analysisSource, setAnalysisSource] = useState<"manual" | "voice">("manual");
-  const [micGranted, setMicGranted] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      return window.localStorage.getItem("mr-crazy-mic-granted") === "true";
-    } catch {
-      return true;
-    }
-  });
   const [realtimeReply, setRealtimeReply] = useState("");
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>("idle");
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
@@ -445,17 +436,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [voiceDiagnostics, setVoiceDiagnostics] = useState<VoiceDiagnostic[]>([]);
+  const [inputDeviceId, setInputDeviceId] = useState("");
+  const inputDeviceRef = useRef("");
+  const inputMeterRef = useRef<HTMLMeterElement | null>(null);
   const [contextHistory, setContextHistory] = useState<ConversationTurn[]>([]);
   const [storageReady, setStorageReady] = useState(false);
   const [speechRetry, setSpeechRetry] = useState<{ segments: SpeechSegment[]; nextState: VoiceState } | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const cancelPlaybackRef = useRef<(() => void) | null>(null);
   const ptVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const enVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
-  const transcriptRef = useRef("");
   const analysisQueuedRef = useRef(false);
-  const silenceTimerRef = useRef<number | null>(null);
   const pipRef = useRef<PictureInPictureManagerHandle | null>(null);
   const [isPipActive, setIsPipActive] = useState(false);
   const [isPopupMode, setIsPopupMode] = useState(false);
@@ -503,16 +495,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const introSpokenRef = useRef(false);
   const realtimeRef = useRef<RealtimeController | null>(null);
   const connectAbortRef = useRef<AbortController | null>(null);
-  const watchdogTimerRef = useRef<number | null>(null);
   const hasAutoConnectedRef = useRef(false);
   const isConnectingRef = useRef(false);
 
-  const clearWatchdog = useCallback(() => {
-    if (watchdogTimerRef.current !== null) {
-      window.clearTimeout(watchdogTimerRef.current);
-      watchdogTimerRef.current = null;
-    }
-  }, []);
 
   const scoringContextRef = useRef({
     mistakes: [] as MistakeCategory[],
@@ -583,14 +568,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
 
     cancelSpeech();
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
-    clearSilenceTimer();
     setAnalysis(null);
     setAnalysisSource("manual");
     setRealtimeReply("");
     setTranscript("");
-    transcriptRef.current = "";
     setVoiceState("idle");
     introSpokenRef.current = false;
     setContextHistory([]);
@@ -689,8 +670,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [storageReady, scrollToBottom]);
 
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
-  const hasSpeechRecognition =
-    typeof window !== "undefined" && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   useEffect(() => {
     scoringContextRef.current = {
@@ -733,8 +712,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
 
     const synth = window.speechSynthesis;
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
     setErrorMessage("");
     cancelPlaybackRef.current = playSpeech({
       synth,
@@ -760,8 +737,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const speak = useCallback((text: string, nextState: VoiceState = "waiting_for_repeat", lang = "pt-BR") => {
     const segments = parseSpeechSegments(text, lang);
     cancelSpeech();
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
     setErrorMessage("");
 
     cancelPlaybackRef.current = playGeneratedSpeech({
@@ -785,12 +760,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     });
   }, [cancelSpeech, speakSegments]);
 
-  const clearSilenceTimer = useCallback(() => {
-    if (silenceTimerRef.current === null) return;
-
-    window.clearTimeout(silenceTimerRef.current);
-    silenceTimerRef.current = null;
-  }, []);
 
   const applyAnalysisResult = useCallback((
     result: AnalysisResponse,
@@ -901,14 +870,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     return () => {
-      clearSilenceTimer();
       cancelPlaybackRef.current?.();
-      recognitionRef.current?.abort();
-      recognitionRef.current = null;
       realtimeRef.current?.disconnect();
       realtimeRef.current = null;
     };
-  }, [clearSilenceTimer]);
+  }, []);
 
   useEffect(() => {
     if (!storageReady || introSpokenRef.current) return;
@@ -938,34 +904,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       }
     }
 
-    clearWatchdog();
     realtimeRef.current?.disconnect();
     realtimeRef.current = null;
     cancelSpeech();
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
     setAnalysis(null);
     setTranscript("");
-    transcriptRef.current = "";
     setRealtimeReply("");
     setRealtimeStatus("connecting");
-    setMicrophoneEnabled(true);
+    setMicrophoneEnabled(false);
+    setVoiceDiagnostics([]);
     setErrorMessage("");
     setVoiceState("preparing_speech");
     setAnalysisSource("manual");
-
-    // Covers the SDP request and data-channel handshake; cancels stale connections.
-    watchdogTimerRef.current = window.setTimeout(() => {
-      if (connectAbortRef.current === abortController) {
-        abortController.abort();
-        isConnectingRef.current = false;
-        realtimeRef.current?.disconnect();
-        realtimeRef.current = null;
-        setRealtimeStatus("failed");
-        setVoiceState("idle");
-        setErrorMessage("A conexão demorou a responder. Toque no botão para tentar novamente.");
-      }
-    }, 35000);
 
     const level = scoringContextRef.current.selectedLevel;
     const mode = scoringContextRef.current.selectedMode;
@@ -976,6 +926,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       mode,
       moduleId,
       signal: abortController.signal,
+      deviceId: inputDeviceRef.current,
+      onInputLevel: (level) => {
+        if (connectAbortRef.current === abortController && inputMeterRef.current) inputMeterRef.current.value = level;
+      },
+      onDiagnostic: (event) => {
+        if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
+          setVoiceDiagnostics(current => [...current.slice(-29), event]);
+        }
+      },
       getRecentContext: () =>
         (scoringContextRef.current.contextHistory.length ? scoringContextRef.current.contextHistory : [{ role: "crazy", text: openingLine }]).slice(-6).map((turn) => ({
           role: turn.role,
@@ -999,7 +958,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       onUserTranscript: (text, complete) => {
         if (connectAbortRef.current !== abortController || abortController.signal.aborted) return;
         setTranscript(text);
-        transcriptRef.current = text;
         if (complete && text.trim()) {
           const clean = text.trim();
           setContextHistory((current) => {
@@ -1012,7 +970,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             return [...base.slice(-49), { role: "user", text: clean }];
           });
           setTranscript("");
-          transcriptRef.current = "";
         }
       },
       onAssistantTranscript: (text, complete) => {
@@ -1050,7 +1007,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       },
       onError: (err) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
-          clearWatchdog();
           setErrorMessage(err);
           if (realtimeRef.current) return;
           const lower = String(err).toLowerCase();
@@ -1075,14 +1031,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         controller.disconnect();
         return null;
       }
-      clearWatchdog();
       realtimeRef.current = controller;
       setRealtimeStatus("connected");
       setMicrophoneEnabled(true);
       setVoiceState("listening");
       return controller;
     }).catch((err) => {
-      clearWatchdog();
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
         if (!isAbortError(err)) {
           setRealtimeStatus("failed");
@@ -1097,7 +1051,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         isConnectingRef.current = false;
       }
     });
-  }, [cancelSpeech, clearWatchdog]);
+  }, [cancelSpeech]);
 
   useEffect(() => {
     if (!storageReady || hasAutoConnectedRef.current) return;
@@ -1109,7 +1063,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     return () => {
-      clearWatchdog();
       if (connectAbortRef.current) {
         connectAbortRef.current.abort();
         connectAbortRef.current = null;
@@ -1117,7 +1070,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       realtimeRef.current?.disconnect();
       realtimeRef.current = null;
     };
-  }, [clearWatchdog]);
+  }, []);
 
 
   useEffect(() => {
@@ -1147,13 +1100,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
     introSpokenRef.current = true;
     cancelSpeech();
-    clearSilenceTimer();
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
     analysisQueuedRef.current = true;
     setErrorMessage("");
     setTranscript("");
-    transcriptRef.current = "";
     setAnalysis(null);
     setAnalysisSource("manual");
     setVoiceState("analyzing");
@@ -1214,142 +1163,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
   }
 
-  function queueTranscriptAnalysis(candidate: string) {
-    const cleanTranscript = candidate.trim();
-
-    if (!cleanTranscript || analysisQueuedRef.current) {
-      return false;
-    }
-
-    analysisQueuedRef.current = true;
-    clearSilenceTimer();
-    recognitionRef.current?.stop();
-    setVoiceState("transcribing");
-    window.setTimeout(() => analyzeSentence(cleanTranscript), 220);
-
-    return true;
-  }
-
-  function scheduleSilenceAnalysis(candidate: string, delayMs = 1800) {
-    clearSilenceTimer();
-    const cleanTranscript = candidate.trim();
-    if (!cleanTranscript) return;
-
-    silenceTimerRef.current = window.setTimeout(() => {
-      queueTranscriptAnalysis(cleanTranscript);
-    }, delayMs);
-  }
-
-  function startListening() {
-    setErrorMessage("");
-
-    if (!hasSpeechRecognition) {
-      setErrorMessage("Reconhecimento de voz indisponível neste navegador. Use o campo de texto.");
-      textInputRef.current?.focus();
-      return;
-    }
-
-    const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Recognition) return;
-
-    introSpokenRef.current = true;
-    cancelSpeech();
-    setTranscript("");
-    transcriptRef.current = "";
-    setAnalysis(null);
-    setAnalysisSource("voice");
-    analysisQueuedRef.current = false;
-    clearSilenceTimer();
-
-    try {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
-        recognitionRef.current = null;
-      }
-
-      const recognition = new Recognition();
-      recognition.lang = "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognitionRef.current = recognition;
-
-      recognition.onstart = () => {
-        setVoiceState("listening");
-        setMicrophoneEnabled(true);
-      };
-
-      recognition.onresult = (event) => {
-        if (recognitionRef.current !== recognition) return;
-        const text = Array.from(event.results)
-          .map((result) => result[0]?.transcript ?? "")
-          .join(" ")
-          .trim();
-        setTranscript(text);
-        transcriptRef.current = text;
-
-        const lastResult = event.results[event.results.length - 1];
-        const isLastFinal = lastResult?.isFinal;
-        scheduleSilenceAnalysis(text, isLastFinal ? 1400 : 2500);
-      };
-
-      recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
-        console.warn("[SpeechRecognition] error:", e?.error);
-        if (recognitionRef.current !== recognition) return;
-        if (e?.error === "no-speech") return;
-        if (e?.error === "not-allowed" || e?.error === "service-not-allowed") {
-          setErrorMessage("Permissão do microfone negada. Permita o microfone nos ajustes do site.");
-        }
-        clearSilenceTimer();
-        setVoiceState("idle");
-        setMicrophoneEnabled(false);
-      };
-
-      recognition.onend = () => {
-        if (recognitionRef.current !== recognition) return;
-        recognitionRef.current = null;
-        setVoiceState((current) => (current === "listening" ? "idle" : current));
-        setMicrophoneEnabled(false);
-      };
-
-      setVoiceState("listening");
-      setMicrophoneEnabled(true);
-      recognition.start();
-    } catch (err) {
-      console.error("Erro ao iniciar SpeechRecognition:", err);
-      setVoiceState("idle");
-      setMicrophoneEnabled(false);
-    }
-  }
-
-  function stopListeningAndAnalyze() {
-    if (voiceState !== "listening") return;
-
-    if (queueTranscriptAnalysis(transcriptRef.current)) {
-      return;
-    }
-
-    clearSilenceTimer();
-    try {
-      recognitionRef.current?.stop();
-    } catch {}
-    recognitionRef.current = null;
-    setTranscript("");
-    transcriptRef.current = "";
-    setVoiceState("idle");
-    setMicrophoneEnabled(false);
-  }
-
-  function handleVoiceClick() {
-    if (voiceState === "listening") {
-      stopListeningAndAnalyze();
-      return;
-    }
-
-    startListening();
-  }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const sentence = manualText.trim();
@@ -1374,90 +1187,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }
 
   function handleAvatarMicClick() {
-    setMicGranted(true);
-    try {
-      window.localStorage.setItem("mr-crazy-mic-granted", "true");
-    } catch {}
-
+    if (isConnectingRef.current) return;
     setErrorMessage("");
-
-    const isCurrentlyActive = microphoneEnabled && realtimeStatus === "connected";
-
-    if (isCurrentlyActive) {
-      if (realtimeStatus === "connected" && realtimeRef.current) {
-        try {
-          realtimeRef.current.setMicrophoneEnabled(false);
-        } catch {}
-      }
-      if (recognitionRef.current) {
-        if (transcriptRef.current.trim()) {
-          stopListeningAndAnalyze();
-          return;
-        }
-        try {
-          recognitionRef.current.stop();
-        } catch {}
-        recognitionRef.current = null;
-      }
-      clearSilenceTimer();
-      setMicrophoneEnabled(false);
-      setVoiceState("idle");
-      return;
-    }
-
-    // Se estava em tentativa pendente de realtime que não concluiu, reseta para liberar o microfone nativo
-    if (realtimeStatus === "connecting" && !realtimeRef.current) {
-      if (connectAbortRef.current) {
-        connectAbortRef.current.abort();
-        connectAbortRef.current = null;
-      }
-      isConnectingRef.current = false;
-      clearWatchdog();
-      setMicrophoneEnabled(false);
-      setRealtimeStatus("idle");
-      setVoiceState("idle");
-      return;
-    }
-
-    // Se a conexão WebRTC já existe e está pronta, ativa o microfone nela
     if (realtimeStatus === "connected" && realtimeRef.current) {
-      try {
-        realtimeRef.current.setMicrophoneEnabled(true);
-      } catch {}
-      setMicrophoneEnabled(true);
-      setVoiceState("listening");
+      const enabled = !microphoneEnabled;
+      realtimeRef.current.setMicrophoneEnabled(enabled);
+      setMicrophoneEnabled(enabled);
       return;
     }
-
-    // Se WebRTC estiver inativo ou falhou, tenta conectar
-    if (realtimeStatus === "idle" || realtimeStatus === "failed") {
-      void connectSession();
-      return;
-    }
-
-    // Fallback caso navegador necessite de permissão getUserMedia prévia
-    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then(() => {
-          if (hasSpeechRecognition) {
-            startListening();
-          } else {
-            setMicrophoneEnabled(true);
-            setVoiceState("listening");
-            void connectSession();
-          }
-        })
-        .catch((err) => {
-          setErrorMessage(getConnectionError(err));
-          setMicrophoneEnabled(false);
-          setVoiceState("idle");
-        });
-    } else {
-      setErrorMessage("Reconhecimento de voz indisponível neste navegador. Digite sua frase abaixo.");
-      setMicrophoneEnabled(false);
-      setVoiceState("idle");
-    }
+    void connectSession();
   }
 
   function finishRealtimeTurn() {
@@ -1466,14 +1204,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   function resetTrainingContext() {
     cancelSpeech();
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
-    clearSilenceTimer();
     setAnalysis(null);
     setAnalysisSource("manual");
     setRealtimeReply("");
     setTranscript("");
-    transcriptRef.current = "";
     setVoiceState("idle");
     introSpokenRef.current = false;
   }
@@ -1618,55 +1352,21 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               onTap={handleAvatarTap}
             />
 
-            {/* Botão de Microfone Circular Elegante (Sem texto ON/OFF, apenas ícone e cores de estado) */}
-            <div className="avatar-mic-dock">
-              {(() => {
-                const isListening =
-                  microphoneEnabled &&
-                  (voiceState === "listening" || (realtimeStatus === "connected" && voiceState !== "idle"));
-                const isConnecting = realtimeStatus === "connecting";
-
-                return (
-                  <button
-                    type="button"
-                    className={`avatar-mic-circle-btn ${
-                      isListening ? "is-active" : "is-inactive"
-                    } ${isConnecting ? "is-connecting" : ""}`}
-                    onClick={handleAvatarMicClick}
-                    disabled={isConnecting}
-                    aria-busy={isConnecting}
-                    aria-pressed={microphoneEnabled && realtimeStatus === "connected"}
-                    aria-label={isConnecting ? "Conectando à conversa de voz" : isListening ? "Microfone ligado. Toque para silenciar." : "Microfone desligado. Toque para falar."}
-                    title={isConnecting ? "Conectando à API de voz" : isListening ? "Microfone ligado (Toque para desligar)" : "Microfone desligado (Toque para falar)"}
-                  >
-                    {isListening && <span className="mic-circle-pulse-ring" />}
-                    {isConnecting ? (
-                      <LoaderCircle size={24} className="mic-circle-icon connection-spinner" />
-                    ) : isListening ? (
-                      <Mic size={24} className="mic-circle-icon icon-active" />
-                    ) : (
-                      <MicOff size={22} className="mic-circle-icon icon-inactive" />
-                    )}
-                  </button>
-                );
-              })()}
-            </div>
-
-            {errorMessage ? (
-              <div className="avatar-mic-error-box">
-                <p className="avatar-mic-error">{errorMessage}</p>
-                <button
-                  type="button"
-                  className="retry-connection-btn"
-                  onClick={() => {
-                    setErrorMessage("");
-                    void connectSession();
-                  }}
-                >
-                  Reconectar conversa de voz
-                </button>
-              </div>
-            ) : null}
+            <VoiceInputControl
+              status={realtimeStatus}
+              enabled={microphoneEnabled}
+              error={errorMessage}
+              diagnostics={voiceDiagnostics}
+              meterRef={inputMeterRef}
+              deviceId={inputDeviceId}
+              onToggle={handleAvatarMicClick}
+              onReconnect={() => void connectSession()}
+              onDeviceChange={(id) => {
+                inputDeviceRef.current = id;
+                setInputDeviceId(id);
+                if (realtimeStatus === "connected") void connectSession();
+              }}
+            />
 
             {/* Digitação rápida para não travar o aluno se o microfone falhar */}
             <form

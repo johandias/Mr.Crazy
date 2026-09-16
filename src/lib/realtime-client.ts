@@ -1,40 +1,10 @@
 import type { LearningLevel, VoiceState } from "@/lib/mr-crazy";
+import { openMicrophone, type MicrophoneCapture } from "./voice/microphone";
+import { VoiceError, getConnectionError, isAbortError, waitFor, type VoiceDiagnostic, type VoiceStage } from "./voice/diagnostics";
 
-type RealtimeServerEvent = {
-  type?: string;
-  item_id?: string;
-  delta?: string;
-  transcript?: string;
-  text?: string;
-  error?: { message?: string };
-  item?: {
-    id?: string;
-    type?: string;
-    role?: string;
-    content?: Array<{
-      type?: string;
-      text?: string;
-      transcript?: string;
-    }>;
-  };
-  response?: {
-    id?: string;
-    status?: string;
-    status_details?: { error?: { message?: string } };
-    output?: Array<{
-      type?: string;
-      role?: string;
-      content?: Array<{
-        type?: string;
-        text?: string;
-        transcript?: string;
-      }>;
-    }>;
-  };
-};
-
+export { getConnectionError, isAbortError } from "./voice/diagnostics";
+export type { VoiceDiagnostic } from "./voice/diagnostics";
 export type RealtimeConnectionStatus = "idle" | "connecting" | "connected" | "failed";
-
 export type RealtimeController = {
   disconnect: () => void;
   finishTurn: () => void;
@@ -42,11 +12,11 @@ export type RealtimeController = {
   setMicrophoneEnabled: (enabled: boolean) => void;
   interrupt: () => void;
 };
-
-type ConnectRealtimeOptions = {
+type Options = {
   level: LearningLevel;
   mode: string;
   moduleId?: string;
+  deviceId?: string;
   signal?: AbortSignal;
   getRecentContext?: () => { role: string; text: string }[];
   onStatus: (status: RealtimeConnectionStatus) => void;
@@ -54,1039 +24,295 @@ type ConnectRealtimeOptions = {
   onUserTranscript: (text: string, complete: boolean) => void;
   onAssistantTranscript: (text: string, complete: boolean) => void;
   onError: (message: string) => void;
+  onDiagnostic?: (event: VoiceDiagnostic) => void;
+  onInputLevel?: (level: number) => void;
+};
+type Content = { text?: string; transcript?: string };
+type ServerEvent = {
+  type: string;
+  item_id?: string;
+  delta?: string;
+  transcript?: string;
+  text?: string;
+  error?: { code?: string; message?: string };
+  response?: { id?: string; status?: string; output?: { content?: Content[] }[]; status_details?: { error?: { code?: string; message?: string } } };
 };
 
-function buildInitialResponse(level: LearningLevel, mode: string) {
-  if (mode === "free-conversation") {
-    const basicHelp = level === "basic"
-      ? "Pergunte o que ele quer aprender hoje e ofereça ajuda com uma frase curta quando ele escolher a situação."
-      : "Pergunte o que ele quer aprender hoje e deixe o assunto nascer antes de puxar inglês.";
-
-    return `Inicie a sessão agora com no máximo duas frases curtas em português e pare. É conversa livre: pergunte o que o usuário quer aprender hoje ou se quer conversar livre, sem listar opções demais. ${basicHelp}`;
-  }
-
-  return "Inicie a sessão agora. Pergunte em português o que o usuário quer aprender hoje, diga em poucas palavras o foco do treino escolhido e termine com uma pergunta em inglês adequada ao nível. Não espere o usuário falar primeiro.";
-}
-
-function isGreetingOrCasualStart(text: string): boolean {
-  const t = text.toLowerCase().trim().replace(/[.,!?;:()]/g, "");
-  if (!t) return false;
-  const greetings = [
-    "oi", "olá", "ola", "e aí", "e ai", "opa", "fala", "fala aí", "fala ai",
-    "fala mr crazy", "fala mister crazy", "oi mr crazy", "oi mister crazy",
-    "ola mr crazy", "salve", "hey", "hello", "hi", "bom dia", "boa tarde",
-    "boa noite", "tudo bem", "tudo bom", "como vai", "beleza", "tranquilo",
-    "como você tá", "como voce ta", "como cê tá", "como ce ta", "tudo certo",
-    "e aí mr crazy", "e ai mr crazy", "eae", "opa mr crazy"
-  ];
-  if (greetings.includes(t)) return true;
-  const words = t.split(/\s+/);
-  if (words.length <= 5) {
-    const firstTwo = words.slice(0, 2).join(" ");
-    if (greetings.includes(words[0]) || greetings.includes(firstTwo)) return true;
-  }
-  return false;
-}
-
-function buildTranscriptBoundResponse(
-  transcript: string,
-  recentTurns: { role: string; text: string }[] = []
-) {
-  const cleanTranscript = transcript.trim();
-  if (!cleanTranscript) {
-    return "O último áudio não gerou transcrição nítida. Peça em uma única frase curta em português do Brasil para o usuário repetir.";
-  }
-
-  const isGreeting = isGreetingOrCasualStart(cleanTranscript);
-
-  const contextSection =
-    recentTurns.length > 0
-      ? `
-CONTEXTO DA CONVERSA NESTA INSTÂNCIA ATUAL (MEMÓRIA TEMPORÁRIA DA SESSÃO):
-CONTEXTO DA CONVERSA NESTA INSTÂNCIA ATUAL (MEMÓRIA TEMPORÁRIA DA SESSÃO - ÚLTIMAS 2 MENSAGENS):
-${recentTurns
-  .slice(-6)
-  .slice(-2)
-  .map(
-    (turn) =>
-      `- ${turn.role === "user" ? "Aluno" : "Mr.Crazy (você)"}: "${turn.text}"`
-  )
-  .join("\n")}`
-      : "";
-
-  let dynamicDirective = "";
-  if (isGreeting) {
-    dynamicDirective = `
-DIRETRIZ CRÍTICA DE CUMPRIMENTO:
-- O aluno acabou de te cumprimentar ou iniciar o contato: "${cleanTranscript}".
-- ATENÇÃO: ISSO NÃO É UM EXERCÍCIO DE INGLÊS. NUNCA diga "você acertou", "muito bom", "parabéns" nem avalie pronúncia aqui!
-- CUMPRIMENTE DE VOLTA com calor humano, amizade e energia em PORTUGUÊS DO BRASIL (ex: "E aí! Tudo ótimo por aqui, e com você? Bora treinar inglês ou quer bater um papo primeiro?").
-- Mantenha a conversa livre, espontânea e acolhedora.`;
-  } else {
-    dynamicDirective = `
-DIRETRIZ DE CONTINUIDADE DO DIÁLOGO:
-- O aluno acabou de falar agora: "${cleanTranscript}".
-- Analise o contexto: se no turno anterior você pediu para ele praticar uma frase ou palavra em inglês, avalie com a regra dos 70% e dê sequência.
-- Se o aluno estiver conversando em português, tirando dúvidas, contando algo do dia ou fazendo perguntas: RESPONDA DIRETAMENTE AO PAPO OU À DÚVIDA EM PORTUGUÊS! NUNCA diga "você acertou" se ele estava apenas conversando em português.
-- Deixe o algoritmo livre: seja um tutor parceiro, inteligente e descontraído, sem cobranças mecânicas.`;
-  }
-
-  return `${contextSection}
-${dynamicDirective}
-
-Você é Mr.Crazy: mentor e professor brasileiro ensinando inglês americano autêntico (en-US) para alunos brasileiros. Sua língua principal de comunicação e ensino é SEMPRE o PORTUGUÊS DO BRASIL.
-
-DIRETRIZES DE FLUXO LIVRE E ENSINO:
-1. LÍNGUA PRINCIPAL: PORTUGUÊS DO BRASIL
-   - Fale sempre em português para acolher, orientar, conversar, tirar dúvidas e dar feedbacks.
-   - Como ensinar frases: Diga a explicação em português e forneça em inglês APENAS a frase ou expressão exata que o aluno tem que praticar. Exemplo: "Para pedir água, você diz: 'Could I get some water, please?'. Tenta falar essa frase."
-   - ÚNICA EXCEÇÃO PARA FALAR EM INGLÊS: Você SÓ deve bater papo em inglês se o aluno pedir explicitamente para falar em inglês (ex: "vamos falar em inglês", "fala em inglês comigo", "let's speak in English").
-
-2. CUMPRIMENTOS E BATE-PAPO LIVRE:
-   - Cumprimentos ("oi", "tudo bem?") NUNCA são avaliados como acerto ou erro. Cumprimente de volta como um amigo.
-   - Se o aluno estiver conversando sobre a vida, trabalho ou tirando dúvidas, responda em português com carisma. Não force exercícios a todo momento.
-
-3. TÉCNICAS FÍSICAS DE PRONÚNCIA (BOCA, LÍNGUA E DENTES):
-   - Quando ensinar ou corrigir sons em inglês americano, ensine a técnica anatômica curta:
-     * Som do 'TH' (think, thank, the, that): "Ponta da língua levemente entre os dentes da frente soprando o ar, sem som de 'f' nem de 'd'."
-     * 'R' americano / retroflexo (car, red, work, world): "Enrola a ponta da língua pra trás no meio da boca sem encostar no céu da boca (igual sotaque do interior)."
-     * Consoantes finais secas (stop, bad, like, job, cat): "Corta o som seco na boca sem colocar a vogal 'i' no final (não fale 'stopi')."
-     * 'L' final / Dark L (call, milk, feel): "A ponta da língua sobe atrás dos dentes da frente e o fundo da boca abre, sem virar som de 'u'."
-     * 'W' (water, wait): "Faz um biquinho redondo de beijo no início."
-     * Vogais curtas frouxas (sheet vs shit, beach vs bitch): "No 'i' curto, relaxa o maxilar e faz quase som de 'ê'."
-
-4. REGRA DOS 70% (SEM TRAVAR O ALUNO):
-   - Se a tentativa de inglês foi cerca de 70% compreensível, CONSIDERE VÁLIDO! Elogie ("Boa!", "Perfeito, deu pra entender certinho!") e AVANCE para outra frase ou assunto.
-   - Máximo de 2 a 3 tentativas. Se não saiu perfeito, elogie o esforço e pule para a próxima palavra.
-
-5. CONCISÃO E NATURALIDADE:
-   - Seja conciso: 1 a 2 frases objetivas por resposta. Mantenha o ritmo de bate-papo ágil.`;
-}
-
-export function isAbortError(error: unknown): boolean {
-  if (!error) return false;
-  if (error instanceof DOMException && error.name === "AbortError") return true;
-  if (error instanceof Error) {
-    if (error.name === "AbortError") return true;
-    const msg = error.message.toLowerCase();
-    if (msg.includes("abort") || msg.includes("aborted")) return true;
-  }
-  const str = String(error).toLowerCase();
-  return str.includes("abort") || str.includes("aborted");
-}
-
-export function isTimeoutError(error: unknown): boolean {
-  if (!error) return false;
-  if (error instanceof DOMException && error.name === "TimeoutError") return true;
-  if (error instanceof Error) {
-    if (error.name === "TimeoutError") return true;
-    const msg = error.message.toLowerCase();
-    if (msg.includes("timeout") || msg.includes("timed out")) return true;
-  }
-  const str = String(error).toLowerCase();
-  return str.includes("timeout") || str.includes("timed out");
-}
-
-export function getConnectionError(error: unknown) {
-  if (isAbortError(error)) {
-    return "A conexão foi reiniciada. Toque no botão para tentar novamente.";
-  }
-
-  if (isTimeoutError(error)) {
-    return "A conexão demorou a responder. Toque no botão para tentar novamente.";
-  }
-
-  if (error instanceof DOMException) {
-    if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-      return "Microfone bloqueado. Permita o acesso ao microfone nos ajustes do navegador para falar.";
-    }
-    if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError" || error.name === "OverconstrainedError") {
-      return "Nenhum microfone encontrado. Conecte um fone de ouvido ou verifique se o microfone está ativo no seu aparelho.";
-    }
-    if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-      return "O microfone está sendo usado por outro aplicativo. Feche outros apps ou abas e tente novamente.";
-    }
-  }
-
-  if (error instanceof Error && error.message) {
-    const msg = error.message.toLowerCase();
-    if (msg.includes("requested device not found") || msg.includes("device not found") || msg.includes("notfounderror")) {
-      return "Nenhum microfone encontrado. Conecte um fone de ouvido ou verifique se o microfone está ativo no seu aparelho.";
-    }
-    if (msg.includes("permission denied") || msg.includes("not allowed")) {
-      return "Microfone bloqueado. Permita o acesso ao microfone nos ajustes do navegador para falar.";
-    }
-    if (msg.includes("in use") || msg.includes("already in use") || msg.includes("not readable")) {
-      return "O microfone está sendo usado por outro app. Feche outros apps e tente novamente.";
-    }
-    if (error.message === "realtime-unavailable") {
-      return "A conversa em tempo real está temporariamente indisponível. Toque para tentar novamente.";
-    }
-    if (
-      error.message === "data-channel-timeout" ||
-      error.message === "peer-connection-failed" ||
-      error.message === "ice-connection-failed" ||
-      error.message === "TimeoutError"
-    ) {
-      return "A conexão demorou a responder. Toque no botão para tentar novamente.";
-    }
-    if (msg.includes("abort")) {
-      return "A conexão foi reiniciada. Toque no botão para tentar novamente.";
-    }
-    return error.message;
-  }
-
-  return "Não consegui conectar o microfone. Toque no botão para tentar novamente.";
-}
-
-function createMergedTimeoutSignal(signal?: AbortSignal, timeoutMs = 18000): { signal: AbortSignal; cleanup: () => void } {
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => {
-    controller.abort(new DOMException("TimeoutError", "TimeoutError"));
-  }, timeoutMs);
-
-  const onAbort = () => {
-    controller.abort(signal?.reason ?? new DOMException("Aborted", "AbortError"));
-  };
-
-  if (signal) {
-    if (signal.aborted) {
-      controller.abort(signal.reason);
-    } else {
-      signal.addEventListener("abort", onAbort, { once: true });
-    }
-  }
-
-  const cleanup = () => {
-    window.clearTimeout(timer);
-    signal?.removeEventListener("abort", onAbort);
-  };
-
-  return { signal: controller.signal, cleanup };
-}
-
-function waitForDataChannel(
-  channel: RTCDataChannel,
-  peer: RTCPeerConnection,
-  signal?: AbortSignal
-) {
-  if (channel.readyState === "open") return Promise.resolve();
-
-  return new Promise<void>((resolve, reject) => {
-    let finished = false;
-    const timeout = window.setTimeout(() => finish(new Error("data-channel-timeout")), 14_000);
-
-    const onOpen = () => finish();
-    const onAbort = () => finish(new DOMException("Aborted", "AbortError"));
-    const onPeerState = () => {
-      if (peer.connectionState === "failed") {
-        finish(new Error("peer-connection-failed"));
-      }
-    };
-    const onIceState = () => {
-      if (peer.iceConnectionState === "failed") {
-        finish(new Error("ice-connection-failed"));
-      }
-    };
-
-    const finish = (error?: Error | DOMException) => {
-      if (finished) return;
-      finished = true;
-      window.clearTimeout(timeout);
-      channel.removeEventListener("open", onOpen);
-      signal?.removeEventListener("abort", onAbort);
-      peer.removeEventListener("connectionstatechange", onPeerState);
-      peer.removeEventListener("iceconnectionstatechange", onIceState);
-      if (error) reject(error);
-      else resolve();
-    };
-
-    channel.addEventListener("open", onOpen, { once: true });
-    signal?.addEventListener("abort", onAbort, { once: true });
-    peer.addEventListener("connectionstatechange", onPeerState);
-    peer.addEventListener("iceconnectionstatechange", onIceState);
-  });
-}
-
-let masterMicrophoneStream: MediaStream | null = null;
-const sessionMicrophones = new Set<MediaStreamTrack>();
-
-function cloneMicrophoneStream(stream: MediaStream) {
-  const sessionStream = stream.clone();
-  const track = sessionStream.getAudioTracks()[0];
-  sessionMicrophones.add(track);
-  return { track, stream: sessionStream };
-}
-
-function releaseSessionMicrophone(track: MediaStreamTrack) {
-  track.stop();
-  sessionMicrophones.delete(track);
-  if (sessionMicrophones.size === 0) releasePersistentMicrophoneStream(true);
-}
-let visibilityHandlerAttached = false;
-let isPageVisible = typeof document !== "undefined" ? document.visibilityState === "visible" : true;
-
-function setupVisibilityListener() {
-  if (visibilityHandlerAttached || typeof window === "undefined" || typeof document === "undefined") {
-    return;
-  }
-  visibilityHandlerAttached = true;
-
-  document.addEventListener("visibilitychange", () => {
-    isPageVisible = document.visibilityState === "visible";
-    if (masterMicrophoneStream) {
-      masterMicrophoneStream.getAudioTracks().forEach((track) => {
-        // Microfone SÓ fica ativo enquanto o usuário está usando o sistema na tela.
-        // Se minimizado, aba trocada ou tela bloqueada, a captação é desativada no hardware.
-        if (!isPageVisible) track.enabled = false;
-      });
-    }
-  });
-
-  // Silencia o microfone quando o usuário minimiza, bloqueia a tela ou sai temporariamente da aba
-  window.addEventListener("pagehide", () => {
-    if (masterMicrophoneStream) {
-      masterMicrophoneStream.getAudioTracks().forEach((t) => {
-        t.enabled = false;
-      });
-    }
-  });
-}
-
-export async function getMicrophoneSessionMedia(): Promise<{ track: MediaStreamTrack; stream: MediaStream }> {
-  setupVisibilityListener();
-
-  // 1. REUTILIZAÇÃO PERSISTENTE: Se já possuímos uma faixa de áudio ativa no dispositivo, reutilizamos sem chamar getUserMedia()
-  // No iPhone/WebKit, isso evita 100% que o sistema reabra o hardware ou solicite permissão novamente ao navegar
-  if (masterMicrophoneStream) {
-    const liveTrack = masterMicrophoneStream.getAudioTracks().find((t) => t.readyState === "live");
-    if (liveTrack) {
-      liveTrack.enabled = true;
-      return cloneMicrophoneStream(masterMicrophoneStream);
-    }
-    masterMicrophoneStream = null;
-  }
-
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-    throw new Error("Seu navegador não suporta captura de áudio ou a página não está em conexão segura (HTTPS).");
-  }
-
-  let stream: MediaStream | null = null;
-  let lastError: unknown = null;
-
-  // Nível 1: Áudio com processamento avançado (cancelamento de eco e supressão de ruído)
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: { ideal: 1 }
-      }
-    });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
-    lastError = err;
-    console.warn("[Microphone] Falha com restrições avançadas, tentando fallback { audio: true }:", err);
-  }
-
-  // Nível 2: Fallback amplo universal (compatível com Android, iOS e fones Bluetooth)
-  if (!stream) {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (err2) {
-      lastError = err2;
-      console.warn("[Microphone] Falha com { audio: true }, tentando enumerar dispositivos de entrada:", err2);
-    }
-  }
-
-  // Nível 3: Seleção explícita de dispositivo de áudio detectado no sistema
-  if (!stream && typeof navigator.mediaDevices.enumerateDevices === "function") {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInput = devices.find((d) => d.kind === "audioinput" && d.deviceId);
-      if (audioInput) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: { deviceId: { ideal: audioInput.deviceId } }
-        });
-      }
-    } catch (err3) {
-      lastError = err3;
-      console.warn("[Microphone] Falha na enumeração de dispositivos:", err3);
-    }
-  }
-
-  if (!stream) {
-    throw lastError || new Error("Nenhum microfone encontrado. Conecte um fone de ouvido ou verifique o microfone do seu aparelho.");
-  }
-
-  masterMicrophoneStream = stream;
-  const track = stream.getAudioTracks()[0];
-  if (!track) {
-    throw new Error("Nenhum microfone ativo detectado no dispositivo.");
-  }
-
-  track.enabled = true;
-
-  try {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("mr-crazy-mic-granted", "true");
-    }
-  } catch {}
-
-  return cloneMicrophoneStream(stream);
-}
-
-export function releasePersistentMicrophoneStream(force = false) {
-  if (!force) {
-    // Em vez de matar a faixa no iOS (o que força o Safari a pedir permissão de novo), apenas silencia
-    if (masterMicrophoneStream) {
-      masterMicrophoneStream.getAudioTracks().forEach((t) => {
-        t.enabled = false;
-      });
-    }
-    return;
-  }
-
-  if (masterMicrophoneStream) {
-    masterMicrophoneStream.getTracks().forEach((t) => {
-      try {
-        t.stop();
-      } catch {}
-    });
-    masterMicrophoneStream = null;
-  }
-}
-
-const WHISPER_HALLUCINATIONS = [
-  "amara.org",
-  "legendas pela",
-  "legendado por",
-  "subtitles by",
-  "obrigado por assistir",
-  "obrigada por assistir",
-  "deixe seu like",
-  "inscreva-se no canal",
-  "transcrição:",
-  "transcrito por",
-  "todos os direitos reservados",
-  "curta e compartilhe",
-  "não inventar",
-  "nao inventar",
-  "ruídos de respiração",
-  "ruidos de respiracao",
-  "legendas de vídeo",
-  "legendas de video",
-  "máxima fidelidade",
-  "maxima fidelidade",
-  "não inventar palavras",
-  "nao inventar palavras",
-  "boa noite, triângulos",
-  "boa noite triângulos"
-];
-
-function isWhisperHallucination(text: string): boolean {
-  const lower = text.toLowerCase().trim();
-  if (!lower) return true;
-  return WHISPER_HALLUCINATIONS.some((h) => lower.includes(h));
-}
-
-export async function connectRealtime(options: ConnectRealtimeOptions): Promise<RealtimeController> {
-  options.onStatus("connecting");
-  const peer = new RTCPeerConnection({
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" }
-    ]
-  });
-  const audio = document.createElement("audio");
-  let microphone: MediaStreamTrack;
-  let stream: MediaStream;
-  try {
-    const sessionMedia = await getMicrophoneSessionMedia();
-    microphone = sessionMedia.track;
-    stream = sessionMedia.stream;
-    if (options.signal?.aborted) {
-      releaseSessionMicrophone(microphone);
-      throw new DOMException("Aborted", "AbortError");
-    }
-  } catch (error) {
-    peer.close();
-    if (!isAbortError(error) && !options.signal?.aborted) {
-      options.onStatus("failed");
-      options.onError(getConnectionError(error));
-    }
-    throw error;
-  }
-  const channel = peer.createDataChannel("oai-events");
-  let userTranscript = "";
-  let assistantTranscript = "";
-  let lastCommittedAssistantTranscript = "";
+export async function connectRealtime(options: Options): Promise<RealtimeController> {
+  const id = crypto.randomUUID();
+  const started = Date.now();
+  const lifetime = new AbortController();
+  let stage: VoiceStage = "microphone";
+  let capture: MicrophoneCapture | undefined;
+  let peer: RTCPeerConnection | undefined;
+  let channel: RTCDataChannel | undefined;
+  let audio: HTMLAudioElement | undefined;
+  let closed = false;
+  let connected = false;
   let microphoneEnabled = true;
-  let assistantAudioActive = false;
-  let audioPlaying = false;
-  let disconnected = false;
-  let responseTimer: number | null = null;
+  let responseActive = false;
+  let playbackActive = false;
   let userSpeaking = false;
-  let pendingAudioTurn = false;
-  const completedTranscripts = new Set<string>();
-  const resumeAudio = () => {
-    if (!disconnected && audio.srcObject) void audio.play().catch(() => {});
+  let pendingTurn = false;
+  let assistantText = "";
+  let assistantCommitted = false;
+  const transcripts = new Map<string, string>();
+  const completed = new Set<string>();
+  const cleanup: (() => void)[] = [];
+  const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  const clear = (key: string) => { clearTimeout(timers.get(key)); timers.delete(key); };
+  const later = (key: string, ms: number, fn: () => void) => {
+    clear(key);
+    timers.set(key, setTimeout(() => { timers.delete(key); if (!closed) fn(); }, ms));
   };
-  audio.onplaying = () => {
-    if (assistantAudioActive) options.onVoiceState("speaking");
+  const log = (code: string, message: string, details: Partial<VoiceDiagnostic> = {}) => {
+    const event = { id, stage, code, message, elapsedMs: Date.now() - started, ...details };
+    options.onDiagnostic?.(event);
+    // No SDP, credentials, device identifiers, audio or transcripts are logged.
+    console.info("[Voice]", event);
   };
-  window.addEventListener("pointerdown", resumeAudio);
-
-  audio.autoplay = true;
-  audio.setAttribute("playsinline", "");
-  audio.setAttribute("aria-hidden", "true");
-  audio.style.display = "none";
-  document.body.appendChild(audio);
-  peer.ontrack = (event) => {
-    audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
-    void audio.play().catch(() => {
-      // No Safari / iOS, autoplay é adiado pelo navegador até o primeiro toque na tela.
-      // NÃO derrubamos a conexão! O áudio é retomado automaticamente no próximo toque.
-      options.onError("Toque na tela para liberar o áudio do professor.");
+  const listen = (target: EventTarget, type: string, listener: EventListener) => {
+    target.addEventListener(type, listener);
+    cleanup.push(() => target.removeEventListener(type, listener));
+  };
+  const disconnect = () => {
+    if (closed) return;
+    closed = true;
+    lifetime.abort();
+    cleanup.forEach(remove => remove());
+    timers.forEach(timer => clearTimeout(timer));
+    timers.clear();
+    capture?.stop();
+    channel?.close();
+    peer?.close();
+    if (audio) { audio.pause(); audio.srcObject = null; audio.remove(); }
+  };
+  const report = (error: unknown, fatal = false) => {
+    if (closed) return;
+    const message = getConnectionError(error);
+    log(error instanceof VoiceError ? error.code : error instanceof Error ? error.name : "unknown_error", message, error instanceof VoiceError ? error.details : {});
+    if (fatal) { disconnect(); options.onStatus("failed"); options.onVoiceState("idle"); }
+    options.onError(message);
+  };
+  const send = (event: object) => {
+    if (closed || channel?.readyState !== "open") return false;
+    try { channel.send(JSON.stringify(event)); return true; }
+    catch { report(new VoiceError("channel_send_failed", "A conexão não conseguiu enviar a mensagem. Reconecte a voz."), true); return false; }
+  };
+  const syncCapture = () => {
+    capture?.setEnabled(microphoneEnabled && !playbackActive && document.visibilityState !== "hidden");
+    if (!connected || closed) return;
+    options.onVoiceState(playbackActive ? (audio?.paused ? "preparing_speech" : "speaking") : responseActive ? "analyzing" : microphoneEnabled && document.visibilityState !== "hidden" ? "listening" : "idle");
+  };
+  const watchResponse = () => later("response", 30_000, () => {
+    if (responseActive) send({ type: "response.cancel" });
+    send({ type: "output_audio_buffer.clear" });
+    responseActive = playbackActive = false;
+    syncCapture();
+    report(new VoiceError("response_timeout", "O áudio foi recebido, mas a resposta demorou demais. Tente novamente."));
+  });
+  const recoverTurn = () => {
+    clear("turn");
+    if (!pendingTurn || userSpeaking || responseActive || playbackActive) return;
+    later("turn", 1500, () => {
+      if (!pendingTurn || userSpeaking || responseActive || playbackActive) return;
+      pendingTurn = false;
+      responseActive = send({ type: "response.create" });
+      if (responseActive) { log("response_recovery", "Solicitada resposta ao áudio confirmado."); syncCapture(); watchResponse(); }
     });
   };
-  peer.addTrack(microphone, stream);
-
-  const send = (event: object) => {
-    if (channel.readyState !== "open") return false;
-    channel.send(JSON.stringify(event));
-    return true;
+  const commitAssistant = (text = assistantText) => {
+    if (!text.trim() || assistantCommitted) return;
+    assistantCommitted = true;
+    options.onAssistantTranscript(text.trim(), true);
   };
+  const resume = () => {
+    if (document.visibilityState === "hidden") clear("capture-muted");
+    capture?.resume();
+    syncCapture();
+    if (audio?.srcObject && document.visibilityState !== "hidden") {
+      void audio.play().catch(() => report(new VoiceError("playback_blocked", "O navegador bloqueou o som. Toque na tela para liberar o áudio.")));
+    }
+  };
+  const abort = () => disconnect();
+  options.signal?.addEventListener("abort", abort, { once: true });
+  cleanup.push(() => options.signal?.removeEventListener("abort", abort));
+  options.onStatus("connecting");
 
-  const syncMicrophone = () => {
-    const captureEnabled = microphoneEnabled && document.visibilityState !== "hidden";
-    microphone.enabled = captureEnabled && !assistantAudioActive;
-    if (masterMicrophoneStream) {
-      masterMicrophoneStream.getAudioTracks().forEach((t) => {
-        // Keep the source alive during playback; only mute the outgoing clone.
-        t.enabled = captureEnabled;
+  try {
+    if (options.signal?.aborted) { disconnect(); throw new DOMException("Aborted", "AbortError"); }
+    log("capture_start", "Solicitando acesso ao microfone.");
+    capture = await openMicrophone({ signal: lifetime.signal, deviceId: options.deviceId, onLevel: options.onInputLevel });
+    log("capture_ready", "Dispositivo de entrada aberto.");
+    listen(capture.track, "ended", () => report(new VoiceError("microphone_ended", "O microfone foi desconectado. Escolha uma entrada e reconecte."), true));
+    listen(capture.track, "mute", () => {
+      if (document.visibilityState !== "hidden") later("capture-muted", 5000, () => {
+        if (document.visibilityState !== "hidden") report(new VoiceError("microphone_interrupted", "O dispositivo parou de fornecer áudio. Verifique o microfone ou reconecte."), true);
       });
-    }
-  };
-
-  const setMicrophoneEnabled = (enabled: boolean) => {
-    microphoneEnabled = enabled;
-    syncMicrophone();
-  };
-
-  const onVisibility = () => {
-    syncMicrophone();
-    if (document.visibilityState !== "hidden") resumeAudio();
-  };
-  document.addEventListener("visibilitychange", onVisibility);
-  window.addEventListener("pageshow", onVisibility);
-
-  const localSessionTurns: { role: string; text: string }[] = [];
-  const getContextSnapshot = (): { role: string; text: string }[] => {
-    const external = options.getRecentContext?.() ?? [];
-    if (external.length > 0) {
-      return external.slice(-6);
-    }
-    return localSessionTurns.slice(-6);
-  };
-
-  const commitAssistantTurn = (explicitText?: string) => {
-    const raw = (explicitText ?? assistantTranscript).trim();
-    if (!raw) return;
-    if (raw === lastCommittedAssistantTranscript) return;
-
-    lastCommittedAssistantTranscript = raw;
-    assistantTranscript = "";
-
-    localSessionTurns.push({ role: "crazy", text: raw });
-    if (localSessionTurns.length > 12) localSessionTurns.shift();
-
-    options.onAssistantTranscript(raw, true);
-  };
-
-  let activeResponseInProgress = false;
-  let pendingResponsePayload: { instructions?: string } | null = null;
-  let interruptionTimer: number | null = null;
-  const clearInterruptionTimer = () => {
-    if (interruptionTimer !== null) {
-      window.clearTimeout(interruptionTimer);
-      interruptionTimer = null;
-    }
-  };
-
-  let transcriptionSafetyTimer: number | null = null;
-  const clearTranscriptionSafetyTimer = () => {
-    if (transcriptionSafetyTimer !== null) {
-      window.clearTimeout(transcriptionSafetyTimer);
-      transcriptionSafetyTimer = null;
-    }
-  };
-
-  let echoCooldownTimer: number | null = null;
-  const clearEchoCooldown = () => {
-    if (echoCooldownTimer !== null) {
-      window.clearTimeout(echoCooldownTimer);
-      echoCooldownTimer = null;
-    }
-  };
-
-  const clearResponseTimer = () => {
-    if (responseTimer !== null) window.clearTimeout(responseTimer);
-    responseTimer = null;
-  };
-  const returnToListening = () => {
-    clearResponseTimer();
-    clearEchoCooldown();
-    audioPlaying = false;
-    assistantAudioActive = false;
-    activeResponseInProgress = false;
-    syncMicrophone();
-    options.onVoiceState(microphoneEnabled ? "listening" : "idle");
-    scheduleAudioResponse();
-  };
-  const watchResponse = () => {
-    clearResponseTimer();
-    responseTimer = window.setTimeout(() => {
-      if (disconnected) return;
-      cancelAssistantPlayback();
-      returnToListening();
-      options.onError("A resposta demorou. Pode falar novamente ou reconectar o microfone.");
-    }, 30_000);
-  };
-
-  // VAD normally creates the response. Recover only a committed, unanswered turn.
-  const scheduleAudioResponse = () => {
-    clearTranscriptionSafetyTimer();
-    if (!pendingAudioTurn || userSpeaking || activeResponseInProgress || audioPlaying) return;
-    transcriptionSafetyTimer = window.setTimeout(() => {
-      transcriptionSafetyTimer = null;
-      if (disconnected || !pendingAudioTurn || userSpeaking || activeResponseInProgress || audioPlaying) return;
-      pendingAudioTurn = false;
-      activeResponseInProgress = send({ type: "response.create" });
-      options.onVoiceState("analyzing");
-      watchResponse();
-    }, 1500);
-  };
-
-  const cancelAssistantPlayback = () => {
-    clearInterruptionTimer();
-    clearEchoCooldown();
-    audioPlaying = false;
-    assistantAudioActive = false;
-    send({ type: "output_audio_buffer.clear" });
-    if (activeResponseInProgress) {
-      activeResponseInProgress = false;
-      send({ type: "response.cancel" });
-    }
-    syncMicrophone();
-    returnToListening();
-  };
-
-  const disconnect = () => {
-    if (disconnected) return;
-    disconnected = true;
-    pendingAudioTurn = false;
-    clearInterruptionTimer();
-    clearTranscriptionSafetyTimer();
-    clearEchoCooldown();
-    clearResponseTimer();
-    options.signal?.removeEventListener("abort", disconnect);
-    document.removeEventListener("visibilitychange", onVisibility);
-    window.removeEventListener("pageshow", onVisibility);
-    window.removeEventListener("pointerdown", resumeAudio);
-    activeResponseInProgress = false;
-    pendingResponsePayload = null;
-    audio.pause();
-    audio.srcObject = null;
-    audio.remove();
-    try {
-      channel.close();
-    } catch {}
-    try {
-      peer.close();
-    } catch {}
-    try {
-      // Silencia a captação sem destruir a faixa no hardware, garantindo que o iOS não volte a pedir permissão
-      releaseSessionMicrophone(microphone);
-    } catch {}
-  };
-
-  options.signal?.addEventListener("abort", disconnect, { once: true });
-  const failConnection = () => {
-    if (disconnected) return;
-    disconnect();
-    options.onStatus("failed");
-    options.onVoiceState("idle");
-    options.onError("A conexão de voz foi encerrada. Reconecte o microfone para continuar.");
-  };
-  channel.addEventListener("close", failConnection);
-  microphone.addEventListener("ended", failConnection);
-  peer.addEventListener("connectionstatechange", () => {
-    if (!disconnected && (peer.connectionState === "failed" || peer.connectionState === "disconnected")) {
-      disconnect();
-      options.onStatus("failed");
-      options.onVoiceState("idle");
-      options.onError("A conexão de voz caiu. Use o controle manual enquanto ela é restabelecida.");
-    }
-  });
-
-  channel.addEventListener("message", (message) => {
-    if (disconnected) return;
-    let event: RealtimeServerEvent;
-    try {
-      event = JSON.parse(String(message.data)) as RealtimeServerEvent;
-    } catch {
-      return;
-    }
-
-    switch (event.type) {
-      case "input_audio_buffer.speech_started":
-        userSpeaking = true;
-        clearTranscriptionSafetyTimer();
-        if (!activeResponseInProgress && !audioPlaying) clearResponseTimer();
-        userTranscript = "";
-        options.onUserTranscript("", false);
-        if (!assistantAudioActive) options.onVoiceState("listening");
-        break;
-      case "input_audio_buffer.speech_stopped":
-        userSpeaking = false;
-        clearInterruptionTimer();
-        options.onVoiceState("analyzing");
-        watchResponse();
-        scheduleAudioResponse();
-        break;
-      case "input_audio_buffer.committed":
-        pendingAudioTurn = true;
-        scheduleAudioResponse();
-        break;
-      case "conversation.item.input_audio_transcription.delta":
-        if (typeof event.delta === "string") {
-          userTranscript += event.delta;
-          if (!isWhisperHallucination(userTranscript)) {
-            options.onUserTranscript(userTranscript, false);
-          }
+    });
+    listen(capture.track, "unmute", () => clear("capture-muted"));
+    stage = "offer";
+    peer = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    channel = peer.createDataChannel("oai-events");
+    audio = document.createElement("audio");
+    audio.autoplay = true;
+    audio.setAttribute("playsinline", "");
+    audio.setAttribute("aria-hidden", "true");
+    audio.style.display = "none";
+    document.body.appendChild(audio);
+    peer.addTrack(capture.track, capture.stream);
+    listen(peer, "track", ((event: RTCTrackEvent) => {
+      if (!audio) return;
+      audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+      resume();
+    }) as EventListener);
+    listen(audio, "playing", () => { if (playbackActive) options.onVoiceState("speaking"); });
+    listen(document, "visibilitychange", resume);
+    listen(window, "pageshow", resume);
+    listen(window, "pointerdown", resume);
+    listen(window, "pagehide", () => { capture?.setEnabled(false); });
+    listen(peer, "connectionstatechange", () => {
+      log("peer_state", `Transporte: ${peer?.connectionState}.`);
+      if (peer?.connectionState === "failed") report(new VoiceError("transport_failed", "A rede bloqueou ou perdeu a conexão de áudio. Tente outra rede e reconecte."), true);
+      else if (peer?.connectionState === "disconnected") later("network", 6000, () => report(new VoiceError("transport_disconnected", "A conexão de áudio caiu. Reconecte para continuar."), true));
+      else if (peer?.connectionState === "connected") clear("network");
+    });
+    listen(channel, "close", () => report(new VoiceError("channel_closed", "O canal da conversa foi encerrado. Reconecte para continuar."), true));
+    listen(channel, "error", () => report(new VoiceError("channel_error", "O canal de mensagens da voz falhou. Reconecte para continuar."), true));
+    let markReady!: () => void;
+    let sessionReady = false;
+    let channelReady = channel.readyState === "open";
+    const ready = new Promise<void>(resolve => { markReady = resolve; });
+    const checkReady = () => { if (sessionReady && channelReady) markReady(); };
+    listen(channel, "open", () => { channelReady = true; checkReady(); });
+    listen(channel, "message", ((message: MessageEvent) => {
+      if (closed) return;
+      let event: ServerEvent;
+      try { event = JSON.parse(String(message.data)); } catch { return; }
+      if (!event || typeof event.type !== "string") return;
+      switch (event.type) {
+        case "session.created":
+        case "session.updated":
+          sessionReady = true; checkReady(); break;
+        case "input_audio_buffer.speech_started":
+          userSpeaking = true; clear("turn");
+          if (!responseActive && !playbackActive) clear("response");
+          stage = "listening"; log("speech_started", "A API detectou voz."); break;
+        case "input_audio_buffer.speech_stopped":
+          userSpeaking = false; options.onVoiceState("analyzing"); watchResponse(); recoverTurn(); break;
+        case "input_audio_buffer.committed":
+          pendingTurn = true; recoverTurn(); break;
+        case "conversation.item.input_audio_transcription.delta": {
+          const key = event.item_id ?? "current";
+          const text = (transcripts.get(key) ?? "") + (event.delta ?? "");
+          transcripts.set(key, text); options.onUserTranscript(text, false); break;
         }
-        break;
-      case "conversation.item.input_audio_transcription.completed":
-        if (event.item_id && completedTranscripts.has(event.item_id)) break;
-        if (event.item_id) {
-          completedTranscripts.add(event.item_id);
-          if (completedTranscripts.size > 100) completedTranscripts.delete(completedTranscripts.values().next().value!);
+        case "conversation.item.input_audio_transcription.completed": {
+          const key = event.item_id ?? "current";
+          if (event.item_id && completed.has(key)) break;
+          if (event.item_id) completed.add(key);
+          if (completed.size > 100) completed.delete(completed.values().next().value!);
+          options.onUserTranscript((event.transcript ?? transcripts.get(key) ?? "").trim(), true);
+          transcripts.delete(key); break;
         }
-        if (typeof event.transcript === "string") {
-          const rawTranscript = event.transcript.trim();
-          if (rawTranscript && !isWhisperHallucination(rawTranscript)) {
-            userTranscript = rawTranscript;
-          } else {
-            userTranscript = "";
-          }
-        }
-
-        const candidateText = userTranscript.trim();
-        userTranscript = "";
-
-        // Se for alucinação ou texto vazio, descarta silenciosamente e limpa qualquer bolha transitória
-        if (!candidateText || isWhisperHallucination(candidateText)) {
-          options.onUserTranscript("", true);
-          return;
-        }
-
-        localSessionTurns.push({ role: "user", text: candidateText });
-        if (localSessionTurns.length > 12) localSessionTurns.shift();
-        options.onUserTranscript(candidateText, true);
-        // VAD creates the response from audio. Transcription is only a display event,
-        // and may arrive after the assistant has already started answering.
-        break;
-      case "conversation.item.input_audio_transcription.failed":
-        options.onUserTranscript("", true);
-        options.onError("Não consegui exibir a transcrição deste áudio.");
-        break;
-      case "response.output_item.added":
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
-        assistantTranscript = "";
-        options.onAssistantTranscript("", false);
-        break;
-      case "response.output_audio_transcript.delta":
-      case "response.audio_transcript.delta":
-        if (typeof event.delta === "string") {
-          assistantTranscript += event.delta;
-          options.onAssistantTranscript(assistantTranscript, false);
-        }
-        break;
-      case "response.output_text.delta":
-      case "response.text.delta":
-        if (typeof event.delta === "string") {
-          assistantTranscript += event.delta;
-          options.onAssistantTranscript(assistantTranscript, false);
-        }
-        break;
-      case "response.output_audio_transcript.done":
-      case "response.audio_transcript.done":
-        if (typeof event.transcript === "string" && event.transcript.trim()) {
-          assistantTranscript = event.transcript.trim();
-        }
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
-        break;
-      case "response.output_text.done":
-      case "response.text.done":
-        if (typeof event.text === "string" && event.text.trim()) {
-          assistantTranscript = event.text.trim();
-        }
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
-        break;
-      case "response.output_item.done":
-        if (event.item?.content && Array.isArray(event.item.content)) {
-          for (const c of event.item.content) {
-            if (typeof c?.transcript === "string" && c.transcript.trim()) {
-              assistantTranscript = c.transcript.trim();
-            } else if (typeof c?.text === "string" && c.text.trim()) {
-              assistantTranscript = c.text.trim();
-            }
-          }
-        }
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
-        break;
-      case "output_audio_buffer.started":
-        watchResponse();
-        clearInterruptionTimer();
-        clearEchoCooldown();
-        audioPlaying = true;
-        assistantAudioActive = true;
-        // Isola completamente o microfone para impedir eco acústico do alto-falante
-        microphone.enabled = false;
-        options.onVoiceState(audio.paused ? "preparing_speech" : "speaking");
-        break;
-      case "output_audio_buffer.cleared":
-      case "output_audio_buffer.stopped":
-        audioPlaying = false;
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
-        // Breve intervalo para evitar captar a reverberacao do alto-falante.
-        clearEchoCooldown();
-        echoCooldownTimer = window.setTimeout(() => {
-          returnToListening();
-        }, 200);
-        break;
-      case "response.created":
-        pendingAudioTurn = false;
-        clearTranscriptionSafetyTimer();
-        activeResponseInProgress = true;
-        clearEchoCooldown();
-        watchResponse();
-        options.onVoiceState("analyzing");
-        break;
-      case "response.done":
-        activeResponseInProgress = false;
-        if (pendingResponsePayload && !disconnected) {
-          const payload = pendingResponsePayload;
-          pendingResponsePayload = null;
-          send({
-            type: "response.create",
-            response: payload
-          });
-        }
-        if (event.response?.output && Array.isArray(event.response.output)) {
-          for (const item of event.response.output) {
-            if (item?.content && Array.isArray(item.content)) {
-              for (const c of item.content) {
-                if (typeof c?.transcript === "string" && c.transcript.trim()) {
-                  assistantTranscript = c.transcript.trim();
-                } else if (typeof c?.text === "string" && c.text.trim()) {
-                  assistantTranscript = c.text.trim();
-                }
-              }
-            }
-          }
-        }
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
-        if (!audioPlaying) {
-          returnToListening();
-        }
-        if (event.response?.status === "failed") {
-          options.onError(event.response.status_details?.error?.message || "A IA não conseguiu responder. Tente novamente.");
-        }
-        break;
-      case "error": {
-        const errorMsg = event.error?.message || "";
-        const lower = errorMsg.toLowerCase();
-        if (
-          lower.includes("buffer is empty") ||
-          lower.includes("already active") ||
-          lower.includes("active response") ||
-          lower.includes("in progress") ||
-          lower.includes("cancelled")
-        ) {
-          console.warn("[Realtime] Aviso não crítico ignorado:", errorMsg);
-          if (lower.includes("active response") || lower.includes("in progress")) {
-            if (pendingResponsePayload && !disconnected) {
-              window.setTimeout(() => {
-                if (pendingResponsePayload && !disconnected) {
-                  send({
-                    type: "response.create",
-                    response: pendingResponsePayload
-                  });
-                  pendingResponsePayload = null;
-                }
-              }, 250);
-            }
-          }
+        case "conversation.item.input_audio_transcription.failed":
+          report(new VoiceError("transcription_failed", "A transcrição não está disponível; a resposta continua usando o áudio.")); break;
+        case "response.created":
+          stage = "response"; pendingTurn = false; responseActive = true; assistantText = ""; assistantCommitted = false;
+          clear("turn"); watchResponse(); syncCapture(); break;
+        case "response.output_audio_transcript.delta":
+        case "response.audio_transcript.delta":
+        case "response.output_text.delta":
+        case "response.text.delta":
+          assistantText += event.delta ?? ""; options.onAssistantTranscript(assistantText, false); break;
+        case "response.output_audio_transcript.done":
+        case "response.audio_transcript.done":
+        case "response.output_text.done":
+        case "response.text.done":
+          commitAssistant(event.transcript ?? event.text); break;
+        case "output_audio_buffer.started":
+          stage = "playback"; playbackActive = true; clear("echo"); watchResponse(); syncCapture(); break;
+        case "output_audio_buffer.stopped":
+        case "output_audio_buffer.cleared":
+          later("echo", 200, () => { playbackActive = false; if (!responseActive) clear("response"); syncCapture(); recoverTurn(); }); break;
+        case "response.done": {
+          responseActive = false;
+          const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
+          commitAssistant(text || assistantText);
+          if (!playbackActive) { clear("response"); syncCapture(); recoverTurn(); }
+          if (event.response?.status === "failed") report(new VoiceError("response_failed", "A API não conseguiu gerar a resposta.", { providerCode: event.response.status_details?.error?.code }));
           break;
         }
-        returnToListening();
-        options.onError(errorMsg || "A API de voz retornou um erro.");
-        break;
+        case "error":
+          if (event.error?.code === "response_cancel_not_active" || event.error?.code === "input_audio_buffer_commit_empty") break;
+          if (event.error?.code === "conversation_already_has_active_response") { responseActive = true; watchResponse(); break; }
+          report(new VoiceError("provider_event_error", "A API de voz recusou uma operação. Consulte o código no diagnóstico.", { providerCode: event.error?.code }), !connected);
+          if (connected) { responseActive = false; if (!playbackActive) clear("response"); syncCapture(); }
+          break;
       }
-    }
-  });
-
-  try {
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
-
-    // The SDP exchange cannot trickle later candidates; allow mobile networks to gather them.
+    }) as EventListener);
+    const offer = await waitFor(peer.createOffer(), lifetime.signal, 5000, "offer_timeout");
+    await waitFor(peer.setLocalDescription(offer), lifetime.signal, 5000, "local_description_timeout");
     if (peer.iceGatheringState !== "complete") {
-      await new Promise<void>((resolve) => {
-        let settled = false;
-        const finish = () => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          peer.removeEventListener("icegatheringstatechange", onState);
-          peer.removeEventListener("icecandidate", onCandidate);
-          resolve();
-        };
-        const timer = setTimeout(finish, 1500);
-        const onState = () => {
-          if (peer.iceGatheringState === "complete") finish();
-        };
-        const onCandidate = (event: RTCPeerConnectionIceEvent) => {
-          if (!event.candidate) finish();
-        };
-        peer.addEventListener("icegatheringstatechange", onState);
-        peer.addEventListener("icecandidate", onCandidate);
-      });
+      await waitFor(new Promise<void>(resolve => {
+        listen(peer!, "icegatheringstatechange", () => { if (peer?.iceGatheringState === "complete") resolve(); });
+        later("ice-gather", 1500, resolve);
+      }), lifetime.signal, 2000, "ice_gather_timeout");
     }
-
-    const sdpToSend = peer.localDescription?.sdp || offer.sdp;
-
-    const { signal: fetchSignal, cleanup: cleanupFetchSignal } = createMergedTimeoutSignal(options.signal, 18000);
-
-    const queryParams = new URLSearchParams({
-      level: options.level,
-      mode: options.mode,
-      ...(options.moduleId ? { moduleId: options.moduleId } : {})
-    });
-
-    let response: Response;
-    try {
-      response = await fetch(`/api/realtime/session?${queryParams.toString()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/sdp" },
-        body: sdpToSend,
-        signal: fetchSignal
-      });
-    } finally {
-      cleanupFetchSignal();
-    }
-
+    stage = "api"; log("session_request", "Abrindo sessão na API.");
+    const query = new URLSearchParams({ level: options.level, mode: options.mode, ...(options.moduleId ? { moduleId: options.moduleId } : {}) });
+    const response = await waitFor(fetch(`/api/realtime/session?${query}`, {
+      method: "POST", headers: { "Content-Type": "application/sdp", "X-Voice-Request-Id": id },
+      body: peer.localDescription?.sdp ?? offer.sdp, signal: lifetime.signal
+    }), lifetime.signal, 25_000, "session_request_timeout");
+    const body = await waitFor(response.text(), lifetime.signal, 5000, "session_body_timeout");
     if (!response.ok) {
-      let errorMsg = "realtime-unavailable";
+      let payload: { error?: string; code?: string; providerCode?: string; providerStatus?: number; diagnosticId?: string; providerMessage?: string; providerParam?: string; testedModel?: string } = {};
       try {
-        const errorData = (await response.json()) as { error?: string; providerCode?: string; providerMessage?: string; providerStatus?: number; diagnosticId?: string };
-        if (errorData?.error) {
-          errorMsg = errorData.error;
-          if (errorData.providerMessage) {
-            errorMsg += ` (${errorData.providerMessage})`;
-          } else if (errorData.providerCode) {
-            errorMsg += ` (${errorData.providerCode})`;
-          }
-          if (errorData.providerStatus) errorMsg += ` [OpenAI HTTP ${errorData.providerStatus}]`;
-          if (errorData.diagnosticId) errorMsg += ` Referência: ${errorData.diagnosticId}`;
-        }
-      } catch {}
-      throw new Error(errorMsg);
-    }
-
-    await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
-    await waitForDataChannel(channel, peer, options.signal);
-    if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
-
-    microphoneEnabled = true;
-    syncMicrophone();
-
-    options.onStatus("connected");
-    options.onVoiceState("listening");
-
-    for (const turn of (options.getRecentContext?.() ?? []).slice(-6)) {
-      send({
-        type: "conversation.item.create",
-        item: {
-          type: "message",
-          role: turn.role === "user" ? "user" : "assistant",
-          content: [{ type: turn.role === "user" ? "input_text" : "output_text", text: turn.text }]
-        }
+        const parsed = JSON.parse(body);
+        if (parsed && typeof parsed === "object") payload = parsed;
+      } catch { /* Gateways can return HTML rather than JSON. */ }
+      throw new VoiceError(payload.code ?? "session_rejected", payload.error || "O servidor recusou a conexão de voz. Consulte o status no diagnóstico.", {
+        httpStatus: response.status, providerStatus: payload.providerStatus,
+        providerCode: payload.providerCode, serverId: payload.diagnosticId ?? response.headers.get("X-Voice-Request-Id") ?? undefined,
+        providerMessage: payload.providerMessage, providerParam: payload.providerParam, model: payload.testedModel
       });
     }
-
+    if (!body.trimStart().startsWith("v=0")) throw new VoiceError("invalid_sdp_answer", "O servidor retornou uma resposta de conexão inválida.");
+    stage = "transport"; log("session_accepted", "API aceitou a sessão. Aguardando o canal de áudio.");
+    await waitFor(peer.setRemoteDescription({ type: "answer", sdp: body }), lifetime.signal, 5000, "remote_description_timeout");
+    await waitFor(ready, lifetime.signal, 12_000, "transport_timeout");
+    if (closed) throw new DOMException("Aborted", "AbortError");
+    connected = true;
+    for (const turn of (options.getRecentContext?.() ?? []).slice(-6)) {
+      send({ type: "conversation.item.create", item: { type: "message", role: turn.role === "user" ? "user" : "assistant", content: [{ type: turn.role === "user" ? "input_text" : "output_text", text: turn.text }] } });
+    }
+    stage = "listening"; log("connected", "Conversa conectada. Detecção automática de fala ativa.");
+    options.onStatus("connected"); syncCapture();
     return {
       disconnect,
-      setMicrophoneEnabled,
-      interrupt: cancelAssistantPlayback,
-      sendText(text: string) {
-        const cleanText = text.trim();
-        if (!cleanText || disconnected || channel.readyState !== "open" || activeResponseInProgress || audioPlaying) return false;
-        if (assistantTranscript.trim()) {
-          commitAssistantTurn(assistantTranscript);
-        }
-        userTranscript = cleanText;
-        options.onUserTranscript(cleanText, true);
-        options.onVoiceState("analyzing");
-        const currentContext = getContextSnapshot();
-        localSessionTurns.push({ role: "user", text: cleanText });
-        if (localSessionTurns.length > 12) localSessionTurns.shift();
-
-        const created = send({
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "user",
-            content: [{ type: "input_text", text: cleanText }]
-          }
-        });
-        watchResponse();
-        activeResponseInProgress = true;
-        return created && send({
-          type: "response.create",
-          response: { instructions: buildTranscriptBoundResponse(cleanText, currentContext) }
-        });
+      setMicrophoneEnabled(enabled) { microphoneEnabled = enabled; resume(); },
+      interrupt() {
+        if (responseActive) send({ type: "response.cancel" });
+        send({ type: "output_audio_buffer.clear" });
+        responseActive = playbackActive = false; clear("response"); syncCapture();
+      },
+      sendText(text) {
+        if (!text.trim() || closed || responseActive || playbackActive || userSpeaking) return false;
+        if (!send({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text: text.trim() }] } })) return false;
+        options.onUserTranscript(text.trim(), true);
+        responseActive = send({ type: "response.create" });
+        syncCapture(); watchResponse(); return responseActive;
       },
       finishTurn() {
-        if (!microphoneEnabled) return;
-        microphone.enabled = false;
-        options.onVoiceState("transcribing");
-        window.setTimeout(() => {
-          if (!disconnected && microphoneEnabled) syncMicrophone();
-        }, 700);
+        if (!microphoneEnabled || !userSpeaking) return;
+        // Let server VAD observe silence instead of racing an explicit buffer commit.
+        capture?.setEnabled(false); later("manual-stop", 1100, syncCapture);
       }
     };
   } catch (error) {
-    disconnect();
-    if (!isAbortError(error) && !options.signal?.aborted) {
-      options.onStatus("failed");
-      options.onError(getConnectionError(error));
-    }
+    if (!isAbortError(error) && !closed) report(error, true);
+    else disconnect();
     throw error;
   }
 }
