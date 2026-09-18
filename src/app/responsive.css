@@ -138,10 +138,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .practice-main .clean-stage.history-is-closed .character-stage {
+    width: clamp(250px, 75vw, 340px) !important;
+    height: clamp(250px, 75vw, 340px) !important;
   }
   .practice-main .clean-stage.history-is-closed .rpg-character {
-    width: clamp(250px, 75vw, 340px) !important;
-    height: auto !important;
+    width: 100% !important;
+    height: 100% !important;
   }
   .practice-main .clean-stage.history-is-open .character-column {
     width: 100%;

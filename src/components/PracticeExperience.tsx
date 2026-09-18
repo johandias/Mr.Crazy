@@ -418,6 +418,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [isSelectingModule, setIsSelectingModule] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
+      if (
+        urlParams.get("practice") === "1" ||
+        urlParams.get("treino") === "1" ||
+        urlParams.get("popup") === "true"
+      ) {
+        return false;
+      }
       if (urlParams.get("map") === "1" || urlParams.get("modulos") === "1") {
         return true;
       }
@@ -1809,13 +1816,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            <RpgCharacter
-              crazyLevel={crazyLevel}
-              emotion={emotion}
-              voiceState={voiceState}
-              gesture={activeGesture}
-              onTap={handleAvatarTap}
-            />
             {/* Balão de Fala do Mr. Crazy: visível apenas quando o histórico estiver recolhido */}
             {!isHistoryExpanded && (
               <div
