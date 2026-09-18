@@ -443,10 +443,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [contextHistory, setContextHistory] = useState<ConversationTurn[]>([]);
   const [storageReady, setStorageReady] = useState(false);
   const [speechRetry, setSpeechRetry] = useState<{ segments: SpeechSegment[]; nextState: VoiceState } | null>(null);
+  const [currentlySpeakingText, setCurrentlySpeakingText] = useState("");
   const cancelPlaybackRef = useRef<(() => void) | null>(null);
   const ptVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const enVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const mainInputRef = useRef<HTMLInputElement>(null);
   const analysisQueuedRef = useRef(false);
   const pipRef = useRef<PictureInPictureManagerHandle | null>(null);
   const [isPipActive, setIsPipActive] = useState(false);
@@ -647,13 +649,47 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     if (clean) {
       const last = contextHistory[contextHistory.length - 1];
       if (last && last.role === "crazy" && last.text === clean) return null;
-      return { text: clean };
+      return { text: clean, isTyping: false };
     }
-    if (voiceState === "analyzing" && !liveUserItem) {
-      return { text: "Hummm... Analisando..." };
+    if (voiceState === "analyzing") {
+      return { text: "Analisando sua resposta...", isTyping: true };
     }
     return null;
-  }, [contextHistory, liveUserItem, realtimeReply, voiceState]);
+  }, [contextHistory, realtimeReply, voiceState]);
+
+  const suggestedReplies = useMemo(() => {
+    const suggestions: string[] = [];
+
+    // Prioridade 1: Frase em inglês citada na última fala do Mr. Crazy
+    const lastCrazy =
+      [...contextHistory].reverse().find((t) => t.role === "crazy")?.text || openingLine;
+    const quoteMatch = /["“]([^"“”]{3,50})["”]/u.exec(lastCrazy);
+    if (quoteMatch && quoteMatch[1]) {
+      const quoted = quoteMatch[1].trim();
+      if (!/^(o|a|os|as|do|da|no|na|de|em)$/i.test(quoted)) {
+        suggestions.push(quoted);
+      }
+    }
+
+    // Prioridade 2: Frase alvo do módulo pedagógico ativo
+    if (activeModule?.samplePhrases && activeModule.samplePhrases.length > 0) {
+      const modSentence =
+        activeModule.samplePhrases[moduleTurnsCount % activeModule.samplePhrases.length];
+      if (modSentence && !suggestions.includes(modSentence)) {
+        suggestions.push(modSentence);
+      }
+    }
+
+    // Prioridade 3: Ajuda pedagógica comum
+    if (suggestions.length < 3) {
+      suggestions.push("Como falo isso em inglês?");
+    }
+    if (suggestions.length < 3) {
+      suggestions.push("Não entendi o erro, me ajuda?");
+    }
+
+    return suggestions.slice(0, 3);
+  }, [contextHistory, openingLine, activeModule, moduleTurnsCount]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -701,6 +737,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     cancelPlaybackRef.current?.();
     cancelPlaybackRef.current = null;
     setSpeechRetry(null);
+    setCurrentlySpeakingText("");
   }, []);
 
   const speakSegments = useCallback((segments: SpeechSegment[], nextState: VoiceState) => {
@@ -710,6 +747,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       setVoiceState(nextState);
       return;
     }
+
+    const fullText = segments.map((s) => s.text).join(" ");
+    setCurrentlySpeakingText(fullText);
 
     const synth = window.speechSynthesis;
     setErrorMessage("");
@@ -723,8 +763,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         return ref.current;
       },
       onState: setVoiceState,
-      onEnd: () => setVoiceState(nextState),
+      onEnd: () => {
+        setCurrentlySpeakingText("");
+        setVoiceState(nextState);
+      },
       onError: (reason, remaining) => {
+        setCurrentlySpeakingText("");
         setVoiceState(nextState);
         setSpeechRetry({ segments: remaining, nextState });
         setErrorMessage(reason === "not-allowed" || reason === "start-timeout"
@@ -738,6 +782,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     const segments = parseSpeechSegments(text, lang);
     cancelSpeech();
     setErrorMessage("");
+    setCurrentlySpeakingText(text);
 
     cancelPlaybackRef.current = playGeneratedSpeech({
       text,
@@ -755,8 +800,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       createObjectUrl: (blob) => URL.createObjectURL(blob),
       revokeObjectUrl: (url) => URL.revokeObjectURL(url),
       onState: setVoiceState,
-      onEnd: () => setVoiceState(nextState),
-      onError: () => speakSegments(segments, nextState)
+      onEnd: () => {
+        setCurrentlySpeakingText("");
+        setVoiceState(nextState);
+      },
+      onError: () => {
+        speakSegments(segments, nextState);
+      }
     });
   }, [cancelSpeech, speakSegments]);
 
@@ -1169,6 +1219,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     if (!sentence) return;
     setManualText("");
     submitSentence(sentence);
+    mainInputRef.current?.focus();
   }
 
   function submitSentence(sentence: string) {
@@ -1184,6 +1235,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
 
     void analyzeSentence(sentence);
+  }
+
+  function handleSuggestionClick(suggestion: string) {
+    if (voiceState === "analyzing") return;
+    submitSentence(suggestion);
+    mainInputRef.current?.focus();
   }
 
   function handleAvatarMicClick() {
@@ -1368,6 +1425,27 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               }}
             />
 
+            {/* Sugestões rápidas de resposta para destravar a conversa */}
+            {suggestedReplies.length > 0 && (
+              <div className="chat-suggestions-bar" aria-label="Sugestões de resposta rápida">
+                <div className="suggestions-chips-row">
+                  {suggestedReplies.map((reply, idx) => (
+                    <button
+                      key={`sug-${idx}-${reply}`}
+                      type="button"
+                      className="suggestion-chip-btn"
+                      disabled={voiceState === "analyzing"}
+                      onClick={() => handleSuggestionClick(reply)}
+                      title={`Enviar frase: "${reply}"`}
+                    >
+                      <Sparkles size={11} className="chip-icon" />
+                      <span>{reply}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Digitação rápida para não travar o aluno se o microfone falhar */}
             <form
               className="quick-text-input-bar"
@@ -1376,10 +1454,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               }}
             >
               <input
+                ref={mainInputRef}
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
-                placeholder="Escreva sua mensagem..."
+                placeholder={
+                  voiceState === "analyzing"
+                    ? "Mr.Crazy está analisando..."
+                    : "Digite em inglês ou português..."
+                }
                 aria-label="Mensagem para o professor"
+                disabled={voiceState === "analyzing"}
               />
               <button
                 type="submit"
@@ -1410,6 +1494,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 key={item.key}
                 label={item.role === "user" ? "Você" : "Mr.Crazy"}
                 tone={item.role === "user" ? "user" : "crazy"}
+                onSpeak={item.role === "crazy" ? () => speak(item.text, "idle") : undefined}
+                isSpeaking={item.role === "crazy" && currentlySpeakingText === item.text && voiceState === "speaking"}
               >
                 {item.text}
               </ConversationBubble>
@@ -1422,7 +1508,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             ) : null}
 
             {liveCrazyItem ? (
-              <ConversationBubble label="Mr.Crazy" tone="crazy">
+              <ConversationBubble
+                label="Mr.Crazy"
+                tone="crazy"
+                isTyping={liveCrazyItem.isTyping}
+                onSpeak={!liveCrazyItem.isTyping ? () => speak(liveCrazyItem.text, "idle") : undefined}
+                isSpeaking={currentlySpeakingText === liveCrazyItem.text && voiceState === "speaking"}
+              >
                 {liveCrazyItem.text}
               </ConversationBubble>
             ) : null}

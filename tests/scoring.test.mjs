@@ -38,8 +38,8 @@ test("repeated errors receive a modest extra penalty", () => {
   const firstAttempt = score("intermediate", "past_tense");
   const repeatedAttempt = score("intermediate", "past_tense", true);
 
-  assert.equal(repeatedAttempt.score, firstAttempt.score - 3);
-  assert.equal(repeatedAttempt.crazyDelta, firstAttempt.crazyDelta + 2);
+  assert.equal(repeatedAttempt.score, firstAttempt.score - 5);
+  assert.equal(repeatedAttempt.crazyDelta, firstAttempt.crazyDelta + 10);
 });
 
 test("requests for explanation are treated as teaching moments", () => {
@@ -119,6 +119,6 @@ test("consecutive repeated mistakes teach an easier alternative", () => {
 
   assert.equal(result.correct, false);
   assert.equal(result.mistake_type, "preposition");
-  assert.match(result.reaction, /(cabaço|ChatGPT|burro|cabeça de vento)/u);
+  assert.match(result.reaction, /(DE NOVO|EU NÃO ACREDITO|brincadeira|Foco, criatura|Chega de teimosia)/u);
   assert.match(result.follow_up, /I have to go home/u);
 });
