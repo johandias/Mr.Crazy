@@ -109,10 +109,11 @@
   .practice-main .active-module-pill-btn { max-width: none !important; min-height: 40px; }
   .practice-main .stage-exam-action-btn { min-height: 40px; }
   .practice-main .session-header { flex-wrap: wrap !important; overflow: visible !important; }
-  .practice-main .conversation-panel.clean-conversation { max-height: 45svh !important; scroll-behavior: auto; }
-  .practice-main .conversation-panel.clean-conversation { max-height: 135px !important; min-height: 85px !important; scroll-behavior: auto; }
+  .practice-main .conversation-panel.clean-conversation { max-height: 110px !important; min-height: 60px !important; scroll-behavior: auto; }
   .practice-main .quick-text-input-bar input { min-width: 0; font-size: 16px; }
-  .practice-main .character-column { width: 100%; max-width: 380px; }
+  .practice-main .character-column { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .practice-main .character-stage { min-height: 230px; }
+  .practice-main .rpg-character { width: clamp(210px, 62vw, 290px) !important; height: auto !important; }
   .practice-main .quick-text-input-bar { min-height: 44px; }
   .practice-main .quick-text-input-bar input::placeholder { font-size: 0.9rem; }
   .practice-main .quick-text-input-bar button { width: 36px; height: 36px; }

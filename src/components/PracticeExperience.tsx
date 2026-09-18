@@ -1117,31 +1117,31 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           setRealtimeReply("");
 
           // Disparo automático de gestos conforme a reação do Mr.Crazy
+          // Disparo automático de gestos e avaliação estrita de fase
           const lower = clean.toLowerCase();
-          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou)/i.test(lower);
-          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete)/i.test(lower);
+          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|próxima fase|fase seguinte|mandou bala)/i.test(lower);
+          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez)/i.test(lower);
 
-          if (isPraise) {
+          if (isPraise && !isCorrection) {
             triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
+            // O aluno só passa de fase quando o Mr. Crazy avaliar que ele realmente está bem
+            if (teachingConcepts.length > 0) {
+              setCurrentConceptIndex((prevIndex) => {
+                const nextIndex = prevIndex + 1;
+                if (nextIndex >= teachingConcepts.length) {
+                  setIsLessonCompleted(true);
+                  return Math.max(0, teachingConcepts.length - 1);
+                }
+                return nextIndex;
+              });
+            }
           } else if (isCorrection) {
             const options: CharacterGesture[] = ["watergun", "smoke", "finger"];
             triggerGesture(options[Math.floor(Math.random() * options.length)]);
+            // Se errou ou precisa de ajuste, mantém o aluno na fase atual para dominar
           }
 
-          setModuleTurnsCount((prev) => {
-            const nextTurns = prev + 1;
-            if (teachingConcepts.length > 0) {
-              const estimatedConcept = Math.min(
-                Math.floor(nextTurns / 2),
-                teachingConcepts.length - 1
-              );
-              setCurrentConceptIndex(estimatedConcept);
-              if (nextTurns >= teachingConcepts.length * 2) {
-                setIsLessonCompleted(true);
-              }
-            }
-            return nextTurns;
-          });
+          setModuleTurnsCount((prev) => prev + 1);
         }
       },
       onError: (err) => {
@@ -1178,6 +1178,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }).catch((err) => {
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
         if (!isAbortError(err)) {
+          setRealtimeStatus("failed");
+          setVoiceState("idle");
+          setMicrophoneEnabled(false);
+          setErrorMessage(getConnectionError(err));
           if (isAutoConnect && (err instanceof Error && (err.name === "NotAllowedError" || err.name === "SecurityError"))) {
             setRealtimeStatus("idle");
             setVoiceState("idle");
@@ -1615,7 +1619,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45 }}
           >
-            {allConversationItems.length > 2 && (
+            {allConversationItems.length > 3 && (
               <button
                 type="button"
                 className="history-visibility-toggle"
@@ -1623,15 +1627,23 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 title={showAllMessages ? "Ocultar mensagens anteriores" : "Mostrar mensagens anteriores"}
               >
                 {showAllMessages
-                  ? "↓ Focar nas últimas mensagens"
-                  : `↑ Ver mensagens anteriores (${allConversationItems.length - 2})`}
+                  ? "↓ Focar nas 3 últimas mensagens"
+                  : `↑ Ver mensagens anteriores (${allConversationItems.length - 3})`}
               </button>
             )}
 
             {allConversationItems.map((item, idx) => {
               const distanceFromEnd = allConversationItems.length - 1 - idx;
-              const fadeLevel = showAllMessages ? 0 : distanceFromEnd <= 1 ? 0 : distanceFromEnd === 2 ? 1 : 2;
-              const isOlderHidden = !showAllMessages && distanceFromEnd >= 4;
+              const fadeLevel = showAllMessages
+                ? 0
+                : distanceFromEnd === 0
+                ? 0
+                : distanceFromEnd === 1
+                ? 0
+                : distanceFromEnd === 2
+                ? 1
+                : 2;
+              const isOlderHidden = !showAllMessages && distanceFromEnd >= 3;
 
               return (
                 <ConversationBubble
@@ -1662,14 +1674,22 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 <div className="lesson-completed-header">
                   <Sparkles size={20} className="text-amber-400" />
                   <div>
-                    <h4>🎉 Aula do Módulo Concluída!</h4>
+                    <h4>🎉 Fases do Módulo Concluídas!</h4>
                     <p>
-                      Você praticou todos os tópicos de{" "}
-                      <strong>{activeModule.cleanTitle || activeModule.title}</strong>.
+                      Você dominou todas as fases de treinamento de{" "}
+                      <strong>{activeModule.cleanTitle || activeModule.title}</strong>!
                     </p>
                   </div>
                 </div>
                 <div className="lesson-completed-actions">
+                  <button
+                    type="button"
+                    className="lesson-btn-exam highlight-exam"
+                    onClick={() => setIsExamModalOpen(true)}
+                  >
+                    <Award size={18} />
+                    <span>🏆 Enfrentar o Chefão (Prova da Fase)</span>
+                  </button>
                   {nextModule ? (
                     <button
                       type="button"
@@ -1677,7 +1697,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       onClick={handleAdvanceToNextModule}
                     >
                       <Rocket size={16} />
-                      <span>Finalizar e Ir para Próxima Fase</span>
+                      <span>Ir para Próximo Módulo</span>
                     </button>
                   ) : (
                     <button
@@ -1686,7 +1706,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       onClick={() => setIsSelectingModule(true)}
                     >
                       <Sparkles size={16} />
-                      <span>Finalizar Curso / Ver Mapa</span>
+                      <span>Ver Mapa do Curso</span>
                     </button>
                   )}
                   <button
@@ -1695,15 +1715,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     onClick={handleRedoModule}
                   >
                     <RotateCcw size={16} />
-                    <span>Refazer Aula</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="lesson-btn-exam"
-                    onClick={() => setIsExamModalOpen(true)}
-                  >
-                    <Award size={16} />
-                    <span>Fazer Prova da Fase</span>
+                    <span>Refazer Treinamento</span>
                   </button>
                 </div>
               </div>

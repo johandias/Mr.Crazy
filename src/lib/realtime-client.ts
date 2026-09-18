@@ -227,7 +227,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           if (responseActive) send({ type: "response.cancel" });
           if (playbackActive || responseActive) {
             send({ type: "output_audio_buffer.clear" });
-            if (audio) { audio.pause(); }
+            audio?.pause();
           }
           responseActive = false;
           playbackActive = false;

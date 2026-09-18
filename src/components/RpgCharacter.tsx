@@ -68,33 +68,44 @@ export const RpgCharacter = memo(function RpgCharacter({
     };
   }, []);
 
-  // Articulação labial com fonemas vocálicos e consonantais durante a fala do professor
+  // Articulação labial orgânica com cadência silábica realista durante a fala
   useEffect(() => {
     if (voiceState !== "speaking") {
+      setPhoneme(0);
       return;
     }
-    const phonemeSequence = [0, 1, 0, 2, 1, 3, 0, 2];
-    let index = 0;
-    const interval = setInterval(() => {
-      index = (index + 1) % phonemeSequence.length;
-      setPhoneme(phonemeSequence[index]);
-    }, 115);
+    const phonemeCadence = [
+      { phoneme: 1, duration: 140 },
+      { phoneme: 0, duration: 170 },
+      { phoneme: 3, duration: 90 },
+      { phoneme: 2, duration: 160 },
+      { phoneme: 0, duration: 130 },
+      { phoneme: 1, duration: 110 },
+      { phoneme: 3, duration: 80 }
+    ];
+    let step = 0;
+    let timer: ReturnType<typeof setTimeout>;
 
-    return () => clearInterval(interval);
+    const nextPhoneme = () => {
+      const current = phonemeCadence[step];
+      setPhoneme(current.phoneme);
+      step = (step + 1) % phonemeCadence.length;
+      timer = setTimeout(nextPhoneme, current.duration);
+    };
+
+    nextPhoneme();
+    return () => clearTimeout(timer);
   }, [voiceState]);
 
   useEffect(() => {
-    // 1. Rede balançando por 1.8 segundos
     const alertTimer = setTimeout(() => {
       setEntranceStage("alert");
     }, 1800);
 
-    // 2. Vê que tem gente e dá o pulo
     const jumpTimer = setTimeout(() => {
       setEntranceStage("jumping");
     }, 2400);
 
-    // 3. Aterrissa de pé e fica pronto
     const standTimer = setTimeout(() => {
       setEntranceStage("standing");
     }, 3100);
@@ -107,7 +118,6 @@ export const RpgCharacter = memo(function RpgCharacter({
   }, []);
 
   const handleStageClick = () => {
-    // Se ainda estiver na rede ou pulando, clica para ficar de pé imediatamente
     if (entranceStage !== "standing") {
       setEntranceStage("standing");
       return;
