@@ -53,6 +53,7 @@ export function isMasterAdmin(emailOrUser: string, pass: string): boolean {
 
 // In-Memory store fallback para garantir resiliência caso o DB remoto esteja conectando
 const memoryUsers = new Map<string, UserProfile & { password_hash: string }>();
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const initialAdmin: UserProfile & { password_hash: string } = {
   id: "admin-seed-id",
@@ -200,7 +201,7 @@ export async function findUserByEmail(email: string): Promise<UserProfile | null
 }
 
 export async function findUserById(id: string): Promise<UserProfile | null> {
-  if (isSupabaseConfigured) {
+  if (isSupabaseConfigured && UUID_PATTERN.test(id)) {
     try {
       const { data, error } = await supabaseAdmin
         .from("mrcrazy_users")

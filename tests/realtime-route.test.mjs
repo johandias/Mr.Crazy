@@ -12,13 +12,17 @@ const source = ts.transpileModule(readFileSync(new URL("../src/app/api/realtime/
 const requestId = "12345678-1234-1234-1234-123456789abc";
 
 function setup(t, config = {}) {
-  const logs = [], attempts = [];
-  const previous = process.env.OPENAI_API_KEY;
+  const logs = [], attempts = [], models = [];
+  const previousKey = process.env.OPENAI_API_KEY;
+  const previousModel = process.env.OPENAI_REALTIME_MODEL;
   if (config.noKey) delete process.env.OPENAI_API_KEY;
   else process.env.OPENAI_API_KEY = "test-secret-key";
+  if ("envModel" in config) process.env.OPENAI_REALTIME_MODEL = config.envModel;
   t.after(() => {
-    if (previous === undefined) delete process.env.OPENAI_API_KEY;
-    else process.env.OPENAI_API_KEY = previous;
+    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousKey;
+    if (previousModel === undefined) delete process.env.OPENAI_REALTIME_MODEL;
+    else process.env.OPENAI_REALTIME_MODEL = previousModel;
   });
   t.mock.method(console, "error", (...args) => logs.push(args));
   t.mock.method(console, "warn", (...args) => logs.push(args));
@@ -37,13 +41,16 @@ function setup(t, config = {}) {
       getCurrentUser: async () => ({ email: "test@example.test" })
     },
     "@/lib/rate-limiter": { checkRateLimit: async () => ({ allowed: true, limit: 100, remaining: 99 }) },
-    "@/lib/realtime-session": { buildRealtimeSession: () => ({ type: "realtime" }) },
+    "@/lib/realtime-session": { buildRealtimeSession: (_level, _mode, _user, model) => {
+      models.push(model);
+      return { type: "realtime", model };
+    } },
     "@/lib/realtime-provider-error": providerErrors
   };
   const module = { exports: {} };
   new Function("require", "exports", "module", source)(name => modules[name] ?? require(name), module.exports, module);
   return {
-    logs, attempts,
+    logs, attempts, models,
     post: () => module.exports.POST(new Request("https://example.test/api/realtime/session", {
       method: "POST", headers: { "content-type": "application/sdp", "x-voice-request-id": requestId }, body: "v=0\r\n"
     }))
@@ -96,4 +103,13 @@ test("successful SDP response carries the same diagnostic identifier", async t =
   const p = setup(t); const response = await p.post();
   assert.equal(response.status,200); assert.equal(response.headers.get("X-Voice-Request-Id"),requestId);
   assert.equal(await response.text(),"v=0\r\n"); assert.equal(p.logs.length,0);
+});
+
+test("normalizes the common realtime mini model typo from configuration", async t => {
+  const p = setup(t, { envModel: "gpt-realtime-2.1-min" });
+  const response = await p.post();
+  assert.equal(response.status, 200);
+  assert.equal(p.models[0], "gpt-realtime-2.1-mini");
+  assert.equal(response.headers.get("X-Realtime-Model"), "gpt-realtime-2.1-mini");
+  assert.equal(p.attempts.length, 1);
 });

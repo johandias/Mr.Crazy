@@ -23,12 +23,25 @@ const DEFAULT_REALTIME_MODELS = [
   "gpt-4o-realtime-preview-2024-12-17"
 ];
 
+const REALTIME_MODEL_ALIASES: Record<string, string> = {
+  "gpt-realtime-2.1-min": "gpt-realtime-2.1-mini",
+  "gpt-realtime-21-mini": "gpt-realtime-2.1-mini",
+  "gpt-realtime-2-mini": "gpt-realtime-2.1-mini"
+};
+
+function normalizeRealtimeModel(value: string | null | undefined) {
+  const clean = value?.trim();
+  if (!clean) return null;
+  return REALTIME_MODEL_ALIASES[clean] ?? clean;
+}
+
 export async function POST(request: Request) {
   const requestedId = request.headers.get("x-voice-request-id") ?? "";
   const diagnosticId = /^[a-f0-9-]{36}$/i.test(requestedId) ? requestedId : randomUUID();
   const started = Date.now();
   let stage = "authentication";
   const apiKey = process.env.OPENAI_API_KEY?.trim();
+  let lastTimeoutModel: string | null = null;
   const failure = (error: string, status: number, details: Record<string, unknown> = {}, headers: Record<string, string> = {}) => {
     console.error("OpenAI Realtime session failed", { diagnosticId, stage, status, elapsedMs: Date.now() - started, ...details });
     return NextResponse.json({ error, diagnosticId, stage, ...details }, {
@@ -75,36 +88,42 @@ export async function POST(request: Request) {
       .update(user?.email || sessionUser.email || "mr-crazy-authenticated-user")
       .digest("hex");
 
-    const userRequestedModel = url.searchParams.get("model")?.trim();
-    const envModel = process.env.OPENAI_REALTIME_MODEL?.trim();
+    const userRequestedModel = normalizeRealtimeModel(url.searchParams.get("model"));
+    const envModel = normalizeRealtimeModel(process.env.OPENAI_REALTIME_MODEL);
     const candidateModels = Array.from(
       new Set([userRequestedModel, envModel, cachedWorkingModel, ...DEFAULT_REALTIME_MODELS])
     ).filter((m): m is string => Boolean(m));
-
-    stage = "openai_session";
-    const controller = new AbortController();
-    const timeoutTimer = setTimeout(() => {
-      controller.abort(new DOMException("TimeoutError", "TimeoutError"));
-    }, 16000);
-
-    const onReqAbort = () => controller.abort(request.signal.reason);
-    if (request.signal.aborted) {
-      controller.abort(request.signal.reason);
-    } else {
-      request.signal.addEventListener("abort", onReqAbort, { once: true });
+    if (process.env.OPENAI_REALTIME_MODEL?.trim() && envModel !== process.env.OPENAI_REALTIME_MODEL.trim()) {
+      console.warn("[Realtime] Modelo normalizado na configuracao", {
+        diagnosticId,
+        from: process.env.OPENAI_REALTIME_MODEL.trim(),
+        to: envModel
+      });
     }
 
+    stage = "openai_session";
     let response: Response | null = null;
     let responseBody = "";
     let providerRequestId: string | null = null;
     let usedModel = candidateModels[0] || "gpt-realtime-2.1-mini";
 
-    try {
-      // Itera sobre os modelos candidatos suportados pelo endpoint GA oficial da OpenAI (/v1/realtime/calls)
-      for (const candidate of candidateModels) {
-        if (controller.signal.aborted) break;
-        usedModel = candidate;
+    // Itera sobre os modelos candidatos suportados pelo endpoint GA oficial da OpenAI (/v1/realtime/calls)
+    for (const candidate of candidateModels) {
+      usedModel = candidate;
 
+      const candidateController = new AbortController();
+      const timeoutTimer = setTimeout(() => {
+        candidateController.abort(new DOMException("TimeoutError", "TimeoutError"));
+      }, 9000);
+
+      const onReqAbort = () => candidateController.abort(request.signal.reason);
+      if (request.signal.aborted) {
+        candidateController.abort(request.signal.reason);
+      } else {
+        request.signal.addEventListener("abort", onReqAbort, { once: true });
+      }
+
+      try {
         const candidateSession = buildRealtimeSession(
           url.searchParams.get("level"),
           url.searchParams.get("mode"),
@@ -124,7 +143,7 @@ export async function POST(request: Request) {
             "OpenAI-Safety-Identifier": safetyIdentifier
           },
           body: formData,
-          signal: controller.signal,
+          signal: candidateController.signal,
           cache: "no-store"
         });
         const body = await res.text();
@@ -158,10 +177,26 @@ export async function POST(request: Request) {
         }
 
         break;
+      } catch (error) {
+        const isTimeout = (error instanceof DOMException && error.name === "TimeoutError") ||
+          (error instanceof Error && error.name === "TimeoutError");
+        if (!isTimeout) throw error;
+
+        lastTimeoutModel = candidate;
+        console.warn("OpenAI Realtime attempt timed out", {
+          diagnosticId,
+          stage,
+          model: candidate,
+          elapsedMs: Date.now() - started
+        });
+
+        if (candidateModels.indexOf(candidate) === candidateModels.length - 1) {
+          throw error;
+        }
+      } finally {
+        clearTimeout(timeoutTimer);
+        request.signal.removeEventListener("abort", onReqAbort);
       }
-    } finally {
-      clearTimeout(timeoutTimer);
-      request.signal.removeEventListener("abort", onReqAbort);
     }
 
     if (!response || !response.ok) {
@@ -208,7 +243,7 @@ export async function POST(request: Request) {
     return failure(
       isTimeout ? "Tempo limite ao conectar com a IA. Tente novamente." : "Falha ao preparar a conversa em tempo real.",
       isTimeout ? 504 : 500,
-      { code: isTimeout ? "provider_timeout" : "session_internal_error", failureStage: stage }
+      { code: isTimeout ? "provider_timeout" : "session_internal_error", failureStage: stage, ...(lastTimeoutModel ? { testedModel: lastTimeoutModel } : {}) }
     );
   }
 }
