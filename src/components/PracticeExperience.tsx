@@ -418,15 +418,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [isSelectingModule, setIsSelectingModule] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
-      if (
-        urlParams.get("practice") === "1" ||
-        urlParams.get("treino") === "1" ||
-        urlParams.get("popup") === "true"
-      ) {
-        return false;
+      if (urlParams.get("map") === "1" || urlParams.get("modulos") === "1") {
+        return true;
       }
     }
-    return true;
+    return false;
   });
   const [moduleTurnsCount, setModuleTurnsCount] = useState(0);
   const [currentEvaluation, setCurrentEvaluation] = useState<ModuleEvaluationItem | null>(null);

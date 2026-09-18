@@ -6861,7 +6861,7 @@ meter {
 }
 
 .map-mobile-compact-header {
-  display: none;
+  display: none !important;
 }
 
 .map-desktop-header-content {
@@ -8458,7 +8458,7 @@ meter {
 @media (max-width: 768px) {
   /* No celular: ativa header ultra-compacto em linha única (sem rolagem e sem texto cortado no topo) */
   .map-mobile-compact-header {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: space-between;
     width: 100%;
