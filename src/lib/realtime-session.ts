@@ -190,6 +190,12 @@ export function buildRealtimeSession(
   moduleIdValue?: unknown
 ) {
   const isGptRealtime = modelName.startsWith("gpt-realtime");
+  const transcription = isGptRealtime
+    ? { model: "gpt-realtime-whisper" }
+    : {
+        model: "whisper-1",
+        prompt: "Conversa bilíngue: português brasileiro e inglês americano. Preserve as palavras no idioma falado, sem traduzir. Pedidos de ajuda em português não são tentativas de inglês."
+      };
   return {
     type: "realtime",
     model: modelName,
@@ -197,10 +203,7 @@ export function buildRealtimeSession(
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
-        transcription: {
-          model: isGptRealtime ? "gpt-realtime-whisper" : "whisper-1",
-          prompt: "Conversa bilíngue: português brasileiro e inglês americano. Preserve as palavras no idioma falado, sem traduzir. Pedidos de ajuda em português não são tentativas de inglês."
-        },
+        transcription,
         turn_detection: {
           type: "server_vad",
           threshold: 0.5,
