@@ -849,7 +849,6 @@ a {
   }
 }
 
-@keyframes realistic-head-nod {
 @keyframes realistic-head-speech {
   0% {
     transform: translateY(0) rotate(0deg);
@@ -861,7 +860,6 @@ a {
     transform: translateY(-0.5px) rotate(-0.8deg);
   }
   100% {
-    transform: translateY(1.8px) rotate(1deg);
     transform: translateY(1.3px) rotate(0.4deg);
   }
 }
@@ -883,11 +881,9 @@ a {
 
 @keyframes realistic-head-listen {
   0% {
-    transform: rotate(-2.5deg) translateY(0.5px);
     transform: rotate(-1.5deg) translateY(0.5px);
   }
   100% {
-    transform: rotate(-4.2deg) translateY(1.5px);
     transform: rotate(-3.2deg) translateY(1.2px);
   }
 }
@@ -896,8 +892,6 @@ a {
   0% {
     transform: rotate(0deg) translateY(0);
   }
-  50% {
-    transform: rotate(-4.8deg) translateY(-2.8px);
   35% {
     transform: rotate(-3.5deg) translateY(-2px);
   }
@@ -905,7 +899,6 @@ a {
     transform: rotate(-1.2deg) translateY(-0.8px);
   }
   100% {
-    transform: rotate(-1.8deg) translateY(-0.8px);
     transform: rotate(-4deg) translateY(-2.2px);
   }
 }
