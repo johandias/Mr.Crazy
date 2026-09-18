@@ -552,6 +552,25 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     [selectedLevel]
   );
   const activeModule = useMemo(() => getModuleById(selectedModuleId), [selectedModuleId]);
+  const teachingConcepts = useMemo(
+    () => (activeModule?.concepts ? activeModule.concepts.filter((c) => !c.isExam) : []),
+    [activeModule]
+  );
+  const [currentConceptIndex, setCurrentConceptIndex] = useState(0);
+  const [isLessonCompleted, setIsLessonCompleted] = useState(false);
+  const [showAllMessages, setShowAllMessages] = useState(false);
+
+  const currentModuleIndex = useMemo(
+    () => LEARNING_MODULES.findIndex((m) => m.id === selectedModuleId),
+    [selectedModuleId]
+  );
+  const nextModule = useMemo(
+    () =>
+      currentModuleIndex >= 0 && currentModuleIndex < LEARNING_MODULES.length - 1
+        ? LEARNING_MODULES[currentModuleIndex + 1]
+        : null,
+    [currentModuleIndex]
+  );
 
   const handleSelectModule = useCallback((moduleId: string) => {
     setSelectedModuleId(moduleId);
@@ -561,6 +580,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       window.sessionStorage.setItem("mr-crazy-module-entered", "true");
     } catch {}
     setModuleTurnsCount(0);
+    setCurrentConceptIndex(0);
+    setIsLessonCompleted(false);
     setCurrentEvaluation(null);
     setIsSelectingModule(false);
 
@@ -656,6 +677,40 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
     return null;
   }, [contextHistory, realtimeReply, voiceState]);
+
+  const allConversationItems = useMemo(() => {
+    const items: Array<{
+      key: string;
+      role: "user" | "crazy";
+      text: string;
+      isTyping?: boolean;
+    }> = conversationDisplayItems.map((item) => ({
+      key: item.key,
+      role: item.role,
+      text: item.text,
+      isTyping: false
+    }));
+
+    if (liveUserItem) {
+      items.push({
+        key: "live-user",
+        role: "user",
+        text: liveUserItem.text,
+        isTyping: false
+      });
+    }
+
+    if (liveCrazyItem) {
+      items.push({
+        key: "live-crazy",
+        role: "crazy",
+        text: liveCrazyItem.text,
+        isTyping: liveCrazyItem.isTyping
+      });
+    }
+
+    return items;
+  }, [conversationDisplayItems, liveUserItem, liveCrazyItem]);
 
   const suggestedReplies = useMemo(() => {
     const suggestions: string[] = [];
@@ -865,9 +920,24 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           addTurns: 1
         })
       }).catch(() => {});
+
+      if (teachingConcepts.length > 0) {
+        setCurrentConceptIndex((curr) => {
+          const shouldAdvance = result.correct || nextTurns >= (curr + 1) * 2;
+          if (shouldAdvance) {
+            if (curr < teachingConcepts.length - 1) {
+              return curr + 1;
+            }
+            setIsLessonCompleted(true);
+            return curr;
+          }
+          return curr;
+        });
+      }
+
       return nextTurns;
     });
-  }, []);
+  }, [teachingConcepts]);
 
   const handleEvaluateModule = useCallback(async () => {
     if (isEvaluating) return;
@@ -1053,6 +1123,21 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             const options: CharacterGesture[] = ["watergun", "smoke", "finger"];
             triggerGesture(options[Math.floor(Math.random() * options.length)]);
           }
+
+          setModuleTurnsCount((prev) => {
+            const nextTurns = prev + 1;
+            if (teachingConcepts.length > 0) {
+              const estimatedConcept = Math.min(
+                Math.floor(nextTurns / 2),
+                teachingConcepts.length - 1
+              );
+              setCurrentConceptIndex(estimatedConcept);
+              if (nextTurns >= teachingConcepts.length * 2) {
+                setIsLessonCompleted(true);
+              }
+            }
+            return nextTurns;
+          });
         }
       },
       onError: (err) => {
@@ -1178,6 +1263,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           crazyLevel,
           mode: selectedMode,
           moduleId: selectedModuleId,
+          conceptIndex: currentConceptIndex,
           learningLevel: selectedLevel,
           inputSource: "manual",
           contextHistory: [
@@ -1274,6 +1360,21 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setContextHistory([]);
     setOpeningIndex(getNextOpeningIndex());
   }
+
+  const handleAdvanceToNextModule = useCallback(() => {
+    if (nextModule) {
+      handleSelectModule(nextModule.id);
+    } else {
+      setIsSelectingModule(true);
+    }
+  }, [nextModule, handleSelectModule]);
+
+  const handleRedoModule = useCallback(() => {
+    setCurrentConceptIndex(0);
+    setIsLessonCompleted(false);
+    setModuleTurnsCount(0);
+    clearConversationHistory();
+  }, [clearConversationHistory]);
 
   function speakCorrection() {
     if (!analysis) return;
@@ -1380,6 +1481,26 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           </div>
         </div>
 
+        {teachingConcepts.length > 0 && (
+          <div className="teaching-concept-pill-bar">
+            <div className="teaching-concept-badge">
+              <span className="concept-step-number">
+                Tópico {Math.min(currentConceptIndex + 1, teachingConcepts.length)}/{teachingConcepts.length}
+              </span>
+              <span className="concept-step-title">
+                {teachingConcepts[currentConceptIndex]?.title || activeModule.title}
+              </span>
+            </div>
+            {isLessonCompleted ? (
+              <span className="concept-completed-pill">Aula Concluída ✔</span>
+            ) : (
+              <span className="concept-objective-hint">
+                {teachingConcepts[currentConceptIndex]?.objective}
+              </span>
+            )}
+          </div>
+        )}
+
         {pipNotification && (
           <div className="popup-banner-tip pip-floating-toast">
             <Sparkles size={16} />
@@ -1483,40 +1604,98 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45 }}
           >
-            {contextHistory.length > 2 ? (
-              <div className="history-drag-hint" title="Arraste para ver mensagens anteriores">
-                <span>↑ Deslize para ver mensagens anteriores</span>
+            {allConversationItems.length > 2 && (
+              <button
+                type="button"
+                className="history-visibility-toggle"
+                onClick={() => setShowAllMessages((prev) => !prev)}
+                title={showAllMessages ? "Ocultar mensagens anteriores" : "Mostrar mensagens anteriores"}
+              >
+                {showAllMessages
+                  ? "↓ Focar nas últimas mensagens"
+                  : `↑ Ver mensagens anteriores (${allConversationItems.length - 2})`}
+              </button>
+            )}
+
+            {allConversationItems.map((item, idx) => {
+              const distanceFromEnd = allConversationItems.length - 1 - idx;
+              const fadeLevel = showAllMessages ? 0 : distanceFromEnd <= 1 ? 0 : distanceFromEnd === 2 ? 1 : 2;
+              const isOlderHidden = !showAllMessages && distanceFromEnd >= 4;
+
+              return (
+                <ConversationBubble
+                  key={item.key}
+                  label={item.role === "user" ? "Você" : "Mr.Crazy"}
+                  tone={item.role === "user" ? "user" : "crazy"}
+                  isTyping={item.isTyping}
+                  fadeLevel={fadeLevel}
+                  isOlderHidden={isOlderHidden}
+                  onSpeak={
+                    item.role === "crazy" && !item.isTyping
+                      ? () => speak(item.text, "idle")
+                      : undefined
+                  }
+                  isSpeaking={
+                    item.role === "crazy" &&
+                    currentlySpeakingText === item.text &&
+                    voiceState === "speaking"
+                  }
+                >
+                  {item.text}
+                </ConversationBubble>
+              );
+            })}
+
+            {isLessonCompleted ? (
+              <div className="lesson-completed-card" role="region" aria-label="Aula Concluída">
+                <div className="lesson-completed-header">
+                  <Sparkles size={20} className="text-amber-400" />
+                  <div>
+                    <h4>🎉 Aula do Módulo Concluída!</h4>
+                    <p>
+                      Você praticou todos os tópicos de{" "}
+                      <strong>{activeModule.cleanTitle || activeModule.title}</strong>.
+                    </p>
+                  </div>
+                </div>
+                <div className="lesson-completed-actions">
+                  {nextModule ? (
+                    <button
+                      type="button"
+                      className="lesson-btn-advance"
+                      onClick={handleAdvanceToNextModule}
+                    >
+                      <Rocket size={16} />
+                      <span>Finalizar e Ir para Próxima Fase</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="lesson-btn-advance"
+                      onClick={() => setIsSelectingModule(true)}
+                    >
+                      <Sparkles size={16} />
+                      <span>Finalizar Curso / Ver Mapa</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="lesson-btn-redo"
+                    onClick={handleRedoModule}
+                  >
+                    <RotateCcw size={16} />
+                    <span>Refazer Aula</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="lesson-btn-exam"
+                    onClick={() => setIsExamModalOpen(true)}
+                  >
+                    <Award size={16} />
+                    <span>Fazer Prova da Fase</span>
+                  </button>
+                </div>
               </div>
-            ) : null}
-
-            {conversationDisplayItems.map((item) => (
-              <ConversationBubble
-                key={item.key}
-                label={item.role === "user" ? "Você" : "Mr.Crazy"}
-                tone={item.role === "user" ? "user" : "crazy"}
-                onSpeak={item.role === "crazy" ? () => speak(item.text, "idle") : undefined}
-                isSpeaking={item.role === "crazy" && currentlySpeakingText === item.text && voiceState === "speaking"}
-              >
-                {item.text}
-              </ConversationBubble>
-            ))}
-
-            {liveUserItem ? (
-              <ConversationBubble label="Você" tone="user">
-                {liveUserItem.text}
-              </ConversationBubble>
-            ) : null}
-
-            {liveCrazyItem ? (
-              <ConversationBubble
-                label="Mr.Crazy"
-                tone="crazy"
-                isTyping={liveCrazyItem.isTyping}
-                onSpeak={!liveCrazyItem.isTyping ? () => speak(liveCrazyItem.text, "idle") : undefined}
-                isSpeaking={currentlySpeakingText === liveCrazyItem.text && voiceState === "speaking"}
-              >
-                {liveCrazyItem.text}
-              </ConversationBubble>
             ) : null}
 
             {speechRetry ? (

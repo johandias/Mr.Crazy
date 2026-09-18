@@ -1130,6 +1130,215 @@ a {
   box-shadow: 0 0 16px rgba(249, 115, 22, 0.25);
 }
 
+.conversation-bubble.is-faded-1 {
+  opacity: 0.52;
+  transform: scale(0.985);
+}
+
+.conversation-bubble.is-faded-2 {
+  opacity: 0.22;
+  transform: scale(0.97);
+}
+
+.history-visibility-toggle {
+  align-self: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 2px;
+  user-select: none;
+}
+
+.history-visibility-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Barra de Tópico do Módulo */
+.teaching-concept-pill-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  max-width: 960px;
+  padding: 6px 12px;
+  background: rgba(18, 24, 32, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.teaching-concept-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.concept-step-number {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.4));
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  color: #fb923c;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.concept-step-title {
+  color: #f1f5f9;
+  font-weight: 600;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.concept-objective-hint {
+  font-size: 0.74rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  max-width: 50%;
+}
+
+.concept-completed-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Card de Conclusão da Aula */
+.lesson-completed-card {
+  width: 100%;
+  background: linear-gradient(145deg, rgba(20, 26, 38, 0.96), rgba(15, 23, 42, 0.92));
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 6px 0;
+  animation: fadeInLessonCard 0.35s ease-out;
+}
+
+@keyframes fadeInLessonCard {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lesson-completed-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lesson-completed-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.lesson-completed-header p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.lesson-completed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lesson-btn-advance {
+  flex: 1 1 180px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: 1px solid #34d399;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
+}
+
+.lesson-btn-advance:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.lesson-btn-redo {
+  flex: 1 1 120px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lesson-btn-redo:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.lesson-btn-exam {
+  flex: 1 1 130px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.2), rgba(249, 115, 22, 0.35));
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lesson-btn-exam:hover {
+  background: rgba(249, 115, 22, 0.4);
+  color: #fed7aa;
+}
+
 .bubble-header {
   display: flex;
   align-items: center;
@@ -2632,6 +2841,10 @@ meter {
     min-width: 140px;
     max-width: 190px;
     height: min(165px, 42vw);
+    width: min(205px, 50vw);
+    min-width: 155px;
+    max-width: 220px;
+    height: min(205px, 50vw);
     aspect-ratio: 1;
     cursor: pointer;
   }
@@ -2675,6 +2888,8 @@ meter {
     flex: 1;
     max-height: 44vh;
     min-height: 140px;
+    max-height: 135px;
+    min-height: 85px;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -2683,14 +2898,20 @@ meter {
     flex-direction: column;
     gap: 8px;
     padding: 6px 8px 36px;
+    gap: 6px;
+    padding: 4px 6px 16px;
     flex-shrink: 1;
     mask-image: linear-gradient(to bottom, transparent 0%, black 10px, black 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10px, black 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 8px, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8px, black 100%);
   }
 
   .clean-conversation .messages-bottom-anchor {
     height: 60px;
     min-height: 60px;
+    height: 16px;
+    min-height: 16px;
     width: 100%;
     flex-shrink: 0;
   }
@@ -8374,6 +8595,8 @@ meter {
 
   .conversation-panel.clean-conversation {
     max-height: 36vh !important;
+    max-height: 135px !important;
+    min-height: 85px !important;
   }
 
   .clean-stage {

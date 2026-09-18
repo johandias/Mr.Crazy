@@ -110,6 +110,7 @@
   .practice-main .stage-exam-action-btn { min-height: 40px; }
   .practice-main .session-header { flex-wrap: wrap !important; overflow: visible !important; }
   .practice-main .conversation-panel.clean-conversation { max-height: 45svh !important; scroll-behavior: auto; }
+  .practice-main .conversation-panel.clean-conversation { max-height: 135px !important; min-height: 85px !important; scroll-behavior: auto; }
   .practice-main .quick-text-input-bar input { min-width: 0; font-size: 16px; }
   .practice-main .character-column { width: 100%; max-width: 380px; }
   .practice-main .quick-text-input-bar { min-height: 44px; }

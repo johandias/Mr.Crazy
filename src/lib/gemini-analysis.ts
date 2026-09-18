@@ -198,8 +198,33 @@ function buildPrompt(request: AnalysisRequest) {
     ? `\nHistorico recente da conversa (ultimas 2 mensagens):\n${request.contextHistory.slice(-2).map((turn) => `${turn.role === "user" ? "Aluno" : "Mr.Crazy"}: "${turn.text}"`).join("\n")}\n`
     : "";
 
+  const teachingConcepts = activeModule ? activeModule.concepts.filter((c) => !c.isExam) : [];
+  const currentConceptIdx = Math.max(
+    0,
+    Math.min(request.conceptIndex ?? 0, Math.max(0, teachingConcepts.length - 1))
+  );
+  const currentConcept = teachingConcepts[currentConceptIdx];
+  const isFinalConcept = teachingConcepts.length > 0 && currentConceptIdx >= teachingConcepts.length - 1;
+
+  const conceptsSummary = teachingConcepts.length > 0
+    ? `\nTÓPICOS DA AULA DESTE MÓDULO (TOTAL: ${teachingConcepts.length}):\n` +
+      teachingConcepts
+        .map(
+          (c, idx) =>
+            `${idx + 1}. ${c.title} - Objetivo: ${c.objective} (Exemplos: ${c.samplePhrases.join(" | ")})`
+        )
+        .join("\n") +
+      `\n\nTÓPICO ATUAL DA AULA (${currentConceptIdx + 1} de ${teachingConcepts.length}): "${currentConcept?.title}"` +
+      `\nOBJETIVO DESTE TÓPICO: ${currentConcept?.objective}` +
+      `\nFRASES RECOMENDADAS PARA TREINAR: ${currentConcept?.samplePhrases.join(", ")}` +
+      `\nDIRETRIZ DE PROGRESSÃO: Conduza o aluno neste tópico atual.` +
+      (isFinalConcept
+        ? `\nATENÇÃO - ESTE É O ÚLTIMO TÓPICO DO MÓDULO: Quando o aluno demonstrar domínio ou acertar, parabenize pela conclusão de toda a aula e oriente-o a clicar no botão 'Finalizar e Ir para Próxima Fase' para avançar no mapa, ou 'Refazer Aula' para praticar mais.`
+        : `\nQuando o aluno acertar ou praticar bem este tópico, comemore e já convide-o para o próximo tópico (${teachingConcepts[currentConceptIdx + 1]?.title}).`)
+    : "";
+
   const modulePromptSection = activeModule
-    ? `\n${activeModule.promptContext}\nCENÁRIO: ${activeModule.scenario}\nMISSÃO DO ALUNO: ${activeModule.mission}\n`
+    ? `\n${activeModule.promptContext}\nCENÁRIO: ${activeModule.scenario}\nMISSÃO DO ALUNO: ${activeModule.mission}${conceptsSummary}\n`
     : "";
 
   return `

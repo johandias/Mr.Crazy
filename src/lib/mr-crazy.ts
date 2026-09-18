@@ -37,6 +37,7 @@ export interface AnalysisRequest {
   crazyLevel?: number;
   mode?: string;
   moduleId?: string;
+  conceptIndex?: number;
   learningLevel?: LearningLevel;
   contextHistory?: ConversationTurn[];
   inputSource?: "manual" | "voice_realtime" | "voice_fallback";

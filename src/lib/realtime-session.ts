@@ -143,12 +143,21 @@ PERFIL DO ALUNO CONECTADO NESTA SESSÃO:
 =====================================================================`;
 
   const isFreeConversation = activeModule?.id === "free-conversation" || mode === "free-conversation";
+  const teachingConcepts = activeModule ? activeModule.concepts.filter((c) => !c.isExam) : [];
+  const conceptsText = teachingConcepts.length > 0
+    ? `\nTÓPICOS DA AULA DESTE MÓDULO (TOTAL: ${teachingConcepts.length}):\n` +
+      teachingConcepts.map((c, i) => `${i + 1}. ${c.title} - Objetivo: ${c.objective} (Frases: ${c.samplePhrases.join(" | ")})`).join("\n") +
+      `\n\nDIRETRIZ DE PROGRESSÃO E CONCLUSÃO DA AULA:
+- Guie a prática tópico por tópico. Quando o aluno demonstrar compreensão ou acertar as frases de um tópico, avance para o próximo.
+- Quando o aluno passar por todos os ${teachingConcepts.length} tópicos deste módulo, comemore calorosamente a conclusão da aula e diga que ele pode clicar em 'Finalizar e Ir para Próxima Fase' para avançar no mapa, ou 'Refazer Aula' para praticar mais.`
+    : "";
 
   const moduleSection = activeModule
     ? `
 MÓDULO ATIVO: ${activeModule.title} (${activeModule.levelBadge})
 CENÁRIO: ${activeModule.scenario}
 MISSÃO: ${activeModule.mission}
+MISSÃO: ${activeModule.mission}${conceptsText}
 ${
   isFreeConversation
     ? `DIRETRIZ DE CONVERSAÇÃO LIVRE:

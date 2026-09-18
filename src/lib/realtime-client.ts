@@ -169,9 +169,13 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     log("capture_ready", "Dispositivo de entrada aberto.");
     listen(capture.track, "ended", () => report(new VoiceError("microphone_ended", "O microfone foi desconectado. Escolha uma entrada e reconecte."), true));
     listen(capture.track, "mute", () => {
-      if (document.visibilityState !== "hidden") later("capture-muted", 5000, () => {
-        if (document.visibilityState !== "hidden") report(new VoiceError("microphone_interrupted", "O dispositivo parou de fornecer áudio. Verifique o microfone ou reconecte."), true);
-      });
+      if (microphoneEnabled && document.visibilityState !== "hidden") {
+        later("capture-muted", 5000, () => {
+          if (microphoneEnabled && document.visibilityState !== "hidden") {
+            report(new VoiceError("microphone_interrupted", "O dispositivo parou de fornecer áudio. Verifique o microfone ou reconecte."), true);
+          }
+        });
+      }
     });
     listen(capture.track, "unmute", () => clear("capture-muted"));
     stage = "offer";
@@ -362,7 +366,11 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     options.onStatus("connected"); syncCapture();
     return {
       disconnect,
-      setMicrophoneEnabled(enabled) { microphoneEnabled = enabled; resume(); },
+      setMicrophoneEnabled(enabled) {
+        microphoneEnabled = enabled;
+        if (!enabled) clear("capture-muted");
+        resume();
+      },
       interrupt() {
         if (responseActive) send({ type: "response.cancel" });
         send({ type: "output_audio_buffer.clear" });

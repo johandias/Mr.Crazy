@@ -10,10 +10,11 @@ type ConversationBubbleProps = Readonly<{
   onSpeak?: () => void;
   isSpeaking?: boolean;
   isTyping?: boolean;
+  fadeLevel?: number; // 0: fully visible, 1: 0.55 opacity, 2: 0.25 opacity
+  isOlderHidden?: boolean;
 }>;
 
 function formatQuotedText(text: string) {
-  // Encontra citações em aspas simples, duplas ou tipográficas
   const parts = text.split(/([“"'][^”"'\n]{2,120}[”"'])/gu);
   if (parts.length <= 1) {
     return text;
@@ -37,9 +38,15 @@ export function ConversationBubble({
   tone = "neutral",
   onSpeak,
   isSpeaking = false,
-  isTyping = false
+  isTyping = false,
+  fadeLevel = 0,
+  isOlderHidden = false
 }: ConversationBubbleProps) {
   const [copied, setCopied] = useState(false);
+
+  if (isOlderHidden) {
+    return null;
+  }
 
   const textContent = typeof children === "string" ? children : "";
 
@@ -55,8 +62,12 @@ export function ConversationBubble({
     }
   };
 
+  const fadeClass = fadeLevel === 1 ? "is-faded-1" : fadeLevel >= 2 ? "is-faded-2" : "";
+
   return (
-    <article className={`conversation-bubble ${tone} ${isSpeaking ? "is-speaking" : ""}`}>
+    <article
+      className={`conversation-bubble ${tone} ${isSpeaking ? "is-speaking" : ""} ${fadeClass}`}
+    >
       <div className="bubble-header">
         <span>{label}</span>
         <div className="bubble-actions">
