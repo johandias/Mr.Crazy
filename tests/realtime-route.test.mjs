@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { test } from "node:test";
 import ts from "typescript";
 import * as providerErrors from "../src/lib/realtime-provider-error.ts";
+import * as realtimeModels from "../src/lib/realtime-models.ts";
 
 const require = createRequire(import.meta.url);
 const source = ts.transpileModule(readFileSync(new URL("../src/app/api/realtime/session/route.ts", import.meta.url), "utf8"), {
@@ -45,7 +46,8 @@ function setup(t, config = {}) {
       models.push(model);
       return { type: "realtime", model };
     } },
-    "@/lib/realtime-provider-error": providerErrors
+    "@/lib/realtime-provider-error": providerErrors,
+    "@/lib/realtime-models": realtimeModels
   };
   const module = { exports: {} };
   new Function("require", "exports", "module", source)(name => modules[name] ?? require(name), module.exports, module);

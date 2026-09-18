@@ -37,6 +37,29 @@ type ServerEvent = {
   error?: { code?: string; message?: string };
   response?: { id?: string; status?: string; output?: { content?: Content[] }[]; status_details?: { error?: { code?: string; message?: string } } };
 };
+type SessionErrorPayload = {
+  error?: string;
+  code?: string;
+  providerCode?: string;
+  providerStatus?: number;
+  diagnosticId?: string;
+  providerMessage?: string;
+  providerParam?: string;
+  testedModel?: string;
+};
+
+function parseSessionErrorPayload(body: string): SessionErrorPayload {
+  try {
+    const parsed = JSON.parse(body);
+    return parsed && typeof parsed === "object" ? parsed as SessionErrorPayload : {};
+  } catch {
+    return {};
+  }
+}
+
+async function readSessionText(response: Response, signal: AbortSignal, timeoutCode = "session_body_timeout") {
+  return waitFor(response.text(), signal, 5000, timeoutCode);
+}
 
 export async function connectRealtime(options: Options): Promise<RealtimeController> {
   const id = crypto.randomUUID();
@@ -259,24 +282,72 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         later("ice-gather", 1500, resolve);
       }), lifetime.signal, 2000, "ice_gather_timeout");
     }
-    stage = "api"; log("session_request", "Abrindo sessão na API.");
     const query = new URLSearchParams({ level: options.level, mode: options.mode, ...(options.moduleId ? { moduleId: options.moduleId } : {}) });
-    const response = await waitFor(fetch(`/api/realtime/session?${query}`, {
-      method: "POST", headers: { "Content-Type": "application/sdp", "X-Voice-Request-Id": id },
-      body: peer.localDescription?.sdp ?? offer.sdp, signal: lifetime.signal
-    }), lifetime.signal, 25_000, "session_request_timeout");
-    const body = await waitFor(response.text(), lifetime.signal, 5000, "session_body_timeout");
-    if (!response.ok) {
-      let payload: { error?: string; code?: string; providerCode?: string; providerStatus?: number; diagnosticId?: string; providerMessage?: string; providerParam?: string; testedModel?: string } = {};
-      try {
-        const parsed = JSON.parse(body);
-        if (parsed && typeof parsed === "object") payload = parsed;
-      } catch { /* Gateways can return HTML rather than JSON. */ }
-      throw new VoiceError(payload.code ?? "session_rejected", payload.error || "O servidor recusou a conexão de voz. Consulte o status no diagnóstico.", {
-        httpStatus: response.status, providerStatus: payload.providerStatus,
-        providerCode: payload.providerCode, serverId: payload.diagnosticId ?? response.headers.get("X-Voice-Request-Id") ?? undefined,
-        providerMessage: payload.providerMessage, providerParam: payload.providerParam, model: payload.testedModel
-      });
+    const localSdp = peer.localDescription?.sdp ?? offer.sdp;
+    const openViaProxy = async () => {
+      stage = "api"; log("session_request", "Abrindo sessão na API pelo proxy.");
+      const response = await waitFor(fetch(`/api/realtime/session?${query}`, {
+        method: "POST", headers: { "Content-Type": "application/sdp", "X-Voice-Request-Id": id },
+        body: localSdp, signal: lifetime.signal
+      }), lifetime.signal, 25_000, "session_request_timeout");
+      const body = await readSessionText(response, lifetime.signal);
+      if (!response.ok) {
+        const payload = parseSessionErrorPayload(body);
+        throw new VoiceError(payload.code ?? "session_rejected", payload.error || "O servidor recusou a conexão de voz. Consulte o status no diagnóstico.", {
+          httpStatus: response.status, providerStatus: payload.providerStatus,
+          providerCode: payload.providerCode, serverId: payload.diagnosticId ?? response.headers.get("X-Voice-Request-Id") ?? undefined,
+          providerMessage: payload.providerMessage, providerParam: payload.providerParam, model: payload.testedModel
+        });
+      }
+      return body;
+    };
+    const openDirect = async () => {
+      stage = "api"; log("client_secret_request", "Gerando token efêmero de voz.");
+      const tokenResponse = await waitFor(fetch(`/api/realtime/client-secret?${query}`, {
+        method: "GET", headers: { "X-Voice-Request-Id": id }, signal: lifetime.signal
+      }), lifetime.signal, 16_000, "client_secret_request_timeout");
+      const tokenBody = await readSessionText(tokenResponse, lifetime.signal, "client_secret_body_timeout");
+      if (!tokenResponse.ok) {
+        const payload = parseSessionErrorPayload(tokenBody);
+        throw new VoiceError(payload.code ?? "client_secret_rejected", payload.error || "O servidor recusou o token de voz.", {
+          httpStatus: tokenResponse.status, providerStatus: payload.providerStatus,
+          providerCode: payload.providerCode, serverId: payload.diagnosticId ?? tokenResponse.headers.get("X-Voice-Request-Id") ?? undefined,
+          providerMessage: payload.providerMessage, providerParam: payload.providerParam, model: payload.testedModel
+        });
+      }
+      let tokenPayload: { value?: string; model?: string; diagnosticId?: string };
+      try { tokenPayload = JSON.parse(tokenBody); }
+      catch { throw new VoiceError("invalid_client_secret", "O servidor retornou um token de voz inválido."); }
+      if (!tokenPayload.value) throw new VoiceError("missing_client_secret", "O servidor não retornou o token de voz.");
+      log("direct_session_request", "Abrindo sessão direta com a OpenAI.", { model: tokenPayload.model, serverId: tokenPayload.diagnosticId });
+      const response = await waitFor(fetch("https://api.openai.com/v1/realtime/calls", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tokenPayload.value}`, "Content-Type": "application/sdp" },
+        body: localSdp,
+        signal: lifetime.signal
+      }), lifetime.signal, 25_000, "direct_session_request_timeout");
+      const body = await readSessionText(response, lifetime.signal, "direct_session_body_timeout");
+      if (!response.ok) {
+        const provider = parseSessionErrorPayload(body);
+        throw new VoiceError(provider.code ?? "direct_session_rejected", "A OpenAI recusou a conexão direta de voz.", {
+          httpStatus: response.status,
+          providerStatus: response.status,
+          providerCode: provider.code,
+          providerMessage: provider.error,
+          model: tokenPayload.model,
+          serverId: tokenPayload.diagnosticId
+        });
+      }
+      return body;
+    };
+    let body: string;
+    try {
+      body = await openDirect();
+    } catch (error) {
+      if (error instanceof VoiceError && error.code.startsWith("client_secret")) throw error;
+      const message = getConnectionError(error);
+      log(error instanceof VoiceError ? error.code : error instanceof Error ? error.name : "direct_session_failed", `Conexão direta falhou; tentando proxy. ${message}`, error instanceof VoiceError ? error.details : {});
+      body = await openViaProxy();
     }
     if (!body.trimStart().startsWith("v=0")) throw new VoiceError("invalid_sdp_answer", "O servidor retornou uma resposta de conexão inválida.");
     stage = "transport"; log("session_accepted", "API aceitou a sessão. Aguardando o canal de áudio.");

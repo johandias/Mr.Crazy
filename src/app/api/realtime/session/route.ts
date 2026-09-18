@@ -4,6 +4,7 @@ import { getCurrentSession, getCurrentUser } from "@/lib/server-auth";
 import { buildRealtimeSession } from "@/lib/realtime-session";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { describeRealtimeProviderError, parseRealtimeProviderError } from "@/lib/realtime-provider-error";
+import { getRealtimeModelCandidates, logRealtimeModelNormalization } from "@/lib/realtime-models";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,28 +13,6 @@ export const maxDuration = 30;
 const MAX_SDP_LENGTH = 120_000;
 
 let cachedWorkingModel: string | null = null;
-
-const DEFAULT_REALTIME_MODELS = [
-  "gpt-realtime-2.1-mini",
-  "gpt-realtime-mini",
-  "gpt-realtime-2.1",
-  "gpt-4o-mini-realtime-preview",
-  "gpt-4o-realtime-preview",
-  "gpt-4o-mini-realtime-preview-2024-12-17",
-  "gpt-4o-realtime-preview-2024-12-17"
-];
-
-const REALTIME_MODEL_ALIASES: Record<string, string> = {
-  "gpt-realtime-2.1-min": "gpt-realtime-2.1-mini",
-  "gpt-realtime-21-mini": "gpt-realtime-2.1-mini",
-  "gpt-realtime-2-mini": "gpt-realtime-2.1-mini"
-};
-
-function normalizeRealtimeModel(value: string | null | undefined) {
-  const clean = value?.trim();
-  if (!clean) return null;
-  return REALTIME_MODEL_ALIASES[clean] ?? clean;
-}
 
 export async function POST(request: Request) {
   const requestedId = request.headers.get("x-voice-request-id") ?? "";
@@ -88,18 +67,8 @@ export async function POST(request: Request) {
       .update(user?.email || sessionUser.email || "mr-crazy-authenticated-user")
       .digest("hex");
 
-    const userRequestedModel = normalizeRealtimeModel(url.searchParams.get("model"));
-    const envModel = normalizeRealtimeModel(process.env.OPENAI_REALTIME_MODEL);
-    const candidateModels = Array.from(
-      new Set([userRequestedModel, envModel, cachedWorkingModel, ...DEFAULT_REALTIME_MODELS])
-    ).filter((m): m is string => Boolean(m));
-    if (process.env.OPENAI_REALTIME_MODEL?.trim() && envModel !== process.env.OPENAI_REALTIME_MODEL.trim()) {
-      console.warn("[Realtime] Modelo normalizado na configuracao", {
-        diagnosticId,
-        from: process.env.OPENAI_REALTIME_MODEL.trim(),
-        to: envModel
-      });
-    }
+    const candidateModels = getRealtimeModelCandidates(url.searchParams.get("model"), cachedWorkingModel);
+    logRealtimeModelNormalization(diagnosticId);
 
     stage = "openai_session";
     let response: Response | null = null;

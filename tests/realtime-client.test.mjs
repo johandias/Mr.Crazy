@@ -46,7 +46,23 @@ function setup(t, config = {}) {
   const originals = new Map();
   let controller;
   const lifetime = new AbortController();
-  for (const [key, value] of Object.entries({ window: win, document: doc, navigator: { mediaDevices: { getUserMedia: config.getUserMedia ?? (async () => new Stream()) } }, RTCPeerConnection: Peer, MediaStream: Stream, fetch: async (url, init) => { requests.push({url,init}); return config.response ?? new Response("v=0\r\n"); } })) {
+  const fetchMock = async (url, init) => {
+    requests.push({url,init});
+    const href = String(url);
+    if (config.throwFetch) throw config.throwFetch;
+    if (href.includes("/api/realtime/client-secret")) {
+      return config.tokenResponse ?? new Response(JSON.stringify({value:"ephemeral-test-key",model:"gpt-realtime-2.1-mini",diagnosticId:"server-id"}), {headers:{"Content-Type":"application/json"}});
+    }
+    if (href.includes("https://api.openai.com/v1/realtime/calls")) {
+      if (config.throwDirect) throw config.throwDirect;
+      return config.directResponse ?? config.response ?? new Response("v=0\r\n");
+    }
+    if (href.includes("/api/realtime/session")) {
+      return config.proxyResponse ?? config.response ?? new Response("v=0\r\n");
+    }
+    return config.response ?? new Response("v=0\r\n");
+  };
+  for (const [key, value] of Object.entries({ window: win, document: doc, navigator: { mediaDevices: { getUserMedia: config.getUserMedia ?? (async () => new Stream()) } }, RTCPeerConnection: Peer, MediaStream: Stream, fetch: fetchMock })) {
     originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     Object.defineProperty(globalThis, key, { configurable: true, value });
   }
@@ -74,6 +90,8 @@ test("uses one owned microphone track and confirms the provider session before c
   assert.equal(p.statuses.at(-1), "connected");
   assert.equal(p.states.at(-1), "listening");
   assert.equal(p.requests[0].init.headers["X-Voice-Request-Id"], p.diagnostics[0].id);
+  assert.match(String(p.requests[0].url), /client-secret/);
+  assert.match(String(p.requests[1].url), /api\.openai\.com\/v1\/realtime\/calls/);
   assert.equal(p.audio.attached, true);
 });
 
@@ -173,8 +191,11 @@ test("input meter reads signal independently of provider VAD and stops on mute",
   c.stop();assert.equal(closed,1);assert.equal(c.track.readyState,"ended");
 });
 
-test("HTTP failure includes stage and correlation, releases mic even with an HTML gateway body", async t => {
-  const p=setup(t,{response:new Response("<html>gateway unavailable</html>",{status:502})});
+test("direct HTTP failure falls back to proxy and releases mic when proxy also fails", async t => {
+  const p=setup(t,{
+    directResponse: Response.json({error:"gateway unavailable"},{status:502}),
+    proxyResponse: new Response("<html>gateway unavailable</html>",{status:502})
+  });
   await assert.rejects(p.connect());
   assert.equal(p.diagnostics.at(-1).stage,"api");assert.equal(p.diagnostics.at(-1).httpStatus,502);
   assert.equal(p.microphone.readyState,"ended");assert.equal(p.statuses.at(-1),"failed");
