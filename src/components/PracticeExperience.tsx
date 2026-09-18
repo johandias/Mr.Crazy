@@ -440,7 +440,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [activeGesture, setActiveGesture] = useState<CharacterGesture>("idle");
   const gestureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 992;
+    }
+    return false;
+  });
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -1816,26 +1821,24 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            {/* Balão de Fala do Mr. Crazy: visível apenas quando o histórico estiver recolhido */}
-            {!isHistoryExpanded && (
-              <div
-                className={`character-speech-bubble-container ${voiceState === "speaking" ? "is-speaking" : ""}`}
-                role="region"
-                aria-label="Fala do Mr. Crazy"
-              >
-                <div className="character-speech-bubble">
-                  <div className="speech-bubble-header">
-                    <span className="speech-bubble-name">Mr.Crazy</span>
-                    {voiceState === "speaking" ? (
-                      <span className="speech-bubble-live-badge">Falando...</span>
-                    ) : (
-                      <span className="speech-bubble-tutor-badge">Tutor</span>
-                    )}
-                  </div>
-                  <p className="speech-bubble-text">{latestCrazySpeech}</p>
+            {/* Balão de Fala do Mr. Crazy: no desktop fica sempre visível acima do avatar; no mobile oculta quando expande histórico */}
+            <div
+              className={`character-speech-bubble-container ${isHistoryExpanded ? "hidden-on-mobile" : ""} ${voiceState === "speaking" ? "is-speaking" : ""}`}
+              role="region"
+              aria-label="Fala do Mr. Crazy"
+            >
+              <div className="character-speech-bubble">
+                <div className="speech-bubble-header">
+                  <span className="speech-bubble-name">Mr.Crazy</span>
+                  {voiceState === "speaking" ? (
+                    <span className="speech-bubble-live-badge">Falando...</span>
+                  ) : (
+                    <span className="speech-bubble-tutor-badge">Tutor</span>
+                  )}
                 </div>
+                <p className="speech-bubble-text">{latestCrazySpeech}</p>
               </div>
-            )}
+            </div>
 
             <div className="character-avatar-wrapper">
               <RpgCharacter
