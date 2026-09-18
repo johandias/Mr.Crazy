@@ -123,7 +123,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     catch { report(new VoiceError("channel_send_failed", "A conexão não conseguiu enviar a mensagem. Reconecte a voz."), true); return false; }
   };
   const syncCapture = () => {
-    capture?.setEnabled(microphoneEnabled && !playbackActive && document.visibilityState !== "hidden");
+    capture?.setEnabled(microphoneEnabled && document.visibilityState !== "hidden");
     if (!connected || closed) return;
     options.onVoiceState(playbackActive ? (audio?.paused ? "preparing_speech" : "speaking") : responseActive ? "analyzing" : microphoneEnabled && document.visibilityState !== "hidden" ? "listening" : "idle");
   };
@@ -222,9 +222,23 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         case "session.updated":
           sessionReady = true; checkReady(); break;
         case "input_audio_buffer.speech_started":
-          userSpeaking = true; clear("turn");
-          if (!responseActive && !playbackActive) clear("response");
-          stage = "listening"; log("speech_started", "A API detectou voz."); break;
+          userSpeaking = true;
+          clear("turn");
+          if (responseActive) send({ type: "response.cancel" });
+          if (playbackActive || responseActive) {
+            send({ type: "output_audio_buffer.clear" });
+            if (audio) { audio.pause(); }
+          }
+          responseActive = false;
+          playbackActive = false;
+          assistantText = "";
+          assistantCommitted = false;
+          clear("response");
+          clear("echo");
+          stage = "listening";
+          options.onVoiceState("listening");
+          log("speech_started", "Voz do aluno detectada.");
+          break;
         case "input_audio_buffer.speech_stopped":
           userSpeaking = false; options.onVoiceState("analyzing"); watchResponse(); recoverTurn(); break;
         case "input_audio_buffer.committed":
@@ -258,20 +272,23 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         case "response.text.done":
           commitAssistant(event.transcript ?? event.text); break;
         case "output_audio_buffer.started":
+          if (audio?.paused) { void audio.play().catch(() => {}); }
           stage = "playback"; playbackActive = true; clear("echo"); watchResponse(); syncCapture(); break;
         case "output_audio_buffer.stopped":
         case "output_audio_buffer.cleared":
           later("echo", 200, () => { playbackActive = false; if (!responseActive) clear("response"); syncCapture(); recoverTurn(); }); break;
         case "response.done": {
           responseActive = false;
-          const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
-          commitAssistant(text || assistantText);
+          if (event.response?.status !== "cancelled") {
+            const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
+            commitAssistant(text || assistantText);
+          }
           if (!playbackActive) { clear("response"); syncCapture(); recoverTurn(); }
           if (event.response?.status === "failed") report(new VoiceError("response_failed", "A API não conseguiu gerar a resposta.", { providerCode: event.response.status_details?.error?.code }));
           break;
         }
         case "error":
-          if (event.error?.code === "response_cancel_not_active" || event.error?.code === "input_audio_buffer_commit_empty") break;
+          if (event.error?.code === "response_cancel_not_active" || event.error?.code === "input_audio_buffer_commit_empty" || event.error?.code === "output_audio_buffer_clear_not_active") break;
           if (event.error?.code === "conversation_already_has_active_response") { responseActive = true; watchResponse(); break; }
           report(new VoiceError("provider_event_error", "A API de voz recusou uma operação. Consulte o código no diagnóstico.", { providerCode: event.error?.code }), !connected);
           if (connected) { responseActive = false; if (!playbackActive) clear("response"); syncCapture(); }
@@ -374,7 +391,13 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
       interrupt() {
         if (responseActive) send({ type: "response.cancel" });
         send({ type: "output_audio_buffer.clear" });
-        responseActive = playbackActive = false; clear("response"); syncCapture();
+        if (audio) { audio.pause(); }
+        responseActive = playbackActive = false;
+        assistantText = "";
+        assistantCommitted = false;
+        clear("response");
+        clear("echo");
+        syncCapture();
       },
       sendText(text) {
         if (!text.trim() || closed || responseActive || playbackActive || userSpeaking) return false;

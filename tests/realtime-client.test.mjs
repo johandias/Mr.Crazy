@@ -133,15 +133,16 @@ test("new speech cancels recovery, silence alone does not create a response", as
   assert.equal(p.sent.length,0);
 });
 
-test("playback completion resumes listening; mute survives visibility and pageshow", async t => {
+test("user barge-in interrupts playback; mute survives visibility and pageshow", async t => {
   t.mock.timers.enable({apis:["setTimeout"]});
   const p=setup(t);const c=await p.connect();
   p.emit({type:"response.created"});p.emit({type:"output_audio_buffer.started"});
-  assert.equal(p.microphone.enabled,false);
-  p.emit({type:"response.done",response:{status:"completed"}});
-  assert.equal(p.microphone.enabled,false);
-  p.emit({type:"output_audio_buffer.stopped"});t.mock.timers.tick(200);
   assert.equal(p.microphone.enabled,true);
+  p.emit({type:"input_audio_buffer.speech_started"});
+  assert.equal(p.sent.filter(x=>x.type==="response.cancel").length,1);
+  assert.equal(p.sent.filter(x=>x.type==="output_audio_buffer.clear").length,1);
+  assert.equal(p.audio.paused,true);
+  assert.equal(p.states.at(-1),"listening");
   c.setMicrophoneEnabled(false);
   p.doc.visibilityState="hidden";p.doc.dispatchEvent(new Event("visibilitychange"));
   p.doc.visibilityState="visible";p.win.dispatchEvent(new Event("pageshow"));

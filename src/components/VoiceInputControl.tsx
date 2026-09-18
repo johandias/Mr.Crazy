@@ -63,16 +63,6 @@ export function VoiceInputControl({
           )}
         </button>
       </div>
-
-      <p className="voice-status" role="status">
-        {connecting
-          ? "Conectando voz..."
-          : active
-          ? "Microfone ativo (falando)"
-          : isConnected
-          ? "Microfone mutado (conectado)"
-          : "Toque para falar"}
-      </p>
     </section>
   );
 }

@@ -1001,7 +1001,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     introSpokenRef.current = true;
   }, [storageReady]);
 
-  const connectSession = useCallback((customSignal?: AbortSignal) => {
+  const connectSession = useCallback((customSignal?: AbortSignal, isAutoConnect = false) => {
     if (isConnectingRef.current) {
       return;
     }
@@ -1073,6 +1073,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       onVoiceState: (state) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           setVoiceState(state);
+          if (state === "listening") {
+            cancelSpeech();
+            setRealtimeReply("");
+          }
         }
       },
       onUserTranscript: (text, complete) => {
@@ -1174,10 +1178,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }).catch((err) => {
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
         if (!isAbortError(err)) {
-          setRealtimeStatus("failed");
-          setVoiceState("idle");
-          setMicrophoneEnabled(false);
-          setErrorMessage(getConnectionError(err));
+          if (isAutoConnect && (err instanceof Error && (err.name === "NotAllowedError" || err.name === "SecurityError"))) {
+            setRealtimeStatus("idle");
+            setVoiceState("idle");
+            setMicrophoneEnabled(false);
+          } else {
+            setRealtimeStatus("failed");
+            setVoiceState("idle");
+            setMicrophoneEnabled(false);
+            setErrorMessage(getConnectionError(err));
+          }
         }
       }
       return null;
@@ -1191,10 +1201,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   useEffect(() => {
     if (!storageReady || hasAutoConnectedRef.current) return;
     hasAutoConnectedRef.current = true;
-    setRealtimeStatus("idle");
-    setVoiceState("idle");
-    setMicrophoneEnabled(false);
-  }, [storageReady]);
+    void connectSession(undefined, true);
+  }, [storageReady, connectSession]);
 
   useEffect(() => {
     return () => {
@@ -1309,10 +1317,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }
 
   function submitSentence(sentence: string) {
+    cancelSpeech();
     if (realtimeStatus === "connected" && realtimeRef.current) {
+      realtimeRef.current.interrupt();
       if (realtimeRef.current.sendText(sentence)) {
         setAnalysis(null);
         setAnalysisSource("manual");
+        setRealtimeReply("");
       } else {
         setManualText(sentence);
         setErrorMessage("Aguarde o professor terminar para enviar a mensagem.");
