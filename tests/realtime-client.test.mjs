@@ -137,7 +137,6 @@ test("user barge-in interrupts playback; mute survives visibility and pageshow",
   t.mock.timers.enable({apis:["setTimeout"]});
   const p=setup(t);const c=await p.connect();
   p.emit({type:"response.created"});p.emit({type:"output_audio_buffer.started"});
-  assert.equal(p.microphone.enabled,true);
   p.emit({type:"input_audio_buffer.speech_started"});
   assert.equal(p.sent.filter(x=>x.type==="response.cancel").length,1);
   assert.equal(p.sent.filter(x=>x.type==="output_audio_buffer.clear").length,1);

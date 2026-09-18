@@ -11,17 +11,13 @@ export function SessionHeader({
   return (
     <section className="session-header" aria-label="Resumo da sessão">
       <CrazyMeter level={crazyLevel} emotion={emotion} />
-      <div className="session-stat">
-        <Gauge size={16} />
+      <div className="session-stat session-stat-level">
+        <Gauge size={14} />
         <span>{level}</span>
       </div>
-      <div className="session-stat">
-        <Sparkles size={16} />
+      <div className="session-stat session-stat-xp">
+        <Sparkles size={14} />
         <span>{xp} XP</span>
-      </div>
-      <div className="session-stat">
-        <Flame size={16} />
-        <span>Crazy {crazyLevel}</span>
       </div>
     </section>
   );

@@ -98,14 +98,17 @@ export const RpgCharacter = memo(function RpgCharacter({
   }, [voiceState]);
 
   useEffect(() => {
+    // 1. Rede balançando por 1.8 segundos
     const alertTimer = setTimeout(() => {
       setEntranceStage("alert");
     }, 1800);
 
+    // 2. Vê que tem gente e dá o pulo
     const jumpTimer = setTimeout(() => {
       setEntranceStage("jumping");
     }, 2400);
 
+    // 3. Aterrissa de pé e fica pronto
     const standTimer = setTimeout(() => {
       setEntranceStage("standing");
     }, 3100);
@@ -118,6 +121,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   }, []);
 
   const handleStageClick = () => {
+    // Se ainda estiver na rede ou pulando, clica para ficar de pé imediatamente
     if (entranceStage !== "standing") {
       setEntranceStage("standing");
       return;

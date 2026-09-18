@@ -227,7 +227,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           if (responseActive) send({ type: "response.cancel" });
           if (playbackActive || responseActive) {
             send({ type: "output_audio_buffer.clear" });
-            audio?.pause();
+            if (audio) { audio.pause(); }
           }
           responseActive = false;
           playbackActive = false;
@@ -391,6 +391,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
       interrupt() {
         if (responseActive) send({ type: "response.cancel" });
         send({ type: "output_audio_buffer.clear" });
+        responseActive = playbackActive = false; clear("response"); syncCapture();
         if (audio) { audio.pause(); }
         responseActive = playbackActive = false;
         assistantText = "";

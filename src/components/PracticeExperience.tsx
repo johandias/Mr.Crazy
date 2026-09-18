@@ -433,6 +433,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [activeGesture, setActiveGesture] = useState<CharacterGesture>("idle");
   const gestureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -711,6 +712,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
     return items;
   }, [conversationDisplayItems, liveUserItem, liveCrazyItem]);
+
+  const latestCrazySpeech = useMemo(() => {
+    for (let i = allConversationItems.length - 1; i >= 0; i--) {
+      const item = allConversationItems[i];
+      if (item.role === "crazy" && item.text.trim()) {
+        return item.text.trim();
+      }
+    }
+    return openingLine || "Fala aí! Eu sou o Mr. Crazy! Toque no microfone para treinar inglês comigo!";
+  }, [allConversationItems, openingLine]);
 
   const suggestedReplies = useMemo(() => {
     const suggestions: string[] = [];
@@ -1116,14 +1127,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           });
           setRealtimeReply("");
 
-          // Disparo automático de gestos conforme a reação do Mr.Crazy
-          // Disparo automático de gestos e avaliação estrita de fase
+          // Disparo automático de gestos, avaliação de fase e Puticidade do Mr. Crazy
           const lower = clean.toLowerCase();
-          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|próxima fase|fase seguinte|mandou bala)/i.test(lower);
-          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez)/i.test(lower);
+          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
+          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez|porra|burro|burrada|desgraça|caralho)/i.test(lower);
 
           if (isPraise && !isCorrection) {
             triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
+            // Acertou: Puticidade esfria um pouco
+            setCrazyLevel((prev) => clampCrazyLevel(prev - 12));
             // O aluno só passa de fase quando o Mr. Crazy avaliar que ele realmente está bem
             if (teachingConcepts.length > 0) {
               setCurrentConceptIndex((prevIndex) => {
@@ -1138,6 +1150,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           } else if (isCorrection) {
             const options: CharacterGesture[] = ["watergun", "smoke", "finger"];
             triggerGesture(options[Math.floor(Math.random() * options.length)]);
+            // Errou: Puticidade sobe e ele fica mais puto!
+            setCrazyLevel((prev) => clampCrazyLevel(prev + 18));
             // Se errou ou precisa de ajuste, mantém o aluno na fase atual para dominar
           }
 
@@ -1178,10 +1192,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }).catch((err) => {
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
         if (!isAbortError(err)) {
-          setRealtimeStatus("failed");
-          setVoiceState("idle");
-          setMicrophoneEnabled(false);
-          setErrorMessage(getConnectionError(err));
           if (isAutoConnect && (err instanceof Error && (err.name === "NotAllowedError" || err.name === "SecurityError"))) {
             setRealtimeStatus("idle");
             setVoiceState("idle");
@@ -1530,20 +1540,43 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           </div>
         )}
 
-        <section className="practice-stage clean-stage">
+        <section className={`practice-stage clean-stage ${isHistoryExpanded ? "history-is-open" : "history-is-closed"}`}>
           <motion.div
             className="character-column"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            <RpgCharacter
-              crazyLevel={crazyLevel}
-              emotion={emotion}
-              voiceState={voiceState}
-              gesture={activeGesture}
-              onTap={handleAvatarTap}
-            />
+            {/* Balão de Fala do Mr. Crazy: visível apenas quando o histórico estiver recolhido */}
+            {!isHistoryExpanded && (
+              <div
+                className={`character-speech-bubble-container ${voiceState === "speaking" ? "is-speaking" : ""}`}
+                role="region"
+                aria-label="Fala do Mr. Crazy"
+              >
+                <div className="character-speech-bubble">
+                  <div className="speech-bubble-header">
+                    <span className="speech-bubble-name">Mr.Crazy</span>
+                    {voiceState === "speaking" ? (
+                      <span className="speech-bubble-live-badge">Falando...</span>
+                    ) : (
+                      <span className="speech-bubble-tutor-badge">Tutor</span>
+                    )}
+                  </div>
+                  <p className="speech-bubble-text">{latestCrazySpeech}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="character-avatar-wrapper">
+              <RpgCharacter
+                crazyLevel={crazyLevel}
+                emotion={emotion}
+                voiceState={voiceState}
+                gesture={activeGesture}
+                onTap={handleAvatarTap}
+              />
+            </div>
 
             <VoiceInputControl
               status={realtimeStatus}
@@ -1560,6 +1593,23 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 if (realtimeStatus === "connected") void connectSession();
               }}
             />
+
+            {/* Botão para alternar exibição do histórico de conversa */}
+            <div className="history-toggle-row">
+              <button
+                type="button"
+                className={`history-toggle-pill-btn ${isHistoryExpanded ? "is-active" : ""}`}
+                onClick={() => setIsHistoryExpanded((prev) => !prev)}
+                title={isHistoryExpanded ? "Ocultar histórico e ver apenas balão" : "Ver conversa completa"}
+              >
+                <MessagesSquare size={16} />
+                <span>
+                  {isHistoryExpanded
+                    ? "Ocultar Histórico (Ver Balão)"
+                    : `Ver Histórico Completo (${allConversationItems.length})`}
+                </span>
+              </button>
+            </div>
 
             {/* Sugestões rápidas de resposta para destravar a conversa */}
             {suggestedReplies.length > 0 && (
@@ -1612,47 +1662,36 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             <ListeningWave active={voiceState === "listening" || voiceState === "speaking" || voiceState === "transcribing" || voiceState === "analyzing"} />
           </motion.div>
 
-          <motion.aside
-            ref={conversationContainerRef}
-            className="conversation-panel clean-conversation"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08, duration: 0.45 }}
-          >
-            {allConversationItems.length > 3 && (
-              <button
-                type="button"
-                className="history-visibility-toggle"
-                onClick={() => setShowAllMessages((prev) => !prev)}
-                title={showAllMessages ? "Ocultar mensagens anteriores" : "Mostrar mensagens anteriores"}
-              >
-                {showAllMessages
-                  ? "↓ Focar nas 3 últimas mensagens"
-                  : `↑ Ver mensagens anteriores (${allConversationItems.length - 3})`}
-              </button>
-            )}
+          {/* Histórico da Conversa: renderizado quando expandido */}
+          {isHistoryExpanded && (
+            <motion.aside
+              ref={conversationContainerRef}
+              className="conversation-panel clean-conversation"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="history-panel-header">
+                <span className="history-panel-title">Histórico da Conversa</span>
+                <button
+                  type="button"
+                  className="history-close-btn"
+                  onClick={() => setIsHistoryExpanded(false)}
+                  title="Fechar histórico e voltar ao balão"
+                  aria-label="Fechar histórico"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-            {allConversationItems.map((item, idx) => {
-              const distanceFromEnd = allConversationItems.length - 1 - idx;
-              const fadeLevel = showAllMessages
-                ? 0
-                : distanceFromEnd === 0
-                ? 0
-                : distanceFromEnd === 1
-                ? 0
-                : distanceFromEnd === 2
-                ? 1
-                : 2;
-              const isOlderHidden = !showAllMessages && distanceFromEnd >= 3;
-
-              return (
+              {allConversationItems.map((item) => (
                 <ConversationBubble
                   key={item.key}
                   label={item.role === "user" ? "Você" : "Mr.Crazy"}
                   tone={item.role === "user" ? "user" : "crazy"}
                   isTyping={item.isTyping}
-                  fadeLevel={fadeLevel}
-                  isOlderHidden={isOlderHidden}
+                  fadeLevel={0}
+                  isOlderHidden={false}
                   onSpeak={
                     item.role === "crazy" && !item.isTyping
                       ? () => speak(item.text, "idle")
@@ -1666,71 +1705,71 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 >
                   {item.text}
                 </ConversationBubble>
-              );
-            })}
+              ))}
 
-            {isLessonCompleted ? (
-              <div className="lesson-completed-card" role="region" aria-label="Aula Concluída">
-                <div className="lesson-completed-header">
-                  <Sparkles size={20} className="text-amber-400" />
-                  <div>
-                    <h4>🎉 Fases do Módulo Concluídas!</h4>
-                    <p>
-                      Você dominou todas as fases de treinamento de{" "}
-                      <strong>{activeModule.cleanTitle || activeModule.title}</strong>!
-                    </p>
+              {isLessonCompleted ? (
+                <div className="lesson-completed-card" role="region" aria-label="Aula Concluída">
+                  <div className="lesson-completed-header">
+                    <Sparkles size={20} className="text-amber-400" />
+                    <div>
+                      <h4>🎉 Fases do Módulo Concluídas!</h4>
+                      <p>
+                        Você dominou todas as fases de treinamento de{" "}
+                        <strong>{activeModule.cleanTitle || activeModule.title}</strong>!
+                      </p>
+                    </div>
+                  </div>
+                  <div className="lesson-completed-actions">
+                    <button
+                      type="button"
+                      className="lesson-btn-exam highlight-exam"
+                      onClick={() => setIsExamModalOpen(true)}
+                    >
+                      <Award size={18} />
+                      <span>🏆 Enfrentar o Chefão (Prova da Fase)</span>
+                    </button>
+                    {nextModule ? (
+                      <button
+                        type="button"
+                        className="lesson-btn-advance"
+                        onClick={handleAdvanceToNextModule}
+                      >
+                        <Rocket size={16} />
+                        <span>Ir para Próximo Módulo</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="lesson-btn-advance"
+                        onClick={() => setIsSelectingModule(true)}
+                      >
+                        <Sparkles size={16} />
+                        <span>Ver Mapa do Curso</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="lesson-btn-redo"
+                      onClick={handleRedoModule}
+                    >
+                      <RotateCcw size={16} />
+                      <span>Refazer Treinamento</span>
+                    </button>
                   </div>
                 </div>
-                <div className="lesson-completed-actions">
-                  <button
-                    type="button"
-                    className="lesson-btn-exam highlight-exam"
-                    onClick={() => setIsExamModalOpen(true)}
-                  >
-                    <Award size={18} />
-                    <span>🏆 Enfrentar o Chefão (Prova da Fase)</span>
-                  </button>
-                  {nextModule ? (
-                    <button
-                      type="button"
-                      className="lesson-btn-advance"
-                      onClick={handleAdvanceToNextModule}
-                    >
-                      <Rocket size={16} />
-                      <span>Ir para Próximo Módulo</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="lesson-btn-advance"
-                      onClick={() => setIsSelectingModule(true)}
-                    >
-                      <Sparkles size={16} />
-                      <span>Ver Mapa do Curso</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="lesson-btn-redo"
-                    onClick={handleRedoModule}
-                  >
-                    <RotateCcw size={16} />
-                    <span>Refazer Treinamento</span>
+              ) : null}
+
+              {speechRetry ? (
+                <div className="action-row">
+                  <button className="ghost-action" type="button" onClick={() => speakSegments(speechRetry.segments, speechRetry.nextState)}>
+                    <Volume2 size={18} />
+                    Ouvir Mr.Crazy
                   </button>
                 </div>
-              </div>
-            ) : null}
-
-            {speechRetry ? (
-              <div className="action-row">
-                <button className="ghost-action" type="button" onClick={() => speakSegments(speechRetry.segments, speechRetry.nextState)}>
-                  <Volume2 size={18} />
-                  Ouvir Mr.Crazy
-                </button>
-              </div>
-            ) : null}
-            <div ref={messagesEndRef} className="messages-bottom-anchor" />
-          </motion.aside>
+              ) : null}
+              <div ref={messagesEndRef} className="messages-bottom-anchor" />
+            </motion.aside>
+          )}
         </section>
 
         {isMenuOpen && (
