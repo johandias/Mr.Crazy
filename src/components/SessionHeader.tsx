@@ -1,4 +1,4 @@
-import { Flame, Gauge, Sparkles } from "lucide-react";
+import { Gauge, Sparkles } from "lucide-react";
 import { CrazyMeter } from "@/components/CrazyMeter";
 import type { Emotion } from "@/lib/mr-crazy";
 

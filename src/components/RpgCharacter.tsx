@@ -68,12 +68,19 @@ export const RpgCharacter = memo(function RpgCharacter({
     };
   }, []);
 
+  // Articulação labial com fonemas vocálicos e consonantais durante a fala do professor
   // Articulação labial orgânica com cadência silábica realista durante a fala
   useEffect(() => {
     if (voiceState !== "speaking") {
       setPhoneme(0);
       return;
     }
+    const phonemeSequence = [0, 1, 0, 2, 1, 3, 0, 2];
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % phonemeSequence.length;
+      setPhoneme(phonemeSequence[index]);
+    }, 115);
     const phonemeCadence = [
       { phoneme: 1, duration: 140 },
       { phoneme: 0, duration: 170 },
@@ -86,6 +93,7 @@ export const RpgCharacter = memo(function RpgCharacter({
     let step = 0;
     let timer: ReturnType<typeof setTimeout>;
 
+    return () => clearInterval(interval);
     const nextPhoneme = () => {
       const current = phonemeCadence[step];
       setPhoneme(current.phoneme);

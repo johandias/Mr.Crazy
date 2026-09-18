@@ -387,6 +387,7 @@ export const PictureInPictureManager = forwardRef<PictureInPictureManagerHandle,
 
       const url = new URL(window.location.href);
       url.searchParams.set("popup", "true");
+      url.searchParams.set("practice", "1");
 
       const width = 380;
       const height = 620;

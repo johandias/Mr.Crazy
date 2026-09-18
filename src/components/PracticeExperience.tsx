@@ -418,7 +418,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [isSelectingModule, setIsSelectingModule] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("practice") === "1" || urlParams.get("treino") === "1") {
+      if (
+        urlParams.get("practice") === "1" ||
+        urlParams.get("treino") === "1" ||
+        urlParams.get("popup") === "true"
+      ) {
         return false;
       }
     }
@@ -453,7 +457,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const analysisQueuedRef = useRef(false);
   const pipRef = useRef<PictureInPictureManagerHandle | null>(null);
   const [isPipActive, setIsPipActive] = useState(false);
-  const [isPopupMode, setIsPopupMode] = useState(false);
+  const [isPopupMode, setIsPopupMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return window.location.search.includes("popup=true");
+    }
+    return false;
+  });
   const [pipNotification, setPipNotification] = useState("");
 
   useEffect(() => {
@@ -572,6 +581,20 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         : null,
     [currentModuleIndex]
   );
+
+  type StageTransition = {
+    nextModule: (typeof LEARNING_MODULES)[number];
+    score: number;
+    feedback: string;
+    countdown: number;
+    targetConcept?: {
+      title: string;
+      objective: string;
+      phrase: string;
+    };
+  };
+
+  const [stageTransition, setStageTransition] = useState<StageTransition | null>(null);
 
   const handleSelectModule = useCallback((moduleId: string) => {
     setSelectedModuleId(moduleId);
@@ -950,6 +973,41 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     });
   }, [teachingConcepts]);
 
+  const handleImmediateStartNextStage = useCallback(() => {
+    if (!stageTransition) return;
+    const target = stageTransition;
+    setStageTransition(null);
+    handleSelectModule(target.nextModule.id);
+
+    const phraseToRepeat = target.targetConcept?.phrase || target.nextModule.initialGreeting.en;
+    const topicObjective = target.targetConcept?.objective || target.nextModule.description;
+    const cleanTitle = target.nextModule.cleanTitle || target.nextModule.title;
+
+    const speechAnnouncement = `Show de bola! Avançamos para a próxima fase: ${cleanTitle}! Vamos treinar agora: ${topicObjective}. Repita comigo em inglês: ${phraseToRepeat}`;
+
+    setTimeout(() => {
+      speak(speechAnnouncement, "waiting_for_repeat", "en-US");
+    }, 400);
+  }, [stageTransition, handleSelectModule, speak]);
+
+  useEffect(() => {
+    if (!stageTransition) return;
+
+    if (stageTransition.countdown <= 0) {
+      handleImmediateStartNextStage();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setStageTransition((prev) => {
+        if (!prev) return null;
+        return { ...prev, countdown: prev.countdown - 1 };
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [stageTransition, handleImmediateStartNextStage]);
+
   const handleEvaluateModule = useCallback(async () => {
     if (isEvaluating) return;
     setIsEvaluating(true);
@@ -968,10 +1026,37 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       if (response.ok) {
         const data = await response.json();
         if (data.ok && data.evaluation) {
-          setCurrentEvaluation(data.evaluation);
-          triggerGesture("heart");
+          const evalItem = data.evaluation;
+          setCurrentEvaluation(evalItem);
+          const score = typeof evalItem.overall_score === "number" ? evalItem.overall_score : 70;
+
+          // Se a nota for maior que 7 (score >= 70 em escala 0-100) e houver próximo módulo:
+          if (score >= 70 && nextModule) {
+            const firstConcept = nextModule.concepts?.[0];
+            setStageTransition({
+              nextModule,
+              score,
+              feedback: evalItem.summary_feedback || "Mandou muito bem nas frases!",
+              countdown: 5,
+              targetConcept: firstConcept
+                ? {
+                    title: firstConcept.title,
+                    objective: firstConcept.objective,
+                    phrase:
+                      firstConcept.samplePhrases?.[0] ||
+                      nextModule.initialGreeting.en ||
+                      nextModule.samplePhrases?.[0] ||
+                      "Let's practice English!"
+                  }
+                : undefined
+            });
+            triggerGesture("thumbsup");
+            return;
+          }
+
+          triggerGesture(score >= 70 ? "heart" : "watergun");
           speak(
-            `Sensacional! Você concluiu a avaliação do módulo ${activeModule.title} com nota ${data.evaluation.overall_score}! ${data.evaluation.summary_feedback}`
+            `Você concluiu a avaliação do módulo ${activeModule.title} com nota ${score}! ${evalItem.summary_feedback}`
           );
         }
       }
@@ -980,7 +1065,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     } finally {
       setIsEvaluating(false);
     }
-  }, [isEvaluating, selectedModuleId, moduleTurnsCount, contextHistory, mistakes, activeModule.title, speak]);
+  }, [isEvaluating, selectedModuleId, moduleTurnsCount, contextHistory, mistakes, activeModule.title, nextModule, triggerGesture, speak]);
+
+  useEffect(() => {
+    if (isLessonCompleted && !currentEvaluation && !isEvaluating && !stageTransition) {
+      void handleEvaluateModule();
+    }
+  }, [isLessonCompleted, currentEvaluation, isEvaluating, stageTransition, handleEvaluateModule]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -1155,6 +1246,20 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             // Se errou ou precisa de ajuste, mantém o aluno na fase atual para dominar
           }
 
+          setModuleTurnsCount((prev) => {
+            const nextTurns = prev + 1;
+            if (teachingConcepts.length > 0) {
+              const estimatedConcept = Math.min(
+                Math.floor(nextTurns / 2),
+                teachingConcepts.length - 1
+              );
+              setCurrentConceptIndex(estimatedConcept);
+              if (nextTurns >= teachingConcepts.length * 2) {
+                setIsLessonCompleted(true);
+              }
+            }
+            return nextTurns;
+          });
           setModuleTurnsCount((prev) => prev + 1);
         }
       },
@@ -1192,6 +1297,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }).catch((err) => {
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
         if (!isAbortError(err)) {
+          setRealtimeStatus("failed");
+          setVoiceState("idle");
+          setMicrophoneEnabled(false);
+          setErrorMessage(getConnectionError(err));
           if (isAutoConnect && (err instanceof Error && (err.name === "NotAllowedError" || err.name === "SecurityError"))) {
             setRealtimeStatus("idle");
             setVoiceState("idle");
@@ -1406,7 +1515,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     speak(analysis.corrected_sentence, "waiting_for_repeat", "en-US");
   }
 
-  if (isSelectingModule) {
+  if (isSelectingModule && !isPopupMode) {
     return (
       <AppShell isAdmin={isAdmin}>
         <main className="practice-main map-desktop-expanded-view">
@@ -1420,6 +1529,163 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           />
         </main>
       </AppShell>
+    );
+  }
+
+  if (isPopupMode) {
+    return (
+      <main className="standalone-popup-window">
+        {/* Marca d'água do Mr. Crazy de fundo */}
+        <div className="popup-watermark-character" aria-hidden="true">
+          <RpgCharacter
+            crazyLevel={crazyLevel}
+            emotion={emotion}
+            voiceState={voiceState}
+            gesture={activeGesture}
+            onTap={handleAvatarTap}
+          />
+        </div>
+
+        {/* Header compacto da janela popup */}
+        <header className="popup-compact-header">
+          <div className="popup-module-tag">
+            <span className="popup-badge">{activeModule.levelBadge.split(" ")[0]}</span>
+            <span className="popup-title">{activeModule.cleanTitle || activeModule.title}</span>
+          </div>
+          <div className="popup-header-actions">
+            <button
+              type="button"
+              className="popup-header-btn"
+              onClick={() => {
+                if (typeof window !== "undefined") window.close();
+              }}
+              title="Fechar janela popup"
+              aria-label="Fechar"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </header>
+
+        {/* Diálogo da conversa focado puramente nos textos */}
+        <div ref={conversationContainerRef} className="popup-dialogue-feed">
+          {allConversationItems.length === 0 ? (
+            <div className="popup-empty-hint">
+              <p>{openingLine}</p>
+            </div>
+          ) : (
+            allConversationItems.map((item) => (
+              <ConversationBubble
+                key={`popup-${item.key}`}
+                label={item.role === "user" ? "Você" : "Mr.Crazy"}
+                tone={item.role === "user" ? "user" : "crazy"}
+                isTyping={item.isTyping}
+                fadeLevel={0}
+                isOlderHidden={false}
+                onSpeak={
+                  item.role === "crazy" && !item.isTyping
+                    ? () => speak(item.text, "idle")
+                    : undefined
+                }
+                isSpeaking={
+                  item.role === "crazy" &&
+                  currentlySpeakingText === item.text &&
+                  voiceState === "speaking"
+                }
+              >
+                {item.text}
+              </ConversationBubble>
+            ))
+          )}
+          <div ref={messagesEndRef} className="messages-bottom-anchor" />
+        </div>
+
+        {/* Rodapé: Equalizador de barras na fala + Botão de mic + Input de digitação */}
+        <footer className="popup-compact-footer">
+          <div className="popup-wave-row">
+            <ListeningWave
+              active={
+                voiceState === "listening" ||
+                voiceState === "speaking" ||
+                voiceState === "transcribing" ||
+                voiceState === "analyzing"
+              }
+              speaking={voiceState === "speaking"}
+            />
+          </div>
+
+          <div className="popup-controls-row">
+            <button
+              type="button"
+              className={`popup-mic-toggle-btn ${microphoneEnabled ? "is-active" : "is-muted"}`}
+              onClick={handleAvatarMicClick}
+              title={microphoneEnabled ? "Mutar microfone (mantém conexão ativa)" : "Ativar microfone"}
+            >
+              {microphoneEnabled ? <Volume2 size={16} /> : <X size={16} />}
+              <span>{microphoneEnabled ? "Ouvindo" : "Mutado"}</span>
+            </button>
+
+            <form
+              className="popup-text-input-form"
+              onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                handleSubmit(e);
+              }}
+            >
+              <input
+                ref={mainInputRef}
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                placeholder="Fale no microfone ou digite..."
+                aria-label="Mensagem para o Mr. Crazy"
+                disabled={voiceState === "analyzing"}
+              />
+              <button
+                type="submit"
+                disabled={!manualText.trim() || voiceState === "analyzing"}
+                title="Enviar frase"
+              >
+                <Send size={14} />
+              </button>
+            </form>
+          </div>
+        </footer>
+
+        {/* Notificação flutuante de avanço automático de fase (caso passe de fase enquanto no popup) */}
+        {stageTransition && (
+          <div className="stage-advance-countdown-card is-in-popup" role="dialog" aria-label="Avanço de Fase">
+            <div className="stage-advance-card-content">
+              <div className="stage-advance-badge-row">
+                <span className="stage-score-badge">
+                  🎉 Dominou! Nota {(stageTransition.score / 10).toFixed(1)}/10
+                </span>
+                <span className="stage-timer-badge">
+                  {stageTransition.countdown}s
+                </span>
+              </div>
+              <h4 className="stage-next-title">
+                🚀 Próxima Fase: {stageTransition.nextModule.cleanTitle || stageTransition.nextModule.title}
+              </h4>
+              <p className="stage-next-training">
+                <strong>Treino:</strong> {stageTransition.targetConcept?.objective || stageTransition.nextModule.description}
+              </p>
+              <button
+                type="button"
+                className="stage-start-now-btn"
+                onClick={handleImmediateStartNextStage}
+              >
+                <Rocket size={14} />
+                <span>Começar Agora ({stageTransition.countdown}s)</span>
+              </button>
+              <div className="stage-countdown-progress-bar">
+                <div
+                  className="stage-countdown-progress-fill"
+                  style={{ width: `${(stageTransition.countdown / 5) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     );
   }
 
@@ -1547,6 +1813,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
+            <RpgCharacter
+              crazyLevel={crazyLevel}
+              emotion={emotion}
+              voiceState={voiceState}
+              gesture={activeGesture}
+              onTap={handleAvatarTap}
+            />
             {/* Balão de Fala do Mr. Crazy: visível apenas quando o histórico estiver recolhido */}
             {!isHistoryExpanded && (
               <div
@@ -1659,7 +1932,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 <Send size={15} />
               </button>
             </form>
-            <ListeningWave active={voiceState === "listening" || voiceState === "speaking" || voiceState === "transcribing" || voiceState === "analyzing"} />
+            <ListeningWave
+              active={
+                voiceState === "listening" ||
+                voiceState === "speaking" ||
+                voiceState === "transcribing" ||
+                voiceState === "analyzing"
+              }
+              speaking={voiceState === "speaking"}
+            />
           </motion.div>
 
           {/* Histórico da Conversa: renderizado quando expandido */}
@@ -1753,7 +2034,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       onClick={handleRedoModule}
                     >
                       <RotateCcw size={16} />
-                      <span>Refazer Treinamento</span>
+                      <span>Refazer Aula</span>
                     </button>
                   </div>
                 </div>
@@ -1761,7 +2042,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
               {speechRetry ? (
                 <div className="action-row">
-                  <button className="ghost-action" type="button" onClick={() => speakSegments(speechRetry.segments, speechRetry.nextState)}>
+                  <button
+                    className="ghost-action"
+                    type="button"
+                    onClick={() => speakSegments(speechRetry.segments, speechRetry.nextState)}
+                  >
                     <Volume2 size={18} />
                     Ouvir Mr.Crazy
                   </button>
@@ -2003,6 +2288,55 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             setCurrentEvaluation(evalItem);
           }}
         />
+
+        {stageTransition && (
+          <div className="stage-advance-countdown-card" role="dialog" aria-label="Avanço de Fase">
+            <div className="stage-advance-card-content">
+              <div className="stage-advance-badge-row">
+                <span className="stage-score-badge">
+                  🎉 Dominou a Fase! Nota {(stageTransition.score / 10).toFixed(1)}/10
+                </span>
+                <span className="stage-timer-badge">
+                  Iniciando em {stageTransition.countdown}s
+                </span>
+              </div>
+
+              <h3 className="stage-next-title">
+                🚀 Próxima Fase: {stageTransition.nextModule.cleanTitle || stageTransition.nextModule.title}
+              </h3>
+
+              <p className="stage-next-training">
+                <strong>O que vamos treinar:</strong>{" "}
+                {stageTransition.targetConcept?.objective || stageTransition.nextModule.description}
+              </p>
+
+              {stageTransition.targetConcept?.phrase && (
+                <div className="stage-next-phrase-preview">
+                  <span>Frase para praticar:</span>
+                  <strong>&ldquo;{stageTransition.targetConcept.phrase}&rdquo;</strong>
+                </div>
+              )}
+
+              <div className="stage-advance-actions-row">
+                <button
+                  type="button"
+                  className="stage-start-now-btn"
+                  onClick={handleImmediateStartNextStage}
+                >
+                  <Rocket size={16} />
+                  <span>Começar Agora ({stageTransition.countdown}s)</span>
+                </button>
+              </div>
+
+              <div className="stage-countdown-progress-bar">
+                <div
+                  className="stage-countdown-progress-fill"
+                  style={{ width: `${(stageTransition.countdown / 5) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </AppShell>
   );

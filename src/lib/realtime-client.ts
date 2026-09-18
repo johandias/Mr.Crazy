@@ -123,6 +123,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     catch { report(new VoiceError("channel_send_failed", "A conexão não conseguiu enviar a mensagem. Reconecte a voz."), true); return false; }
   };
   const syncCapture = () => {
+    capture?.setEnabled(microphoneEnabled && !playbackActive && document.visibilityState !== "hidden");
     capture?.setEnabled(microphoneEnabled && document.visibilityState !== "hidden");
     if (!connected || closed) return;
     options.onVoiceState(playbackActive ? (audio?.paused ? "preparing_speech" : "speaking") : responseActive ? "analyzing" : microphoneEnabled && document.visibilityState !== "hidden" ? "listening" : "idle");
@@ -279,6 +280,8 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           later("echo", 200, () => { playbackActive = false; if (!responseActive) clear("response"); syncCapture(); recoverTurn(); }); break;
         case "response.done": {
           responseActive = false;
+          const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
+          commitAssistant(text || assistantText);
           if (event.response?.status !== "cancelled") {
             const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
             commitAssistant(text || assistantText);
@@ -288,6 +291,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           break;
         }
         case "error":
+          if (event.error?.code === "response_cancel_not_active" || event.error?.code === "input_audio_buffer_commit_empty") break;
           if (event.error?.code === "response_cancel_not_active" || event.error?.code === "input_audio_buffer_commit_empty" || event.error?.code === "output_audio_buffer_clear_not_active") break;
           if (event.error?.code === "conversation_already_has_active_response") { responseActive = true; watchResponse(); break; }
           report(new VoiceError("provider_event_error", "A API de voz recusou uma operação. Consulte o código no diagnóstico.", { providerCode: event.error?.code }), !connected);

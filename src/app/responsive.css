@@ -108,6 +108,10 @@
   .practice-main .practice-header-nav-row { min-width: 0; }
   .practice-main .active-module-pill-btn { max-width: none !important; min-height: 40px; }
   .practice-main .stage-exam-action-btn { min-height: 40px; }
+  .practice-main .session-header { flex-wrap: wrap !important; overflow: visible !important; }
+  .practice-main .conversation-panel.clean-conversation { max-height: 45svh !important; scroll-behavior: auto; }
+  .practice-main .conversation-panel.clean-conversation { max-height: 135px !important; min-height: 85px !important; scroll-behavior: auto; }
+  .practice-main .conversation-panel.clean-conversation { max-height: 110px !important; min-height: 60px !important; scroll-behavior: auto; }
   .practice-main .session-header {
     display: flex;
     align-items: center;
@@ -158,12 +162,23 @@
   }
   .practice-main .character-speech-bubble-container {
     width: min(94vw, 420px);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
-  .practice-main .quick-text-input-bar { min-height: 44px; }
-  .practice-main .quick-text-input-bar input { min-width: 0; font-size: 16px; }
-  .practice-main .quick-text-input-bar input::placeholder { font-size: 0.9rem; }
-  .practice-main .quick-text-input-bar button { width: 36px; height: 36px; }
+  .practice-main .quick-text-input-bar {
+    min-height: 42px;
+    width: min(94vw, 420px);
+  }
+  .practice-main .quick-text-input-bar input {
+    min-width: 0;
+    font-size: 15px;
+  }
+  .practice-main .quick-text-input-bar input::placeholder {
+    font-size: 0.85rem;
+  }
+  .practice-main .quick-text-input-bar button {
+    width: 34px;
+    height: 34px;
+  }
 
   .evolution-dashboard { padding: 12px 0; min-width: 0; }
   .evolution-dashboard .evolution-tabs { gap: 6px; }
