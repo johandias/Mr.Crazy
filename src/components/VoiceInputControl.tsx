@@ -24,7 +24,7 @@ type Props = {
   onHoldCancel?: () => void;
 };
 
-/** Barras de onda inline para o dock PTT */
+/** Barras de onda inline que respondem ao som */
 function InlineWaveBars({
   meterRef,
   active,
@@ -150,12 +150,31 @@ export function VoiceInputControl({
   };
 
   /* ═══════════════════════════════════════════════════════════════
-     MODO SEGURA-SOLTA: dock horizontal em 3 zonas
-     [Hold btn LEFT]  [Wave bars CENTER]  [Toggle RIGHT]
+     MODO SEGURA-SOLTA (Push-to-Talk)
+     [Botão Segurar ESQUERDA] [Ondas CENTRO] [Alternar DIREITA]
   ═══════════════════════════════════════════════════════════════ */
   if (isPtt) {
     return (
       <section className="voice-input-control clean-voice-dock" aria-label="Controle de voz">
+        {/* Seletor de Modo Compacto */}
+        <div className="voice-mode-selector-pill">
+          <button
+            type="button"
+            className="voice-mode-tab-btn"
+            onClick={() => onTalkModeChange?.("continuous")}
+          >
+            <Mic size={12} />
+            <span>Toque p/ Falar</span>
+          </button>
+          <button
+            type="button"
+            className="voice-mode-tab-btn is-active"
+          >
+            <Hand size={12} />
+            <span>Segurar (WhatsApp)</span>
+          </button>
+        </div>
+
         {isHolding && (
           <div className={`ptt-recording-pill ${isCancelling ? "is-cancelling" : ""}`}>
             <span className="ptt-rec-dot" />
@@ -167,7 +186,7 @@ export function VoiceInputControl({
         )}
 
         <div className="ptt-dock-row">
-          {/* ESQUERDA: botão de segurar */}
+          {/* ESQUERDA: botão de segurar com feedback visual imediato */}
           <button
             type="button"
             className={`ptt-dock-hold-btn ${
@@ -190,13 +209,13 @@ export function VoiceInputControl({
               <Hand size={18} />
             )}
             <span className="ptt-dock-label">
-              {connecting ? "Conectando" :
-               isHolding ? (isCancelling ? "Cancelar" : "Gravando") :
-               "Segurar"}
+              {connecting ? "Conectando..." :
+               isHolding ? (isCancelling ? "Cancelar" : "Gravando...") :
+               "Segure p/ Falar"}
             </span>
           </button>
 
-          {/* CENTRO: barras de onda + status */}
+          {/* CENTRO: barras de som responsivas + instrução */}
           <div className="ptt-dock-center">
             <InlineWaveBars
               meterRef={meterRef}
@@ -205,33 +224,53 @@ export function VoiceInputControl({
               isHolding={isHolding}
             />
             <span className="ptt-dock-status">
-              {speaking ? "Mr. Crazy falando" :
+              {speaking ? "Mr. Crazy falando..." :
                isHolding ? "Ouvindo você..." :
-               "Pronto para gravar"}
+               "Segure e fale a frase"}
             </span>
           </div>
-
-          {/* DIREITA: toggle para desativar modo PTT */}
-          <button
-            type="button"
-            className="ptt-mode-toggle-btn is-ptt"
-            onClick={() => onTalkModeChange?.("continuous")}
-            title="Modo Segura-Solta ativo — toque para voltar ao contínuo"
-            aria-label="Desativar modo segura-solta"
-          >
-            <Hand size={14} />
-          </button>
         </div>
       </section>
     );
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     MODO CONTÍNUO: botão circular + toggle à direita
+     MODO CONTÍNUO (Toque para Ligar / Desligar)
   ═══════════════════════════════════════════════════════════════ */
   return (
     <section className="voice-input-control clean-voice-dock" aria-label="Controle de voz">
+      {/* Seletor de Modo Compacto */}
+      <div className="voice-mode-selector-pill">
+        <button
+          type="button"
+          className="voice-mode-tab-btn is-active"
+        >
+          <Mic size={12} />
+          <span>Toque p/ Falar</span>
+        </button>
+        <button
+          type="button"
+          className="voice-mode-tab-btn"
+          onClick={() => onTalkModeChange?.("push-to-talk")}
+          title="Mudar para modo Segura-Solta (estilo WhatsApp)"
+        >
+          <Hand size={12} />
+          <span>Segurar (WhatsApp)</span>
+        </button>
+      </div>
+
       <div className="mic-btn-row">
+        {/* Barrinhas de som da esquerda quando ouvindo ou falando */}
+        <div className="dock-wave-side-container">
+          <InlineWaveBars
+            meterRef={meterRef}
+            active={active}
+            speaking={speaking}
+            isHolding={false}
+          />
+        </div>
+
+        {/* Botão de microfone central pulsante */}
         <div
           className={`avatar-mic-halo-wrapper ${active ? "is-active" : "is-inactive"} ${
             speaking ? "is-speaking" : ""
@@ -255,46 +294,43 @@ export function VoiceInputControl({
             onContextMenu={e => e.preventDefault()}
             onClick={() => { if (!connecting) onToggle(); }}
             aria-label={connecting ? "Conectando" : active ? "Mutar microfone" : "Ativar microfone"}
-            title={
-              connecting ? "Conectando..." :
-              active ? "Toque para pausar" :
-              isConnected ? "Toque para falar" :
-              "Toque para conectar"
-            }
           >
             {connecting ? (
-              <LoaderCircle size={28} className="connection-spinner" />
+              <LoaderCircle size={26} className="connection-spinner" />
             ) : active ? (
-              <Mic size={28} className="mic-icon-active" />
+              <Mic size={26} className="mic-icon-active" />
             ) : (
-              <MicOff size={26} className="mic-icon-inactive" />
+              <MicOff size={24} className="mic-icon-inactive" />
             )}
           </button>
         </div>
 
-        {/* Toggle: ativa modo segura-solta */}
-        <button
-          type="button"
-          className="ptt-mode-toggle-btn"
-          onClick={() => onTalkModeChange?.("push-to-talk")}
-          title="Ativar Modo Segura-Solta"
-          aria-label="Ativar modo segura-solta"
-        >
-          <Hand size={14} />
-        </button>
+        {/* Barrinhas de som da direita espelhadas para harmonia visual */}
+        <div className="dock-wave-side-container">
+          <InlineWaveBars
+            meterRef={meterRef}
+            active={active}
+            speaking={speaking}
+            isHolding={false}
+          />
+        </div>
       </div>
 
-      <p
-        className={`voice-status ${active ? "is-active" : ""} ${speaking ? "is-speaking" : ""}`}
+      {/* Instrução em destaque alto contraste para o usuário não ficar confuso */}
+      <div
+        className={`voice-action-badge ${active ? "is-active" : ""} ${speaking ? "is-speaking" : ""} ${connecting ? "is-connecting" : ""}`}
         role="status"
+        onClick={() => { if (!connecting && !active) onToggle(); }}
       >
-        {connecting ? "Conectando..." :
-         speaking ? "Mr. Crazy falando" :
-         active && !isAwake ? "Fale para acordar o Mr. Crazy" :
-         active ? "Pode falar" :
-         isConnected ? "Toque para falar" :
-         "Toque no microfone"}
-      </p>
+        <span className="voice-action-indicator-dot" />
+        <span className="voice-action-text">
+          {connecting ? "Conectando à IA..." :
+           speaking ? "Mr. Crazy falando... aguarde" :
+           active && !isAwake ? "Microfone aberto • Pode falar!" :
+           active ? "Microfone aberto • Pode falar!" :
+           "Toque no microfone para falar"}
+        </span>
+      </div>
     </section>
   );
 }

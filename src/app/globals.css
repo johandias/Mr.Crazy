@@ -2701,13 +2701,124 @@ meter {
   flex-shrink: 0;
 }
 
-/* ——— Modo Contínuo: botão circular + toggle ——— */
+/* ——— Seletor de Modo Compacto ——— */
+.voice-mode-selector-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 2px;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.voice-mode-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.voice-mode-tab-btn:hover {
+  color: #f1f5f9;
+}
+
+.voice-mode-tab-btn.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ——— Modo Contínuo: botão circular + ondas laterais ——— */
 .mic-btn-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   position: relative;
+  width: 100%;
+}
+
+.dock-wave-side-container {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 90px;
+  min-width: 40px;
+}
+
+/* ——— Badge de Ação / Instrução em Alto Contraste ——— */
+.voice-action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.voice-action-badge:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.voice-action-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: all 0.2s ease;
+}
+
+.voice-action-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  letter-spacing: 0.1px;
+}
+
+.voice-action-badge.is-active .voice-action-indicator-dot {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse 1.5s infinite;
+}
+
+.voice-action-badge.is-active .voice-action-text {
+  color: #34d399;
+}
+
+.voice-action-badge.is-speaking .voice-action-indicator-dot {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+.voice-action-badge.is-speaking .voice-action-text {
+  color: #7dd3fc;
+}
+
+.voice-action-badge.is-connecting .voice-action-indicator-dot {
+  background: #f59e0b;
+  animation: pulse 1s infinite;
+}
+
+.voice-action-badge.is-connecting .voice-action-text {
+  color: #fde68a;
 }
 
 /* Toggle de modo (ícone Hand, redondo pequeno) */
