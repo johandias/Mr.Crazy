@@ -129,8 +129,9 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     try { channel.send(JSON.stringify(event)); return true; }
     catch { report(new VoiceError("channel_send_failed", "A conexão não conseguiu enviar a mensagem. Reconecte a voz."), true); return false; }
   };
+  let echoGuardActive = false;
   const syncCapture = () => {
-    const shouldCapture = microphoneEnabled && !playbackActive && !responseActive && document.visibilityState !== "hidden";
+    const shouldCapture = microphoneEnabled && !playbackActive && !responseActive && !echoGuardActive && document.visibilityState !== "hidden";
     capture?.setEnabled(shouldCapture);
     if (!connected || closed) return;
     options.onVoiceState(
@@ -156,8 +157,15 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     later("turn", 1500, () => {
       if (!pendingTurn || userSpeaking || responseActive || playbackActive) return;
       pendingTurn = false;
-      responseActive = send({ type: "response.create" });
-      if (responseActive) { log("response_recovery", "Solicitada resposta ao áudio confirmado."); syncCapture(); watchResponse(); }
+      responseActive = true;
+      syncCapture();
+      if (send({ type: "response.create" })) {
+        log("response_recovery", "Solicitada resposta ao áudio confirmado.");
+        watchResponse();
+      } else {
+        responseActive = false;
+        syncCapture();
+      }
     });
   };
   const commitAssistant = (text = assistantText) => {
@@ -258,7 +266,13 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           log("speech_started", "Voz do aluno detectada.");
           break;
         case "input_audio_buffer.speech_stopped":
-          userSpeaking = false; options.onVoiceState("analyzing"); watchResponse(); recoverTurn(); break;
+          userSpeaking = false;
+          responseActive = true; // immediately block mic
+          options.onVoiceState("analyzing");
+          watchResponse();
+          recoverTurn();
+          syncCapture();
+          break;
         case "input_audio_buffer.committed":
           pendingTurn = true; recoverTurn(); break;
         case "conversation.item.input_audio_transcription.delta": {
@@ -317,7 +331,16 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           stage = "playback"; playbackActive = true; clear("echo"); watchResponse(); syncCapture(); break;
         case "output_audio_buffer.stopped":
         case "output_audio_buffer.cleared":
-          later("echo", 200, () => { playbackActive = false; if (!responseActive) clear("response"); syncCapture(); recoverTurn(); }); break;
+          playbackActive = false;
+          echoGuardActive = true;
+          if (!responseActive) clear("response");
+          syncCapture();
+          later("echo", 600, () => {
+            echoGuardActive = false;
+            syncCapture();
+            recoverTurn();
+          });
+          break;
         case "response.done": {
           responseActive = false;
           const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");

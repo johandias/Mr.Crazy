@@ -1231,14 +1231,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       deviceId: inputDeviceRef.current,
       onInputLevel: (level) => {
         if (connectAbortRef.current === abortController && inputMeterRef.current) inputMeterRef.current.value = level;
-        if (level > 0.16 && !isCharacterAwake) {
-          setIsCharacterAwake(true);
+        if (level > 0.16) {
+          setIsCharacterAwake(prev => prev ? prev : true);
         }
       },
       onUserSpeechStarted: () => {
-        if (!isCharacterAwake) {
-          setIsCharacterAwake(true);
-        }
+        setIsCharacterAwake(true);
       },
       onDiagnostic: (event) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
@@ -1263,6 +1261,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       onVoiceState: (state) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           setVoiceState(state);
+          if (state === "speaking" || state === "preparing_speech" || state === "analyzing") {
+            setIsCharacterAwake(true);
+          }
           if (state === "listening") {
             cancelSpeech();
             setRealtimeReply("");
