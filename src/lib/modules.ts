@@ -809,3 +809,48 @@ export function setStoredModuleId(id: string): void {
     window.localStorage.setItem(STORAGE_KEY, targetId);
   } catch {}
 }
+
+export function detectConceptIndexFromText(
+  text: string,
+  concepts: LearningModuleConcept[]
+): number | null {
+  if (!text || !Array.isArray(concepts) || concepts.length === 0) return null;
+  const lower = text.toLowerCase();
+
+  // 1. Verificação explícita por número da fase: "fase 1", "fase 2", "etapa 3", "passo 4"
+  const phaseMatch = /(?:fase|etapa|passo)\s*([1-9])/i.exec(lower);
+  if (phaseMatch && phaseMatch[1]) {
+    const phaseNum = parseInt(phaseMatch[1], 10);
+    if (phaseNum >= 1 && phaseNum <= concepts.length) {
+      return phaseNum - 1;
+    }
+  }
+
+  // 2. Verificação pela frase-alvo (targetPhrase) ou frase de exemplo (samplePhrases)
+  for (let i = 0; i < concepts.length; i++) {
+    const c = concepts[i];
+    const candidatePhrases = [c.targetPhrase, ...(c.samplePhrases || [])].filter(Boolean) as string[];
+    for (const phrase of candidatePhrases) {
+      const phraseClean = phrase.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+      const textClean = lower.replace(/[^a-z0-9\s]/g, "");
+      if (phraseClean && phraseClean.length >= 4 && textClean.includes(phraseClean)) {
+        return i;
+      }
+    }
+  }
+
+  // 3. Verificação por significado ou palavras-chave marcantes do significado
+  for (let i = 0; i < concepts.length; i++) {
+    const c = concepts[i];
+    if (c.meaningPt) {
+      const meaningClean = c.meaningPt.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+      const textClean = lower.replace(/[^a-z0-9\s]/g, "");
+      if (meaningClean.length >= 6 && textClean.includes(meaningClean)) {
+        return i;
+      }
+    }
+  }
+
+  return null;
+}
+

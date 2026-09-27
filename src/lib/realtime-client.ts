@@ -16,6 +16,7 @@ type Options = {
   level: LearningLevel;
   mode: string;
   moduleId?: string;
+  conceptIndex?: number;
   deviceId?: string;
   signal?: AbortSignal;
   getRecentContext?: () => { role: string; text: string }[];
@@ -123,10 +124,18 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     catch { report(new VoiceError("channel_send_failed", "A conexão não conseguiu enviar a mensagem. Reconecte a voz."), true); return false; }
   };
   const syncCapture = () => {
-    capture?.setEnabled(microphoneEnabled && !playbackActive && document.visibilityState !== "hidden");
-    capture?.setEnabled(microphoneEnabled && document.visibilityState !== "hidden");
+    const shouldCapture = microphoneEnabled && !playbackActive && !responseActive && document.visibilityState !== "hidden";
+    capture?.setEnabled(shouldCapture);
     if (!connected || closed) return;
-    options.onVoiceState(playbackActive ? (audio?.paused ? "preparing_speech" : "speaking") : responseActive ? "analyzing" : microphoneEnabled && document.visibilityState !== "hidden" ? "listening" : "idle");
+    options.onVoiceState(
+      playbackActive
+        ? (audio?.paused ? "preparing_speech" : "speaking")
+        : responseActive
+        ? "analyzing"
+        : microphoneEnabled && document.visibilityState !== "hidden"
+        ? "listening"
+        : "idle"
+    );
   };
   const watchResponse = () => later("response", 30_000, () => {
     if (responseActive) send({ type: "response.cancel" });
@@ -225,10 +234,11 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         case "input_audio_buffer.speech_started":
           userSpeaking = true;
           clear("turn");
-          if (responseActive) send({ type: "response.cancel" });
+          // Se o Mr. Crazy estiver falando ou gerando áudio, NÃO cancele!
+          // Isso impede que o eco do alto-falante ou ruído ambiente corte o Mr. Crazy no meio da explicação.
           if (playbackActive || responseActive) {
-            send({ type: "output_audio_buffer.clear" });
-            if (audio) { audio.pause(); }
+            log("speech_started_ignored", "Voz detectada durante a fala do Mr. Crazy; cancelamento evitado para garantir a explicação completa.");
+            break;
           }
           responseActive = false;
           playbackActive = false;
@@ -307,7 +317,12 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         later("ice-gather", 1500, resolve);
       }), lifetime.signal, 2000, "ice_gather_timeout");
     }
-    const query = new URLSearchParams({ level: options.level, mode: options.mode, ...(options.moduleId ? { moduleId: options.moduleId } : {}) });
+    const query = new URLSearchParams({
+      level: options.level,
+      mode: options.mode,
+      ...(options.moduleId ? { moduleId: options.moduleId } : {}),
+      ...(options.conceptIndex !== undefined ? { conceptIndex: String(options.conceptIndex) } : {})
+    });
     const localSdp = peer.localDescription?.sdp ?? offer.sdp;
     const openViaProxy = async () => {
       stage = "api"; log("session_request", "Abrindo sessão na API pelo proxy.");

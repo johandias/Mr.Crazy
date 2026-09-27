@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { LEARNING_MODULES, getModuleById } from "../src/lib/modules.ts";
+import { LEARNING_MODULES, getModuleById, detectConceptIndexFromText } from "../src/lib/modules.ts";
 
 test("score >= 70 qualifies for automatic progression to next module", () => {
   const currentModuleId = LEARNING_MODULES[0].id;
@@ -62,4 +62,35 @@ test("initial greeting for greetings module includes Brazilian phonetic pronunci
   assert.ok(greetingsModule.initialGreeting.pt.includes("Rélou! Gúd mórnin"));
   assert.ok(greetingsModule.initialGreeting.pt.includes("Hello! Good morning"));
 });
+
+test("detectConceptIndexFromText synchronizes active concept exactly with Mr. Crazy speech", () => {
+  const greetingsModule = getModuleById("greetings");
+  const teachingConcepts = greetingsModule.concepts.filter((c) => !c.isExam);
+
+  // Caso do print real do usuário: Mr. Crazy ensinando Concept 2 ("Hi, my name is Carlos")
+  const speechConcept2 = "Perfeito, vamos treinar como se apresentar e dizer seu nome. Em inglês, se fala: 'Hi, my name is Carlos.' A pronúncia soa como: 'Rái, mái nêim iz Cârlos.' Agora fala pra mim: 'Hi, my name is Carlos.'";
+  const index2 = detectConceptIndexFromText(speechConcept2, teachingConcepts);
+  assert.equal(index2, 1, "Deve identificar Fase 2 (Apresentando Seu Nome / Hi, my name is Carlos)");
+
+  // Mr. Crazy ensinando Concept 3 ("I'm from Brazil")
+  const speechConcept3 = "Show de bola! Agora vamos pra Fase 3: De onde você é! Em inglês se fala 'I'm from Brazil'. Pronúncia: 'Áim frôm Brâzil'. Fala pra mim: 'I'm from Brazil'!";
+  const index3 = detectConceptIndexFromText(speechConcept3, teachingConcepts);
+  assert.equal(index3, 2, "Deve identificar Fase 3 (De Onde Você É / I'm from Brazil)");
+
+  // Mr. Crazy ensinando Concept 1 ("Hello! Good morning")
+  const speechConcept1 = "Bora começar na vila inicial: Greetings & Introductions! Vamos treinar como dizer 'Olá! Bom dia'. Em inglês se fala 'Hello! Good morning', e a pronúncia soa como 'Rélou! Gúd mórnin'. Fala pra mim: 'Hello! Good morning'.";
+  const index1 = detectConceptIndexFromText(speechConcept1, teachingConcepts);
+  assert.equal(index1, 0, "Deve identificar Fase 1 (Dizendo Olá / Hello! Good morning)");
+
+  // Correção de erro na Fase 3 (não deve pular para a Fase 4)
+  const correctionSpeech = "Quase lá! Atenção à pronúncia de 'Brazil'. Repete de novo pra mim: 'I'm from Brazil'!";
+  const indexCorrection = detectConceptIndexFromText(correctionSpeech, teachingConcepts);
+  assert.equal(indexCorrection, 2, "Correção deve manter na Fase 3");
+
+  // Fala genérica sem conceito
+  const genericSpeech = "Tudo ótimo por aqui, como você tá?";
+  const indexGeneric = detectConceptIndexFromText(genericSpeech, teachingConcepts);
+  assert.equal(indexGeneric, null, "Fala genérica não deve alterar o índice");
+});
+
 

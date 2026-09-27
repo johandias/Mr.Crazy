@@ -143,7 +143,8 @@ export function buildRealtimeInstructions(
   levelValue: unknown,
   modeValue: unknown,
   profile?: Partial<UserProfile> | null,
-  moduleIdValue?: unknown
+  moduleIdValue?: unknown,
+  conceptIndexValue?: unknown
 ) {
   const level = normalizeLearningLevel(typeof levelValue === "string" ? levelValue : profile?.learning_level);
   const mode = normalizeSessionMode(modeValue);
@@ -187,31 +188,42 @@ PERFIL DO ALUNO CONECTADO NESTA SESSÃO:
 
   const isFreeConversation = activeModule?.id === "free-conversation" || mode === "free-conversation";
   const teachingConcepts = activeModule ? activeModule.concepts.filter((c) => !c.isExam) : [];
+
+  const rawIdx = typeof conceptIndexValue === "number" ? conceptIndexValue : parseInt(String(conceptIndexValue ?? 0), 10);
+  const activeConceptIdx = Number.isFinite(rawIdx) && rawIdx >= 0 && rawIdx < teachingConcepts.length ? rawIdx : 0;
+  const currentTargetConcept = teachingConcepts[activeConceptIdx] || teachingConcepts[0];
+
   const conceptsText = teachingConcepts.length > 0
     ? `\nFASES DE APRENDIZADO DESTE MÓDULO (TOTAL: ${teachingConcepts.length} FASES):\n` +
       teachingConcepts.map((c, i) => 
-        `Fase ${i + 1}: ${c.title}\n` +
+        `FASE ${i + 1}: ${c.title}\n` +
         `  - O que vai treinar (Significado em Português): "${c.meaningPt || c.objective}"\n` +
         `  - Como fala em Inglês: "${c.targetPhrase || c.samplePhrases[0]}"\n` +
         `  - Como é a Fonética (Pronúncia Aportuguesada): "${c.phoneticPt || ''}"\n` +
         `  - Objetivo pedagógico: ${c.objective}`
-      ).join("\n") +
-      `\n\nFÓRMULA PEDAGÓGICA OBRIGATÓRIA DO MR. CRAZY (3 ETAPAS ESSENCIAIS):
+      ).join("\n\n") +
+      `\n\nFASE ATUAL QUE VOCÊ DEVE TREINAR AGORA:
+- Você está EXATAMENTE na FASE ${activeConceptIdx + 1} de ${teachingConcepts.length}: "${currentTargetConcept?.title}"
+- Frase em inglês a ser treinada: "${currentTargetConcept?.targetPhrase}"
+- Significado em português: "${currentTargetConcept?.meaningPt}"
+- Fonética aportuguesada brasileira: "${currentTargetConcept?.phoneticPt}"
+- ATENÇÃO: NUNCA comece em outra fase! Comece ensinando e treinando estritamente a FASE ${activeConceptIdx + 1}!
+
+FÓRMULA PEDAGÓGICA OBRIGATÓRIA DO MR. CRAZY (3 ETAPAS ESSENCIAIS):
 Ao introduzir ou ensinar a frase de cada fase para o aluno, siga SEMPRE esta fórmula em português:
 1. Explique O QUE ele vai treinar e o SIGNIFICADO em português (ex: "Vamos treinar como dizer 'Olá! Bom dia'").
-2. Diga COMO SE FALA EM INGLÊS (ex: "Em inglês se fala 'Hello! Good morning'").
-3. Ensine COMO É A FONÉTICA / PRONÚNCIA APORTUGUESADA para ele assimilar o som como brasileiro (ex: "A pronúncia soa como 'Rélou! Gúd mórnin'").
-4. Convide o aluno a falar a frase em inglês (ex: "Agora fala pra mim: 'Hello! Good morning'!").
+2. Diga COMO SE FALA EM INGLÊS (ex: "Em inglês se fala '${currentTargetConcept?.targetPhrase}'").
+3. Ensine COMO É A FONÉTICA / PRONÚNCIA APORTUGUESADA para ele assimilar o som como brasileiro (ex: "A pronúncia soa como '${currentTargetConcept?.phoneticPt}'").
+4. Convide o aluno a falar a frase em inglês (ex: "Agora fala pra mim: '${currentTargetConcept?.targetPhrase}'!").
 
-PROGRESSÃO GRADUAL DO FÁCIL AO DIFÍCIL (SEM TEXTOS LONGOS NO INÍCIO):
-- Nas fases e módulos iniciais (níveis A1-A2), NUNCA fale parágrafos ou diálogos longos em inglês!
-- O treino começa simples: frases curtas (1 a 4 palavras) para o aluno destravar e acertar.
-- Textos mais longos para compreensão e resposta só entram gradualmente em fases mais avançadas.
+PROGRESSÃO GRADUAL DO FÁCIL AO DIFÍCIL:
+- Frases curtas e objetivas (1 a 4 palavras) para o aluno destravar e acertar.
+- NUNCA fale parágrafos ou diálogos longos em inglês no início.
 
 REGRA ESTRITA DE PASSAGEM DE FASE ATÉ O CHEFÃO:
 - Mantenha o que você ensina 100% no contexto da fase ativa. NÃO pule de fase antes da hora!
 - O aluno SÓ PASSA DE FASE se ele TENTAR E REALMENTE ACERTAR a frase-alvo (ou falar pelo menos 70% certo). Se errar ou falar ruído, mantenha na mesma fase com bronca bem-humorada e novo modelo fonético.
-- Quando ele dominar a fase, comemore ("Aí sim! Fase dominada!") e passe para a fase seguinte.
+- Quando ele dominar a fase, comemore ("Aí sim! Fase dominada!") e anuncie explicitamente o avanço: "Agora vamos para a Fase seguinte: ...".
 - Ao concluir a última fase (${teachingConcepts.length}), comemore a conclusão do treino e anuncie que ele está pronto para enfrentar o CHEFÃO na prova prática final!`
     : "";
 
@@ -263,7 +275,8 @@ export function buildRealtimeSession(
   modeValue: unknown,
   profile?: Partial<UserProfile> | null,
   modelName: string = "gpt-realtime-2.1-mini",
-  moduleIdValue?: unknown
+  moduleIdValue?: unknown,
+  conceptIndexValue?: unknown
 ) {
   const isGptRealtime = modelName.startsWith("gpt-realtime");
   const transcription = isGptRealtime
@@ -275,16 +288,16 @@ export function buildRealtimeSession(
   return {
     type: "realtime",
     model: modelName,
-    instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue),
+    instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue, conceptIndexValue),
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
         transcription,
         turn_detection: {
           type: "server_vad",
-          threshold: 0.50,
+          threshold: 0.60,
           prefix_padding_ms: 250,
-          silence_duration_ms: 550,
+          silence_duration_ms: 700,
           create_response: true,
           interrupt_response: false
         }

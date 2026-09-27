@@ -35,7 +35,8 @@ import {
   getModuleById,
   getStoredModuleId,
   setStoredModuleId,
-  DEFAULT_MODULE_ID
+  DEFAULT_MODULE_ID,
+  detectConceptIndexFromText
 } from "@/lib/modules";
 import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
 import { ModuleEvaluationModal } from "@/components/ModuleEvaluationModal";
@@ -526,6 +527,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     selectedMode: "free-conversation",
     selectedModuleId: DEFAULT_MODULE_ID,
     selectedLevel: "basic" as LearningLevel,
+    currentConceptIndex: 0,
     contextHistory: [] as ConversationTurn[]
   });
 
@@ -812,9 +814,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       selectedMode,
       selectedModuleId,
       selectedLevel,
+      currentConceptIndex,
       contextHistory
     };
-  }, [contextHistory, crazyLevel, mistakes, selectedLevel, selectedMode, selectedModuleId]);
+  }, [contextHistory, crazyLevel, currentConceptIndex, mistakes, selectedLevel, selectedMode, selectedModuleId]);
 
   useEffect(() => {
     if (!canSpeak) return;
@@ -1151,11 +1154,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     const level = scoringContextRef.current.selectedLevel;
     const mode = scoringContextRef.current.selectedMode;
     const moduleId = scoringContextRef.current.selectedModuleId || selectedModuleId;
+    const conceptIndex = scoringContextRef.current.currentConceptIndex;
 
     return connectRealtime({
       level,
       mode,
       moduleId,
+      conceptIndex,
       signal: abortController.signal,
       deviceId: inputDeviceRef.current,
       onInputLevel: (level) => {
@@ -1236,33 +1241,36 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           });
           setRealtimeReply("");
 
-          // Disparo automático de gestos, avaliação de fase e Puticidade do Mr. Crazy
+          // Disparo automático de gestos, avaliação de fase e sincronização estrita com o Mr. Crazy
           const lower = clean.toLowerCase();
           const isGreetingOnly = /(tudo ótimo por aqui|tudo bem por aqui|como você tá|e com você|bora treinar|o que manda|fala comigo|seja bem-vindo|seja bem-vinda)/i.test(lower);
+          const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz)/i.test(lower);
           const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
           const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez|não consegui te ouvir|não te ouvi|não entendi|porra|burro|burrada|desgraça|caralho)/i.test(lower);
 
-          if (isPraise && !isCorrection && !isGreetingOnly) {
-            triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
-            // Acertou: Puticidade esfria um pouco
-            setCrazyLevel((prev) => clampCrazyLevel(prev - 12));
-            // O aluno só passa de fase quando o Mr. Crazy avaliar que ele realmente está bem e acertou
-            if (teachingConcepts.length > 0) {
-              setCurrentConceptIndex((prevIndex) => {
-                const nextIndex = prevIndex + 1;
-                if (nextIndex >= teachingConcepts.length) {
-                  setIsLessonCompleted(true);
-                  return Math.max(0, teachingConcepts.length - 1);
-                }
-                return nextIndex;
-              });
+          // Sincroniza o cartão superior exatamente com a fase/conceito que o Mr. Crazy está ensinando
+          if (teachingConcepts.length > 0) {
+            const detectedConceptIdx = detectConceptIndexFromText(clean, teachingConcepts);
+            if (detectedConceptIdx !== null) {
+              setCurrentConceptIndex(detectedConceptIdx);
             }
-          } else if (isCorrection) {
+            const isAllCompleted =
+              /(todas as fases|fases concluídas|concluiu o treino|pronto pro chefão|enfrentar o chefão|prova final)/i.test(lower) ||
+              (detectedConceptIdx === teachingConcepts.length - 1 && isPraise && !isCorrection && !isInstruction);
+            if (isAllCompleted) {
+              setIsLessonCompleted(true);
+            }
+          }
+
+          if (isCorrection) {
             const options: CharacterGesture[] = ["watergun", "smoke", "finger"];
             triggerGesture(options[Math.floor(Math.random() * options.length)]);
             // Errou: Puticidade sobe e ele fica mais puto!
             setCrazyLevel((prev) => clampCrazyLevel(prev + 18));
-            // Se errou ou precisa de ajuste, mantém o aluno na fase atual para dominar
+          } else if (isPraise && !isCorrection && !isInstruction && !isGreetingOnly) {
+            triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
+            // Acertou: Puticidade esfria um pouco
+            setCrazyLevel((prev) => clampCrazyLevel(prev - 12));
           }
 
           setModuleTurnsCount((prev) => prev + 1);
