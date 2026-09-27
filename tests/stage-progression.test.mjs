@@ -176,7 +176,7 @@ test("buildRealtimeInstructions enforces 100% Portuguese teaching for guided mod
   const fs = await import("node:fs");
   const content = fs.readFileSync(new URL("../src/lib/realtime-session.ts", import.meta.url), "utf8");
 
-  assert.ok(content.includes("VOCÊ DEVE FALAR 100% EM PORTUGUÊS DO BRASIL!"), "Deve exigir 100% português para módulo guiado");
+  assert.ok(content.includes("VOCÊ SÓ PODE FALAR EM PORTUGUÊS DO BRASIL!"), "Deve exigir 100% português para módulo guiado");
   assert.ok(content.includes("FÓRMULA PEDAGÓGICA OBRIGATÓRIA"), "Deve incluir a fórmula didática");
   assert.ok(content.includes("isGuidedModule = Boolean(activeModule && activeModule.id !== \"free-conversation\" && teachingConcepts.length > 0)"), "Deve identificar módulo guiado");
 });
