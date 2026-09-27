@@ -170,7 +170,7 @@
     gap: 2px;
     overflow: hidden;
   }
-  /* ——— CHARACTER COLUMN: flex-start para não empurrar voice hub pra fora ——— */
+  /* ——— CHARACTER COLUMN: distribuição equilibrada e sem overflow ——— */
   .practice-main .clean-stage.history-is-closed .character-column {
     width: 100%;
     max-width: 440px;
@@ -179,22 +179,23 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
-    gap: 0;
+    gap: 4px;
   }
 
   .practice-main .teaching-concept-wrapper {
-    gap: 3px !important;
-    margin-bottom: 2px !important;
+    gap: 2px !important;
+    margin-bottom: 1px !important;
     max-width: 440px !important;
+    flex-shrink: 0;
   }
   .practice-main .teaching-concept-pill-bar {
-    padding: 3px 8px !important;
+    padding: 2px 8px !important;
     border-radius: 6px !important;
   }
   .practice-main .concept-step-number {
@@ -240,29 +241,30 @@
     width: min(94vw, 420px);
     margin-bottom: 2px;
     flex-shrink: 0;
-    max-height: clamp(48px, 9vh, 78px);
+    max-height: clamp(42px, 8dvh, 68px);
     overflow-y: auto;
   }
   .practice-main .character-speech-bubble {
-    padding: 5px 11px !important;
+    padding: 4px 10px !important;
   }
   .practice-main .speech-bubble-text {
-    font-size: 0.84rem !important;
-    line-height: 1.3 !important;
+    font-size: 0.82rem !important;
+    line-height: 1.25 !important;
   }
-  /* ——— CHARACTER AVATAR: altura proporcional em dvh ——— */
+  /* ——— CHARACTER AVATAR: tamanho proporcional e bonito no centro da tela ——— */
   .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
-    flex: 0 0 auto;
-    height: clamp(118px, 19dvh, 175px);
+    flex: 1 1 auto;
+    min-height: 120px;
+    max-height: clamp(135px, 23dvh, 190px);
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
   }
   .practice-main .clean-stage.history-is-closed .character-stage {
-    width: clamp(114px, 18dvh, 170px) !important;
-    height: clamp(114px, 18dvh, 170px) !important;
-    max-width: 60vw !important;
+    width: clamp(130px, 22dvh, 185px) !important;
+    height: clamp(130px, 22dvh, 185px) !important;
+    max-width: 65vw !important;
   }
   .practice-main .clean-stage.history-is-closed .rpg-character {
     width: 100% !important;
@@ -288,23 +290,27 @@
     min-height: 120px !important;
     scroll-behavior: auto;
   }
-  /* ——— VOICE HUB: empurra para o rodapé com margin-top: auto ——— */
+  /* ——— VOICE HUB: posicionado mais para cima, livre da barra de navegação ——— */
   .practice-main .practice-voice-hub {
     width: 100% !important;
     max-width: 400px !important;
-    gap: 3px !important;
-    margin-top: auto !important;
-    margin-bottom: 0 !important;
+    gap: 4px !important;
+    margin-top: 0 !important;
+    margin-bottom: 6px !important;
+    padding-bottom: 4px !important;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   /* Seletor de Modo Compacto */
   .practice-main .voice-mode-selector-pill {
-    padding: 1px 2px !important;
+    padding: 1px 3px !important;
     margin-bottom: 2px !important;
   }
   .practice-main .voice-mode-tab-btn {
     padding: 3px 8px !important;
-    font-size: 0.64rem !important;
+    font-size: 0.65rem !important;
   }
   /* Mic row: botão + ondas laterais */
   .practice-main .mic-btn-row {
@@ -336,37 +342,23 @@
     font-size: 0.66rem !important;
     margin-bottom: 1px !important;
   }
-  .practice-main .listening-wave-hub {
-    gap: 2px !important;
-    padding: 0 !important;
-  }
-  .practice-main .wave-status-pill {
-    padding: 2px 8px !important;
-    font-size: 0.68rem !important;
-  }
-  .practice-main .listening-wave-bars {
-    height: 20px !important;
-    max-width: 240px !important;
-    gap: 3px !important;
-  }
-  .practice-main .listening-wave-bars span {
-    width: 3px !important;
-    height: 16px !important;
-  }
   .practice-main .avatar-mic-halo-wrapper {
-    width: 60px !important;
-    height: 60px !important;
+    width: 58px !important;
+    height: 58px !important;
   }
   .practice-main .voice-input-control {
     flex-shrink: 0;
     margin: 0 !important;
-    gap: 2px !important;
+    gap: 3px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   .practice-main .voice-input-control .avatar-mic-circle-btn {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
-    min-height: 52px !important;
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
   }
   .practice-main .voice-action-badge {
     padding: 3px 10px !important;
@@ -377,12 +369,12 @@
   }
   .practice-main .history-toggle-row {
     flex-shrink: 0;
-    margin: 0 !important;
+    margin: 2px 0 0 !important;
   }
   .practice-main .history-toggle-pill-btn {
-    min-height: 26px !important;
+    min-height: 24px !important;
     padding: 2px 8px !important;
-    font-size: 0.68rem !important;
+    font-size: 0.66rem !important;
   }
   .practice-main .chat-suggestions-bar,
   .practice-main .quick-text-input-bar {

@@ -41,7 +41,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   const [animatedPhoneme, setPhoneme] = useState(0);
   const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
   // Animação de entrada: na rede descansando -> acorda quando o aluno falar -> pula pra posição de pé
-  const [entranceStage, setEntranceStage] = useState<EntranceStage>("hammock");
+  const [entranceStage, setEntranceStage] = useState<EntranceStage>(() => isAwake ? "standing" : "hammock");
   const wakingUpRef = useRef(false);
 
   // Rastreamento natural do mouse/toque com amortecimento e retorno suave
@@ -89,34 +89,14 @@ export const RpgCharacter = memo(function RpgCharacter({
     return () => clearInterval(interval);
   }, [voiceState]);
 
-  const startWakeUpSequence = useCallback(() => {
-    if (entranceStage === "standing" || wakingUpRef.current) return undefined;
-    wakingUpRef.current = true;
-    onAwaken?.();
-    setEntranceStage("alert");
-
-    const jumpTimer = setTimeout(() => {
-      setEntranceStage("jumping");
-    }, 600);
-
-    const standTimer = setTimeout(() => {
+  // Se o aluno começou a falar (isAwake) ou Mr. Crazy começou a falar, sai da rede e fica de pé imediatamente
+  useEffect(() => {
+    if (isAwake || voiceState === "speaking" || voiceState === "analyzing" || voiceState === "listening") {
       setEntranceStage("standing");
       wakingUpRef.current = false;
-    }, 1250);
-
-    return () => {
-      clearTimeout(jumpTimer);
-      clearTimeout(standTimer);
-    };
-  }, [entranceStage, onAwaken]);
-
-  // Se o aluno começou a falar (isAwake) ou Mr. Crazy começou a falar, sai da rede de descanso
-  useEffect(() => {
-    if ((isAwake || voiceState === "speaking") && entranceStage === "hammock" && !wakingUpRef.current) {
-      const cleanup = startWakeUpSequence();
-      return cleanup;
+      onAwaken?.();
     }
-  }, [isAwake, voiceState, entranceStage, startWakeUpSequence]);
+  }, [isAwake, voiceState, onAwaken]);
 
   const handleStageClick = () => {
     // Se ainda estiver na rede ou pulando, acorda e fica de pé imediatamente

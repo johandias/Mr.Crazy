@@ -552,6 +552,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, []);
 
   const handleAvatarTap = useCallback(() => {
+    setIsCharacterAwake(true);
     if (voiceState === "speaking" && realtimeRef.current) {
       realtimeRef.current.interrupt();
       setVoiceState("listening");
@@ -1232,8 +1233,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       deviceId: inputDeviceRef.current,
       onInputLevel: (level) => {
         if (connectAbortRef.current === abortController && inputMeterRef.current) inputMeterRef.current.value = level;
-        if (level > 0.16) {
-          setIsCharacterAwake(prev => prev ? prev : true);
+        if (level > 0.05) {
+          setIsCharacterAwake(true);
         }
       },
       onUserSpeechStarted: () => {
@@ -2033,21 +2034,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
             {/* Hub de Voz Central: Barrinhas de Áudio Responsivas + Botão de Microfone Animado */}
             <div className="practice-voice-hub">
-              <ListeningWave
-                active={
-                  (microphoneEnabled && realtimeStatus === "connected") ||
-                  voiceState === "speaking" ||
-                  voiceState === "preparing_speech" ||
-                  isHoldingToTalk
-                }
-                speaking={voiceState === "speaking" || voiceState === "preparing_speech"}
-                meterRef={inputMeterRef}
-                voiceState={voiceState}
-                isAwake={isCharacterAwake}
-                talkMode={talkMode}
-                isHolding={isHoldingToTalk}
-              />
-
               <VoiceInputControl
                 status={realtimeStatus}
                 enabled={microphoneEnabled}
@@ -2070,23 +2056,23 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   if (realtimeStatus === "connected") void connectSession();
                 }}
               />
-            </div>
 
-            {/* Botão para alternar exibição do histórico de conversa */}
-            <div className="history-toggle-row">
-              <button
-                type="button"
-                className={`history-toggle-pill-btn ${isHistoryExpanded ? "is-active" : ""}`}
-                onClick={() => setIsHistoryExpanded((prev) => !prev)}
-                title={isHistoryExpanded ? "Ocultar histórico e ver apenas balão" : "Ver conversa completa"}
-              >
-                <MessagesSquare size={16} />
-                <span>
-                  {isHistoryExpanded
-                    ? "Ocultar Histórico (Ver Balão)"
-                    : `Ver Histórico Completo (${allConversationItems.length})`}
-                </span>
-              </button>
+              {/* Botão compacto para alternar exibição do histórico de conversa */}
+              <div className="history-toggle-row">
+                <button
+                  type="button"
+                  className={`history-toggle-pill-btn ${isHistoryExpanded ? "is-active" : ""}`}
+                  onClick={() => setIsHistoryExpanded((prev) => !prev)}
+                  title={isHistoryExpanded ? "Ocultar histórico e ver apenas balão" : "Ver conversa completa"}
+                >
+                  <MessagesSquare size={14} />
+                  <span>
+                    {isHistoryExpanded
+                      ? "Ocultar Histórico"
+                      : `Histórico (${allConversationItems.length})`}
+                  </span>
+                </button>
+              </div>
             </div>
           </motion.div>
 
