@@ -22,6 +22,7 @@ export async function openMicrophone(options: {
     const audio: MediaTrackConstraints = {
       echoCancellation: true, noiseSuppression: true, autoGainControl: true,
       channelCount: { ideal: 1 },
+      latency: { ideal: 0.01 },
       ...(options.deviceId ? { deviceId: { exact: options.deviceId } } : {})
     };
     let stream: MediaStream;
@@ -77,7 +78,7 @@ export async function openMicrophone(options: {
         analyser.getFloatTimeDomainData(samples);
         const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
         options.onLevel?.(track.enabled && !track.muted ? Math.min(1, rms * 8) : 0);
-      }, 150);
+      }, 35);
       void context.resume().catch(() => {});
     }
   } catch {

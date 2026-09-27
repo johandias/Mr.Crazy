@@ -282,9 +282,9 @@ export function buildRealtimeSession(
         transcription,
         turn_detection: {
           type: "server_vad",
-          threshold: 0.72,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 850,
+          threshold: 0.50,
+          prefix_padding_ms: 250,
+          silence_duration_ms: 550,
           create_response: true,
           interrupt_response: false
         }

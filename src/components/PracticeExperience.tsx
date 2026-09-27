@@ -1888,21 +1888,36 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               />
             </div>
 
-            <VoiceInputControl
-              status={realtimeStatus}
-              enabled={microphoneEnabled}
-              error={errorMessage}
-              diagnostics={voiceDiagnostics}
-              meterRef={inputMeterRef}
-              deviceId={inputDeviceId}
-              onToggle={handleAvatarMicClick}
-              onReconnect={() => void connectSession()}
-              onDeviceChange={(id) => {
-                inputDeviceRef.current = id;
-                setInputDeviceId(id);
-                if (realtimeStatus === "connected") void connectSession();
-              }}
-            />
+            {/* Hub de Voz Central: Barrinhas de Áudio Responsivas + Botão de Microfone Animado */}
+            <div className="practice-voice-hub">
+              <ListeningWave
+                active={
+                  (microphoneEnabled && realtimeStatus === "connected") ||
+                  voiceState === "speaking" ||
+                  voiceState === "preparing_speech"
+                }
+                speaking={voiceState === "speaking" || voiceState === "preparing_speech"}
+                meterRef={inputMeterRef}
+                voiceState={voiceState}
+              />
+
+              <VoiceInputControl
+                status={realtimeStatus}
+                enabled={microphoneEnabled}
+                speaking={voiceState === "speaking" || voiceState === "preparing_speech"}
+                error={errorMessage}
+                diagnostics={voiceDiagnostics}
+                meterRef={inputMeterRef}
+                deviceId={inputDeviceId}
+                onToggle={handleAvatarMicClick}
+                onReconnect={() => void connectSession()}
+                onDeviceChange={(id) => {
+                  inputDeviceRef.current = id;
+                  setInputDeviceId(id);
+                  if (realtimeStatus === "connected") void connectSession();
+                }}
+              />
+            </div>
 
             {/* Botão para alternar exibição do histórico de conversa */}
             <div className="history-toggle-row">
@@ -1920,16 +1935,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 </span>
               </button>
             </div>
-
-            <ListeningWave
-              active={
-                voiceState === "listening" ||
-                voiceState === "speaking" ||
-                voiceState === "transcribing" ||
-                voiceState === "analyzing"
-              }
-              speaking={voiceState === "speaking"}
-            />
           </motion.div>
 
           {/* Histórico da Conversa: renderizado quando expandido */}

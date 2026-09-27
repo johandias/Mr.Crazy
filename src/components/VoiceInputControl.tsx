@@ -7,6 +7,7 @@ import type { RealtimeConnectionStatus, VoiceDiagnostic } from "@/lib/realtime-c
 type Props = {
   status: RealtimeConnectionStatus;
   enabled: boolean;
+  speaking?: boolean;
   error?: string;
   diagnostics?: VoiceDiagnostic[];
   meterRef?: RefObject<HTMLMeterElement | null>;
@@ -19,6 +20,7 @@ type Props = {
 export function VoiceInputControl({
   status,
   enabled,
+  speaking = false,
   onToggle
 }: Props) {
   const connecting = status === "connecting";
@@ -27,10 +29,20 @@ export function VoiceInputControl({
 
   return (
     <section className="voice-input-control clean-voice-dock" aria-label="Conversa por voz">
-      <div className="avatar-mic-dock">
+      <div className={`avatar-mic-halo-wrapper ${active ? "is-active" : "is-inactive"} ${speaking ? "is-speaking" : ""} ${connecting ? "is-connecting" : ""}`}>
+        {/* Anéis de pulso radiantes animados */}
+        {active && (
+          <>
+            <span className="mic-halo-pulse-ring ring-1" aria-hidden="true" />
+            <span className="mic-halo-pulse-ring ring-2" aria-hidden="true" />
+          </>
+        )}
+        {speaking && (
+          <span className="mic-halo-pulse-ring speaking-ring" aria-hidden="true" />
+        )}
         <button
           type="button"
-          className={`avatar-mic-circle-btn ${active ? "is-active" : "is-inactive"} ${connecting ? "is-connecting" : ""}`}
+          className={`avatar-mic-circle-btn ${active ? "is-active" : "is-inactive"} ${connecting ? "is-connecting" : ""} ${speaking ? "is-speaking" : ""}`}
           disabled={connecting}
           aria-busy={connecting}
           aria-pressed={active}
@@ -47,31 +59,33 @@ export function VoiceInputControl({
             connecting
               ? "Conectando..."
               : active
-              ? "Microfone ligado. Toque para mutar (mantém conectado)"
+              ? "Microfone ligado. Toque para pausar"
               : isConnected
-              ? "Microfone mutado. Toque para falar"
+              ? "Microfone pausado. Toque para falar"
               : "Toque para falar com o Mr. Crazy"
           }
           onClick={onToggle}
         >
           {connecting ? (
-            <LoaderCircle size={24} className="connection-spinner" />
+            <LoaderCircle size={28} className="connection-spinner" />
           ) : active ? (
-            <Mic size={24} />
+            <Mic size={28} className="mic-icon-active" />
           ) : (
-            <MicOff size={24} />
+            <MicOff size={26} className="mic-icon-inactive" />
           )}
         </button>
       </div>
 
-      <p className="voice-status" role="status">
+      <p className={`voice-status ${active ? "is-active" : ""} ${speaking ? "is-speaking" : ""}`} role="status">
         {connecting
-          ? "Conectando voz..."
+          ? "Conectando voz ao vivo..."
+          : speaking
+          ? "Mr. Crazy falando..."
           : active
-          ? "Microfone ativo (falando)"
+          ? "Microfone ligado • Pode falar"
           : isConnected
-          ? "Microfone mutado (conectado)"
-          : "Toque para falar"}
+          ? "Microfone pausado • Toque para falar"
+          : "Toque no microfone para começar"}
       </p>
     </section>
   );
