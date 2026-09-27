@@ -465,6 +465,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const handleHoldStart = useCallback(() => {
     setIsHoldingToTalk(true);
     setMicrophoneEnabled(true);
+    setIsCharacterAwake(true);
     realtimeRef.current?.setMicrophoneEnabled(true);
   }, []);
 
@@ -1591,6 +1592,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       const enabled = !microphoneEnabled;
       realtimeRef.current.setMicrophoneEnabled(enabled);
       setMicrophoneEnabled(enabled);
+      if (enabled) setIsCharacterAwake(true);
       return;
     }
     void connectSession();

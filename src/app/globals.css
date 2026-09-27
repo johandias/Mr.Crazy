@@ -2701,17 +2701,16 @@ meter {
   flex-shrink: 0;
 }
 
-/* Seletor de Modo de Voz (Contínuo vs Segura-Solta WhatsApp) */
-/* ——— Mic Row: mic button + mode toggle side-by-side ——— */
+/* ——— Modo Contínuo: botão circular + toggle ——— */
 .mic-btn-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   position: relative;
 }
 
-/* Toggle de modo: ícone redondo pequeno à direita do mic */
+/* Toggle de modo (ícone Hand, redondo pequeno) */
 .ptt-mode-toggle-btn {
   display: flex;
   align-items: center;
@@ -2719,101 +2718,170 @@ meter {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #94a3b8;
-  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: #475569;
   cursor: pointer;
   transition: all 0.22s ease;
   user-select: none;
   flex-shrink: 0;
-  line-height: 1;
 }
 
 .ptt-mode-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.11);
   border-color: rgba(255, 255, 255, 0.28);
-  transform: scale(1.08);
+  color: #94a3b8;
+  transform: scale(1.1);
 }
 
 .ptt-mode-toggle-btn.is-ptt {
-  background: rgba(16, 185, 129, 0.18);
-  border-color: rgba(16, 185, 129, 0.55);
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.48);
+  color: #34d399;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.22);
 }
 
-.ptt-toggle-icon {
-  font-size: 1rem;
-  line-height: 1;
+/* ——— Modo Segura-Solta: dock horizontal 3 zonas ——— */
+.ptt-dock-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  padding: 8px 12px;
+  background: rgba(13, 17, 26, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
 }
 
-/* ——— BOTÃO SEGURA-SOLTA (PTT hold button) ——— */
-/* Visual completamente diferente do botão circular padrão:
-   retangular, amber/laranja, com instrução textual */
-.ptt-hold-btn {
+/* Botão de segurar — esquerda */
+.ptt-dock-hold-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 160px;
-  height: 56px;
-  padding: 0 20px;
-  border-radius: 18px;
-  background: linear-gradient(145deg, #92400e, #78350f);
-  border: 2px solid #f59e0b;
-  color: #fef3c7;
-  font-size: 0.82rem;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 13px;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.15px;
   cursor: pointer;
   user-select: none;
   touch-action: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1.5px solid transparent;
 }
 
-.ptt-hold-btn:hover {
-  background: linear-gradient(145deg, #b45309, #92400e);
-  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
+.ptt-dock-hold-btn.is-idle {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.38);
+  color: #fbbf24;
 }
 
-.ptt-hold-btn.is-holding {
-  background: radial-gradient(circle at 40% 35%, #ef4444 0%, #dc2626 50%, #991b1b 100%);
-  border-color: #fca5a5;
-  color: #fff;
-  transform: scale(1.05);
-  box-shadow: 0 0 30px rgba(239, 68, 68, 0.7), 0 0 60px rgba(239, 68, 68, 0.3);
-  animation: pttHoldPulse 0.8s ease-in-out infinite alternate;
+.ptt-dock-hold-btn.is-idle:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  box-shadow: 0 3px 14px rgba(245, 158, 11, 0.3);
 }
 
-.ptt-hold-btn.is-cancelling {
-  background: radial-gradient(circle at 40% 35%, #b91c1c 0%, #7f1d1d 100%);
+.ptt-dock-hold-btn.is-recording {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.7);
+  color: #fca5a5;
+  transform: scale(1.04);
+  animation: pttHoldPulse 0.85s ease-in-out infinite alternate;
+}
+
+.ptt-dock-hold-btn.is-cancelling {
+  background: rgba(127, 29, 29, 0.55);
   border-color: #f87171;
+  color: #fecaca;
   transform: scale(0.96);
-  box-shadow: 0 0 24px rgba(239, 68, 68, 0.85);
 }
 
-.ptt-hold-btn.is-connecting {
-  background: rgba(14, 165, 233, 0.15);
+.ptt-dock-hold-btn.is-connecting {
+  background: rgba(14, 165, 233, 0.1);
   border-color: #38bdf8;
-  color: #38bdf8;
+  color: #7dd3fc;
 }
 
 @keyframes pttHoldPulse {
-  0% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.6), 0 0 50px rgba(239, 68, 68, 0.25); }
-  100% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.95), 0 0 80px rgba(239, 68, 68, 0.45); }
+  0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+  100% { box-shadow: 0 0 22px rgba(239, 68, 68, 0.8); }
 }
 
-.ptt-hold-icon {
-  font-size: 1.4rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.ptt-hold-label {
-  font-size: 0.8rem;
+.ptt-dock-label {
+  font-size: 0.72rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+/* Centro do dock: wave bars + status */
+.ptt-dock-center {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.ptt-dock-status {
+  font-size: 0.6rem;
+  color: #334155;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: 0.2px;
+}
+
+/* Barras de onda inline — usadas dentro do ptt-dock-center */
+.dock-wave-bars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 22px;
+  width: 100%;
+}
+
+.dock-wave-bars span {
+  display: block;
+  width: 2.5px;
+  border-radius: 2px;
+  background: #1e293b;
+  height: 3px;
+  transition: background 0.25s ease;
+}
+
+.dock-wave-bars.is-active span {
+  background: #10b981;
+  height: calc(3px + var(--user-level, 0) * calc(var(--height-mult, 0.5) * 16px));
+  transition: height 0.08s ease-out;
+}
+
+.dock-wave-bars.is-holding span {
+  background: #ef4444;
+  height: calc(4px + var(--user-level, 0.08) * calc(var(--height-mult, 0.5) * 18px));
+  transition: height 0.06s ease-out;
+}
+
+.dock-wave-bars.is-speaking span {
+  background: #f59e0b;
+  animation: dockBarSpeak calc(0.55s + var(--height-mult, 0.5) * 0.4s) ease-in-out infinite alternate;
+}
+
+@keyframes dockBarSpeak {
+  0% { transform: scaleY(0.45); }
+  100% { transform: scaleY(1.25); }
 }
 
 /* Indicador de Gravação Segura-Solta (WhatsApp) */
