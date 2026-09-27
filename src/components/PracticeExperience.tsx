@@ -965,7 +965,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
       if (teachingConcepts.length > 0) {
         setCurrentConceptIndex((curr) => {
-          const shouldAdvance = result.correct || nextTurns >= (curr + 1) * 2;
+          const shouldAdvance = Boolean(result.correct);
           if (shouldAdvance) {
             if (curr < teachingConcepts.length - 1) {
               return curr + 1;
@@ -1194,6 +1194,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         setTranscript(text);
         if (complete && text.trim()) {
           const clean = text.trim();
+          // Ignora ruído de fundo, respiração, cliques e alucinações curtas do Whisper
+          const isNoise =
+            clean.length < 2 ||
+            /^(you|thank you|thanks|bye|ok|\?|\!|\.|\.\.\.|\[.*\])$/i.test(clean);
+          if (isNoise) {
+            setTranscript("");
+            return;
+          }
+
           setContextHistory((current) => {
             const base =
               current.length === 0 && openingLine.trim()
@@ -1228,14 +1237,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
           // Disparo automático de gestos, avaliação de fase e Puticidade do Mr. Crazy
           const lower = clean.toLowerCase();
-          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
-          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez|porra|burro|burrada|desgraça|caralho)/i.test(lower);
+          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
+          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez|não consegui te ouvir|não te ouvi|não entendi|porra|burro|burrada|desgraça|caralho)/i.test(lower);
 
           if (isPraise && !isCorrection) {
             triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
             // Acertou: Puticidade esfria um pouco
             setCrazyLevel((prev) => clampCrazyLevel(prev - 12));
-            // O aluno só passa de fase quando o Mr. Crazy avaliar que ele realmente está bem
+            // O aluno só passa de fase quando o Mr. Crazy avaliar que ele realmente está bem e acertou
             if (teachingConcepts.length > 0) {
               setCurrentConceptIndex((prevIndex) => {
                 const nextIndex = prevIndex + 1;
@@ -1254,20 +1263,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             // Se errou ou precisa de ajuste, mantém o aluno na fase atual para dominar
           }
 
-          setModuleTurnsCount((prev) => {
-            const nextTurns = prev + 1;
-            if (teachingConcepts.length > 0) {
-              const estimatedConcept = Math.min(
-                Math.floor(nextTurns / 2),
-                teachingConcepts.length - 1
-              );
-              setCurrentConceptIndex(estimatedConcept);
-              if (nextTurns >= teachingConcepts.length * 2) {
-                setIsLessonCompleted(true);
-              }
-            }
-            return nextTurns;
-          });
           setModuleTurnsCount((prev) => prev + 1);
         }
       },
@@ -1883,54 +1878,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               </button>
             </div>
 
-            {/* Sugestões rápidas de resposta para destravar a conversa */}
-            {suggestedReplies.length > 0 && (
-              <div className="chat-suggestions-bar" aria-label="Sugestões de resposta rápida">
-                <div className="suggestions-chips-row">
-                  {suggestedReplies.map((reply, idx) => (
-                    <button
-                      key={`sug-${idx}-${reply}`}
-                      type="button"
-                      className="suggestion-chip-btn"
-                      disabled={voiceState === "analyzing"}
-                      onClick={() => handleSuggestionClick(reply)}
-                      title={`Enviar frase: "${reply}"`}
-                    >
-                      <Sparkles size={11} className="chip-icon" />
-                      <span>{reply}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Digitação rápida para não travar o aluno se o microfone falhar */}
-            <form
-              className="quick-text-input-bar"
-              onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                handleSubmit(e);
-              }}
-            >
-              <input
-                ref={mainInputRef}
-                value={manualText}
-                onChange={(e) => setManualText(e.target.value)}
-                placeholder={
-                  voiceState === "analyzing"
-                    ? "Mr.Crazy está analisando..."
-                    : "Digite em inglês ou português..."
-                }
-                aria-label="Mensagem para o professor"
-                disabled={voiceState === "analyzing"}
-              />
-              <button
-                type="submit"
-                disabled={!manualText.trim() || voiceState === "analyzing"}
-                title="Enviar frase"
-              >
-                <Send size={15} />
-              </button>
-            </form>
             <ListeningWave
               active={
                 voiceState === "listening" ||

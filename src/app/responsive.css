@@ -68,7 +68,15 @@
     background: var(--bg);
   }
   .app-shell .practice-main.clean-layout {
-    padding-top: calc(var(--app-safe-top) + 12px) !important;
+    height: calc(100dvh - var(--bottom-nav-space));
+    max-height: calc(100dvh - var(--bottom-nav-space));
+    padding-top: calc(var(--app-safe-top) + 6px) !important;
+    padding-bottom: 4px !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-sizing: border-box;
   }
   .app-shell .brand-mark { min-width: 0; gap: 7px; font-size: 1.05rem; }
   .app-shell .header-actions { gap: 6px; }
@@ -105,13 +113,21 @@
   .learning-map-page-view .checkpoint-card-actions { flex-wrap: wrap; }
   .learning-map-page-view .checkpoint-card-actions button { min-height: 36px; }
 
-  .practice-main .practice-header-nav-row { min-width: 0; }
-  .practice-main .active-module-pill-btn { max-width: none !important; min-height: 40px; }
-  .practice-main .stage-exam-action-btn { min-height: 40px; }
-  .practice-main .session-header { flex-wrap: wrap !important; overflow: visible !important; }
-  .practice-main .conversation-panel.clean-conversation { max-height: 45svh !important; scroll-behavior: auto; }
-  .practice-main .conversation-panel.clean-conversation { max-height: 135px !important; min-height: 85px !important; scroll-behavior: auto; }
-  .practice-main .conversation-panel.clean-conversation { max-height: 110px !important; min-height: 60px !important; scroll-behavior: auto; }
+  .practice-main .practice-header-nav-row {
+    min-width: 0;
+    margin-bottom: 2px !important;
+    flex-shrink: 0;
+  }
+  .practice-main .active-module-pill-btn {
+    max-width: none !important;
+    min-height: 36px !important;
+    padding: 4px 10px !important;
+    font-size: 0.85rem !important;
+  }
+  .practice-main .stage-exam-action-btn {
+    min-height: 36px !important;
+    padding: 4px 10px !important;
+  }
   .practice-main .session-header {
     display: flex;
     align-items: center;
@@ -119,33 +135,73 @@
     gap: 8px;
     flex-wrap: nowrap !important;
     overflow: visible !important;
+    margin-bottom: 2px !important;
+    padding: 2px 8px !important;
+    flex-shrink: 0;
   }
   @media (max-width: 520px) {
     .practice-main .session-header .session-stat-level {
       display: none !important;
     }
   }
+  .practice-main .module-concept-tracker-bar {
+    margin-bottom: 2px !important;
+    padding: 4px 10px !important;
+    min-height: unset !important;
+    flex-shrink: 0;
+  }
   .practice-main .clean-stage {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
-    gap: 8px;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 4px;
+    overflow: hidden;
   }
   .practice-main .clean-stage.history-is-closed .character-column {
     width: 100%;
     max-width: 440px;
+    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     align-items: center;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
+    gap: 2px;
+  }
+  .practice-main .clean-stage.history-is-closed .character-speech-bubble-container {
+    width: min(94vw, 420px);
+    margin-bottom: 2px;
+    flex-shrink: 0;
+    max-height: clamp(80px, 18vh, 125px);
+    overflow-y: auto;
+  }
+  .practice-main .character-speech-bubble {
+    padding: 6px 12px !important;
+  }
+  .practice-main .speech-bubble-text {
+    font-size: 0.86rem !important;
+    line-height: 1.32 !important;
+  }
+  .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .practice-main .clean-stage.history-is-closed .character-stage {
-    width: clamp(250px, 75vw, 340px) !important;
-    height: clamp(250px, 75vw, 340px) !important;
+    width: clamp(140px, 24vh, 210px) !important;
+    height: clamp(140px, 24vh, 210px) !important;
+    max-width: 58vw !important;
   }
   .practice-main .clean-stage.history-is-closed .rpg-character {
     width: 100% !important;
@@ -157,35 +213,44 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-height: 0;
   }
   .practice-main .clean-stage.history-is-open .rpg-character {
-    width: clamp(130px, 36vw, 175px) !important;
+    width: clamp(100px, 20vw, 130px) !important;
     height: auto !important;
   }
   .practice-main .clean-stage.history-is-open .conversation-panel.clean-conversation {
     width: 100%;
-    max-height: 48svh !important;
-    min-height: 180px !important;
+    max-height: 38svh !important;
+    min-height: 120px !important;
     scroll-behavior: auto;
   }
-  .practice-main .character-speech-bubble-container {
-    width: min(94vw, 420px);
-    margin-bottom: 6px;
+  .practice-main .voice-input-control {
+    flex-shrink: 0;
+    margin: 2px 0 !important;
   }
+  .practice-main .voice-input-control .avatar-mic-circle-btn {
+    width: 54px !important;
+    height: 54px !important;
+  }
+  .practice-main .voice-input-control .voice-status {
+    font-size: 0.78rem !important;
+    margin-top: 2px !important;
+  }
+  .practice-main .history-toggle-row {
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+  .practice-main .history-toggle-pill-btn {
+    min-height: 30px !important;
+    padding: 3px 12px !important;
+    font-size: 0.76rem !important;
+  }
+  .practice-main .chat-suggestions-bar,
   .practice-main .quick-text-input-bar {
-    min-height: 42px;
-    width: min(94vw, 420px);
-  }
-  .practice-main .quick-text-input-bar input {
-    min-width: 0;
-    font-size: 15px;
-  }
-  .practice-main .quick-text-input-bar input::placeholder {
-    font-size: 0.85rem;
-  }
-  .practice-main .quick-text-input-bar button {
-    width: 34px;
-    height: 34px;
+    display: none !important;
   }
 
   .evolution-dashboard { padding: 12px 0; min-width: 0; }
