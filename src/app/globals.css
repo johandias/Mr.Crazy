@@ -2702,39 +2702,118 @@ meter {
 }
 
 /* Seletor de Modo de Voz (Contínuo vs Segura-Solta WhatsApp) */
-.talk-mode-switcher-row {
+/* ——— Mic Row: mic button + mode toggle side-by-side ——— */
+.mic-btn-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 3px;
+  gap: 12px;
+  position: relative;
 }
 
-.talk-mode-switch-btn {
+/* Toggle de modo: ícone redondo pequeno à direita do mic */
+.ptt-mode-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  user-select: none;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.ptt-mode-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: scale(1.08);
+}
+
+.ptt-mode-toggle-btn.is-ptt {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.ptt-toggle-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ——— BOTÃO SEGURA-SOLTA (PTT hold button) ——— */
+/* Visual completamente diferente do botão circular padrão:
+   retangular, amber/laranja, com instrução textual */
+.ptt-hold-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
-  font-size: 0.68rem;
-  font-weight: 500;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+  height: 56px;
+  padding: 0 20px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #92400e, #78350f);
+  border: 2px solid #f59e0b;
+  color: #fef3c7;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
   cursor: pointer;
-  transition: all 0.2s ease;
   user-select: none;
+  touch-action: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.talk-mode-switch-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f1f5f9;
-  border-color: rgba(255, 255, 255, 0.25);
+.ptt-hold-btn:hover {
+  background: linear-gradient(145deg, #b45309, #92400e);
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
 }
 
-.talk-mode-switch-btn.is-ptt {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #34d399;
+.ptt-hold-btn.is-holding {
+  background: radial-gradient(circle at 40% 35%, #ef4444 0%, #dc2626 50%, #991b1b 100%);
+  border-color: #fca5a5;
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.7), 0 0 60px rgba(239, 68, 68, 0.3);
+  animation: pttHoldPulse 0.8s ease-in-out infinite alternate;
+}
+
+.ptt-hold-btn.is-cancelling {
+  background: radial-gradient(circle at 40% 35%, #b91c1c 0%, #7f1d1d 100%);
+  border-color: #f87171;
+  transform: scale(0.96);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.85);
+}
+
+.ptt-hold-btn.is-connecting {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+@keyframes pttHoldPulse {
+  0% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.6), 0 0 50px rgba(239, 68, 68, 0.25); }
+  100% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.95), 0 0 80px rgba(239, 68, 68, 0.45); }
+}
+
+.ptt-hold-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ptt-hold-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Indicador de Gravação Segura-Solta (WhatsApp) */

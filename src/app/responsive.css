@@ -238,7 +238,7 @@
     width: min(94vw, 420px);
     margin-bottom: 2px;
     flex-shrink: 0;
-    max-height: clamp(65px, 15vh, 105px);
+    max-height: clamp(56px, 11vh, 90px);
     overflow-y: auto;
   }
   .practice-main .character-speech-bubble {
@@ -256,9 +256,9 @@
     justify-content: center;
   }
   .practice-main .clean-stage.history-is-closed .character-stage {
-    width: clamp(125px, 21vh, 185px) !important;
-    height: clamp(125px, 21vh, 185px) !important;
-    max-width: 54vw !important;
+    width: clamp(175px, 32vh, 260px) !important;
+    height: clamp(175px, 32vh, 260px) !important;
+    max-width: 68vw !important;
   }
   .practice-main .clean-stage.history-is-closed .rpg-character {
     width: 100% !important;
@@ -287,17 +287,31 @@
   .practice-main .practice-voice-hub {
     width: 100% !important;
     max-width: 400px !important;
-    gap: 3px !important;
+    gap: 4px !important;
     margin-top: 2px !important;
     margin-bottom: 2px !important;
     flex-shrink: 0;
   }
-  .practice-main .talk-mode-switcher-row {
-    margin-bottom: 2px !important;
+  /* Mic row: botão + toggle lado a lado */
+  .practice-main .mic-btn-row {
+    gap: 10px !important;
   }
-  .practice-main .talk-mode-switch-btn {
-    padding: 2px 8px !important;
-    font-size: 0.65rem !important;
+  /* Toggle de modo: tamanho mobile */
+  .practice-main .ptt-mode-toggle-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.95rem !important;
+  }
+  /* Botão Segura-Solta: ajuste mobile */
+  .practice-main .ptt-hold-btn {
+    min-width: 145px !important;
+    height: 52px !important;
+    font-size: 0.78rem !important;
+    padding: 0 14px !important;
+    border-radius: 16px !important;
+  }
+  .practice-main .ptt-hold-icon {
+    font-size: 1.2rem !important;
   }
   .practice-main .ptt-recording-pill {
     padding: 2px 10px !important;
@@ -331,10 +345,10 @@
     gap: 0 !important;
   }
   .practice-main .voice-input-control .avatar-mic-circle-btn {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
-    min-height: 52px !important;
+    width: 56px !important;
+    height: 56px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
   }
   .practice-main .voice-input-control .voice-status {
     display: none !important;
@@ -352,6 +366,7 @@
   .practice-main .quick-text-input-bar {
     display: none !important;
   }
+
 
   .evolution-dashboard { padding: 12px 0; min-width: 0; }
   .evolution-dashboard .evolution-tabs { gap: 6px; }

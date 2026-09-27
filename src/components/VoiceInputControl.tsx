@@ -2,7 +2,7 @@
 
 import type { RefObject, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, Mic, MicOff, SlidersHorizontal } from "lucide-react";
+import { LoaderCircle, Mic, MicOff } from "lucide-react";
 import type { RealtimeConnectionStatus, VoiceDiagnostic } from "@/lib/realtime-client";
 
 type Props = {
@@ -120,22 +120,6 @@ export function VoiceInputControl({
 
   return (
     <section className="voice-input-control clean-voice-dock" aria-label="Conversa por voz">
-      {/* Botão de alternância de modo (Apenas quando o usuário clicar para ativar) */}
-      <div className="talk-mode-switcher-row">
-        <button
-          type="button"
-          className={`talk-mode-switch-btn ${isPtt ? "is-ptt" : ""}`}
-          onClick={() => onTalkModeChange?.(isPtt ? "continuous" : "push-to-talk")}
-          title="Alternar entre modo conversa contínua e modo segura-solta (WhatsApp)"
-        >
-          <SlidersHorizontal size={11} />
-          {isPtt ? (
-            <span>🟢 Modo WhatsApp (Segura-Solta)</span>
-          ) : (
-            <span>🎙️ Modo Contínuo (Toque p/ falar)</span>
-          )}
-        </button>
-      </div>
 
       {/* Indicador de Gravação estilo WhatsApp ao segurar o botão */}
       {isPtt && isHolding && (
@@ -148,71 +132,115 @@ export function VoiceInputControl({
         </div>
       )}
 
-      <div
-        className={`avatar-mic-halo-wrapper ${active ? "is-active" : "is-inactive"} ${
-          speaking ? "is-speaking" : ""
-        } ${connecting ? "is-connecting" : ""} ${isPtt && isHolding ? "is-holding" : ""} ${
-          isCancelling ? "is-cancelling-audio" : ""
-        }`}
-      >
-        {/* Anéis de pulso radiantes animados */}
-        {active && (
-          <>
-            <span className="mic-halo-pulse-ring ring-1" aria-hidden="true" />
-            <span className="mic-halo-pulse-ring ring-2" aria-hidden="true" />
-          </>
-        )}
-        {speaking && (
-          <span className="mic-halo-pulse-ring speaking-ring" aria-hidden="true" />
-        )}
-        <button
-          type="button"
-          className={`avatar-mic-circle-btn ${active ? "is-active" : "is-inactive"} ${
-            connecting ? "is-connecting" : ""
-          } ${speaking ? "is-speaking" : ""} ${isPtt && isHolding ? "is-holding" : ""} ${
-            isCancelling ? "is-cancelling" : ""
-          }`}
-          disabled={connecting}
-          aria-busy={connecting}
-          aria-pressed={active}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-          onContextMenu={(e) => e.preventDefault()}
-          onClick={handleClick}
-          aria-label={
-            connecting
-              ? "Conectando à conversa de voz"
-              : isPtt
-              ? isHolding
+      {/* Wrapper do botão com toggle de modo à direita */}
+      <div className="mic-btn-row">
+        {isPtt ? (
+          /* ——— MODO SEGURA-SOLTA: Botão retangular estilo "pressionar e segurar" ——— */
+          <button
+            type="button"
+            className={`ptt-hold-btn ${isHolding ? "is-holding" : ""} ${isCancelling ? "is-cancelling" : ""} ${connecting ? "is-connecting" : ""}`}
+            disabled={connecting}
+            aria-busy={connecting}
+            aria-pressed={isHolding}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-label={
+              connecting
+                ? "Conectando à conversa de voz"
+                : isHolding
                 ? "Gravando áudio... Solte para enviar"
-                : "Segure para falar (modo WhatsApp)"
-              : active
-              ? "Mutar microfone"
-              : "Desmutar microfone"
-          }
-          title={
-            connecting
-              ? "Conectando..."
-              : isPtt
-              ? isHolding
+                : "Segure para falar"
+            }
+            title={
+              connecting
+                ? "Conectando..."
+                : isHolding
                 ? "Solte para enviar para a IA interpretar"
                 : "Segure para falar com o Mr. Crazy"
-              : active
-              ? "Microfone ligado. Toque para pausar"
-              : isConnected
-              ? "Microfone pausado. Toque para falar"
-              : "Toque para falar com o Mr. Crazy"
-          }
+            }
+          >
+            {connecting ? (
+              <LoaderCircle size={24} className="connection-spinner" />
+            ) : (
+              <>
+                <span className="ptt-hold-icon">{isHolding ? "🔴" : "🎙️"}</span>
+                <span className="ptt-hold-label">
+                  {isHolding
+                    ? isCancelling
+                      ? "Soltar para cancelar"
+                      : "Soltando • Envia"
+                    : "Segure para falar"}
+                </span>
+              </>
+            )}
+          </button>
+        ) : (
+          /* ——— MODO CONTÍNUO: Botão circular normal ——— */
+          <div
+            className={`avatar-mic-halo-wrapper ${active ? "is-active" : "is-inactive"} ${
+              speaking ? "is-speaking" : ""
+            } ${connecting ? "is-connecting" : ""}`}
+          >
+            {/* Anéis de pulso radiantes animados */}
+            {active && (
+              <>
+                <span className="mic-halo-pulse-ring ring-1" aria-hidden="true" />
+                <span className="mic-halo-pulse-ring ring-2" aria-hidden="true" />
+              </>
+            )}
+            {speaking && (
+              <span className="mic-halo-pulse-ring speaking-ring" aria-hidden="true" />
+            )}
+            <button
+              type="button"
+              className={`avatar-mic-circle-btn ${active ? "is-active" : "is-inactive"} ${
+                connecting ? "is-connecting" : ""
+              } ${speaking ? "is-speaking" : ""}`}
+              disabled={connecting}
+              aria-busy={connecting}
+              aria-pressed={active}
+              onContextMenu={(e) => e.preventDefault()}
+              onClick={handleClick}
+              aria-label={
+                connecting
+                  ? "Conectando à conversa de voz"
+                  : active
+                  ? "Mutar microfone"
+                  : "Desmutar microfone"
+              }
+              title={
+                connecting
+                  ? "Conectando..."
+                  : active
+                  ? "Microfone ligado. Toque para pausar"
+                  : isConnected
+                  ? "Microfone pausado. Toque para falar"
+                  : "Toque para falar com o Mr. Crazy"
+              }
+            >
+              {connecting ? (
+                <LoaderCircle size={28} className="connection-spinner" />
+              ) : active ? (
+                <Mic size={28} className="mic-icon-active" />
+              ) : (
+                <MicOff size={26} className="mic-icon-inactive" />
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Toggle de modo: ícone à direita do botão de mic */}
+        <button
+          type="button"
+          className={`ptt-mode-toggle-btn ${isPtt ? "is-ptt" : ""}`}
+          onClick={() => onTalkModeChange?.(isPtt ? "continuous" : "push-to-talk")}
+          title={isPtt ? "Modo Segura-Solta ativo. Toque para voltar ao modo contínuo" : "Ativar Modo Segura-Solta (Segure para falar, estilo WhatsApp)"}
+          aria-label={isPtt ? "Desativar modo segura-solta" : "Ativar modo segura-solta"}
         >
-          {connecting ? (
-            <LoaderCircle size={28} className="connection-spinner" />
-          ) : active ? (
-            <Mic size={28} className="mic-icon-active" />
-          ) : (
-            <MicOff size={26} className="mic-icon-inactive" />
-          )}
+          <span className="ptt-toggle-icon">{isPtt ? "👐" : "🤏"}</span>
         </button>
       </div>
 
@@ -226,7 +254,7 @@ export function VoiceInputControl({
             ? "Solte para cancelar o áudio"
             : isHolding
             ? "Gravando... Solte para enviar"
-            : "Segure o microfone para falar"
+            : "Segure o botão para falar"
           : active && !isAwake
           ? "Microfone ativo • Fale para acordar o Mr. Crazy"
           : active
