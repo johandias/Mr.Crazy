@@ -1210,7 +1210,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setTranscript("");
     setRealtimeReply("");
     setRealtimeStatus("connecting");
-    setMicrophoneEnabled(false);
+    if (!isAutoConnect) setIsCharacterAwake(true);
+    setMicrophoneEnabled(!isAutoConnect);
     setVoiceDiagnostics([]);
     setErrorMessage("");
     setVoiceState("preparing_speech");
@@ -1226,7 +1227,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       mode,
       moduleId,
       conceptIndex,
-      initialMicrophoneEnabled: false,
+      initialMicrophoneEnabled: !isAutoConnect,
       signal: abortController.signal,
       deviceId: inputDeviceRef.current,
       onInputLevel: (level) => {

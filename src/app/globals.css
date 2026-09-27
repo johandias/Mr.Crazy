@@ -25,7 +25,7 @@ html {
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
   min-height: 100dvh;
   margin: 0;
   color: var(--text);
@@ -53,7 +53,7 @@ a {
 }
 
 .app-shell {
-  min-height: 100vh;
+  min-height: 100dvh;
   min-height: 100dvh;
   overflow-x: hidden;
 }
@@ -193,7 +193,7 @@ a {
   flex-direction: column;
   gap: clamp(16px, 2.2vw, 24px);
   width: min(1440px, 100%);
-  min-height: calc(100vh - 79px);
+  min-height: calc(100dvh - 79px);
   margin: 0 auto;
   padding: clamp(16px, 2.6vw, 36px);
 }
@@ -2055,7 +2055,7 @@ mark {
 .simple-page {
   display: grid;
   place-items: center;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: clamp(18px, 5vw, 48px);
 }
 
@@ -2307,7 +2307,7 @@ meter {
   }
 
   .practice-main {
-    min-height: calc(100vh - 67px);
+    min-height: calc(100dvh - 67px);
     min-height: calc(100dvh - 67px);
     padding: 14px max(14px, env(safe-area-inset-right)) calc(56px + max(4px, calc(env(safe-area-inset-bottom) * 0.5))) max(14px, env(safe-area-inset-left));
   }
@@ -3244,7 +3244,7 @@ meter {
 
   .clean-layout {
     width: 100%;
-    min-height: 100vh;
+    min-height: 100dvh;
     min-height: 100dvh;
     padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) calc(76px + max(14px, env(safe-area-inset-bottom))) max(14px, env(safe-area-inset-left));
     display: flex;
@@ -4657,7 +4657,7 @@ meter {
 /* ONBOARDING FLOW & DIAGNOSTIC STYLES                                       */
 /* ========================================================================= */
 .onboarding-page-layout {
-  min-height: 100vh;
+  min-height: 100dvh;
   min-height: 100dvh;
   display: flex;
   align-items: center;
@@ -10418,7 +10418,7 @@ meter {
   position: fixed;
   inset: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   height: 100dvh;
   background: radial-gradient(circle at 50% 20%, #111827 0%, #080c14 100%);
   color: #f8fafc;
