@@ -37,3 +37,29 @@ test("next module target concept extracts first objective and practice phrase", 
   assert.ok(phraseToPractice.length > 0);
 });
 
+test("learning module concepts include targetPhrase, meaningPt, and phoneticPt", () => {
+  const greetingsModule = LEARNING_MODULES.find((m) => m.id === "greetings");
+  assert.ok(greetingsModule, "greetings module should exist");
+
+  const teachingConcepts = greetingsModule.concepts.filter((c) => !c.isExam);
+  assert.ok(teachingConcepts.length >= 4, "greetings should have at least 4 teaching concepts");
+
+  for (const concept of teachingConcepts) {
+    assert.ok(concept.targetPhrase, `Concept ${concept.id} must have targetPhrase`);
+    assert.ok(concept.meaningPt, `Concept ${concept.id} must have meaningPt`);
+    assert.ok(concept.phoneticPt, `Concept ${concept.id} must have phoneticPt`);
+  }
+
+  // Verificar o guia fonético brasileiro no primeiro conceito
+  const first = teachingConcepts[0];
+  assert.equal(first.targetPhrase, "Hello! Good morning.");
+  assert.equal(first.meaningPt, "Olá! Bom dia.");
+  assert.equal(first.phoneticPt, "Rélou! Gúd mórnin.");
+});
+
+test("initial greeting for greetings module includes Brazilian phonetic pronunciation", () => {
+  const greetingsModule = getModuleById("greetings");
+  assert.ok(greetingsModule.initialGreeting.pt.includes("Rélou! Gúd mórnin"));
+  assert.ok(greetingsModule.initialGreeting.pt.includes("Hello! Good morning"));
+});
+

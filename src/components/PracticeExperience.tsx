@@ -200,7 +200,8 @@ function buildOpeningLine(
   moduleId?: string
 ) {
   const isFemale = gender === "feminino";
-  const namePart = nickname?.trim() ? ` ${nickname.trim()}` : "";
+  const cleanNickname = nickname?.replace(/\s*\(admin\)/i, "").trim();
+  const namePart = cleanNickname ? ` ${cleanNickname}` : "";
   const readyWord = isFemale ? "pronta" : "pronto";
   const welcomeWord = isFemale ? "bem-vinda" : "bem-vindo";
 
@@ -1237,10 +1238,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
           // Disparo automático de gestos, avaliação de fase e Puticidade do Mr. Crazy
           const lower = clean.toLowerCase();
+          const isGreetingOnly = /(tudo ótimo por aqui|tudo bem por aqui|como você tá|e com você|bora treinar|o que manda|fala comigo|seja bem-vindo|seja bem-vinda)/i.test(lower);
           const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
           const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez|não consegui te ouvir|não te ouvi|não entendi|porra|burro|burrada|desgraça|caralho)/i.test(lower);
 
-          if (isPraise && !isCorrection) {
+          if (isPraise && !isCorrection && !isGreetingOnly) {
             triggerGesture(Math.random() > 0.5 ? "thumbsup" : "heart");
             // Acertou: Puticidade esfria um pouco
             setCrazyLevel((prev) => clampCrazyLevel(prev - 12));
@@ -1526,7 +1528,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             activeModuleId={selectedModuleId}
             onSelectModule={handleSelectModule}
             onClose={() => setIsSelectingModule(false)}
-            userName={studentProfile?.nickname || "Aluno"}
+            userName={studentProfile?.nickname?.replace(/\s*\(admin\)/i, "").trim() || "Aluno"}
             streakDays={7}
             xp={xp}
           />
@@ -1776,21 +1778,62 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         </div>
 
         {teachingConcepts.length > 0 && (
-          <div className="teaching-concept-pill-bar">
-            <div className="teaching-concept-badge">
-              <span className="concept-step-number">
-                Tópico {Math.min(currentConceptIndex + 1, teachingConcepts.length)}/{teachingConcepts.length}
-              </span>
-              <span className="concept-step-title">
-                {teachingConcepts[currentConceptIndex]?.title || activeModule.title}
-              </span>
+          <div className="teaching-concept-wrapper">
+            <div className="teaching-concept-pill-bar">
+              <div className="teaching-concept-badge">
+                <span className="concept-step-number">
+                  Fase {Math.min(currentConceptIndex + 1, teachingConcepts.length)}/{teachingConcepts.length}
+                </span>
+                <span className="concept-step-title">
+                  {teachingConcepts[currentConceptIndex]?.title || activeModule.title}
+                </span>
+              </div>
+              {isLessonCompleted ? (
+                <span className="concept-completed-pill">Fase Concluída ✔</span>
+              ) : (
+                <span className="concept-objective-hint">
+                  {teachingConcepts[currentConceptIndex]?.objective}
+                </span>
+              )}
             </div>
-            {isLessonCompleted ? (
-              <span className="concept-completed-pill">Aula Concluída ✔</span>
-            ) : (
-              <span className="concept-objective-hint">
-                {teachingConcepts[currentConceptIndex]?.objective}
-              </span>
+
+            {/* Cartão Didático: Significado + Frase em Inglês + Guia Fonético Brasileiro */}
+            {teachingConcepts[currentConceptIndex] && (
+              <div className="teaching-study-card">
+                {teachingConcepts[currentConceptIndex].meaningPt && (
+                  <div className="study-card-item study-meaning">
+                    <span className="study-item-label">Significado</span>
+                    <span className="study-item-value">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
+                  </div>
+                )}
+                {teachingConcepts[currentConceptIndex].targetPhrase && (
+                  <div className="study-card-item study-phrase">
+                    <span className="study-item-label">Inglês</span>
+                    <button
+                      type="button"
+                      className="study-speak-trigger-btn"
+                      onClick={() => {
+                        const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
+                        if (phrase) speak(phrase, "speaking", "en-US");
+                      }}
+                      title="Ouvir pronúncia da frase em inglês"
+                    >
+                      <Volume2 size={13} className="inline-speak-icon" />
+                      <span className="study-item-value english-phrase">
+                        {teachingConcepts[currentConceptIndex].targetPhrase}
+                      </span>
+                    </button>
+                  </div>
+                )}
+                {teachingConcepts[currentConceptIndex].phoneticPt && (
+                  <div className="study-card-item study-phonetic">
+                    <span className="study-item-label">Fonética</span>
+                    <span className="study-item-value phonetic-guide">
+                      🗣️ {teachingConcepts[currentConceptIndex].phoneticPt}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

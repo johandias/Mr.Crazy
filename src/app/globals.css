@@ -1153,6 +1153,16 @@ a {
   border-color: rgba(255, 255, 255, 0.25);
 }
 
+/* Container de Tópico e Estudo do Módulo */
+.teaching-concept-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 960px;
+  flex-shrink: 0;
+}
+
 /* Barra de Tópico do Módulo */
 .teaching-concept-pill-bar {
   display: flex;
@@ -1160,12 +1170,97 @@ a {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  max-width: 960px;
-  padding: 6px 12px;
-  background: rgba(18, 24, 32, 0.75);
+  padding: 4px 10px;
+  background: rgba(18, 24, 32, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 8px;
   backdrop-filter: blur(8px);
+}
+
+/* Card Didático: Significado + Frase em Inglês + Guia Fonético */
+.teaching-study-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 12px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85));
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.study-card-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.study-item-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.study-item-value {
+  font-size: 0.78rem;
+  color: #f1f5f9;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.study-card-item.study-meaning .study-item-value {
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.study-speak-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: #38bdf8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+
+.study-speak-trigger-btn:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+  transform: translateY(-1px);
+}
+
+.study-item-value.english-phrase {
+  font-weight: 700;
+  color: #38bdf8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.study-item-value.phonetic-guide {
+  font-weight: 600;
+  color: #fbbf24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .teaching-concept-badge {

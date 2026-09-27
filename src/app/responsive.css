@@ -177,11 +177,58 @@
     padding: 0 !important;
     gap: 2px;
   }
+  .practice-main .teaching-concept-wrapper {
+    gap: 3px !important;
+    margin-bottom: 2px !important;
+    max-width: 440px !important;
+  }
+  .practice-main .teaching-concept-pill-bar {
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+  }
+  .practice-main .concept-step-number {
+    font-size: 0.65rem !important;
+    padding: 1px 6px !important;
+  }
+  .practice-main .concept-step-title {
+    font-size: 0.74rem !important;
+  }
+  .practice-main .concept-objective-hint {
+    font-size: 0.68rem !important;
+  }
+  .practice-main .teaching-study-card {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+  }
+  .practice-main .study-card-item {
+    gap: 5px !important;
+    width: 100% !important;
+  }
+  .practice-main .study-item-label {
+    font-size: 0.6rem !important;
+    padding: 1px 4px !important;
+  }
+  .practice-main .study-item-value {
+    font-size: 0.74rem !important;
+  }
+  .practice-main .study-item-value.english-phrase {
+    font-size: 0.78rem !important;
+  }
+  .practice-main .study-item-value.phonetic-guide {
+    font-size: 0.74rem !important;
+  }
+  .practice-main .study-speak-trigger-btn {
+    padding: 1px 5px !important;
+  }
   .practice-main .clean-stage.history-is-closed .character-speech-bubble-container {
     width: min(94vw, 420px);
     margin-bottom: 2px;
     flex-shrink: 0;
-    max-height: clamp(80px, 18vh, 125px);
+    max-height: clamp(65px, 15vh, 105px);
     overflow-y: auto;
   }
   .practice-main .character-speech-bubble {
@@ -199,9 +246,9 @@
     justify-content: center;
   }
   .practice-main .clean-stage.history-is-closed .character-stage {
-    width: clamp(140px, 24vh, 210px) !important;
-    height: clamp(140px, 24vh, 210px) !important;
-    max-width: 58vw !important;
+    width: clamp(125px, 21vh, 185px) !important;
+    height: clamp(125px, 21vh, 185px) !important;
+    max-width: 54vw !important;
   }
   .practice-main .clean-stage.history-is-closed .rpg-character {
     width: 100% !important;

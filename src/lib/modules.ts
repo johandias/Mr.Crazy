@@ -31,6 +31,9 @@ export interface ModuleConcept {
   objective: string;
   samplePhrases: string[];
   isExam?: boolean;
+  targetPhrase?: string;
+  meaningPt?: string;
+  phoneticPt?: string;
 }
 
 export interface LearningModule {
@@ -87,6 +90,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Dizendo Olá e Quebrando o Gelo",
         description: "Descubra as diferenças práticas entre 'Hi', 'Hello', 'Good morning' e 'Hey there'.",
         objective: "Cumprimentar com naturalidade e tom amigável.",
+        targetPhrase: "Hello! Good morning.",
+        meaningPt: "Olá! Bom dia.",
+        phoneticPt: "Rélou! Gúd mórnin.",
         samplePhrases: ["Hello! Good morning.", "Hey there, how are you?"]
       },
       {
@@ -95,7 +101,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Apresentando Seu Nome",
         description: "Como dizer quem você é sem soar robótico usando contrações nativas.",
         objective: "Falar seu nome usando 'I'm [nome]' ou 'My name is [nome]'.",
-        samplePhrases: ["I'm Carlos, nice to meet you.", "My name is Ana."]
+        targetPhrase: "Hi, my name is Carlos.",
+        meaningPt: "Oi, meu nome é Carlos.",
+        phoneticPt: "Rái, mái nêim iz Cârlos.",
+        samplePhrases: ["Hi, my name is Carlos.", "I'm Carlos, nice to meet you."]
       },
       {
         id: "greetings-3",
@@ -103,7 +112,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "De Onde Você É? (Origem e Cidade)",
         description: "Explique de onde você veio e onde mora atualmente no Brasil.",
         objective: "Informar país e cidade natal com preposições corretas.",
-        samplePhrases: ["I'm from Brazil, from São Paulo.", "I live in Rio de Janeiro."]
+        targetPhrase: "I'm from Brazil.",
+        meaningPt: "Eu sou do Brasil.",
+        phoneticPt: "Áim frôm Brâzil.",
+        samplePhrases: ["I'm from Brazil.", "I'm from Brazil, from São Paulo."]
       },
       {
         id: "greetings-4",
@@ -111,7 +123,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Perguntando Sobre a Outra Pessoa",
         description: "Inicie uma conversa rápida perguntando sobre o dia da outra pessoa.",
         objective: "Fazer uma pergunta de engajamento amigável.",
-        samplePhrases: ["How's it going?", "How are you doing today?"]
+        targetPhrase: "How are you doing today?",
+        meaningPt: "Como você está hoje?",
+        phoneticPt: "Ráu ár iú dúin tudêi?",
+        samplePhrases: ["How are you doing today?", "How's it going?"]
       },
       {
         id: "greetings-exam",
@@ -119,6 +134,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "🏆 Prova do Módulo 1: Diálogo com a Moradora Local",
         description: "Teste prático 100% em inglês com a moradora Sarah Jenkins. Ela não fala português!",
         objective: "Apresente-se, diga sua origem e converse com Sarah. Nota mínima para aprovação: 6.0.",
+        targetPhrase: "Hi! My name is..., I'm from Brazil, nice to meet you!",
+        meaningPt: "Oi! Meu nome é..., sou do Brasil, prazer em conhecer!",
+        phoneticPt: "Rái! Mái nêim iz..., Áim frôm Brâzil, náis tchú mít iú!",
         samplePhrases: ["Hi! My name is..., I'm from Brazil, nice to meet you!"],
         isExam: true
       }
@@ -142,7 +160,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Opa! Bora começar do começo na vila inicial: Greetings & Introductions! Como você se apresenta quando conhece alguém nos EUA? Fala pra mim: 'Hi, my name is [seu nome]'."
+      pt: "Bora começar na vila inicial: Greetings & Introductions! Vamos treinar como dizer 'Olá! Bom dia'. Em inglês se fala 'Hello! Good morning', e a pronúncia soa como 'Rélou! Gúd mórnin'. Fala pra mim: 'Hello! Good morning'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 1. Greetings & Introductions (A1). FOCO ESTRITO: O aluno deve treinar saudações, apresentações, nome, origem e como responder cumprimentos. NUNCA fuja desse tema. Ensine a frase em português e forneça o modelo em inglês para o aluno praticar.",
     mapCoords: { xPct: 12.5, yPct: 58.3 }
@@ -173,6 +191,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Chegando e Pedindo Mesa",
         description: "Comunique quantas pessoas estão com você e peça um lugar.",
         objective: "Solicitar uma mesa usando 'A table for two, please'.",
+        targetPhrase: "A table for two, please.",
+        meaningPt: "Uma mesa para dois, por favor.",
+        phoneticPt: "Â têibol fór tchú, pliz.",
         samplePhrases: ["A table for two, please.", "Can we sit by the window?"]
       },
       {
@@ -181,6 +202,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Bebidas & Cafeteria",
         description: "Como pedir cafés, águas, sucos e refrigerantes com polidez americana.",
         objective: "Pedir uma bebida usando 'Could I get...?'",
+        targetPhrase: "Could I get a coffee, please?",
+        meaningPt: "Você me vê um café, por favor?",
+        phoneticPt: "Cúd ái gét â cófi, pliz?",
         samplePhrases: ["Could I get an iced coffee, please?", "Just water for now, thanks."]
       },
       {
@@ -189,6 +213,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "O Pedido Principal",
         description: "Escolhendo pratos, guarnições e pontos da carne.",
         objective: "Fazer o pedido com 'I'll have the...'",
+        targetPhrase: "I'll have the burger with fries.",
+        meaningPt: "Eu vou querer o hambúrguer com batatas.",
+        phoneticPt: "Áiol rév dâ bãrguer uíd fráiz.",
         samplePhrases: ["I'll have the burger with fries.", "What do you recommend?"]
       },
       {
@@ -197,6 +224,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "A Conta e Gorjeta (Tip)",
         description: "Pedindo a conta sem passar vergonha e entendendo a gorjeta.",
         objective: "Pedir a conta usando 'Could we get the check, please?'",
+        targetPhrase: "Could we get the check, please?",
+        meaningPt: "Pode trazer a conta, por favor?",
+        phoneticPt: "Cúd uí gét dâ tchék, pliz?",
         samplePhrases: ["Check, please!", "Can we split the bill?"]
       },
       {
@@ -205,6 +235,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "🏆 Prova do Módulo 2: O Desafio do Garçom",
         description: "Atendimento completo com o garçom Oliver: peça mesa, escolha prato/bebida e solicite a conta.",
         objective: "Completar a refeição inteira em inglês com o garçom. Nota mínima: 6.0.",
+        targetPhrase: "Hi, table for two. I'll have the burger and the check, please.",
+        meaningPt: "Olá, mesa para dois. Vou querer o hambúrguer e a conta, por favor.",
+        phoneticPt: "Rái, têibol fór tchú. Áiol rév dâ bãrguer ênd dâ tchék, pliz.",
         samplePhrases: ["Hi, table for two. I'll have the burger and the check, please."],
         isExam: true
       }
@@ -228,7 +261,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Bem-vindo à cafeteria e restaurante do mapa! Como você pede uma mesa para dois ao garçom? Diga: 'A table for two, please'."
+      pt: "Bem-vindo ao restaurante e café! Vamos treinar como pedir uma mesa para dois. Em inglês se fala 'A table for two, please', e a pronúncia soa como 'Â têibol fór tchú, pliz'. Fala pra mim: 'A table for two, please'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 2. Restaurant & Café (A2). FOCO ESTRITO: O aluno deve treinar pedidos de comida, mesa, bebidas e a conta. Simule o atendimento do garçom americano de forma didática.",
     mapCoords: { xPct: 25.5, yPct: 34.5 }
@@ -259,7 +292,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Perguntando o Preço",
         description: "Como perguntar quanto custa algo sem confundir 'how much' e 'how many'.",
         objective: "Dominar 'How much is this?' e 'How much are these?'.",
-        samplePhrases: ["How much does this jacket cost?", "Is this item on sale?"]
+        targetPhrase: "How much is this?",
+        meaningPt: "Quanto custa isto?",
+        phoneticPt: "Ráu mãtchi iz diz?",
+        samplePhrases: ["How much is this?", "How much does this jacket cost?"]
       },
       {
         id: "shopping-2",
@@ -267,7 +303,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Tamanhos & Provador",
         description: "S, M, L, XL e como pedir para experimentar no provador.",
         objective: "Solicitar provador usando 'Can I try this on?'.",
-        samplePhrases: ["Do you have this in a larger size?", "Where are the fitting rooms?"]
+        targetPhrase: "Can I try this on?",
+        meaningPt: "Posso experimentar isto?",
+        phoneticPt: "Kén ái trâi diz ón?",
+        samplePhrases: ["Can I try this on?", "Where are the fitting rooms?"]
       },
       {
         id: "shopping-3",
@@ -275,7 +314,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Formas de Pagamento",
         description: "Dinheiro, cartão por aproximação e recibo da compra.",
         objective: "Perguntar sobre cartões e pedir o recibo ('Can I get a receipt?').",
-        samplePhrases: ["Do you take credit card or Apple Pay?", "Could I get a gift receipt, please?"]
+        targetPhrase: "Do you take credit card?",
+        meaningPt: "Vocês aceitam cartão de crédito?",
+        phoneticPt: "Du iú têik créditi cárd?",
+        samplePhrases: ["Do you take credit card?", "Could I get a gift receipt, please?"]
       },
       {
         id: "shopping-4",
@@ -283,6 +325,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Pedindo Direções no Shopping",
         description: "Encontrando a saída, banheiros e outras lojas.",
         objective: "Perguntar onde fica um local usando 'Excuse me, where is the...?'.",
+        targetPhrase: "Excuse me, where is the restroom?",
+        meaningPt: "Com licença, onde fica o banheiro?",
+        phoneticPt: "Ekskiúz mí, uér iz dâ réstrum?",
         samplePhrases: ["Excuse me, where is the restroom?", "Is there an elevator on this floor?"]
       },
       {
@@ -291,6 +336,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "🏆 Prova do Módulo 3: O Desafio da Loja",
         description: "Compre um item completo com a atendente Emma: preço, tamanho e forma de pagamento.",
         objective: "Concluir a compra em inglês com a atendente. Nota mínima: 6.0.",
+        targetPhrase: "How much is this? Can I try it on, please?",
+        meaningPt: "Quanto custa isto? Posso experimentar, por favor?",
+        phoneticPt: "Ráu mãtchi iz diz? Kén ái trâi it ón, pliz?",
         samplePhrases: ["How much is this jacket? Can I try it on in size Medium?"],
         isExam: true
       }
@@ -314,7 +362,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Chegamos ao centro comercial do mapa! Como você pergunta o preço de uma camiseta para a atendente? Diga: 'How much is this t-shirt?'."
+      pt: "Chegamos às compras no centro comercial! Vamos treinar como perguntar quanto custa algo. Em inglês se fala 'How much is this?', e a pronúncia soa como 'Ráu mãtchi iz diz?'. Fala pra mim: 'How much is this?'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 3. Shopping & Daily Life (A2-B1). FOCO ESTRITO: Treinar compras, preços, tamanhos, provador e pagamento em inglês.",
     mapCoords: { xPct: 38.5, yPct: 60.5 }
@@ -345,6 +393,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Imigração e Alfândega Sem Medo",
         description: "As 4 perguntas obrigatórias do oficial de imigração e como responder com segurança.",
         objective: "Responder motivo da viagem, duração e hospedagem com respostas curtas e precisas.",
+        targetPhrase: "I'm here on vacation for ten days.",
+        meaningPt: "Estou aqui de férias por dez dias.",
+        phoneticPt: "Áim ríer ón veiquêichon fór tén dêiz.",
         samplePhrases: ["I'm here on vacation for ten days.", "I'm staying at the Hilton Hotel."]
       },
       {
@@ -353,7 +404,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Bagagem e Conexões",
         description: "Achando a esteira de malas e lidando com malas atrasadas.",
         objective: "Perguntar onde retirar as malas e relatar extravio se necessário.",
-        samplePhrases: ["Where is the carousel for flight 204?", "My luggage didn't arrive."]
+        targetPhrase: "Where is baggage claim?",
+        meaningPt: "Onde retiro as bagagens?",
+        phoneticPt: "Uér iz béguedj clêim?",
+        samplePhrases: ["Where is baggage claim?", "Where is the carousel for flight 204?"]
       },
       {
         id: "travel-3",
@@ -361,6 +415,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Táxi, Uber e Transporte",
         description: "Como dar o endereço do hotel ao motorista e perguntar sobre o valor.",
         objective: "Informar destino com clareza usando 'Could you take me to...?'.",
+        targetPhrase: "Could you take me to this address, please?",
+        meaningPt: "Você pode me levar para este endereço, por favor?",
+        phoneticPt: "Cúd iú têik mi tchú diz âdrés, pliz?",
         samplePhrases: ["Could you take me to this address, please?", "How much will the fare be?"]
       },
       {
@@ -369,7 +426,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Check-in e Conforto no Hotel",
         description: "Pegando as chaves do quarto, senha do Wi-Fi e café da manhã.",
         objective: "Fazer o check-in no hotel usando 'I have a reservation under the name...'.",
-        samplePhrases: ["I have a reservation under John Silva.", "What is the Wi-Fi password?"]
+        targetPhrase: "I have a reservation under my name.",
+        meaningPt: "Eu tenho uma reserva no meu nome.",
+        phoneticPt: "Ái rév â rezêrvêichon ãnder mái nêim.",
+        samplePhrases: ["I have a reservation under my name.", "What is the Wi-Fi password?"]
       },
       {
         id: "travel-exam",
@@ -377,6 +437,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "🏆 Prova do Módulo 4: A Entrevista de Imigração",
         description: "Enfrente o oficial Lucas Vance no controle de passaporte. Sem ajuda e 100% em inglês.",
         objective: "Apresente seus dados, objetivo da viagem e estadia ao oficial. Nota mínima: 6.0.",
+        targetPhrase: "Good day officer. I'm here on vacation for ten days.",
+        meaningPt: "Bom dia oficial. Estou aqui de férias por dez dias.",
+        phoneticPt: "Gúd dêi óficêr. Áim ríer ón veiquêichon fór tén dêiz.",
         samplePhrases: ["Good day officer. I am visiting for ten days on holiday."],
         isExam: true
       }
@@ -400,7 +463,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Você acabou de aterrissar no aeroporto internacional! O oficial de imigração te pergunta: 'What is the purpose of your visit?'. Responda: 'I'm here on vacation'."
+      pt: "Desembarcamos no aeroporto internacional! Vamos treinar como responder ao oficial de imigração. Em inglês se fala 'I'm here on vacation for ten days', e a pronúncia soa como 'Áim ríer ón veiquêichon fór tén dêiz'. Fala pra mim: 'I'm here on vacation for ten days'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 4. Travel & Airport (B1). FOCO ESTRITO: Treinar imigração, aeroporto, táxi e check-in no hotel em inglês.",
     mapCoords: { xPct: 52.1, yPct: 32 }
@@ -431,7 +494,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Narrando o Fim de Semana no Passado",
         description: "Uso fluído de verbos no passado simples ('went', 'saw', 'cooked', 'stayed') sem travar.",
         objective: "Contar pelo menos 2 coisas que você fez recentemente usando verbos regulares e irregulares.",
-        samplePhrases: ["I watched a great documentary and relaxed at home.", "We visited some relatives."]
+        targetPhrase: "Last weekend I went out with friends.",
+        meaningPt: "No último fim de semana eu saí com amigos.",
+        phoneticPt: "Lést uíki-end ái uênt áut uíd frêndz.",
+        samplePhrases: ["Last weekend I went out with friends.", "I watched a great documentary and relaxed at home."]
       },
       {
         id: "inter-2",
@@ -439,7 +505,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Dando Opiniões Fortes e Educadas",
         description: "Expressões nativas como 'From my perspective', 'I feel that' e 'To be honest'.",
         objective: "Defender seu ponto de vista sem usar apenas 'I think'.",
-        samplePhrases: ["In my honest opinion, that's the best option.", "I totally agree with that perspective."]
+        targetPhrase: "In my opinion, that's the best option.",
+        meaningPt: "Na minha opinião, essa é a melhor opção.",
+        phoneticPt: "In mái ôpínion, déts dâ bést ópchon.",
+        samplePhrases: ["In my opinion, that's the best option.", "I totally agree with that perspective."]
       },
       {
         id: "inter-3",
@@ -447,7 +516,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Rotina Profissional e Projetos",
         description: "Descrevendo o que você faz no dia a dia do trabalho ou estudos.",
         objective: "Explicar sua função e principais desafios com clareza.",
-        samplePhrases: ["I manage technical projects and coordinate the team.", "Right now we are migrating our database."]
+        targetPhrase: "Right now I'm working on a new project.",
+        meaningPt: "Agora estou trabalhando em um novo projeto.",
+        phoneticPt: "Ráit náu áim uõrkin ón â niú pródjéct.",
+        samplePhrases: ["Right now I'm working on a new project.", "I manage technical projects and coordinate the team."]
       },
       {
         id: "inter-4",
@@ -455,7 +527,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Concordando, Discordando e Conectivos",
         description: "Como discordar com elegância usando 'That makes sense, however...' e 'On the other hand'.",
         objective: "Manter o ritmo da conversa usando conectivos de transição naturais.",
-        samplePhrases: ["I see your point, but on the other hand...", "That makes total sense."]
+        targetPhrase: "That makes total sense, but on the other hand...",
+        meaningPt: "Isso faz todo sentido, mas por outro lado...",
+        phoneticPt: "Dét mêiks tôutal sêns, bãt ón dí õder rênd...",
+        samplePhrases: ["That makes total sense, but on the other hand...", "I see your point, but on the other hand..."]
       },
       {
         id: "inter-5",
@@ -463,6 +538,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "🏆 Prova do Módulo 5: O Bate-Papo Corporativo",
         description: "Converse com o colega David Chen sobre projetos, fim de semana e opiniões de trabalho.",
         objective: "Sustentar conversa intermediária fluida com David em inglês. Nota mínima: 6.0.",
+        targetPhrase: "Hey David, last weekend was great and this project is on track.",
+        meaningPt: "Ei David, o fim de semana foi ótimo e o projeto está no rumo certo.",
+        phoneticPt: "Rêi Dêivid, lést uíki-end uóz grêit ênd diz pródjéct iz ón trék.",
         samplePhrases: ["Hey David, last week we tackled the database redesign, which improved speed significantly."],
         isExam: true
       }
@@ -486,7 +564,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Estamos no escritório moderno do mapa! Me conta em inglês o que você fez no último fim de semana. Comece dizendo: 'Last weekend I went to...'."
+      pt: "Chegamos ao escritório moderno! Vamos treinar como contar o que você fez no fim de semana. Em inglês se fala 'Last weekend I went out with friends', e a pronúncia soa como 'Lést uíki-end ái uênt áut uíd frêndz'. Fala pra mim: 'Last weekend I went out with friends'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 5. Intermediate Conversations (B1-B2). FOCO ESTRITO: Treinar narração no passado, dar opiniões, falar de trabalho e rotina.",
     mapCoords: { xPct: 64.6, yPct: 60.5 }
@@ -517,7 +595,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "O Pitch Pessoal de Alto Impacto ('Elevator Pitch')",
         description: "Como se posicionar como especialista em 60 segundos em inglês.",
         objective: "Apresentar sua trajetória profissional com precisão vocabular e sem hesitações.",
-        samplePhrases: ["I specialize in scaling operations with a track record of driving efficiency.", "My expertise lies in..."]
+        targetPhrase: "I specialize in operations and team leadership.",
+        meaningPt: "Eu me especializo em operações e liderança de equipe.",
+        phoneticPt: "Ái spéchialáiz in ópêrêichonz ênd tím lídership.",
+        samplePhrases: ["I specialize in operations and team leadership.", "My expertise lies in driving efficiency."]
       },
       {
         id: "adv-2",
@@ -525,7 +606,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Respondendo Sobre Falhas e Lições Aprendidas",
         description: "Metodologia STAR (Situação, Tarefa, Ação, Resultado) em inglês.",
         objective: "Descrever um obstáculo superado com humildade e liderança.",
-        samplePhrases: ["When faced with an unexpected outage, we pivoted our strategy immediately.", "The key takeaway was..."]
+        targetPhrase: "The key takeaway was how we pivoted quickly.",
+        meaningPt: "A principal lição foi como mudamos de rumo rapidamente.",
+        phoneticPt: "Dâ kí têiquêuêi uóz ráo uí pívôted cuíckli.",
+        samplePhrases: ["The key takeaway was how we pivoted quickly.", "When faced with an unexpected outage, we pivoted immediately."]
       },
       {
         id: "adv-3",
@@ -533,7 +617,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Argumentação e Negociação Sob Pressão",
         description: "Como defender recursos, prazos e decisões contrárias à liderança com tato.",
         objective: "Usar linguagem condicional avançada e orações subordinadas.",
-        samplePhrases: ["Given the current constraints, investing in this infrastructure is paramount.", "If we prioritize this now..."]
+        targetPhrase: "Given the constraints, this is our top priority.",
+        meaningPt: "Dadas as limitações, esta é nossa prioridade máxima.",
+        phoneticPt: "Guíven dâ constrêints, diz iz áuer tóp praióriti.",
+        samplePhrases: ["Given the constraints, this is our top priority.", "If we prioritize this now, costs will decrease."]
       },
       {
         id: "adv-4",
@@ -541,7 +628,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Nuances Culturais e Humor Corporativo",
         description: "Entendendo ironia sutil, metáforas de negócios e ritmo de reunião executiva.",
         objective: "Reconhecer expressões idiomáticas de negócios e responder no tom certo.",
-        samplePhrases: ["Let's touch base on that tomorrow.", "We need to align our stakeholders before rollout."]
+        targetPhrase: "Let's touch base tomorrow morning on this.",
+        meaningPt: "Vamos nos falar amanhã de manhã sobre isso.",
+        phoneticPt: "Léts tchãtch bêis tchu-mórou mórnin ón diz.",
+        samplePhrases: ["Let's touch base tomorrow morning on this.", "We need to align our stakeholders before rollout."]
       },
       {
         id: "adv-exam",
@@ -549,6 +639,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "🏆 Prova do Módulo 6: A Reunião com a Diretora Executiva",
         description: "Apresente sua proposta e responda aos questionamentos difíceis da diretora Victoria Sterling.",
         objective: "Demonstrar autoridade e clareza corporativa em inglês com Victoria. Nota mínima: 6.0.",
+        targetPhrase: "Good afternoon Victoria. I specialize in scaling teams and driving results.",
+        meaningPt: "Boa tarde Victoria. Eu me especializo em escalar equipes e gerar resultados.",
+        phoneticPt: "Gúd éfternun Victória. Ái spéchialáiz in squêilin tímz ênd dráivin rizãlts.",
         samplePhrases: ["Good afternoon Victoria. I'd like to outline the key trade-offs in our proposed strategy."],
         isExam: true
       }
@@ -572,7 +665,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Você entrou na sala executiva do topo da torre! Imagine que o entrevistador perguntou: 'Tell me about yourself'. Faça um pitch profissional em inglês começando com 'I specialize in...'."
+      pt: "Entramos na sala executiva de alto nível! Vamos treinar seu pitch profissional. Em inglês se fala 'I specialize in operations and team leadership', e a pronúncia soa como 'Ái spéchialáiz in ópêrêichonz ênd tím lídership'. Fala pra mim: 'I specialize in operations and team leadership'."
     },
     promptContext: "MÓDULO ATIVO: Etapa 6. Advanced Communication (B2-C1). FOCO ESTRITO: Treinar entrevistas avançadas, argumentação executiva, debates e precisão em inglês.",
     mapCoords: { xPct: 76.4, yPct: 34 }
@@ -603,7 +696,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Improviso e Respostas Espontâneas",
         description: "Responder a qualquer tema aleatório sem ensaio prévio e sem recorrer a muletas em português.",
         objective: "Manter fala contínua de 40 segundos sobre tema surpresa.",
-        samplePhrases: ["That's an intriguing question. Let me reflect on how that relates to..."]
+        targetPhrase: "That's an interesting point to think about.",
+        meaningPt: "Esse é um ponto interessante para se pensar.",
+        phoneticPt: "Déts én íntrêstin póint tchú tink âbáut.",
+        samplePhrases: ["That's an interesting point to think about.", "Let me reflect on how that relates to this."]
       },
       {
         id: "boss-2",
@@ -611,7 +707,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Ironia, Metáforas e Conexões Culturais",
         description: "Compreensão de figuras de linguagem em conversas nativas velozes.",
         objective: "Utilizar pelo menos uma metáfora ou analogia de forma adequada.",
-        samplePhrases: ["It's like comparing apples to oranges.", "We shouldn't put all our eggs in one basket."]
+        targetPhrase: "Let's not put all our eggs in one basket.",
+        meaningPt: "Não vamos colocar todos os ovos na mesma cesta.",
+        phoneticPt: "Léts nót pút ól áuer égz in uãn béskêt.",
+        samplePhrases: ["Let's not put all our eggs in one basket.", "It's like comparing apples to oranges."]
       },
       {
         id: "boss-3",
@@ -619,7 +718,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Discurso Hipotético Avançado (Third Conditional)",
         description: "Estruturas como 'If I had known, I would have acted differently'.",
         objective: "Formular frases no condicional perfeito com fluidez acústica.",
-        samplePhrases: ["Had circumstances been different, the outcome would have shifted."]
+        targetPhrase: "Had I known that, I would have chosen differently.",
+        meaningPt: "Se eu soubesse disso, teria escolhido diferente.",
+        phoneticPt: "Réd ái nôn dét, ái uúd rév tchôuzen dífrentli.",
+        samplePhrases: ["Had I known that, I would have chosen differently.", "Had circumstances been different, the outcome would have shifted."]
       },
       {
         id: "boss-4",
@@ -627,7 +729,10 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "Debates Filosóficos e Ética Moderna",
         description: "Discussão de temas complexos: IA, futuro do trabalho, sustentabilidade e sociedade.",
         objective: "Articular raciocínios abstratos com vocabulário rico e preciso.",
-        samplePhrases: ["The ethical ramifications extend far beyond what we currently anticipate."]
+        targetPhrase: "Technology reshapes how we connect with others.",
+        meaningPt: "A tecnologia remodela como nos conectamos com os outros.",
+        phoneticPt: "Técnólodji ríshêips ráo uí conéct uíd õders.",
+        samplePhrases: ["Technology reshapes how we connect with others.", "The ethical ramifications extend far beyond what we currently anticipate."]
       },
       {
         id: "boss-exam",
@@ -635,6 +740,9 @@ export const LEARNING_MODULES: LearningModule[] = [
         title: "👑 GRANDE PROVA FINAL: Banca Internacional",
         description: "Avaliação final com o Professor Arthur Pendelton. O teste supremo de fluência sem ajuda.",
         objective: "Superar a banca internacional em inglês fluente. Nota mínima para aprovação: 6.0.",
+        targetPhrase: "Professor Arthur, I am ready to articulate my perspectives in fluent English.",
+        meaningPt: "Professor Arthur, estou pronto para articular minhas perspectivas em inglês fluente.",
+        phoneticPt: "Prôféssor Árthur, ái ém rêdi tchú artíkiulêit mái perspéctivz in flúent Ínglish.",
         samplePhrases: ["Professor Arthur, I am honored to present my spontaneous answers to your examination."],
         isExam: true
       }
@@ -658,7 +766,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Você alcançou a Fortaleza Dourada do Mr. Crazy! Chegamos ao Final Challenge! Aqui é sem filtro e direto em inglês americano: 'Welcome to the Citadel! Are you ready to prove your fluency once and for all?'",
+      pt: "Você alcançou a Fortaleza Dourada do Mr. Crazy! Vamos afiar seus reflexos rápidos de improviso. Em inglês se fala 'That's an interesting point to think about', e a pronúncia soa como 'Déts én íntrêstin póint tchú tink âbáut'. Fala pra mim: 'That's an interesting point to think about'.",
       en: "Welcome to the Citadel! You've traversed the entire map. Are you ready to prove your fluency once and for all?"
     },
     promptContext: "MÓDULO ATIVO: Etapa 7. Final Challenge (C1 Boss Challenge). FOCO ESTRITO: O teste supremo de fluência. Fale em inglês americano autêntico, desafiador, espirituoso e veloz. Teste o aluno em vocabulário, ritmo e respostas rápidas. Acolha com orgulho quando ele demonstrar domínio!",
