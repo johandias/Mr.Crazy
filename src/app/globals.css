@@ -1355,6 +1355,98 @@ a {
   flex-shrink: 0;
 }
 
+.concept-remaining-pill {
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.2px;
+}
+
+/* Stepper horizontal de fases do módulo */
+.module-phase-stepper-track {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 3px 2px 1px;
+}
+
+.phase-stepper-step {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  cursor: default;
+}
+
+.phase-stepper-bar-fill {
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.phase-stepper-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+}
+
+/* Fase concluída */
+.phase-stepper-step.is-passed .phase-stepper-bar-fill {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.phase-stepper-step.is-passed .phase-stepper-label {
+  color: #34d399;
+}
+
+/* Fase ativa / atual */
+.phase-stepper-step.is-current .phase-stepper-bar-fill {
+  background: linear-gradient(90deg, #f97316, #fb923c);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
+  height: 5px;
+}
+
+.phase-stepper-step.is-current .phase-stepper-label {
+  color: #fb923c;
+  font-weight: 800;
+}
+
+/* Segmento do Chefão / Prova */
+.phase-stepper-step.phase-stepper-boss {
+  cursor: pointer;
+}
+
+.phase-stepper-step.phase-stepper-boss .phase-stepper-bar-fill {
+  background: rgba(234, 179, 8, 0.2);
+  border: 1px dashed rgba(234, 179, 8, 0.4);
+}
+
+.phase-stepper-step.phase-stepper-boss .phase-stepper-label {
+  color: #eab308;
+}
+
+.phase-stepper-step.phase-stepper-boss.is-boss-ready .phase-stepper-bar-fill {
+  background: linear-gradient(90deg, #eab308, #f59e0b);
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.7);
+  animation: pulse 1.2s infinite alternate;
+}
+
 .concept-step-title {
   color: #f1f5f9;
   font-weight: 600;

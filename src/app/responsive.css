@@ -202,6 +202,23 @@
     font-size: 0.65rem !important;
     padding: 1px 6px !important;
   }
+  .practice-main .concept-remaining-pill {
+    font-size: 0.62rem !important;
+    padding: 1px 5px !important;
+  }
+  .practice-main .module-phase-stepper-track {
+    gap: 3px !important;
+    padding: 1px 1px 0 !important;
+  }
+  .practice-main .phase-stepper-bar-fill {
+    height: 3px !important;
+  }
+  .practice-main .phase-stepper-step.is-current .phase-stepper-bar-fill {
+    height: 4px !important;
+  }
+  .practice-main .phase-stepper-label {
+    font-size: 0.54rem !important;
+  }
   .practice-main .concept-step-title {
     font-size: 0.74rem !important;
   }

@@ -1903,33 +1903,78 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           </div>
         </div>
 
-        {teachingConcepts.length > 0 && (
-          <div className="teaching-concept-wrapper">
-            <div className="teaching-concept-pill-bar">
-              <div className="teaching-concept-badge">
-                <span className="concept-step-number">
-                  Fase {Math.min(currentConceptIndex + 1, teachingConcepts.length)}/{teachingConcepts.length}
-                </span>
-                <span className="concept-step-title">
-                  {teachingConcepts[currentConceptIndex]?.title || activeModule.title}
-                </span>
+        {teachingConcepts.length > 0 && (() => {
+          const totalPhases = teachingConcepts.length;
+          const currentPhaseNum = Math.min(currentConceptIndex + 1, totalPhases);
+          const remainingPhases = Math.max(0, totalPhases - currentPhaseNum);
+
+          return (
+            <div className="teaching-concept-wrapper">
+              <div className="teaching-concept-pill-bar">
+                <div className="teaching-concept-badge">
+                  <span className="concept-step-number">
+                    Fase {currentPhaseNum}/{totalPhases}
+                  </span>
+                  <span className="concept-remaining-pill">
+                    {remainingPhases === 0
+                      ? "👑 Última Fase!"
+                      : remainingPhases === 1
+                      ? "Falta 1 p/ o Chefão"
+                      : `Faltam ${remainingPhases} fases`}
+                  </span>
+                  <span className="concept-step-title">
+                    {teachingConcepts[currentConceptIndex]?.title || activeModule.title}
+                  </span>
+                </div>
+                <div className="teaching-concept-actions">
+                  {isLessonCompleted ? (
+                    <span className="concept-completed-pill">Concluída ✔</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`concept-guide-toggle-btn ${isStudyCardVisible ? "active" : ""}`}
+                      onClick={() => setIsStudyCardVisible((prev) => !prev)}
+                      title={isStudyCardVisible ? "Ocultar guia de pronúncia e significado" : "Ver guia de fala da frase"}
+                    >
+                      <span>{isStudyCardVisible ? "Ocultar Guia" : "Guia de Fala"}</span>
+                      {isStudyCardVisible ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="teaching-concept-actions">
-                {isLessonCompleted ? (
-                  <span className="concept-completed-pill">Concluída ✔</span>
-                ) : (
-                  <button
-                    type="button"
-                    className={`concept-guide-toggle-btn ${isStudyCardVisible ? "active" : ""}`}
-                    onClick={() => setIsStudyCardVisible((prev) => !prev)}
-                    title={isStudyCardVisible ? "Ocultar guia de pronúncia e significado" : "Ver guia de fala da frase"}
-                  >
-                    <span>{isStudyCardVisible ? "Ocultar Guia" : "Guia de Fala"}</span>
-                    {isStudyCardVisible ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                  </button>
-                )}
+
+              {/* Stepper visual com progresso das fases e o Chefão */}
+              <div className="module-phase-stepper-track" aria-label="Progresso das fases do módulo">
+                {teachingConcepts.map((concept, idx) => {
+                  const isPassed = idx < currentConceptIndex;
+                  const isCurrent = idx === currentConceptIndex;
+                  return (
+                    <div
+                      key={concept.id || idx}
+                      className={`phase-stepper-step ${isPassed ? "is-passed" : ""} ${isCurrent ? "is-current" : ""}`}
+                      title={`Fase ${idx + 1}: ${concept.title}`}
+                    >
+                      <div className="phase-stepper-bar-fill" />
+                      <span className="phase-stepper-label">
+                        {isPassed ? "✔" : `F${idx + 1}`}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div
+                  className={`phase-stepper-step phase-stepper-boss ${currentConceptIndex >= totalPhases - 1 ? "is-boss-ready" : ""}`}
+                  title="Chefão Final: Prova prática do módulo"
+                  onClick={() => setIsExamModalOpen(true)}
+                >
+                  <div className="phase-stepper-bar-fill" />
+                  <span className="phase-stepper-label">
+                    <Award size={10} /> Prova
+                  </span>
+                </div>
               </div>
             </div>
+          );
+        })()}
 
             {/* Cartão Didático: Significado + Frase em Inglês + Guia Fonético Brasileiro */}
             <AnimatePresence>
