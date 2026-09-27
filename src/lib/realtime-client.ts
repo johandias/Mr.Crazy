@@ -1,13 +1,17 @@
 import type { LearningLevel, VoiceState } from "@/lib/mr-crazy";
 import { openMicrophone, type MicrophoneCapture } from "./voice/microphone";
 import { VoiceError, getConnectionError, isAbortError, waitFor, type VoiceDiagnostic, type VoiceStage } from "./voice/diagnostics";
+import { isNoiseOrHallucination } from "./voice/noise-filter";
 
 export { getConnectionError, isAbortError } from "./voice/diagnostics";
+export { isNoiseOrHallucination } from "./voice/noise-filter";
 export type { VoiceDiagnostic } from "./voice/diagnostics";
 export type RealtimeConnectionStatus = "idle" | "connecting" | "connected" | "failed";
 export type RealtimeController = {
   disconnect: () => void;
   finishTurn: () => void;
+  commitTurn: () => void;
+  cancelTurn: () => void;
   sendText: (text: string) => boolean;
   setMicrophoneEnabled: (enabled: boolean) => void;
   interrupt: () => void;
@@ -17,11 +21,13 @@ type Options = {
   mode: string;
   moduleId?: string;
   conceptIndex?: number;
+  initialMicrophoneEnabled?: boolean;
   deviceId?: string;
   signal?: AbortSignal;
   getRecentContext?: () => { role: string; text: string }[];
   onStatus: (status: RealtimeConnectionStatus) => void;
   onVoiceState: (state: VoiceState) => void;
+  onUserSpeechStarted?: () => void;
   onUserTranscript: (text: string, complete: boolean) => void;
   onAssistantTranscript: (text: string, complete: boolean) => void;
   onError: (message: string) => void;
@@ -73,7 +79,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
   let audio: HTMLAudioElement | undefined;
   let closed = false;
   let connected = false;
-  let microphoneEnabled = true;
+  let microphoneEnabled = options.initialMicrophoneEnabled ?? false;
   let responseActive = false;
   let playbackActive = false;
   let userSpeaking = false;
@@ -234,6 +240,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         case "input_audio_buffer.speech_started":
           userSpeaking = true;
           clear("turn");
+          options.onUserSpeechStarted?.();
           // Se o Mr. Crazy estiver falando ou gerando áudio, NÃO cancele!
           // Isso impede que o eco do alto-falante ou ruído ambiente corte o Mr. Crazy no meio da explicação.
           if (playbackActive || responseActive) {
@@ -264,8 +271,31 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           if (event.item_id && completed.has(key)) break;
           if (event.item_id) completed.add(key);
           if (completed.size > 100) completed.delete(completed.values().next().value!);
-          options.onUserTranscript((event.transcript ?? transcripts.get(key) ?? "").trim(), true);
-          transcripts.delete(key); break;
+          const rawTranscript = (event.transcript ?? transcripts.get(key) ?? "").trim();
+          transcripts.delete(key);
+
+          if (isNoiseOrHallucination(rawTranscript)) {
+            log("noise_cancelled", `Ruído ou alucinação descartada: "${rawTranscript}". Resposta de áudio do assistente cancelada.`);
+            if (responseActive) {
+              send({ type: "response.cancel" });
+              send({ type: "output_audio_buffer.clear" });
+            }
+            if (audio) {
+              audio.pause();
+            }
+            responseActive = false;
+            playbackActive = false;
+            assistantText = "";
+            assistantCommitted = false;
+            clear("response");
+            clear("echo");
+            syncCapture();
+            options.onUserTranscript("", true);
+            break;
+          }
+
+          options.onUserTranscript(rawTranscript, true);
+          break;
         }
         case "conversation.item.input_audio_transcription.failed":
           report(new VoiceError("transcription_failed", "A transcrição não está disponível; a resposta continua usando o áudio.")); break;
@@ -430,6 +460,22 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         if (!microphoneEnabled || !userSpeaking) return;
         // Let server VAD observe silence instead of racing an explicit buffer commit.
         capture?.setEnabled(false); later("manual-stop", 1100, syncCapture);
+      },
+      commitTurn() {
+        if (closed) return;
+        userSpeaking = false;
+        capture?.setEnabled(false);
+        send({ type: "input_audio_buffer.commit" });
+        responseActive = send({ type: "response.create" });
+        syncCapture();
+        watchResponse();
+      },
+      cancelTurn() {
+        if (closed) return;
+        userSpeaking = false;
+        capture?.setEnabled(false);
+        send({ type: "input_audio_buffer.clear" });
+        syncCapture();
       }
     };
   } catch (error) {

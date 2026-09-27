@@ -2,12 +2,14 @@
 
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   Award,
   BookOpen,
   BriefcaseBusiness,
+  ChevronDown,
+  ChevronUp,
   Menu,
   MessagesSquare,
   Plane,
@@ -38,6 +40,7 @@ import {
   DEFAULT_MODULE_ID,
   detectConceptIndexFromText
 } from "@/lib/modules";
+import { isNoiseOrHallucination } from "@/lib/voice/noise-filter";
 import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
 import { ModuleEvaluationModal } from "@/components/ModuleEvaluationModal";
 import { ExamModal } from "@/components/exam/ExamModal";
@@ -412,10 +415,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeConnectionStatus>("idle");
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
   const [openingIndex, setOpeningIndex] = useState(0);
-  const [selectedMode, setSelectedMode] = useState("free-conversation");
   const [selectedModuleId, setSelectedModuleId] = useState<string>(() => {
     if (typeof window === "undefined") return DEFAULT_MODULE_ID;
     return getStoredModuleId();
+  });
+  const [selectedMode, setSelectedMode] = useState(() => {
+    const modId = typeof window === "undefined" ? DEFAULT_MODULE_ID : getStoredModuleId();
+    return modId === "free-conversation" ? "free-conversation" : "module-practice";
   });
   const [isSelectingModule, setIsSelectingModule] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -431,8 +437,48 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         return true;
       }
     }
-    return false;
+    // A primeira tela ao entrar é o Mapa de Etapas
+    return true;
   });
+
+  const [talkMode, setTalkMode] = useState<"continuous" | "push-to-talk">(() => {
+    if (typeof window === "undefined") return "continuous";
+    try {
+      return (window.localStorage.getItem("mr-crazy-talk-mode") as "continuous" | "push-to-talk") || "continuous";
+    } catch {
+      return "continuous";
+    }
+  });
+  const [isHoldingToTalk, setIsHoldingToTalk] = useState(false);
+
+  const handleTalkModeChange = useCallback((mode: "continuous" | "push-to-talk") => {
+    setTalkMode(mode);
+    try {
+      window.localStorage.setItem("mr-crazy-talk-mode", mode);
+    } catch {}
+    if (mode === "push-to-talk") {
+      setMicrophoneEnabled(false);
+      realtimeRef.current?.setMicrophoneEnabled(false);
+    }
+  }, []);
+
+  const handleHoldStart = useCallback(() => {
+    setIsHoldingToTalk(true);
+    setMicrophoneEnabled(true);
+    realtimeRef.current?.setMicrophoneEnabled(true);
+  }, []);
+
+  const handleHoldEnd = useCallback(() => {
+    setIsHoldingToTalk(false);
+    setMicrophoneEnabled(false);
+    realtimeRef.current?.commitTurn();
+  }, []);
+
+  const handleHoldCancel = useCallback(() => {
+    setIsHoldingToTalk(false);
+    setMicrophoneEnabled(false);
+    realtimeRef.current?.cancelTurn();
+  }, []);
   const [moduleTurnsCount, setModuleTurnsCount] = useState(0);
   const [currentEvaluation, setCurrentEvaluation] = useState<ModuleEvaluationItem | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -524,8 +570,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const scoringContextRef = useRef({
     mistakes: [] as MistakeCategory[],
     crazyLevel: 16,
-    selectedMode: "free-conversation",
-    selectedModuleId: DEFAULT_MODULE_ID,
+    selectedMode: (typeof window === "undefined" ? DEFAULT_MODULE_ID : getStoredModuleId()) === "free-conversation" ? "free-conversation" : "module-practice",
+    selectedModuleId: typeof window === "undefined" ? DEFAULT_MODULE_ID : getStoredModuleId(),
     selectedLevel: "basic" as LearningLevel,
     currentConceptIndex: 0,
     contextHistory: [] as ConversationTurn[]
@@ -578,7 +624,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     [activeModule]
   );
   const [currentConceptIndex, setCurrentConceptIndex] = useState(0);
+  const [isStudyCardVisible, setIsStudyCardVisible] = useState(false);
+
+  useEffect(() => {
+    setIsStudyCardVisible(false);
+  }, [currentConceptIndex, selectedModuleId]);
   const [isLessonCompleted, setIsLessonCompleted] = useState(false);
+  const [isCharacterAwake, setIsCharacterAwake] = useState(false);
+  const hasUserAttemptedPhaseRef = useRef(false);
   const [showAllMessages, setShowAllMessages] = useState(false);
 
   const currentModuleIndex = useMemo(
@@ -617,13 +670,21 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setModuleTurnsCount(0);
     setCurrentConceptIndex(0);
     setIsLessonCompleted(false);
+    setIsCharacterAwake(false);
+    hasUserAttemptedPhaseRef.current = false;
     setCurrentEvaluation(null);
+    setMicrophoneEnabled(false);
+    realtimeRef.current?.setMicrophoneEnabled(false);
     setIsSelectingModule(false);
 
     if (moduleId === "free-conversation") {
       setSelectedMode("free-conversation");
       scoringContextRef.current.selectedMode = "free-conversation";
+    } else {
+      setSelectedMode("module-practice");
+      scoringContextRef.current.selectedMode = "module-practice";
     }
+    setIsStudyCardVisible(false);
 
     cancelSpeech();
     setAnalysis(null);
@@ -748,14 +809,17 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [conversationDisplayItems, liveUserItem, liveCrazyItem]);
 
   const latestCrazySpeech = useMemo(() => {
+    if (!isCharacterAwake && contextHistory.length === 0) {
+      return "Zzz... 😴 Tô descansando aqui na rede! Pode falar qualquer coisa no microfone que eu acordo pra gente treinar!";
+    }
     for (let i = allConversationItems.length - 1; i >= 0; i--) {
       const item = allConversationItems[i];
       if (item.role === "crazy" && item.text.trim()) {
         return item.text.trim();
       }
     }
-    return openingLine || "Fala aí! Eu sou o Mr. Crazy! Toque no microfone para treinar inglês comigo!";
-  }, [allConversationItems, openingLine]);
+    return openingLine || "Fala aí! Eu sou o Mr. Crazy! Pode falar no microfone para treinar inglês comigo!";
+  }, [allConversationItems, openingLine, isCharacterAwake, contextHistory.length]);
 
   const suggestedReplies = useMemo(() => {
     const suggestions: string[] = [];
@@ -1161,10 +1225,19 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       mode,
       moduleId,
       conceptIndex,
+      initialMicrophoneEnabled: false,
       signal: abortController.signal,
       deviceId: inputDeviceRef.current,
       onInputLevel: (level) => {
         if (connectAbortRef.current === abortController && inputMeterRef.current) inputMeterRef.current.value = level;
+        if (level > 0.16 && !isCharacterAwake) {
+          setIsCharacterAwake(true);
+        }
+      },
+      onUserSpeechStarted: () => {
+        if (!isCharacterAwake) {
+          setIsCharacterAwake(true);
+        }
       },
       onDiagnostic: (event) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
@@ -1201,13 +1274,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         if (complete && text.trim()) {
           const clean = text.trim();
           // Ignora ruído de fundo, respiração, cliques e alucinações curtas do Whisper
-          const isNoise =
-            clean.length < 2 ||
-            /^(you|thank you|thanks|bye|ok|\?|\!|\.|\.\.\.|\[.*\])$/i.test(clean);
-          if (isNoise) {
+          if (isNoiseOrHallucination(clean)) {
             setTranscript("");
+            realtimeRef.current?.interrupt();
             return;
           }
+
+          setIsCharacterAwake(true);
+          hasUserAttemptedPhaseRef.current = true;
+          setIsStudyCardVisible(true);
 
           setContextHistory((current) => {
             const base =
@@ -1223,6 +1298,19 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       },
       onAssistantTranscript: (text, complete) => {
         if (connectAbortRef.current !== abortController || abortController.signal.aborted) return;
+
+        // Revela o cartão didático de fala assim que o Mr. Crazy começa a introduzir ou pedir treino da frase
+        const lowerText = text.toLowerCase();
+        const activeTarget = teachingConcepts[currentConceptIndex];
+        const targetPhraseClean = (activeTarget?.targetPhrase || "").toLowerCase().trim();
+        const isTeachingOrAskingToPractice =
+          /(vamos treinar|fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora treinar essa|bora praticar essa|pronúncia aportuguesada)/i.test(lowerText) ||
+          (targetPhraseClean.length >= 4 && lowerText.includes(targetPhraseClean));
+
+        if (isTeachingOrAskingToPractice) {
+          setIsStudyCardVisible(true);
+        }
+
         if (!complete) {
           setRealtimeReply(text);
           return;
@@ -1245,18 +1333,38 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           const lower = clean.toLowerCase();
           const isGreetingOnly = /(tudo ótimo por aqui|tudo bem por aqui|como você tá|e com você|bora treinar|o que manda|fala comigo|seja bem-vindo|seja bem-vinda)/i.test(lower);
           const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz)/i.test(lower);
-          const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
+          const isPraise = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
           const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez|não consegui te ouvir|não te ouvi|não entendi|porra|burro|burrada|desgraça|caralho)/i.test(lower);
 
-          // Sincroniza o cartão superior exatamente com a fase/conceito que o Mr. Crazy está ensinando
+          // Sincroniza o cartão superior exatamente com a fase/conceito e a progressão do aluno:
+          // REGRA RÍGIDA: O aluno SÓ AVANÇA DE FASE se ele tiver feito uma tentativa real (hasUserAttemptedPhaseRef.current === true)
+          // E o Mr. Crazy estiver elogiando/concluindo a fase (isPraise && !isCorrection).
           if (teachingConcepts.length > 0) {
             const detectedConceptIdx = detectConceptIndexFromText(clean, teachingConcepts);
             if (detectedConceptIdx !== null) {
-              setCurrentConceptIndex(detectedConceptIdx);
+              if (detectedConceptIdx > currentConceptIndex) {
+                // Tentativa de avançar de fase:
+                // SÓ avança se o aluno de fato falou na fase atual e recebeu elogio de conclusão!
+                if (hasUserAttemptedPhaseRef.current && isPraise && !isCorrection) {
+                  const nextIndex = Math.min(currentConceptIndex + 1, detectedConceptIdx);
+                  setCurrentConceptIndex(nextIndex);
+                  hasUserAttemptedPhaseRef.current = false;
+                }
+              } else if (detectedConceptIdx < currentConceptIndex) {
+                // Caso Mr. Crazy decida voltar explicitamente a uma fase anterior
+                setCurrentConceptIndex(detectedConceptIdx);
+                hasUserAttemptedPhaseRef.current = false;
+              }
             }
+
             const isAllCompleted =
-              /(todas as fases|fases concluídas|concluiu o treino|pronto pro chefão|enfrentar o chefão|prova final)/i.test(lower) ||
-              (detectedConceptIdx === teachingConcepts.length - 1 && isPraise && !isCorrection && !isInstruction);
+              hasUserAttemptedPhaseRef.current &&
+              currentConceptIndex === teachingConcepts.length - 1 &&
+              isPraise &&
+              !isCorrection &&
+              !isInstruction &&
+              /(todas as fases|fases concluídas|concluiu o treino|pronto pro chefão|enfrentar o chefão|prova final|dominou)/i.test(lower);
+
             if (isAllCompleted) {
               setIsLessonCompleted(true);
             }
@@ -1519,6 +1627,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const handleRedoModule = useCallback(() => {
     setCurrentConceptIndex(0);
     setIsLessonCompleted(false);
+    setIsCharacterAwake(false);
+    hasUserAttemptedPhaseRef.current = false;
     setModuleTurnsCount(0);
     clearConversationHistory();
   }, [clearConversationHistory]);
@@ -1555,6 +1665,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             emotion={emotion}
             voiceState={voiceState}
             gesture={activeGesture}
+            isAwake={isCharacterAwake}
+            onAwaken={() => setIsCharacterAwake(true)}
             onTap={handleAvatarTap}
           />
         </div>
@@ -1624,6 +1736,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 voiceState === "analyzing"
               }
               speaking={voiceState === "speaking"}
+              isAwake={isCharacterAwake}
             />
           </div>
 
@@ -1796,53 +1909,69 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   {teachingConcepts[currentConceptIndex]?.title || activeModule.title}
                 </span>
               </div>
-              {isLessonCompleted ? (
-                <span className="concept-completed-pill">Fase Concluída ✔</span>
-              ) : (
-                <span className="concept-objective-hint">
-                  {teachingConcepts[currentConceptIndex]?.objective}
-                </span>
-              )}
+              <div className="teaching-concept-actions">
+                {isLessonCompleted ? (
+                  <span className="concept-completed-pill">Concluída ✔</span>
+                ) : (
+                  <button
+                    type="button"
+                    className={`concept-guide-toggle-btn ${isStudyCardVisible ? "active" : ""}`}
+                    onClick={() => setIsStudyCardVisible((prev) => !prev)}
+                    title={isStudyCardVisible ? "Ocultar guia de pronúncia e significado" : "Ver guia de fala da frase"}
+                  >
+                    <span>{isStudyCardVisible ? "Ocultar Guia" : "Guia de Fala"}</span>
+                    {isStudyCardVisible ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Cartão Didático: Significado + Frase em Inglês + Guia Fonético Brasileiro */}
-            {teachingConcepts[currentConceptIndex] && (
-              <div className="teaching-study-card">
-                {teachingConcepts[currentConceptIndex].meaningPt && (
-                  <div className="study-card-item study-meaning">
-                    <span className="study-item-label">Significado</span>
-                    <span className="study-item-value">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
-                  </div>
-                )}
-                {teachingConcepts[currentConceptIndex].targetPhrase && (
-                  <div className="study-card-item study-phrase">
-                    <span className="study-item-label">Inglês</span>
-                    <button
-                      type="button"
-                      className="study-speak-trigger-btn"
-                      onClick={() => {
-                        const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
-                        if (phrase) speak(phrase, "speaking", "en-US");
-                      }}
-                      title="Ouvir pronúncia da frase em inglês"
-                    >
-                      <Volume2 size={13} className="inline-speak-icon" />
-                      <span className="study-item-value english-phrase">
-                        {teachingConcepts[currentConceptIndex].targetPhrase}
+            <AnimatePresence>
+              {isStudyCardVisible && teachingConcepts[currentConceptIndex] && (
+                <motion.div
+                  className="teaching-study-card"
+                  initial={{ opacity: 0, height: 0, y: -6 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -6 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                >
+                  {teachingConcepts[currentConceptIndex].meaningPt && (
+                    <div className="study-card-item study-meaning">
+                      <span className="study-item-label">Significado</span>
+                      <span className="study-item-value">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
+                    </div>
+                  )}
+                  {teachingConcepts[currentConceptIndex].targetPhrase && (
+                    <div className="study-card-item study-phrase">
+                      <span className="study-item-label">Inglês</span>
+                      <button
+                        type="button"
+                        className="study-speak-trigger-btn"
+                        onClick={() => {
+                          const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
+                          if (phrase) speak(phrase, "speaking", "en-US");
+                        }}
+                        title="Ouvir pronúncia da frase em inglês"
+                      >
+                        <Volume2 size={13} className="inline-speak-icon" />
+                        <span className="study-item-value english-phrase">
+                          {teachingConcepts[currentConceptIndex].targetPhrase}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                  {teachingConcepts[currentConceptIndex].phoneticPt && (
+                    <div className="study-card-item study-phonetic">
+                      <span className="study-item-label">Fonética</span>
+                      <span className="study-item-value phonetic-guide">
+                        🗣️ {teachingConcepts[currentConceptIndex].phoneticPt}
                       </span>
-                    </button>
-                  </div>
-                )}
-                {teachingConcepts[currentConceptIndex].phoneticPt && (
-                  <div className="study-card-item study-phonetic">
-                    <span className="study-item-label">Fonética</span>
-                    <span className="study-item-value phonetic-guide">
-                      🗣️ {teachingConcepts[currentConceptIndex].phoneticPt}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -1892,6 +2021,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 emotion={emotion}
                 voiceState={voiceState}
                 gesture={activeGesture}
+                isAwake={isCharacterAwake}
+                onAwaken={() => setIsCharacterAwake(true)}
                 onTap={handleAvatarTap}
               />
             </div>
@@ -1902,21 +2033,31 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 active={
                   (microphoneEnabled && realtimeStatus === "connected") ||
                   voiceState === "speaking" ||
-                  voiceState === "preparing_speech"
+                  voiceState === "preparing_speech" ||
+                  isHoldingToTalk
                 }
                 speaking={voiceState === "speaking" || voiceState === "preparing_speech"}
                 meterRef={inputMeterRef}
                 voiceState={voiceState}
+                isAwake={isCharacterAwake}
+                talkMode={talkMode}
+                isHolding={isHoldingToTalk}
               />
 
               <VoiceInputControl
                 status={realtimeStatus}
                 enabled={microphoneEnabled}
                 speaking={voiceState === "speaking" || voiceState === "preparing_speech"}
+                talkMode={talkMode}
+                onTalkModeChange={handleTalkModeChange}
+                onHoldStart={handleHoldStart}
+                onHoldEnd={handleHoldEnd}
+                onHoldCancel={handleHoldCancel}
                 error={errorMessage}
                 diagnostics={voiceDiagnostics}
                 meterRef={inputMeterRef}
                 deviceId={inputDeviceId}
+                isAwake={isCharacterAwake}
                 onToggle={handleAvatarMicClick}
                 onReconnect={() => void connectSession()}
                 onDeviceChange={(id) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect, useRef, type CSSProperties } from "react";
+import { memo, useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
 export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup" | "watergun";
@@ -22,12 +22,16 @@ export const RpgCharacter = memo(function RpgCharacter({
   emotion,
   voiceState,
   gesture = "idle",
+  isAwake = false,
+  onAwaken,
   onTap
 }: Readonly<{
   crazyLevel: number;
   emotion: Emotion;
   voiceState: VoiceState;
   gesture?: CharacterGesture;
+  isAwake?: boolean;
+  onAwaken?: () => void;
   onTap?: () => void;
 }>) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,8 +40,9 @@ export const RpgCharacter = memo(function RpgCharacter({
   // Ciclo procedural de fonemas labiais realistas durante a fala
   const [animatedPhoneme, setPhoneme] = useState(0);
   const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
-  // Animação inicial de entrada: na rede descansando -> vê gente -> pula pra posição normal
+  // Animação de entrada: na rede descansando -> acorda quando o aluno falar -> pula pra posição de pé
   const [entranceStage, setEntranceStage] = useState<EntranceStage>("hammock");
+  const wakingUpRef = useRef(false);
 
   // Rastreamento natural do mouse/toque com amortecimento e retorno suave
   useEffect(() => {
@@ -69,7 +74,6 @@ export const RpgCharacter = memo(function RpgCharacter({
   }, []);
 
   // Articulação labial com fonemas vocálicos e consonantais durante a fala do professor
-  // Articulação labial orgânica com cadência silábica realista durante a fala
   useEffect(() => {
     if (voiceState !== "speaking") {
       setPhoneme(0);
@@ -81,57 +85,45 @@ export const RpgCharacter = memo(function RpgCharacter({
       index = (index + 1) % phonemeSequence.length;
       setPhoneme(phonemeSequence[index]);
     }, 115);
-    const phonemeCadence = [
-      { phoneme: 1, duration: 140 },
-      { phoneme: 0, duration: 170 },
-      { phoneme: 3, duration: 90 },
-      { phoneme: 2, duration: 160 },
-      { phoneme: 0, duration: 130 },
-      { phoneme: 1, duration: 110 },
-      { phoneme: 3, duration: 80 }
-    ];
-    let step = 0;
-    let timer: ReturnType<typeof setTimeout>;
 
     return () => clearInterval(interval);
-    const nextPhoneme = () => {
-      const current = phonemeCadence[step];
-      setPhoneme(current.phoneme);
-      step = (step + 1) % phonemeCadence.length;
-      timer = setTimeout(nextPhoneme, current.duration);
-    };
-
-    nextPhoneme();
-    return () => clearTimeout(timer);
   }, [voiceState]);
 
-  useEffect(() => {
-    // 1. Rede balançando por 1.8 segundos
-    const alertTimer = setTimeout(() => {
-      setEntranceStage("alert");
-    }, 1800);
+  const startWakeUpSequence = useCallback(() => {
+    if (entranceStage === "standing" || wakingUpRef.current) return undefined;
+    wakingUpRef.current = true;
+    onAwaken?.();
+    setEntranceStage("alert");
 
-    // 2. Vê que tem gente e dá o pulo
     const jumpTimer = setTimeout(() => {
       setEntranceStage("jumping");
-    }, 2400);
+    }, 600);
 
-    // 3. Aterrissa de pé e fica pronto
     const standTimer = setTimeout(() => {
       setEntranceStage("standing");
-    }, 3100);
+      wakingUpRef.current = false;
+    }, 1250);
 
     return () => {
-      clearTimeout(alertTimer);
       clearTimeout(jumpTimer);
       clearTimeout(standTimer);
     };
-  }, []);
+  }, [entranceStage, onAwaken]);
+
+  // Se o aluno começou a falar (isAwake) ou Mr. Crazy começou a falar, sai da rede de descanso
+  useEffect(() => {
+    if ((isAwake || voiceState === "speaking") && entranceStage === "hammock" && !wakingUpRef.current) {
+      const cleanup = startWakeUpSequence();
+      return cleanup;
+    }
+  }, [isAwake, voiceState, entranceStage, startWakeUpSequence]);
 
   const handleStageClick = () => {
-    // Se ainda estiver na rede ou pulando, clica para ficar de pé imediatamente
+    // Se ainda estiver na rede ou pulando, acorda e fica de pé imediatamente
     if (entranceStage !== "standing") {
       setEntranceStage("standing");
+      wakingUpRef.current = false;
+      onAwaken?.();
       return;
     }
     onTap?.();

@@ -1364,14 +1364,39 @@ a {
   white-space: nowrap;
 }
 
-.concept-objective-hint {
-  font-size: 0.74rem;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
+.teaching-concept-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.concept-guide-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
-  text-align: right;
-  max-width: 50%;
+}
+
+.concept-guide-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #7dd3fc;
+}
+
+.concept-guide-toggle-btn.active {
+  background: rgba(249, 115, 22, 0.16);
+  border-color: rgba(249, 115, 22, 0.45);
+  color: #fb923c;
 }
 
 .concept-completed-pill {
@@ -2676,6 +2701,93 @@ meter {
   flex-shrink: 0;
 }
 
+/* Seletor de Modo de Voz (Contínuo vs Segura-Solta WhatsApp) */
+.talk-mode-switcher-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3px;
+}
+
+.talk-mode-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.talk-mode-switch-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.talk-mode-switch-btn.is-ptt {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+/* Indicador de Gravação Segura-Solta (WhatsApp) */
+.ptt-recording-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
+  margin-bottom: 2px;
+  animation: pttPillPulse 1.2s ease-in-out infinite alternate;
+}
+
+.ptt-recording-pill.is-cancelling {
+  background: rgba(185, 28, 28, 0.85);
+  border-color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+.ptt-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pttDotBlink 0.8s ease-in-out infinite;
+}
+
+.ptt-rec-timer {
+  font-family: monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.ptt-slide-hint {
+  font-size: 0.68rem;
+  color: #cbd5e1;
+  letter-spacing: 0.2px;
+}
+
+@keyframes pttDotBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.75); }
+}
+
+@keyframes pttPillPulse {
+  0% { transform: scale(0.98); }
+  100% { transform: scale(1.02); }
+}
+
 .avatar-mic-dock {
   display: flex;
   align-items: center;
@@ -2781,6 +2893,22 @@ meter {
 
 .avatar-mic-circle-btn.is-active:hover {
   box-shadow: 0 0 32px rgba(16, 185, 129, 0.95), 0 0 55px rgba(16, 185, 129, 0.5);
+}
+
+/* MODO WHATSAPP: SEGURANDO PARA FALAR */
+.avatar-mic-circle-btn.is-holding {
+  transform: scale(1.12) !important;
+  background: radial-gradient(circle at 35% 30%, #10b981 0%, #059669 60%, #047857 100%) !important;
+  border-color: #6ee7b7 !important;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.95), 0 0 60px rgba(16, 185, 129, 0.5) !important;
+}
+
+/* MODO WHATSAPP: DESLIZOU PARA CANCELAR */
+.avatar-mic-circle-btn.is-cancelling {
+  transform: scale(0.94) !important;
+  background: radial-gradient(circle at 35% 30%, #ef4444 0%, #dc2626 60%, #991b1b 100%) !important;
+  border-color: #fca5a5 !important;
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.95), 0 0 60px rgba(239, 68, 68, 0.5) !important;
 }
 
 /* MR CRAZY FALANDO (Aura Âmbar Dourada) */

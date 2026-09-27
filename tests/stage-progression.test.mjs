@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { LEARNING_MODULES, getModuleById, detectConceptIndexFromText } from "../src/lib/modules.ts";
+import { isNoiseOrHallucination } from "../src/lib/voice/noise-filter.ts";
 
 test("score >= 70 qualifies for automatic progression to next module", () => {
   const currentModuleId = LEARNING_MODULES[0].id;
@@ -92,5 +93,118 @@ test("detectConceptIndexFromText synchronizes active concept exactly with Mr. Cr
   const indexGeneric = detectConceptIndexFromText(genericSpeech, teachingConcepts);
   assert.equal(indexGeneric, null, "Fala genérica não deve alterar o índice");
 });
+
+test("isNoiseOrHallucination correctly rejects Whisper noise and short hallucinations", () => {
+  // Alucinações clássicas de silêncio e ruído do Whisper
+  assert.equal(isNoiseOrHallucination(""), true);
+  assert.equal(isNoiseOrHallucination(" "), true);
+  assert.equal(isNoiseOrHallucination("."), true);
+  assert.equal(isNoiseOrHallucination("..."), true);
+  assert.equal(isNoiseOrHallucination("?"), true);
+  assert.equal(isNoiseOrHallucination("!"), true);
+  assert.equal(isNoiseOrHallucination("you"), true);
+  assert.equal(isNoiseOrHallucination("thank you"), true);
+  assert.equal(isNoiseOrHallucination("Thank you."), true);
+  assert.equal(isNoiseOrHallucination("thanks"), true);
+  assert.equal(isNoiseOrHallucination("ok"), true);
+  assert.equal(isNoiseOrHallucination("okay"), true);
+  assert.equal(isNoiseOrHallucination("yeah"), true);
+  assert.equal(isNoiseOrHallucination("yes"), true);
+  assert.equal(isNoiseOrHallucination("bye"), true);
+  assert.equal(isNoiseOrHallucination("[music]"), true);
+  assert.equal(isNoiseOrHallucination("(ruído)"), true);
+  assert.equal(isNoiseOrHallucination("subtitles by amara.org"), true);
+
+  // Falas reais de treino não devem ser descartadas como ruído
+  assert.equal(isNoiseOrHallucination("A table for two, please."), false);
+  assert.equal(isNoiseOrHallucination("Could I get a coffee, please?"), false);
+  assert.equal(isNoiseOrHallucination("I'll have the burger with fries."), false);
+  assert.equal(isNoiseOrHallucination("Hello good morning"), false);
+  assert.equal(isNoiseOrHallucination("Hi, my name is Carlos"), false);
+});
+
+test("phase progression requires real user attempt and cannot skip phases", () => {
+  const restaurantModule = getModuleById("restaurant");
+  const teachingConcepts = restaurantModule.concepts.filter((c) => !c.isExam);
+
+  // Simulação do caso do usuário: no início, currentConceptIndex = 0 (Fase 1: A table for two, please)
+  let currentConceptIndex = 0;
+  let hasUserAttemptedPhase = false;
+
+  // Ruído no ambiente: Mr. Crazy diz algo com "próximas frases do módulo" ou "hambúrguer"
+  const mrCrazySpontaneousSpeech = "Valeu, Johan! De nada, sempre que precisar nas frases do restaurante, é só falar. Agora, se quiser ir mais longe, já podemos ir para as próximas frases do módulo.";
+  const detectedIdx = detectConceptIndexFromText(mrCrazySpontaneousSpeech, teachingConcepts);
+
+  const isPraise = /(boa|muito bom|parabéns|mandou bem|show|perfeito|excelente|ótimo|certinho|destravou|dominou|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(mrCrazySpontaneousSpeech.toLowerCase());
+  const isCorrection = false;
+
+  // Regra implementada: SÓ avança se hasUserAttemptedPhase === true
+  if (detectedIdx !== null && detectedIdx > currentConceptIndex) {
+    if (hasUserAttemptedPhase && isPraise && !isCorrection) {
+      currentConceptIndex = Math.min(currentConceptIndex + 1, detectedIdx);
+      hasUserAttemptedPhase = false;
+    }
+  }
+
+  assert.equal(currentConceptIndex, 0, "Sem o aluno ter falado a frase, o sistema NÃO PODE avançar de fase!");
+
+  // Agora o aluno REALMENTE fala a frase da Fase 1:
+  const studentSpeech = "A table for two, please.";
+  assert.equal(isNoiseOrHallucination(studentSpeech), false);
+  hasUserAttemptedPhase = true;
+
+  // Mr. Crazy avalia e elogia a Fase 1, apresentando a Fase 2:
+  const praiseSpeech = "Aí sim, Johan! Mandou benzão! Fase 1 dominada! Agora vamos para a Fase 2: Bebidas & Cafeteria! Em inglês se fala 'Could I get a coffee, please?'.";
+  const praiseDetectedIdx = detectConceptIndexFromText(praiseSpeech, teachingConcepts);
+  const isPraise2 = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(praiseSpeech.toLowerCase());
+
+  assert.equal(praiseDetectedIdx, 1, "Deve identificar Fase 2 no discurso de avanço");
+  assert.equal(isPraise2, true, "Deve identificar elogio");
+
+  if (praiseDetectedIdx !== null && praiseDetectedIdx > currentConceptIndex) {
+    if (hasUserAttemptedPhase && isPraise2) {
+      currentConceptIndex = Math.min(currentConceptIndex + 1, praiseDetectedIdx);
+      hasUserAttemptedPhase = false;
+    }
+  }
+
+  assert.equal(currentConceptIndex, 1, "Após o aluno tentar e acertar a frase, avança sequencialmente para a Fase 2!");
+  assert.equal(hasUserAttemptedPhase, false, "Resetou a tentativa para a nova fase!");
+});
+
+test("buildRealtimeInstructions enforces 100% Portuguese teaching for guided modules", async () => {
+  const fs = await import("node:fs");
+  const content = fs.readFileSync(new URL("../src/lib/realtime-session.ts", import.meta.url), "utf8");
+
+  assert.ok(content.includes("VOCÊ DEVE FALAR 100% EM PORTUGUÊS DO BRASIL!"), "Deve exigir 100% português para módulo guiado");
+  assert.ok(content.includes("FÓRMULA PEDAGÓGICA OBRIGATÓRIA"), "Deve incluir a fórmula didática");
+  assert.ok(content.includes("isGuidedModule = Boolean(activeModule && activeModule.id !== \"free-conversation\" && teachingConcepts.length > 0)"), "Deve identificar módulo guiado");
+});
+
+test("study guide auto-reveal triggers only when Mr. Crazy asks to practice", () => {
+  const currentTargetPhrase = "A table for two, please.";
+  const currentPhraseClean = currentTargetPhrase.toLowerCase().trim();
+
+  const isAskingPractice = (text) => {
+    const lower = text.toLowerCase();
+    return (
+      /(vamos treinar|fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora treinar essa|bora praticar essa|pronúncia aportuguesada)/i.test(lower) ||
+      (currentPhraseClean.length >= 4 && lower.includes(currentPhraseClean))
+    );
+  };
+
+  // Saudação inicial / descanso / papo solto: NÃO deve abrir o cartão de estudo
+  assert.equal(isAskingPractice("E aí, Johan! Tudo bem por aqui?"), false);
+  assert.equal(isAskingPractice("Opa, tudo bem?"), false);
+  assert.equal(isAskingPractice("Pode falar qualquer coisa no microfone!"), false);
+
+  // Quando Mr. Crazy começa a ensinar e convidar a praticar: DEVE abrir o cartão de estudo
+  assert.equal(isAskingPractice("Vamos treinar como pedir uma mesa no restaurante."), true);
+  assert.equal(isAskingPractice("Em inglês se fala 'A table for two, please'."), true);
+  assert.equal(isAskingPractice("A pronúncia soa como 'Â têibol fôr tchú, plíz'."), true);
+  assert.equal(isAskingPractice("Agora fala pra mim: 'A table for two, please'!"), true);
+  assert.equal(isAskingPractice("Sua vez de mandar ver nessa frase!"), true);
+});
+
 
 

@@ -7,13 +7,19 @@ type Props = {
   speaking?: boolean;
   meterRef?: RefObject<HTMLMeterElement | null>;
   voiceState?: VoiceState;
+  isAwake?: boolean;
+  talkMode?: "continuous" | "push-to-talk";
+  isHolding?: boolean;
 };
 
 export function ListeningWave({
   active,
   speaking = false,
   meterRef,
-  voiceState
+  voiceState,
+  isAwake = true,
+  talkMode = "continuous",
+  isHolding = false
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isAudible, setIsAudible] = useState(false);
@@ -36,7 +42,7 @@ export function ListeningWave({
         smoothLevel = smoothLevel * 0.82 + rawLevel * 0.18;
       }
 
-      const audible = smoothLevel > 0.04;
+      const audible = smoothLevel > 0.12;
       setIsAudible(audible);
 
       if (containerRef.current) {
@@ -52,6 +58,14 @@ export function ListeningWave({
   let statusBadge = "Toque no microfone para falar";
   if (speaking) {
     statusBadge = "🗣️ Mr. Crazy falando...";
+  } else if (talkMode === "push-to-talk") {
+    if (isHolding) {
+      statusBadge = "🔴 Gravando áudio... Solte para enviar";
+    } else {
+      statusBadge = "🔘 Segure o microfone para falar";
+    }
+  } else if (!isAwake && active) {
+    statusBadge = "😴 Mr. Crazy na rede... Fale para acordar!";
   } else if (isAudible) {
     statusBadge = "🎙️ Ouvindo você...";
   } else if (active) {

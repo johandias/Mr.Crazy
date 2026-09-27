@@ -817,10 +817,10 @@ export function detectConceptIndexFromText(
   if (!text || !Array.isArray(concepts) || concepts.length === 0) return null;
   const lower = text.toLowerCase();
 
-  // 1. Verificação explícita por número da fase: "fase 1", "fase 2", "etapa 3", "passo 4"
-  const phaseMatch = /(?:fase|etapa|passo)\s*([1-9])/i.exec(lower);
-  if (phaseMatch && phaseMatch[1]) {
-    const phaseNum = parseInt(phaseMatch[1], 10);
+  // 1. Verificação explícita de fase de destino ("vamos para a fase 2", "próxima fase: fase 3", "bora pra fase 4")
+  const destinationMatch = /(?:vamos|bora|próxima|partiu|para a|pra|seguir para a|avançar para a)\s*(?:fase|etapa|passo)\s*([1-9])/i.exec(lower);
+  if (destinationMatch && destinationMatch[1]) {
+    const phaseNum = parseInt(destinationMatch[1], 10);
     if (phaseNum >= 1 && phaseNum <= concepts.length) {
       return phaseNum - 1;
     }
@@ -839,7 +839,20 @@ export function detectConceptIndexFromText(
     }
   }
 
-  // 3. Verificação por significado ou palavras-chave marcantes do significado
+  // 3. Verificação explícita geral por número da fase ("fase 1", "fase 2", etc.)
+  // Se houver múltiplas menções (ex: "Fase 1 concluída, agora Fase 2"), prioriza a última fase citada
+  const allPhaseMatches = [...lower.matchAll(/(?:fase|etapa|passo)\s*([1-9])/gi)];
+  if (allPhaseMatches.length > 0) {
+    const lastMatch = allPhaseMatches[allPhaseMatches.length - 1];
+    if (lastMatch && lastMatch[1]) {
+      const phaseNum = parseInt(lastMatch[1], 10);
+      if (phaseNum >= 1 && phaseNum <= concepts.length) {
+        return phaseNum - 1;
+      }
+    }
+  }
+
+  // 4. Verificação por significado ou palavras-chave marcantes do significado
   for (let i = 0; i < concepts.length; i++) {
     const c = concepts[i];
     if (c.meaningPt) {

@@ -202,8 +202,9 @@
   .practice-main .concept-step-title {
     font-size: 0.74rem !important;
   }
-  .practice-main .concept-objective-hint {
+  .practice-main .concept-guide-toggle-btn {
     font-size: 0.68rem !important;
+    padding: 2px 6px !important;
   }
   .practice-main .teaching-study-card {
     display: flex !important;
@@ -290,6 +291,18 @@
     margin-top: 2px !important;
     margin-bottom: 2px !important;
     flex-shrink: 0;
+  }
+  .practice-main .talk-mode-switcher-row {
+    margin-bottom: 2px !important;
+  }
+  .practice-main .talk-mode-switch-btn {
+    padding: 2px 8px !important;
+    font-size: 0.65rem !important;
+  }
+  .practice-main .ptt-recording-pill {
+    padding: 2px 10px !important;
+    font-size: 0.68rem !important;
+    margin-bottom: 1px !important;
   }
   .practice-main .listening-wave-hub {
     gap: 2px !important;
