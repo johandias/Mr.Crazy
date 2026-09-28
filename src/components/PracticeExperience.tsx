@@ -701,6 +701,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     getFallbackPhaseTargets(activeModule, 0)
   );
   const [isStudyCardVisible, setIsStudyCardVisible] = useState(false);
+  const [speechBubbleHasOverflow, setSpeechBubbleHasOverflow] = useState(false);
+  const [speechBubbleIsScrolled, setSpeechBubbleIsScrolled] = useState(false);
+  const speechBubbleScrollRef = useRef<HTMLDivElement>(null);
   const currentConceptIndexRef = useRef(0);
   const currentLessonStepIndexRef = useRef(0);
   const teachingTarget = useMemo(
@@ -716,7 +719,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   useEffect(() => {
     const fallbackTargets = getFallbackPhaseTargets(activeModule, currentConceptIndex);
     setPhaseTargets(fallbackTargets);
-    setIsStudyCardVisible(true);
+    setIsStudyCardVisible(false);
 
     if (activeModule.id === "free-conversation" || teachingConcepts.length === 0) return;
 
@@ -1083,6 +1086,27 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
     return openingLine || "Fala aí! Eu sou o Mr. Crazy! Pode falar no microfone para treinar inglês comigo!";
   }, [allConversationItems, openingLine, isCharacterAwake, contextHistory.length]);
+
+  const shouldShowStudyGuide = Boolean(
+    teachingTarget && (isStudyCardVisible || (!isCharacterAwake && selectedMode === "module-practice"))
+  );
+
+  useEffect(() => {
+    const container = speechBubbleScrollRef.current;
+    if (!container) return;
+
+    container.scrollTop = 0;
+    setSpeechBubbleIsScrolled(false);
+    const updateOverflow = () => setSpeechBubbleHasOverflow(container.scrollHeight > container.clientHeight + 2);
+    const frame = window.requestAnimationFrame(updateOverflow);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateOverflow);
+    observer?.observe(container);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [latestCrazySpeech, shouldShowStudyGuide, teachingTarget]);
 
   const latestUserSpeech = useMemo(() => {
     if (transcript.trim()) return transcript.trim();
@@ -1611,6 +1635,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|burrada|que porcaria)/i.test(lower);
 
           if (isInstruction) setIsStudyCardVisible(true);
+
+          if (isPraise && !isCorrection && !isInstruction) {
+            setIsStudyCardVisible(false);
+          }
 
           if (hasUserAttemptedPhaseRef.current && isPraise && !isCorrection) {
             hasUserAttemptedPhaseRef.current = false;
@@ -2276,9 +2304,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
             {/* Balão de Fala do Mr. Crazy: com replay de voz e guia fonético integrado */}
             <div
-              className={`character-speech-bubble-container ${voiceState === "speaking" ? "is-speaking" : ""}`}
+              ref={speechBubbleScrollRef}
+              className={`character-speech-bubble-container ${voiceState === "speaking" ? "is-speaking" : ""} ${speechBubbleHasOverflow ? "has-overflow" : ""} ${speechBubbleIsScrolled ? "is-scrolled" : ""}`}
               role="region"
               aria-label="Fala do Mr. Crazy"
+              onScroll={(event) => setSpeechBubbleIsScrolled(event.currentTarget.scrollTop > 8)}
             >
               <div className="character-speech-bubble">
                 <div className="speech-bubble-header">
@@ -2305,7 +2335,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 <p className="speech-bubble-text">{latestCrazySpeech}</p>
 
                 {/* Guia Didático Integrado de Pronúncia da Fase Ativa */}
-                {isStudyCardVisible && teachingTarget && (
+                {shouldShowStudyGuide && teachingTarget && (
                   <div className="speech-bubble-didactic-footer">
                     <dl className="speech-study-guide">
                       <div className="speech-study-target">

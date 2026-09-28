@@ -323,6 +323,8 @@ test("guided lesson persists realtime turns and phase checkpoints", async () => 
   assert.ok(practiceCode.includes("persistLessonProgressRef.current({ addTurns: 1 })"), "Turno realtime deve ser persistido");
   assert.ok(practiceCode.includes("completeCurrentLessonStepRef.current()"), "Elogio após tentativa deve concluir etapa persistida");
   assert.ok(practiceCode.includes("teachingTarget.phraseEn"), "Cartão deve usar o mesmo alvo sincronizado da IA");
+  assert.ok(practiceCode.includes("shouldShowStudyGuide"), "Dica e pronúncia devem aparecer apenas no contexto de treino");
+  assert.ok(practiceCode.includes("speechBubbleHasOverflow"), "Balão longo deve sinalizar rolagem sem cortar o conteúdo");
   assert.ok(progressCode.includes("getLessonStepMarker"), "API deve salvar checkpoint de fase e etapa");
   assert.ok(progressCode.includes("if (upsertError) throw upsertError"), "Falha do Supabase não pode ser ignorada");
   assert.ok(targetRouteCode.includes("A IA tem liberdade para escolher o conteúdo"), "Plano dinâmico deve permanecer no contexto da fase");
@@ -363,12 +365,14 @@ test("mobile practice keeps Mr.Crazy visible above the anchored voice dock", asy
 
   assert.match(
     responsiveCss,
-    /padding:\s*0 0 clamp\(146px, 21dvh, 170px\) !important/,
+    /padding:\s*0 0 clamp\(118px, 18dvh, 138px\) !important/,
     "A coluna mobile deve reservar espaco para o dock sem esmagar o avatar"
   );
   assert.match(voiceHubRule, /position:\s*absolute !important/, "O dock deve ficar fora do fluxo vertical mobile");
-  assert.match(voiceHubRule, /inset:\s*auto auto 6px 50% !important/, "O dock deve ficar ancorado no rodape do palco");
+  assert.match(voiceHubRule, /inset:\s*auto auto 2px 50% !important/, "O dock deve ficar ancorado no rodape do palco");
   assert.doesNotMatch(voiceHubRule, /position:\s*relative/, "O dock relativo empurra o avatar para fora da viewport");
+  assert.match(responsiveCss, /width:\s*clamp\(148px, 24dvh, 184px\) !important/, "O avatar deve manter proporcao legivel no celular");
+  assert.match(responsiveCss, /character-speech-bubble-container\.has-overflow\.is-scrolled/, "Texto longo deve receber fade durante a rolagem");
 });
 
 test("beta conversation fallback provides correction, explanation, and continuity", async () => {
