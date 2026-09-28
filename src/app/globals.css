@@ -12147,3 +12147,248 @@ meter {
   .beta-message { max-width: 92%; }
   .beta-conversation-composer { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
 }
+
+
+/* Practice guide and mobile viewport layout. Keep lesson content ahead of decoration. */
+.speech-study-guide { display:grid; gap:7px; width:100%; min-width:0; margin:0; }
+.speech-study-guide > div { min-width:0; }
+.speech-study-guide dt { color:#aab9c9; font-size:.7rem; line-height:1.3; }
+.speech-study-guide dd { margin:2px 0 0; color:#e2e8f0; font-size:.88rem; line-height:1.35; overflow-wrap:anywhere; }
+.speech-study-target dd { color:#7dd3fc; font-size:1.08rem; font-weight:750; }
+.phase-stepper-step { border:0; background:transparent; padding:5px 2px; cursor:pointer; }
+.phase-stepper-step:focus-visible { outline:2px solid #7dd3fc; outline-offset:2px; border-radius:5px; }
+@media (max-width:991px) {
+  .app-shell:has(.clean-layout) { height:100dvh; min-height:0; overflow:hidden; }
+  .app-shell:has(.clean-layout) .app-header { display:none !important; }
+  .practice-main.clean-layout { height:100dvh; min-height:0; max-width:100%; overflow:hidden; padding:max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)) !important; gap:8px !important; }
+  .clean-layout .practice-header-stats-group { display:none !important; }
+  .clean-layout .active-module-pill-btn { flex:1 1 auto !important; max-width:none !important; min-height:40px; }
+  .clean-layout .module-pill-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .clean-layout .practice-header-actions-group { gap:5px !important; }
+  .clean-layout .header-icon-action-btn, .clean-layout .hamburger-btn { width:40px !important; height:40px !important; }
+  .clean-layout .stage-exam-action-btn { min-height:40px; }
+  .clean-layout .desktop-only-btn { display:none !important; }
+  .clean-layout .teaching-concept-pill-bar { flex-direction:column; align-items:stretch; gap:3px; padding:6px 8px; }
+  .clean-layout .teaching-concept-badge { flex-wrap:wrap; gap:4px 8px; overflow:visible; }
+  .clean-layout .concept-step-title { flex:1 1 100%; white-space:normal; overflow:visible; font-size:.74rem; line-height:1.25; }
+  .clean-layout .module-phase-stepper-track { gap:6px; padding:0; }
+  .clean-layout .phase-stepper-step { min-height:28px; justify-content:center; }
+  .clean-layout .phase-stepper-label { color:#aab9c9; }
+  .clean-layout .phase-stepper-step.is-current .phase-stepper-label { color:#fb923c; }
+  .clean-layout .clean-stage { position:relative; display:flex; flex:1 1 0; min-height:0; max-width:700px; padding:0 !important; gap:0 !important; }
+  .clean-layout .clean-stage .character-column { display:flex; flex-direction:column; flex:1 1 0; height:100%; min-height:0; min-width:0; padding:10px 12px; border-radius:18px; gap:5px; }
+  .clean-layout .conversation-beta-launch { margin:0; padding:5px 10px; flex-shrink:0; font-size:.68rem; }
+  .clean-layout .character-speech-bubble-container { flex:0 0 auto; min-height:0; margin:0; overflow:visible; }
+  .clean-layout .character-speech-bubble { padding:9px 11px; border-radius:12px; box-shadow:none; }
+  .clean-layout .character-speech-bubble::after { display:none; }
+  .clean-layout .speech-bubble-text { font-size:.86rem; line-height:1.35; }
+  .clean-layout .speech-bubble-didactic-footer { margin-top:7px; padding-top:7px; gap:5px; }
+  .clean-layout .speech-study-guide { gap:5px; }
+  .clean-layout .speech-study-guide > div:not(.speech-study-target) { display:grid; grid-template-columns:minmax(74px,30%) minmax(0,1fr); gap:6px; align-items:baseline; }
+  .clean-layout .speech-study-guide dd { font-size:.82rem; }
+  .clean-layout .speech-study-target dd { font-size:1rem; }
+  .clean-layout .speech-target-audio-btn, .clean-layout .speech-bubble-audio-btn { min-height:32px; }
+  .clean-layout .character-avatar-wrapper { flex:1 1 110px; min-height:0; overflow:hidden; }
+  .clean-layout .clean-stage .character-avatar-wrapper .character-stage { width:auto; height:100%; max-height:185px; max-width:100%; min-width:0; aspect-ratio:1; }
+  .clean-layout .practice-voice-hub { gap:4px; margin:0; flex-shrink:0; }
+  .clean-layout .clean-voice-dock { margin:0; padding:0; transform:none; }
+  .clean-layout .avatar-mic-circle-btn { width:54px; height:54px; min-width:54px; min-height:54px; }
+  .clean-layout .voice-mode-selector-pill { margin:0 0 5px; }
+  .clean-layout .voice-mode-tab-btn { min-height:30px; }
+  .clean-layout .voice-action-badge { margin:5px 0 0; max-width:100%; }
+  .clean-layout .voice-action-text { white-space:normal; font-size:.72rem; text-align:center; }
+  .clean-layout .voice-dock-actions-row { margin:0; gap:8px; }
+  .clean-layout .dock-action-pill-btn { min-height:32px; padding:4px 10px; }
+  .clean-layout .ptt-dock-row { transform:none; margin:0; }
+  .clean-layout .quick-inline-text-form { margin:0; }
+  .clean-layout .quick-inline-text-form input { min-width:0; font-size:16px; }
+  .clean-layout .user-live-transcript-badge { flex-shrink:0; width:100%; flex-wrap:wrap; gap:3px 6px; margin:0; padding:5px 8px; border-radius:10px; }
+  .clean-layout .user-live-transcript-text { max-width:100%; }
+  .clean-layout .clean-stage .conversation-panel.clean-conversation { position:absolute; inset:0; z-index:20; min-height:0 !important; max-height:100% !important; height:100%; padding:0 14px 16px; background:#101923; border-radius:18px; mask-image:none; -webkit-mask-image:none; box-shadow:0 8px 30px #0009; }
+  .clean-layout .history-panel-header { position:sticky; top:0; z-index:2; margin:0; padding:12px 0; background:#101923; }
+  .clean-layout .history-close-btn { min-width:40px; min-height:40px; }
+}
+@media (max-width:760px) {
+  .app-shell:has(.practice-start-main) { height:100dvh; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+  .app-shell:has(.practice-start-main) .app-header { flex-shrink:0; }
+  .practice-start-main { flex:1; min-height:0; overflow-y:auto; padding:10px 12px calc(76px + env(safe-area-inset-bottom)); align-items:start; }
+  .practice-start-card { width:min(100%,520px); }
+  .practice-start-character-panel { min-height:0; padding:12px 20px 0; }
+  .practice-start-character-panel .character-stage { width:clamp(100px,20dvh,170px); min-width:0; height:auto; }
+  .practice-start-character-aura { width:min(50%,190px); }
+  .practice-start-character-name { margin-top:-8px; font-size:.9rem; }
+  .practice-start-character-label { font-size:.6rem; }
+  .practice-start-copy { padding:16px; }
+  .practice-start-eyebrow { font-size:.6rem; letter-spacing:.02em; margin-bottom:10px; padding:6px 8px; }
+  .practice-start-copy h1 { font-size:clamp(1.8rem,8vw,2.5rem); overflow-wrap:anywhere; }
+  .practice-start-copy > p { font-size:.86rem; margin:12px 0; line-height:1.45; }
+  .practice-start-module { padding:9px 10px; margin-bottom:12px; gap:8px; }
+  .practice-start-module strong { white-space:normal; font-size:.85rem; }
+  .practice-start-actions { gap:8px; }
+  .practice-start-actions button { min-height:44px; }
+  .practice-start-note { margin-top:10px; font-size:.7rem; }
+}
+@media (max-width:991px) and (max-height:650px) {
+  .clean-layout .clean-stage .character-column { gap:3px; padding:6px 8px; }
+  .clean-layout .character-avatar-wrapper { flex-basis:35px; }
+}
+
+/* ==========================================================================
+   OTIMIZAÇÕES DE PERFORMANCE E RESPONSIVIDADE MOBILE
+   Melhora a fluidez no iOS e Android eliminando delays de toque e reduzindo
+   repaints desnecessários nos componentes animados.
+   ========================================================================== */
+
+/* 1. Elimina o delay de 300ms em todos os elementos interativos no mobile.
+      O navegador aguardava 300ms para detectar duplo-toque — desnecessário
+      com touch-action: manipulation que já indica ao browser que é um toque simples. */
+button,
+a,
+[role="button"],
+.voice-button,
+.clean-mic-btn,
+.avatar-mic-circle-btn,
+.ptt-dock-hold-btn,
+.dock-action-pill-btn,
+.ghost-action,
+.gesture-btn,
+.mobile-nav a,
+.mobile-nav .mobile-nav-item,
+.suggestion-chip,
+.study-guide-pill,
+.example-row button,
+.primary-link,
+.floating-action,
+.stop-listening-button,
+.text-fallback,
+input[type="submit"] {
+  touch-action: manipulation;
+}
+
+/* 2. Inputs de texto: font-size mínimo 16px evita zoom automático no iOS.
+      O iOS dá zoom automático em campos com font-size < 16px — indesejado aqui. */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea {
+  font-size: max(16px, 1rem);
+}
+
+/* 3. Dicas de composição (will-change) para elementos que animam com frequência.
+      Cria camadas de composição GPU para o avatar e o botão de microfone,
+      reduzindo repaints no iOS/Android de gama média e baixa. */
+.clean-mic-btn,
+.avatar-mic-circle-btn,
+.ptt-dock-hold-btn {
+  will-change: transform, box-shadow;
+}
+
+.character-stage,
+.rpg-character-stage {
+  will-change: transform;
+  contain: layout style;
+}
+
+.listening-wave,
+.clean-listening-wave {
+  will-change: transform, opacity;
+  contain: strict;
+}
+
+/* 4. Conversas: isolamento para evitar reflow em toda a página ao adicionar mensagens. */
+.clean-conversation,
+.conversation-panel {
+  contain: layout style;
+}
+
+/* 5. Breakpoint iPhone SE / iPhone mini (≤ 375px de largura)
+      Reduz tamanhos que travam o layout em telas muito estreitas. */
+@media (max-width: 375px) {
+  .character-stage,
+  .rpg-character-stage {
+    width: clamp(170px, 42vw, 210px) !important;
+    height: clamp(170px, 42vw, 210px) !important;
+  }
+
+  .clean-mic-btn {
+    width: 72px;
+    height: 72px;
+  }
+
+  .avatar-mic-circle-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .ptt-dock-hold-btn {
+    min-height: 42px;
+    padding: 7px 12px;
+    font-size: 0.82rem;
+  }
+
+  .clean-conversation .conversation-bubble p {
+    font-size: 0.82rem;
+  }
+
+  .dock-action-pill-btn {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    min-height: 30px;
+  }
+
+  .gesture-btn {
+    padding: 3px 6px;
+    font-size: 0.65rem;
+  }
+}
+
+/* 6. Breakpoint para dispositivos com pouca altura (landscape mobile ou iPhone compact).
+      Reduz altura do avatar e aumenta área útil para a conversa. */
+@media (max-height: 600px) and (max-width: 991px) {
+  .character-stage,
+  .rpg-character-stage {
+    width: clamp(130px, 25dvh, 200px) !important;
+    height: clamp(130px, 25dvh, 200px) !important;
+  }
+
+  .clean-conversation {
+    max-height: 30vh !important;
+    min-height: 60px !important;
+  }
+
+  .clean-mic-btn {
+    width: 64px;
+    height: 64px;
+  }
+
+  .avatar-mic-circle-btn {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+}
+
+/* 7. Scroll suave e momentum no iOS para todos os elementos com overflow. */
+.clean-conversation,
+.conversation-panel,
+.mode-strip,
+.level-strip,
+.example-row,
+.history-list {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 8. Otimização do mobile-nav: reduz blur no Android para melhorar performance.
+      Android tem backdropFilter mais caro que no iOS — usando blur menor
+      quando a largura sugere dispositivo de menor potência. */
+@media (max-width: 620px) {
+  .mobile-nav {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}

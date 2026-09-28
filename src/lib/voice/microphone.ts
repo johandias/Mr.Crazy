@@ -1,4 +1,5 @@
 import { VoiceError, waitFor } from "./diagnostics";
+import { markMicrophoneGranted } from "./mic-permission";
 
 export type MicrophoneCapture = {
   stream: MediaStream;
@@ -28,7 +29,7 @@ export async function openMicrophone(options: {
   }
   let abandoned = false;
   const acquire = async () => {
-    const audio: MediaTrackConstraints = {
+    const audio: MediaTrackConstraints & { latency?: ConstrainDouble } = {
       echoCancellation: true, noiseSuppression: true, autoGainControl: true,
       channelCount: { ideal: 1 },
       latency: { ideal: 0.01 },
@@ -51,6 +52,8 @@ export async function openMicrophone(options: {
   let stream: MediaStream;
   try { stream = await waitFor(acquire(), options.signal, 20_000, "microphone_permission_timeout"); }
   catch (error) { abandoned = true; throw error; }
+  // Persiste permissão concedida para sessões futuras (elimina re-prompt nos retornos)
+  markMicrophoneGranted();
   const track = stream.getAudioTracks()[0];
   if (!track || track.readyState !== "live") {
     stream.getTracks().forEach(item => item.stop());

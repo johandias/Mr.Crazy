@@ -56,6 +56,7 @@ import {
   type RealtimeConnectionStatus,
   type RealtimeController
 } from "@/lib/realtime-client";
+import { isMicrophoneAlreadyGranted } from "@/lib/voice/mic-permission";
 import { playSpeech, type SpeechSegment } from "@/lib/speech-playback";
 import {
   clampCrazyLevel,
@@ -68,6 +69,7 @@ import {
   type MistakeCategory,
   type VoiceState
 } from "@/lib/mr-crazy";
+import type { UserGender } from "@/lib/auth";
 
 type SessionMode = {
   id: string;
@@ -223,7 +225,7 @@ function buildOpeningLine(
     const activeConcept = (typeof conceptIndex === "number" && teaching[conceptIndex]) ? teaching[conceptIndex] : teaching[0];
     if (activeConcept) {
       const idx = typeof conceptIndex === "number" && conceptIndex >= 0 ? conceptIndex : 0;
-      return `Fase ${idx + 1}: Pra dizer '${activeConcept.meaningPt || activeConcept.objective}', fala: '${activeConcept.targetPhrase}' (${activeConcept.phoneticPt}). Manda bala!`;
+      return `Pra dizer '${activeConcept.meaningPt || activeConcept.objective}', fala: '${activeConcept.targetPhrase}'. Sua vez!`;
     }
     return `Fala${namePart}! ${mod.initialGreeting.pt}`;
   }
@@ -532,12 +534,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const gestureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isQuickInputOpen, setIsQuickInputOpen] = useState(false);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth >= 992;
-    }
-    return false;
-  });
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -624,7 +621,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   const [studentProfile, setStudentProfile] = useState<{
     nickname?: string;
-    gender?: string;
+    gender?: UserGender;
   } | null>(null);
 
   useEffect(() => {
@@ -634,7 +631,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         if (data.ok && data.profile) {
           setStudentProfile({
             nickname: data.profile.nickname,
-            gender: data.profile.gender
+            gender: isUserGender(data.profile.gender) ? data.profile.gender : undefined
           });
         }
       })
@@ -871,7 +868,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   const latestCrazySpeech = useMemo(() => {
     if (!isCharacterAwake && contextHistory.length === 0) {
-      return "Zzz... 😴 Tô descansando aqui na rede! Pode falar qualquer coisa no microfone que eu acordo pra gente treinar!";
+      return "Bora treinar? Toque no microfone e diga a frase abaixo.";
     }
     for (let i = allConversationItems.length - 1; i >= 0; i--) {
       const item = allConversationItems[i];
@@ -1129,13 +1126,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     handleSelectModule(target.nextModule.id);
 
     const phraseToRepeat = target.targetConcept?.phrase || target.nextModule.initialGreeting.en;
-    const topicObjective = target.targetConcept?.objective || target.nextModule.description;
-    const cleanTitle = target.nextModule.cleanTitle || target.nextModule.title;
-
-    const speechAnnouncement = `Show de bola! Avançamos para a próxima fase: ${cleanTitle}! Vamos treinar agora: ${topicObjective}. Repita comigo em inglês: ${phraseToRepeat}`;
+    const speechAnnouncement = `Boa! Agora fala: ${phraseToRepeat}. Sua vez!`;
 
     setTimeout(() => {
-      speak(speechAnnouncement, "waiting_for_repeat", "en-US");
+      speak(speechAnnouncement, "waiting_for_repeat", "pt-BR");
     }, 400);
   }, [stageTransition, handleSelectModule, speak]);
 
@@ -1507,6 +1501,27 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       controller.setMicrophoneEnabled(false);
       setMicrophoneEnabled(false);
       setVoiceState("idle");
+
+      // Verifica silenciosamente se o microfone já foi permitido em sessões anteriores.
+      // Se sim, ativa automaticamente para o usuário não precisar re-confirmar a permissão —
+      // o botão do microfone ainda aparece desligado (invariante vermelho preservada), mas a
+      // faixa de áudio já está aberta e pronta para capturar assim que o usuário tocar.
+      void isMicrophoneAlreadyGranted().then((alreadyGranted) => {
+        if (
+          alreadyGranted &&
+          realtimeRef.current === controller &&
+          !abortController.signal.aborted &&
+          connectAbortRef.current === abortController
+        ) {
+          // Microfone ativado silenciosamente — o usuário ainda precisa tocar para falar,
+          // mas não haverá novo pop-up de permissão do navegador.
+          controller.setMicrophoneEnabled(true);
+          setMicrophoneEnabled(true);
+          setVoiceState("listening");
+          setIsCharacterAwake(true);
+        }
+      });
+
       return controller;
     }).catch((err) => {
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
@@ -2056,6 +2071,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                         type="button"
                         className={`phase-stepper-step ${isPassed ? "is-passed" : ""} ${isCurrent ? "is-current" : ""}`}
                         title={`Fase ${idx + 1}: ${concept.title}`}
+                        aria-label={`Fase ${idx + 1}: ${concept.title}`}
+                        aria-current={isCurrent ? "step" : undefined}
                         onClick={() => {
                           setCurrentConceptIndex(idx);
                         }}
@@ -2112,7 +2129,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
             {/* Balão de Fala do Mr. Crazy: com replay de voz e guia fonético integrado */}
             <div
-              className={`character-speech-bubble-container ${isHistoryExpanded ? "hidden-on-mobile" : ""} ${voiceState === "speaking" ? "is-speaking" : ""}`}
+              className={`character-speech-bubble-container ${voiceState === "speaking" ? "is-speaking" : ""}`}
               role="region"
               aria-label="Fala do Mr. Crazy"
             >
@@ -2130,7 +2147,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   <button
                     type="button"
                     className="speech-bubble-audio-btn"
-                    onClick={() => speak(latestCrazySpeech, "speaking")}
+                    onClick={() => speak(latestCrazySpeech, "idle")}
                     title="Ouvir fala do professor novamente"
                   >
                     <Volume2 size={13} />
@@ -2143,23 +2160,27 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 {/* Guia Didático Integrado de Pronúncia da Fase Ativa */}
                 {teachingConcepts[currentConceptIndex] && (
                   <div className="speech-bubble-didactic-footer">
-                    <div className="speech-phonetic-chip" title="Pronúncia aproximada brasileira">
-                      <span className="phonetic-icon">🗣️</span>
-                      <span className="phonetic-text">{teachingConcepts[currentConceptIndex].phoneticPt}</span>
-                      {teachingConcepts[currentConceptIndex].meaningPt && (
-                        <>
-                          <span className="meaning-sep">•</span>
-                          <span className="meaning-text">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
-                        </>
-                      )}
-                    </div>
+                    <dl className="speech-study-guide">
+                      <div className="speech-study-target">
+                        <dt>Fale em inglês</dt>
+                        <dd lang="en">{teachingConcepts[currentConceptIndex].targetPhrase}</dd>
+                      </div>
+                      <div>
+                        <dt>Significado</dt>
+                        <dd>{teachingConcepts[currentConceptIndex].meaningPt || teachingConcepts[currentConceptIndex].objective}</dd>
+                      </div>
+                      <div>
+                        <dt>Pronúncia aproximada</dt>
+                        <dd>{teachingConcepts[currentConceptIndex].phoneticPt}</dd>
+                      </div>
+                    </dl>
                     {teachingConcepts[currentConceptIndex].targetPhrase && (
                       <button
                         type="button"
                         className="speech-target-audio-btn"
                         onClick={() => {
                           const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
-                          if (phrase) speak(phrase, "speaking", "en-US");
+                          if (phrase) speak(phrase, "idle", "en-US");
                         }}
                         title="Ouvir pronúncia exata em inglês"
                       >

@@ -30,6 +30,8 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 
 ## 📋 Fila de Tarefas & Zonas de Trabalho
 
+**Codex — 2026-09-28, em andamento:** revisão mobile da entrada e treino (balão, guia com frase/significado/fonética, progresso, histórico e dock). Ajustes pontuais em `PracticeExperience.tsx`, `globals.css`, instruções Realtime e TTS para clareza e concisão sem anunciar fases. Microfone e Chefão preservados.
+
 | Tarefa / Funcionalidade | Responsável | Status | Arquivos de Foco |
 | :--- | :--- | :--- | :--- |
 | **Documentação e Protocolo Multi-Agente** | Antigravity | ✅ Concluído | `AGENTS.md`, `CODEX_SYNC.md` |
