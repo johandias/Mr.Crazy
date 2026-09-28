@@ -31,6 +31,7 @@ interface ExamModalProps {
   onClose: () => void;
   onSuccessApproved?: (evaluation: ModuleEvaluationItem) => void;
   onNextModule?: (nextModuleId: string) => void;
+  onRedoModule?: () => void;
 }
 
 // Detecção heurística instantânea de português ou fala confusa
@@ -50,7 +51,8 @@ export function ExamModal({
   moduleId,
   onClose,
   onSuccessApproved,
-  onNextModule
+  onNextModule,
+  onRedoModule
 }: ExamModalProps) {
   const currentModule = getModuleById(moduleId);
   const examNpc: ExamNpcConfig = currentModule.examNpc;
@@ -64,6 +66,7 @@ export function ExamModal({
   const [manualText, setManualText] = useState("");
   const [confusionCount, setConfusionCount] = useState(0);
   const [turnCount, setTurnCount] = useState(0);
+  const [attemptNumber, setAttemptNumber] = useState(1);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<{
     overall_score: number;
@@ -110,6 +113,37 @@ export function ExamModal({
     }
   }, []);
 
+  const startPracticalAttempt = useCallback((attempt: number) => {
+    const initialGreeting = examNpc.initialGreetingEn;
+    const introduction = attempt === 1
+      ? "Agora é prova prática: converse em inglês sem dicas. No final eu avalio você. Manda bala."
+      : "Segunda tentativa: converse em inglês sem dicas. Eu só corrijo quando terminar. Manda bala.";
+    const startNpcConversation = () => speakNpc(initialGreeting, "neutral");
+
+    setDialogue([{ role: "npc", text: initialGreeting }]);
+    setNpcExpression("speaking");
+    setConfusionCount(0);
+    setTurnCount(0);
+    setEvaluationResult(null);
+    setIsEvaluating(false);
+    setTranscript("");
+    setManualText("");
+    setAttemptNumber(attempt);
+
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      startNpcConversation();
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(introduction);
+    utterance.lang = "pt-BR";
+    utterance.rate = 1;
+    utterance.onend = startNpcConversation;
+    utterance.onerror = startNpcConversation;
+    window.speechSynthesis.speak(utterance);
+  }, [examNpc.initialGreetingEn, speakNpc]);
+
   // Reinicia o exame ao abrir ou trocar de módulo
   useEffect(() => {
     if (!isOpen) {
@@ -119,23 +153,9 @@ export function ExamModal({
       return;
     }
 
-    const initialGreeting = examNpc.initialGreetingEn;
-    setDialogue([{ role: "npc", text: initialGreeting }]);
-    setNpcExpression("speaking");
-    setConfusionCount(0);
-    setTurnCount(0);
-    setEvaluationResult(null);
-    setIsEvaluating(false);
-    setTranscript("");
-    setManualText("");
-
-    // Fala a saudação inicial do NPC
-    const timer = setTimeout(() => {
-      speakNpc(initialGreeting, "neutral");
-    }, 400);
-
+    const timer = setTimeout(() => startPracticalAttempt(1), 250);
     return () => clearTimeout(timer);
-  }, [isOpen, moduleId, examNpc.initialGreetingEn, speakNpc]);
+  }, [isOpen, moduleId, startPracticalAttempt]);
 
   // Scroll automático no diálogo
   useEffect(() => {
@@ -421,7 +441,7 @@ export function ExamModal({
             </div>
             <h2 className="exam-header-title">{currentModule.cleanTitle}</h2>
             <p className="exam-header-subtitle">
-              Regra: Fale 100% em Inglês • Sem dicas do tutor • Nota mínima para passar: <strong>6.0 / 10.0</strong>
+              Converse 100% em inglês • Sem dicas durante a prova • Nota mínima: <strong>6.0 / 10.0</strong>
             </p>
           </div>
 
@@ -442,6 +462,12 @@ export function ExamModal({
             <span>MISSÃO DA PROVA</span>
           </div>
           <p className="goal-text">{examNpc.scenarioGoal}</p>
+        </div>
+
+        <div className="exam-intro-banner" role="status">
+          <strong>Mr.Crazy:</strong> {attemptNumber === 1
+            ? "converse em inglês. Eu só avalio e corrijo quando a prova acabar."
+            : "segunda tentativa: converse em inglês sem dicas. A correção vem no final."}
         </div>
 
         {/* Corpo Principal: Avatar do NPC + Diálogo */}
@@ -696,27 +722,22 @@ export function ExamModal({
               <div className="result-actions-row">
                 {!evaluationResult.approved ? (
                   <>
-                    <button
-                      type="button"
-                      className="result-retry-btn"
-                      onClick={() => {
-                        setEvaluationResult(null);
-                        setDialogue([{ role: "npc", text: examNpc.initialGreetingEn }]);
-                        setNpcExpression("speaking");
-                        setConfusionCount(0);
-                        setTurnCount(0);
-                        speakNpc(examNpc.initialGreetingEn, "neutral");
-                      }}
-                    >
-                      <RotateCcw size={16} />
-                      <span>Tentar Novamente a Prova</span>
-                    </button>
+                    {attemptNumber === 1 && (
+                      <button
+                        type="button"
+                        className="result-retry-btn"
+                        onClick={() => startPracticalAttempt(2)}
+                      >
+                        <RotateCcw size={16} />
+                        <span>Fazer uma segunda tentativa</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="result-study-btn"
-                      onClick={onClose}
+                      onClick={onRedoModule || onClose}
                     >
-                      <span>Revisar Conceitos com Mr. Crazy</span>
+                      <span>Refazer este módulo</span>
                     </button>
                   </>
                 ) : (

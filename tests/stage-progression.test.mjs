@@ -236,7 +236,7 @@ test("initial module greetings are ultra-concise and do not repeat English phras
   }
 });
 
-test("module completion triggers Chefão exam modal and does not auto-skip stage", () => {
+test("module completion triggers practical exam modal and does not auto-skip stage", () => {
   const isLessonCompleted = true;
   let isExamModalOpen = false;
   let stageTransition = null;
@@ -246,8 +246,34 @@ test("module completion triggers Chefão exam modal and does not auto-skip stage
     isExamModalOpen = true;
   }
 
-  assert.equal(isExamModalOpen, true, "Chefão deve abrir ao completar as fases");
-  assert.equal(stageTransition, null, "Não deve iniciar contagem regressiva para pular o Chefão");
+  assert.equal(isExamModalOpen, true, "A prova prática deve abrir ao completar as fases");
+  assert.equal(stageTransition, null, "Não deve iniciar contagem regressiva para pular a prova prática");
+});
+
+test("practical exam introduces the rules, allows one retake, and withholds hints", async () => {
+  const fs = await import("node:fs");
+  const examModalCode = fs.readFileSync("src/components/exam/ExamModal.tsx", "utf-8");
+  const examReplyCode = fs.readFileSync("src/app/api/exam/reply/route.ts", "utf-8");
+
+  assert.ok(examModalCode.includes("Agora é prova prática"), "Mr.Crazy deve introduzir a prova de forma curta");
+  assert.ok(examModalCode.includes("Fazer uma segunda tentativa"), "A prova deve oferecer uma segunda tentativa");
+  assert.ok(examModalCode.includes("Refazer este módulo"), "O aluno deve poder optar por refazer o módulo");
+  assert.ok(examReplyCode.includes("NEVER give hints, corrections, translations"), "O examinador não pode ajudar ou corrigir durante a prova");
+  assert.ok(!examModalCode.includes("Chefão"), "A prova não deve usar o nome antigo");
+});
+
+test("history reads real recorded sessions instead of rendering sample lessons", async () => {
+  const fs = await import("node:fs");
+  const historyPageCode = fs.readFileSync("src/app/history/page.tsx", "utf-8");
+  const sessionHistoryCode = fs.readFileSync("src/components/SessionHistory.tsx", "utf-8");
+  const progressSummaryCode = fs.readFileSync("src/app/api/progress/summary/route.ts", "utf-8");
+
+  assert.ok(historyPageCode.includes("<SessionHistory />"), "A tela de histórico deve usar o componente de dados reais");
+  assert.ok(sessionHistoryCode.includes('fetch("/api/progress/summary")'), "O histórico deve buscar o resumo autenticado do aluno");
+  assert.ok(sessionHistoryCode.includes("Sua primeira prática começa aqui."), "O histórico vazio deve orientar a primeira aula");
+  assert.ok(progressSummaryCode.includes("recentSessions"), "O resumo deve fornecer sessões recentes reais");
+  assert.ok(progressSummaryCode.includes("mrcrazy_practice_sessions"), "As sessões devem vir da tabela de prática");
+  assert.ok(!historyPageCode.includes("Passado simples e som do TH"), "A tela não pode exibir uma sessão fictícia");
 });
 
 test("microphone starts in muted state (red) and mode is renamed to Hold to Talk", async () => {

@@ -98,11 +98,11 @@ function ModuleProgressCard({ mod }: { mod: ModuleProgressEntry }) {
         <span>{mod.totalTurns} turnos</span>
       </div>
 
-      {/* Nota do Chefão */}
+      {/* Nota da prova prática */}
       {mod.bestScore !== null && (
         <div className="module-best-score">
           <Star size={13} />
-          <span>Nota do Chefão: <strong>{mod.bestScore.toFixed(1)}/10</strong></span>
+          <span>Nota da prova: <strong>{mod.bestScore.toFixed(1)}/10</strong></span>
         </div>
       )}
 
@@ -541,7 +541,7 @@ export function EvolutionDashboard() {
           {summary?.recentEvaluations && summary.recentEvaluations.length > 0 && (
             <div className="recent-evals-strip">
               <span className="recent-evals-label">
-                <Star size={13} /> Notas do Chefão:
+                <Star size={13} /> Notas das provas:
               </span>
               {summary.recentEvaluations.map((ev, i) => (
                 <span key={i} className="eval-chip">

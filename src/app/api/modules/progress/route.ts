@@ -204,7 +204,7 @@ export async function POST(request: Request) {
           }
         }
 
-        // Se veio nota de avaliação do Chefão, registra em mrcrazy_module_evaluations
+        // Se veio nota da prova prática, registra em mrcrazy_module_evaluations.
         if (typeof body.score === "number" && body.score >= 0) {
           try {
             await supabaseAdmin.from("mrcrazy_module_evaluations").insert({
@@ -216,7 +216,7 @@ export async function POST(request: Request) {
               grammar_score: Math.min(100, Math.round(body.score * 10)),
               fluency_score: Math.min(100, Math.round(body.score * 10)),
               performance_level: body.score >= 8 ? "Excelente" : body.score >= 6 ? "Bom" : "Em Desenvolvimento",
-              summary_feedback: body.score >= 7 ? "Módulo aprovado com sucesso no Chefão!" : "Tentativa avaliada no Chefão.",
+              summary_feedback: body.score >= 7 ? "Módulo aprovado com sucesso na prova prática!" : "Tentativa avaliada na prova prática.",
               evaluated_at: new Date().toISOString()
             });
           } catch (evalErr) {

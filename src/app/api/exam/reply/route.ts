@@ -44,7 +44,7 @@ function getFallbackQuestion(examNpc: ExamNpcConfig, turnIndex: number): string 
       if (turnIndex === 2) {
         return "Sounds great! Do you know any good cafes or restaurants to recommend nearby?";
       }
-      return "It was wonderful speaking with you! You communicated clearly. You can now click 'Finalizar Prova' to get your final evaluation!";
+      return "Thank you for the conversation. This part is complete. You can now click 'Finalizar Prova' to receive your evaluation.";
 
     case "waiter":
       if (turnIndex === 0) {
@@ -92,7 +92,7 @@ function getFallbackQuestion(examNpc: ExamNpcConfig, turnIndex: number): string 
       if (turnIndex === 2) {
         return "Totally agree! Are you going to join the team for lunch later today?";
       }
-      return "Awesome catching up! You can now click 'Finalizar Prova' to submit your exam score.";
+      return "Thank you for the conversation. This part is complete. You can now click 'Finalizar Prova' to receive your evaluation.";
 
     case "executive":
       if (turnIndex === 0) {
@@ -104,7 +104,7 @@ function getFallbackQuestion(examNpc: ExamNpcConfig, turnIndex: number): string 
       if (turnIndex === 2) {
         return "Strong points. What is the expected timeline for delivering the first milestone?";
       }
-      return "Very articulate presentation. That concludes our assessment. You can now click 'Finalizar Prova' to see your evaluation!";
+      return "Thank you for the presentation. This part is complete. You can now click 'Finalizar Prova' to receive your evaluation.";
 
     case "examiner":
     default:
@@ -117,7 +117,7 @@ function getFallbackQuestion(examNpc: ExamNpcConfig, turnIndex: number): string 
       if (turnIndex === 2) {
         return "Excellent reflection. Finally, what is your long-term vision for utilizing English in your career?";
       }
-      return "Splendid demonstration of spontaneous English communication. You can now click 'Finalizar Prova' to calculate your results.";
+      return "Thank you for your answers. This part is complete. You can now click 'Finalizar Prova' to receive your evaluation.";
   }
 }
 
@@ -174,8 +174,9 @@ INSTRUCTIONS:
 2. Keep your response SHORT (1 to 2 sentences, 15 to 25 words maximum).
 3. React naturally to what the student said in character.
 4. Ask the next logical question or make a realistic request in character to test the student.
-5. If the student has reached or passed ${examNpc.minTurns} turns, thank them and tell them they can now click 'Finalizar Prova' to calculate their grade.
-6. Return ONLY the plain spoken English text. No quotation marks, no emojis, no commentary.`;
+5. This is an assessment: NEVER give hints, corrections, translations, grammar explanations, suggested wording, or pronunciation guidance. Keep the conversation moving without revealing whether an answer was correct.
+6. If the student has reached or passed ${examNpc.minTurns} turns, thank them and tell them they can now click 'Finalizar Prova' to calculate their grade.
+7. Return ONLY the plain spoken English text. No quotation marks, no emojis, no commentary.`;
 
         const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
         for (const model of models) {

@@ -41,6 +41,7 @@ function setup(t, config = {}) {
       },
       getCurrentUser: async () => ({ email: "test@example.test" })
     },
+    "@/lib/supabase": { supabaseAdmin: null, isSupabaseConfigured: false },
     "@/lib/rate-limiter": { checkRateLimit: async () => ({ allowed: true, limit: 100, remaining: 99 }) },
     "@/lib/realtime-session": { buildRealtimeSession: (_level, _mode, _user, model) => {
       models.push(model);

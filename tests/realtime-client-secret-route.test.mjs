@@ -37,6 +37,7 @@ function setup(t, config = {}) {
       getCurrentSession: async () => config.unauthorized ? null : { status: "approved", email: "test@example.test", role: config.role ?? "admin" },
       getCurrentUser: async () => ({ email: "test@example.test" })
     },
+    "@/lib/supabase": { supabaseAdmin: null, isSupabaseConfigured: false },
     "@/lib/rate-limiter": { checkRateLimit: async () => ({ allowed: true, limit: 100, remaining: 99 }) },
     "@/lib/realtime-session": { buildRealtimeSession: (_level, _mode, _user, model) => ({ type: "realtime", model }) },
     "@/lib/realtime-provider-error": providerErrors,

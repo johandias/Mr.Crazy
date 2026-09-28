@@ -314,6 +314,12 @@ export function LearningMap({
             }));
           }
         }}
+        onRedoModule={() => {
+          if (!examModuleId) return;
+          onSelectModule(examModuleId);
+          setExamModuleId(null);
+          onClose?.();
+        }}
       />
     </div>
   );

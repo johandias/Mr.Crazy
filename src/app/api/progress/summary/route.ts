@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 import type {
   ModuleProgressEntry,
   WeeklyStat,
+  RecentPracticeSession,
   ComputedLevel,
   ProgressSummaryResponse
 } from "@/lib/progress-types";
@@ -16,6 +17,7 @@ import type {
 export type {
   ModuleProgressEntry,
   WeeklyStat,
+  RecentPracticeSession,
   ComputedLevel,
   ProgressSummaryResponse
 };
@@ -83,6 +85,8 @@ export async function GET() {
   }> = [];
   let evaluationsRows: Array<{ module_id: string; overall_score: number; evaluated_at: string }> = [];
   let sessionRows: Array<{ started_at: string; turns_count: number; duration_seconds: number; xp_earned: number }> = [];
+  let recentSessionRows: Array<{ id: string; module_id: string; session_type: string; started_at: string; turns_count: number; duration_seconds: number; xp_earned: number }> = [];
+  let totalSessionCount = 0;
 
   if (isSupabaseConfigured) {
     try {
@@ -102,16 +106,30 @@ export async function GET() {
       evaluationsRows = (evalRes.data || []) as typeof evaluationsRows;
     } catch { /* fallback silencioso */ }
 
-    // Sessões da semana (tabela pode não existir ainda)
+    // Sessões reais: agregação semanal e histórico recente. A tabela pode não existir em instalações antigas.
     try {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const sessRes = await supabaseAdmin
-        .from("mrcrazy_practice_sessions")
-        .select("started_at, turns_count, duration_seconds, xp_earned")
-        .eq("user_email", userEmail)
-        .gte("started_at", weekAgo)
-        .order("started_at", { ascending: true });
-      sessionRows = (sessRes.data || []) as typeof sessionRows;
+      const [weekRes, recentRes, countRes] = await Promise.all([
+        supabaseAdmin
+          .from("mrcrazy_practice_sessions")
+          .select("started_at, turns_count, duration_seconds, xp_earned")
+          .eq("user_email", userEmail)
+          .gte("started_at", weekAgo)
+          .order("started_at", { ascending: true }),
+        supabaseAdmin
+          .from("mrcrazy_practice_sessions")
+          .select("id, module_id, session_type, started_at, turns_count, duration_seconds, xp_earned")
+          .eq("user_email", userEmail)
+          .order("started_at", { ascending: false })
+          .limit(20),
+        supabaseAdmin
+          .from("mrcrazy_practice_sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_email", userEmail)
+      ]);
+      sessionRows = (weekRes.data || []) as typeof sessionRows;
+      recentSessionRows = (recentRes.data || []) as typeof recentSessionRows;
+      totalSessionCount = countRes.count || 0;
     } catch { /* tabela ainda não criada */ }
   }
 
@@ -163,7 +181,17 @@ export async function GET() {
 
   const totalTurns = progressRows.reduce((acc, p) => acc + (p.total_turns || 0), 0);
   const totalModulesCompleted = completedModuleIds.length;
-  const totalSessions = sessionRows.length || Math.max(1, Math.round((user?.practice_time_seconds || 0) / 600));
+  const recentSessions: RecentPracticeSession[] = recentSessionRows.map((session) => ({
+    id: session.id,
+    moduleId: session.module_id,
+    moduleTitle: moduleById.get(session.module_id)?.cleanTitle || moduleById.get(session.module_id)?.title || "Prática de inglês",
+    sessionType: session.session_type === "exam" ? "exam" : session.session_type === "voice" ? "voice" : "practice",
+    startedAt: session.started_at,
+    durationSeconds: Math.max(0, session.duration_seconds || 0),
+    turnsCount: Math.max(0, session.turns_count || 0),
+    xpEarned: Math.max(0, session.xp_earned || 0)
+  }));
+  const totalSessions = totalSessionCount || Math.round((user?.practice_time_seconds || 0) / 600);
 
   return NextResponse.json({
     ok: true,
@@ -174,6 +202,7 @@ export async function GET() {
     totalTurns,
     totalSessions,
     weeklyStats,
+    recentSessions,
     recentEvaluations
   } satisfies ProgressSummaryResponse);
 }

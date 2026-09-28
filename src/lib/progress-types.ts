@@ -63,6 +63,17 @@ export interface WeeklyStat {
   xpEarned: number;
 }
 
+export interface RecentPracticeSession {
+  id: string;
+  moduleId: string;
+  moduleTitle: string;
+  sessionType: "voice" | "exam" | "practice";
+  startedAt: string;
+  durationSeconds: number;
+  turnsCount: number;
+  xpEarned: number;
+}
+
 export interface ComputedLevel {
   level: "basic" | "intermediate" | "advanced";
   label: string;
@@ -93,6 +104,7 @@ export interface ProgressSummaryResponse {
   totalTurns: number;
   totalSessions: number;
   weeklyStats: WeeklyStat[];
+  recentSessions: RecentPracticeSession[];
   recentEvaluations: Array<{
     moduleId: string;
     moduleTitle: string;

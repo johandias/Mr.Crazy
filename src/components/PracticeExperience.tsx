@@ -1206,13 +1206,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     if (isLessonCompleted && !currentEvaluation && !isExamModalOpen) {
-      // Abre o Chefão (Prova do Módulo) automaticamente ao concluir todas as fases de treino!
+      // Abre a prova prática automaticamente ao concluir todas as fases de treino.
       setIsExamModalOpen(true);
       setMicrophoneEnabled(false);
       realtimeRef.current?.setMicrophoneEnabled(false);
       triggerGesture("thumbsup");
       speak(
-        `Sensacional! Você concluiu todas as fases de treino do módulo! Agora vamos fechar com o Chefão! Mostre o que você aprendeu pro examinador!`
+        "Você concluiu as fases. Agora é a prova prática: converse em inglês e use o que aprendeu. A correção vem no final."
       );
     }
   }, [isLessonCompleted, currentEvaluation, isExamModalOpen, activeModule, triggerGesture, speak]);
@@ -1467,7 +1467,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               isPraise &&
               !isCorrection &&
               !isInstruction &&
-              /(todas as fases|fases concluídas|concluiu o treino|pronto pro chefão|enfrentar o chefão|prova final|dominou)/i.test(lower);
+              /(todas as fases|fases concluídas|concluiu o treino|pronto para a prova|fazer a prova|prova prática|prova final|dominou)/i.test(lower);
 
             if (isAllCompleted) {
               setIsLessonCompleted(true);
@@ -2070,7 +2070,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     {remainingPhases === 0
                       ? "👑 Última Fase!"
                       : remainingPhases === 1
-                      ? "Falta 1 p/ o Chefão"
+                      ? "Falta 1 fase para a prova"
                       : `Faltam ${remainingPhases} fases`}
                   </span>
                   <span className="concept-step-title">
@@ -2078,7 +2078,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   </span>
                 </div>
 
-                {/* Stepper visual com progresso das fases e o Chefão */}
+                {/* Stepper visual com progresso das fases e a prova prática */}
                 <div className="module-phase-stepper-track" aria-label="Progresso das fases do módulo">
                   {teachingConcepts.map((concept, idx) => {
                     const isPassed = idx < currentConceptIndex;
@@ -2105,7 +2105,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   <button
                     type="button"
                     className={`phase-stepper-step phase-stepper-boss ${currentConceptIndex >= totalPhases - 1 ? "is-boss-ready" : ""}`}
-                    title="Chefão Final: Prova prática do módulo"
+                    title="Prova prática do módulo"
                     onClick={() => setIsExamModalOpen(true)}
                   >
                     <div className="phase-stepper-bar-fill" />
@@ -2383,7 +2383,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       onClick={() => setIsExamModalOpen(true)}
                     >
                       <Award size={18} />
-                      <span>🏆 Enfrentar o Chefão (Prova da Fase)</span>
+                      <span>🏆 Fazer a prova prática</span>
                     </button>
                     {nextModule ? (
                       <button
@@ -2677,7 +2677,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             handleSelectModule(nextModId);
             const nextMod = getModuleById(nextModId);
             triggerGesture("thumbsup");
-            speak(`Sensacional! Você passou no Chefão e avançou para a etapa ${nextMod.cleanTitle || nextMod.title}!`);
+            speak(`Você passou na prova prática e avançou para a etapa ${nextMod.cleanTitle || nextMod.title}!`);
+          }}
+          onRedoModule={() => {
+            setIsExamModalOpen(false);
+            setCurrentEvaluation(null);
+            handleRedoModule();
           }}
         />
 
