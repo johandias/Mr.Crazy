@@ -12418,11 +12418,11 @@ textarea {
 }
 
 /* ==========================================================================
-   EVOLUTION DASHBOARD — ESTILOS NOVOS (v2)
-   Nível calculado por progresso, aba de módulos com cartões, streak banner
+   EVOLUTION DASHBOARD - ESTILOS NOVOS (v2)
+   Nivel calculado por progresso, aba de modulos com cartoes, streak banner
    ========================================================================== */
 
-/* Banner de nível calculado */
+/* Banner de nivel calculado */
 .computed-level-banner {
   display: flex;
   align-items: center;
@@ -12505,7 +12505,7 @@ textarea {
   text-align: right;
 }
 
-/* Em progresso (resumo rápido na aba stats) */
+/* Em progresso (resumo rapido na aba stats) */
 .in-progress-list {
   display: flex;
   flex-direction: column;
@@ -12569,7 +12569,7 @@ textarea {
   gap: 5px;
 }
 
-/* Aba de módulos */
+/* Aba de modulos */
 .modules-level-badge {
   display: flex;
   align-items: center;
@@ -12615,7 +12615,7 @@ textarea {
   color: #f59e0b;
 }
 
-/* Grupo de módulos */
+/* Grupo de modulos */
 .module-group {
   margin-bottom: 24px;
 }
@@ -12659,14 +12659,14 @@ textarea {
   white-space: nowrap;
 }
 
-/* Grid de módulos em cartões */
+/* Grid de modulos em cartoes */
 .module-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
 }
 
-/* Cartão de progresso de módulo (novo, diferente do .module-card existente) */
+/* Cartao de progresso de modulo (novo, diferente do .module-card existente) */
 .module-progress-card {
   display: flex;
   flex-direction: column;
@@ -12783,7 +12783,7 @@ textarea {
   margin-top: 20px;
 }
 
-/* Mobile: módulos em coluna única */
+/* Mobile: modulos em coluna unica */
 @media (max-width: 620px) {
   .module-cards-grid {
     grid-template-columns: 1fr;
