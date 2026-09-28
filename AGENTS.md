@@ -69,6 +69,11 @@ Para garantir que o Codex e o Antigravity trabalhem simultaneamente sem conflito
 - **Sem Repetições**: Não repetir a frase em inglês duas vezes na mesma fala.
 - **Stress Level**: Se o aluno comete erros repetidos, Mr. Crazy fica irritado e mais enérgico, mas foca no aprendizado.
 
+### Regra 6: Timeout Estrito no Terminal (Máximo 40 Segundos)
+- Toda e qualquer execução de comando no terminal **DEVE** ter um limite máximo de execução de 40 segundos.
+- Se qualquer comando ou processo em execução no terminal não finalizar dentro de 40 segundos, ele **DEVE ser finalizado imediatamente** com timeout (via cancelamento/`kill` da tarefa).
+- Para chamadas com ferramentas que aceitem timeout (ex: requisições HTTP, builds, testes ou scripts), passe sempre o limite explícito de 40s (ex.: `--max-time 40`, `--timeout=40000`).
+
 ---
 
 ## 4. Mapa da Arquitetura do Repositório
