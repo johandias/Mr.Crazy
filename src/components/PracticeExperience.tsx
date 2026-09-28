@@ -22,6 +22,7 @@ import {
   UserRound,
   PictureInPicture2,
   ExternalLink,
+  Keyboard,
   X
 } from "lucide-react";
 import { VoiceInputControl, type LiveAudioVisualizer } from "@/components/VoiceInputControl";
@@ -42,6 +43,7 @@ import {
 } from "@/lib/modules";
 import { isNoiseOrHallucination } from "@/lib/voice/noise-filter";
 import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
+import { PracticeStartScreen } from "@/components/PracticeStartScreen";
 import { ModuleEvaluationModal } from "@/components/ModuleEvaluationModal";
 import { ExamModal } from "@/components/exam/ExamModal";
 import { playGeneratedSpeech } from "@/lib/generated-speech-playback";
@@ -447,6 +449,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     // A primeira tela ao entrar é o Mapa de Etapas
     return true;
   });
+  const [isPracticeIntro, setIsPracticeIntro] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const urlParams = new URLSearchParams(window.location.search);
+    return !(
+      urlParams.get("practice") === "1" ||
+      urlParams.get("map") === "1" ||
+      urlParams.get("modulos") === "1" ||
+      urlParams.get("popup") === "true"
+    );
+  });
 
   const [talkMode, setTalkMode] = useState<"continuous" | "push-to-talk">(() => {
     if (typeof window === "undefined") return "continuous";
@@ -517,6 +529,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [activeGesture, setActiveGesture] = useState<CharacterGesture>("idle");
   const gestureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isQuickInputOpen, setIsQuickInputOpen] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       return window.innerWidth >= 992;
@@ -851,6 +864,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
     return openingLine || "Fala aí! Eu sou o Mr. Crazy! Pode falar no microfone para treinar inglês comigo!";
   }, [allConversationItems, openingLine, isCharacterAwake, contextHistory.length]);
+
+  const latestUserSpeech = useMemo(() => {
+    if (transcript.trim()) return transcript.trim();
+    if (liveUserItem?.text.trim()) return liveUserItem.text.trim();
+    for (let i = allConversationItems.length - 1; i >= 0; i--) {
+      const item = allConversationItems[i];
+      if (item.role === "user" && item.text.trim()) {
+        return item.text.trim();
+      }
+    }
+    return "";
+  }, [transcript, liveUserItem, allConversationItems]);
 
   const suggestedReplies = useMemo(() => {
     const suggestions: string[] = [];
@@ -1695,6 +1720,29 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     speak(analysis.corrected_sentence, "waiting_for_repeat", "en-US");
   }
 
+  if (isPracticeIntro && !isPopupMode) {
+    return (
+      <AppShell isAdmin={isAdmin}>
+        <PracticeStartScreen
+          userName={studentProfile?.nickname?.replace(/\s*\(admin\)/i, "").trim()}
+          moduleTitle={activeModule.cleanTitle || activeModule.title.replace(/^\d+\.\s*/, "")}
+          moduleBadge={activeModule.levelBadge}
+          crazyLevel={crazyLevel}
+          emotion={emotion}
+          voiceState={voiceState}
+          onStart={() => {
+            setIsPracticeIntro(false);
+            setIsSelectingModule(false);
+          }}
+          onOpenMap={() => {
+            setIsPracticeIntro(false);
+            setIsSelectingModule(true);
+          }}
+        />
+      </AppShell>
+    );
+  }
+
   if (isSelectingModule && !isPopupMode) {
     return (
       <AppShell isAdmin={isAdmin}>
@@ -1886,8 +1934,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           microphoneEnabled={microphoneEnabled}
         />
 
-        <div className="practice-header-bar">
+        <header className="practice-header-bar">
           <div className="practice-header-nav-row">
+            {/* LADO ESQUERDO: Seletor de Módulo */}
             <button
               type="button"
               className="active-module-pill-btn"
@@ -1898,67 +1947,67 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               <span className="module-pill-title">{activeModule.title.replace(/^\d+\.\s*/, "")}</span>
               <span className="module-pill-badge">{activeModule.levelBadge.split(" ")[0]}</span>
             </button>
+
+            {/* CENTRO: Medidor de Puticidade + XP */}
+            <div className="practice-header-stats-group">
+              <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
+            </div>
+
+            {/* LADO DIREITO: Histórico, Prova e Menu */}
             <div className="practice-header-actions-group">
+              <button
+                type="button"
+                className={`header-icon-action-btn ${isHistoryExpanded ? "is-active" : ""}`}
+                onClick={() => setIsHistoryExpanded((prev) => !prev)}
+                title={isHistoryExpanded ? "Ocultar histórico" : "Ver conversa completa"}
+                aria-label="Alternar histórico da conversa"
+              >
+                <MessagesSquare size={16} />
+                {allConversationItems.length > 0 && (
+                  <span className="header-icon-count-badge">{allConversationItems.length}</span>
+                )}
+              </button>
+
               <button
                 type="button"
                 className="stage-exam-action-btn"
                 onClick={() => setIsExamModalOpen(true)}
                 title={`Fazer a prova do módulo 100% em inglês com o avatar ${activeModule.examNpc.name}`}
               >
-                <Award size={14} />
+                <Award size={13} />
                 <span>Prova</span>
               </button>
+
               <button
                 type="button"
-                className="module-evaluate-action-btn desktop-only-btn"
-                onClick={handleEvaluateModule}
-                disabled={isEvaluating}
-                title="Concluir este módulo e receber sua avaliação do Mr. Crazy"
+                className={`pip-btn desktop-only-btn ${isPipActive ? "active" : ""}`}
+                onClick={handleTogglePiP}
+                aria-label="Ativar Modo Pop-up Flutuante"
+                title="Pop-up Flutuante"
               >
-                <Award size={14} />
-                <span>{isEvaluating ? "Avaliando..." : "Avaliar"}</span>
+                <PictureInPicture2 size={18} />
+                {isPipActive && <span className="pip-badge-active" />}
               </button>
-              <div className="header-actions-group">
-                <button
-                  type="button"
-                  className={`pip-btn desktop-only-btn ${isPipActive ? "active" : ""}`}
-                  onClick={handleTogglePiP}
-                  aria-label="Ativar Modo Pop-up Flutuante"
-                  title="Pop-up Flutuante"
-                >
-                  <PictureInPicture2 size={20} />
-                  {isPipActive && <span className="pip-badge-active" />}
-                </button>
-                <button
-                  type="button"
-                  className="pip-btn pip-standalone-btn desktop-only-btn"
-                  onClick={handleOpenStandalonePopup}
-                  aria-label="Abrir em Janela Pop-up Pequena"
-                  title="Abrir em Janela Pop-up separada"
-                >
-                  <ExternalLink size={20} />
-                </button>
-                <button
-                  type="button"
-                  className="hamburger-btn"
-                  onClick={() => setIsMenuOpen(true)}
-                  aria-label="Abrir menu de configurações e digitação"
-                  title="Opções de nível, tema e digitação"
-                >
-                  <Menu size={20} />
-                </button>
-              </div>
+
+              <button
+                type="button"
+                className="hamburger-btn"
+                onClick={() => setIsMenuOpen(true)}
+                aria-label="Abrir menu de configurações e digitação"
+                title="Opções de nível, tema e digitação"
+              >
+                <Menu size={18} />
+              </button>
             </div>
           </div>
-          <div className="practice-header-stats-row">
-            <SessionHeader crazyLevel={crazyLevel} emotion={emotion} xp={xp} level={`${activeLevel.badge} ${activeLevel.label}`} />
-          </div>
-        </div>
+        </header>
 
+        {/* Stepper e Progresso de Fases Compacto */}
         {teachingConcepts.length > 0 && (() => {
           const totalPhases = teachingConcepts.length;
           const currentPhaseNum = Math.min(currentConceptIndex + 1, totalPhases);
           const remainingPhases = Math.max(0, totalPhases - currentPhaseNum);
+          const activeConcept = teachingConcepts[currentConceptIndex];
 
           return (
             <div className="teaching-concept-wrapper">
@@ -1975,109 +2024,45 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       : `Faltam ${remainingPhases} fases`}
                   </span>
                   <span className="concept-step-title">
-                    {teachingConcepts[currentConceptIndex]?.title || activeModule.title}
+                    {activeConcept?.title || activeModule.title}
                   </span>
                 </div>
-                <div className="teaching-concept-actions">
-                  {isLessonCompleted ? (
-                    <span className="concept-completed-pill">Concluída ✔</span>
-                  ) : (
-                    <button
-                      type="button"
-                      className={`concept-guide-toggle-btn ${isStudyCardVisible ? "active" : ""}`}
-                      onClick={() => setIsStudyCardVisible((prev) => !prev)}
-                      title={isStudyCardVisible ? "Ocultar guia de pronúncia e significado" : "Ver guia de fala da frase"}
-                    >
-                      <span>{isStudyCardVisible ? "Ocultar Guia" : "Guia de Fala"}</span>
-                      {isStudyCardVisible ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              {/* Stepper visual com progresso das fases e o Chefão */}
-              <div className="module-phase-stepper-track" aria-label="Progresso das fases do módulo">
-                {teachingConcepts.map((concept, idx) => {
-                  const isPassed = idx < currentConceptIndex;
-                  const isCurrent = idx === currentConceptIndex;
-                  return (
-                    <div
-                      key={concept.id || idx}
-                      className={`phase-stepper-step ${isPassed ? "is-passed" : ""} ${isCurrent ? "is-current" : ""}`}
-                      title={`Fase ${idx + 1}: ${concept.title}`}
-                      onClick={() => {
-                        setCurrentConceptIndex(idx);
-                        setIsStudyCardVisible(true);
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div className="phase-stepper-bar-fill" />
-                      <span className="phase-stepper-label">
-                        {isPassed ? "✔" : `F${idx + 1}`}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div
-                  className={`phase-stepper-step phase-stepper-boss ${currentConceptIndex >= totalPhases - 1 ? "is-boss-ready" : ""}`}
-                  title="Chefão Final: Prova prática do módulo"
-                  onClick={() => setIsExamModalOpen(true)}
-                >
-                  <div className="phase-stepper-bar-fill" />
-                  <span className="phase-stepper-label">
-                    <Award size={10} /> Prova
-                  </span>
-                </div>
-              </div>
-
-              {/* Cartão Didático: Significado + Frase em Inglês + Guia Fonético Brasileiro */}
-              <AnimatePresence>
-                {isStudyCardVisible && teachingConcepts[currentConceptIndex] && (
-                  <motion.div
-                    className="teaching-study-card"
-                    initial={{ opacity: 0, height: 0, y: -6 }}
-                    animate={{ opacity: 1, height: "auto", y: 0 }}
-                    exit={{ opacity: 0, height: 0, y: -6 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                  >
-                    {teachingConcepts[currentConceptIndex].meaningPt && (
-                      <div className="study-card-item study-meaning">
-                        <span className="study-item-label">Significado</span>
-                        <span className="study-item-value">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
-                      </div>
-                    )}
-                    {teachingConcepts[currentConceptIndex].targetPhrase && (
-                      <div className="study-card-item study-phrase">
-                        <span className="study-item-label">Inglês</span>
-                        <button
-                          type="button"
-                          className="study-speak-trigger-btn"
-                          onClick={() => {
-                            const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
-                            if (phrase) speak(phrase, "speaking", "en-US");
-                          }}
-                          title="Ouvir pronúncia da frase em inglês"
-                        >
-                          <Volume2 size={13} className="inline-speak-icon" />
-                          <span className="study-item-value english-phrase">
-                            {teachingConcepts[currentConceptIndex].targetPhrase}
-                          </span>
-                        </button>
-                      </div>
-                    )}
-                    {teachingConcepts[currentConceptIndex].phoneticPt && (
-                      <div className="study-card-item study-phonetic">
-                        <span className="study-item-label">Fonética</span>
-                        <span className="study-item-value phonetic-guide">
-                          🗣️ {teachingConcepts[currentConceptIndex].phoneticPt}
+                {/* Stepper visual com progresso das fases e o Chefão */}
+                <div className="module-phase-stepper-track" aria-label="Progresso das fases do módulo">
+                  {teachingConcepts.map((concept, idx) => {
+                    const isPassed = idx < currentConceptIndex;
+                    const isCurrent = idx === currentConceptIndex;
+                    return (
+                      <button
+                        key={concept.id || idx}
+                        type="button"
+                        className={`phase-stepper-step ${isPassed ? "is-passed" : ""} ${isCurrent ? "is-current" : ""}`}
+                        title={`Fase ${idx + 1}: ${concept.title}`}
+                        onClick={() => {
+                          setCurrentConceptIndex(idx);
+                        }}
+                      >
+                        <div className="phase-stepper-bar-fill" />
+                        <span className="phase-stepper-label">
+                          {isPassed ? "✔" : `F${idx + 1}`}
                         </span>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className={`phase-stepper-step phase-stepper-boss ${currentConceptIndex >= totalPhases - 1 ? "is-boss-ready" : ""}`}
+                    title="Chefão Final: Prova prática do módulo"
+                    onClick={() => setIsExamModalOpen(true)}
+                  >
+                    <div className="phase-stepper-bar-fill" />
+                    <span className="phase-stepper-label">
+                      <Award size={10} /> Prova
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
           );
         })()}
@@ -2103,7 +2088,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            {/* Balão de Fala do Mr. Crazy: no desktop fica sempre visível acima do avatar; no mobile oculta quando expande histórico */}
+            {/* Balão de Fala do Mr. Crazy: com replay de voz e guia fonético integrado */}
             <div
               className={`character-speech-bubble-container ${isHistoryExpanded ? "hidden-on-mobile" : ""} ${voiceState === "speaking" ? "is-speaking" : ""}`}
               role="region"
@@ -2111,16 +2096,75 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             >
               <div className="character-speech-bubble">
                 <div className="speech-bubble-header">
-                  <span className="speech-bubble-name">Mr.Crazy</span>
-                  {voiceState === "speaking" ? (
-                    <span className="speech-bubble-live-badge">Falando...</span>
-                  ) : (
-                    <span className="speech-bubble-tutor-badge">Tutor</span>
-                  )}
+                  <div className="speech-bubble-speaker-info">
+                    <span className="speech-bubble-name">Mr.Crazy</span>
+                    {voiceState === "speaking" ? (
+                      <span className="speech-bubble-live-badge">Falando...</span>
+                    ) : (
+                      <span className="speech-bubble-tutor-badge">Tutor</span>
+                    )}
+                  </div>
+                  {/* Botão de Repetir Fala do Mr. Crazy */}
+                  <button
+                    type="button"
+                    className="speech-bubble-audio-btn"
+                    onClick={() => speak(latestCrazySpeech, "speaking")}
+                    title="Ouvir fala do professor novamente"
+                  >
+                    <Volume2 size={13} />
+                    <span>Ouvir</span>
+                  </button>
                 </div>
+
                 <p className="speech-bubble-text">{latestCrazySpeech}</p>
+
+                {/* Guia Didático Integrado de Pronúncia da Fase Ativa */}
+                {teachingConcepts[currentConceptIndex] && (
+                  <div className="speech-bubble-didactic-footer">
+                    <div className="speech-phonetic-chip" title="Pronúncia aproximada brasileira">
+                      <span className="phonetic-icon">🗣️</span>
+                      <span className="phonetic-text">{teachingConcepts[currentConceptIndex].phoneticPt}</span>
+                      {teachingConcepts[currentConceptIndex].meaningPt && (
+                        <>
+                          <span className="meaning-sep">•</span>
+                          <span className="meaning-text">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
+                        </>
+                      )}
+                    </div>
+                    {teachingConcepts[currentConceptIndex].targetPhrase && (
+                      <button
+                        type="button"
+                        className="speech-target-audio-btn"
+                        onClick={() => {
+                          const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
+                          if (phrase) speak(phrase, "speaking", "en-US");
+                        }}
+                        title="Ouvir pronúncia exata em inglês"
+                      >
+                        <Volume2 size={12} />
+                        <span>Ouvir Frase</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Feedback em Tempo Real da Fala do Aluno (Live Transcript & Análise) */}
+            {(transcript || (voiceState === "analyzing" && latestUserSpeech) || (voiceState === "listening" && latestUserSpeech)) && (
+              <div className={`user-live-transcript-badge ${voiceState === "analyzing" ? "is-analyzing" : "is-live"}`}>
+                <span className="user-live-transcript-dot" />
+                <span className="user-live-transcript-label">
+                  {voiceState === "analyzing" ? "Você falou: " : "Ouvindo você: "}
+                </span>
+                <span className="user-live-transcript-text">
+                  "{transcript || latestUserSpeech}"
+                </span>
+                {voiceState === "analyzing" && (
+                  <span className="user-live-analyzing-spinner">⚡ Analisando...</span>
+                )}
+              </div>
+            )}
 
             <div className="character-avatar-wrapper">
               <RpgCharacter
@@ -2136,6 +2180,32 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
             {/* Hub de Voz Central: Barrinhas de Áudio Responsivas + Botão de Microfone Animado */}
             <div className="practice-voice-hub">
+              {/* Formulário de Digitação Rápida (quando ativado pelo botão de teclado) */}
+              {isQuickInputOpen && (
+                <form
+                  className="quick-inline-text-form"
+                  onSubmit={(e: FormEvent<HTMLFormElement>) => {
+                    handleSubmit(e);
+                    setIsQuickInputOpen(false);
+                  }}
+                >
+                  <input
+                    ref={mainInputRef}
+                    value={manualText}
+                    onChange={(e) => setManualText(e.target.value)}
+                    placeholder="Digite em inglês ou português..."
+                    autoFocus
+                    disabled={voiceState === "analyzing"}
+                  />
+                  <button type="submit" disabled={!manualText.trim() || voiceState === "analyzing"} title="Enviar frase">
+                    <Send size={14} />
+                  </button>
+                  <button type="button" onClick={() => setIsQuickInputOpen(false)} title="Fechar digitação">
+                    <X size={14} />
+                  </button>
+                </form>
+              )}
+
               <VoiceInputControl
                 status={realtimeStatus}
                 enabled={microphoneEnabled}
@@ -2160,15 +2230,24 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 }}
               />
 
-              {/* Botão compacto para alternar exibição do histórico de conversa */}
-              <div className="history-toggle-row">
+              {/* Linha de Ações Auxiliares: Digitar e Histórico */}
+              <div className="voice-dock-actions-row">
                 <button
                   type="button"
-                  className={`history-toggle-pill-btn ${isHistoryExpanded ? "is-active" : ""}`}
-                  onClick={() => setIsHistoryExpanded((prev) => !prev)}
-                  title={isHistoryExpanded ? "Ocultar histórico e ver apenas balão" : "Ver conversa completa"}
+                  className={`dock-action-pill-btn ${isQuickInputOpen ? "is-active" : ""}`}
+                  onClick={() => setIsQuickInputOpen((prev) => !prev)}
+                  title={isQuickInputOpen ? "Fechar teclado" : "Digitar por texto"}
                 >
-                  <MessagesSquare size={14} />
+                  <Keyboard size={13} />
+                  <span>{isQuickInputOpen ? "Fechar Teclado" : "Digitar"}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`dock-action-pill-btn ${isHistoryExpanded ? "is-active" : ""}`}
+                  onClick={() => setIsHistoryExpanded((prev) => !prev)}
+                  title={isHistoryExpanded ? "Ocultar histórico" : "Ver conversa completa"}
+                >
+                  <MessagesSquare size={13} />
                   <span>
                     {isHistoryExpanded
                       ? "Ocultar Histórico"

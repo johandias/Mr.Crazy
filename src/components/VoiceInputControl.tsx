@@ -83,15 +83,29 @@ function InlineWaveBars({
 
         let targetH = 3;
         if (isUser || isCrazy) {
-          // Graves (bass) dão impacto dinâmico na região de graves da voz
-          const isBassZone = isMirrored ? i >= 5 : i <= 6;
-          const bassPunch = isBassZone ? bass * 9 * weight : bass * 3 * weight;
-          targetH = Math.max(3, Math.min(22, 3 + raw * 16 * weight + bassPunch));
+          const hasRealMetrics = (raw > 0.015 || bass > 0.02 || (metrics?.level ?? 0) > 0.02);
+          if (hasRealMetrics) {
+            // Graves (bass) dão impacto dinâmico na região de graves da voz
+            const isBassZone = isMirrored ? i >= 5 : i <= 6;
+            const effectiveRaw = Math.max(raw, (metrics?.level ?? 0) * 0.85);
+            const bassPunch = isBassZone ? (bass * 12 * weight) : (bass * 4 * weight);
+            targetH = Math.max(3, Math.min(24, 3 + effectiveRaw * 22 * weight + bassPunch));
+          } else {
+            // Modulação harmônica dinâmica quando o áudio está ativo ou Mr. Crazy fala via TTS
+            const now = performance.now() * 0.0075;
+            const waveA = Math.sin(now * 1.8 + i * 0.55) * 0.5 + 0.5;
+            const waveB = Math.cos(now * 2.5 - i * 0.45) * 0.4 + 0.4;
+            const vocalPulse = Math.sin(now * 3.8) * 0.35 + 0.65;
+            const harmonicAmp = (waveA * 0.6 + waveB * 0.4) * vocalPulse;
+            const isBassZone = isMirrored ? i >= 6 : i <= 5;
+            const bassSim = isBassZone ? Math.sin(now * 2.2) * 4 : 0;
+            targetH = Math.max(4, Math.min(22, 4 + harmonicAmp * 14 * weight + bassSim));
+          }
         }
 
         // Suavização física de subida ágil e descida gradual
         const prev = prevHeights[i];
-        const smoothed = targetH > prev ? prev * 0.3 + targetH * 0.7 : prev * 0.72 + targetH * 0.28;
+        const smoothed = targetH > prev ? prev * 0.28 + targetH * 0.72 : prev * 0.7 + targetH * 0.3;
         prevHeights[i] = smoothed;
 
         const span = barsRef.current[i];
