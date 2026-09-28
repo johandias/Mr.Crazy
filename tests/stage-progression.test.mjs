@@ -365,13 +365,14 @@ test("mobile practice keeps Mr.Crazy visible above the anchored voice dock", asy
 
   assert.match(
     responsiveCss,
-    /padding:\s*0 0 clamp\(118px, 18dvh, 138px\) !important/,
+    /padding:\s*0 0 clamp\(144px, 21dvh, 164px\) !important/,
     "A coluna mobile deve reservar espaco para o dock sem esmagar o avatar"
   );
   assert.match(voiceHubRule, /position:\s*absolute !important/, "O dock deve ficar fora do fluxo vertical mobile");
   assert.match(voiceHubRule, /inset:\s*auto auto 2px 50% !important/, "O dock deve ficar ancorado no rodape do palco");
   assert.doesNotMatch(voiceHubRule, /position:\s*relative/, "O dock relativo empurra o avatar para fora da viewport");
   assert.match(responsiveCss, /width:\s*clamp\(148px, 24dvh, 184px\) !important/, "O avatar deve manter proporcao legivel no celular");
+  assert.match(responsiveCss, /character-stage\.stage-hammock/, "O Mr.Crazy deitado deve subir acima do dock no mobile");
   assert.match(responsiveCss, /character-speech-bubble-container\.has-overflow\.is-scrolled/, "Texto longo deve receber fade durante a rolagem");
 });
 
