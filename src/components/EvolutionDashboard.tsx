@@ -26,8 +26,11 @@ import {
   Zap,
   MessageSquare
 } from "lucide-react";
-import type { LearningInsightData } from "@/app/api/insights/route";
-import type { ProgressSummaryResponse, ModuleProgressEntry } from "@/app/api/progress/summary/route";
+import type {
+  LearningInsightData,
+  ProgressSummaryResponse,
+  ModuleProgressEntry
+} from "@/lib/progress-types";
 
 // ────────────────────────────────────────────────────────────
 // Constantes de UI

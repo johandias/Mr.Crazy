@@ -6,49 +6,13 @@ import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export interface SoundSyllableInsight {
-  sound: string;
-  anatomy: string;
-  observation?: string;
-  agentHelp?: string;
-  drillWords: string[];
-}
+import type {
+  SoundSyllableInsight,
+  AgentCorrectionInsight,
+  LearningInsightData
+} from "@/lib/progress-types";
 
-export interface AgentCorrectionInsight {
-  area: string;
-  avoid?: string;
-  say?: string;
-  pattern: string;
-  solution: string;
-  impact: string;
-}
-
-export interface LearningInsightData {
-  diagnostic: string;
-  sessionSummary: {
-    totalSessions: number;
-    practiceMinutes: number;
-    primaryFocus: string;
-    pronunciationScore: number;
-  };
-  soundSyllables: SoundSyllableInsight[];
-  agentCorrections: AgentCorrectionInsight[];
-  focusAreas: Array<{
-    title: string;
-    description: string;
-    action: string;
-  }>;
-  techniques: Array<{
-    category: "movies" | "music" | "reading" | "daily";
-    title: string;
-    icon: string;
-    difficulty: string;
-    description: string;
-    stepByStep: string[];
-    example: string;
-  }>;
-  dailyChallenge: string;
-}
+export type { SoundSyllableInsight, AgentCorrectionInsight, LearningInsightData };
 
 function getFallbackInsights(
   level: string,

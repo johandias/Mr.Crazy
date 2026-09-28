@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getCurrentSession, getCurrentUser } from "@/lib/server-auth";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { buildRealtimeSession } from "@/lib/realtime-session";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { describeRealtimeProviderError, parseRealtimeProviderError } from "@/lib/realtime-provider-error";
@@ -52,9 +53,8 @@ export async function POST(request: Request) {
     stage = "profile";
     
     const user = await getCurrentUser();
-    if (user) {
+    if (user && isSupabaseConfigured) {
       try {
-        const { supabaseAdmin } = await import('@/lib/supabase');
         if (supabaseAdmin) {
           const { data: moduleProgress } = await supabaseAdmin
             .from('mrcrazy_module_progress')

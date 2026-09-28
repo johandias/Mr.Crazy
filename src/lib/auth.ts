@@ -36,7 +36,7 @@ export interface UserProfile {
   // Enriched
   computedLevel?: string;
   sessionsCount?: number;
-  activeModuleProgress?: any;
+  activeModuleProgress?: Record<string, unknown>;
 }
 
 export interface SessionTokenPayload {

@@ -18,3 +18,5 @@ CLAUDE.md
 mr-crazy-*.png
 .agents/
 skills-lock.json
+supabase/.temp/
+.temp/

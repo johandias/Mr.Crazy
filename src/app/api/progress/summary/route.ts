@@ -6,64 +6,19 @@ import { LEARNING_MODULES } from "@/lib/modules";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export interface ModuleProgressEntry {
-  moduleId: string;
-  moduleTitle: string;
-  moduleBadge: string;
-  difficulty: string;
-  status: "not_started" | "in_progress" | "completed";
-  progressPercent: number;
-  totalTurns: number;
-  completedMissions: string[];
-  lastPracticedAt: string | null;
-  bestScore: number | null;
-  xpReward: number;
-}
+import type {
+  ModuleProgressEntry,
+  WeeklyStat,
+  ComputedLevel,
+  ProgressSummaryResponse
+} from "@/lib/progress-types";
 
-export interface WeeklyStat {
-  date: string;
-  turnsCount: number;
-  durationSeconds: number;
-  xpEarned: number;
-}
-
-export interface ComputedLevel {
-  level: "basic" | "intermediate" | "advanced";
-  label: string;
-  tag: string;
-  modulesCompleted: number;
-  nextMilestone: string;
-  progressToNext: number;
-}
-
-export interface ProgressSummaryResponse {
-  ok: boolean;
-  profile: {
-    id: string;
-    nickname: string;
-    email: string;
-    learning_level: string;
-    xp: number;
-    streak_days: number;
-    practice_time_seconds: number;
-    evolution_score: number;
-    main_difficulties: string[];
-    onboarding_completed: boolean;
-    learning_goal: string | null;
-  } | null;
-  computedLevel: ComputedLevel;
-  moduleProgress: ModuleProgressEntry[];
-  totalModulesCompleted: number;
-  totalTurns: number;
-  totalSessions: number;
-  weeklyStats: WeeklyStat[];
-  recentEvaluations: Array<{
-    moduleId: string;
-    moduleTitle: string;
-    score: number;
-    evaluatedAt: string;
-  }>;
-}
+export type {
+  ModuleProgressEntry,
+  WeeklyStat,
+  ComputedLevel,
+  ProgressSummaryResponse
+};
 
 /**
  * Calcula o nível efetivo do aluno baseado no progresso real dos módulos.
