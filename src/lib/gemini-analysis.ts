@@ -205,6 +205,7 @@ function buildPrompt(request: AnalysisRequest) {
   );
   const currentConcept = teachingConcepts[currentConceptIdx];
   const isFinalConcept = teachingConcepts.length > 0 && currentConceptIdx >= teachingConcepts.length - 1;
+  const synchronizedTarget = request.teachingTarget;
 
   const conceptsSummary = teachingConcepts.length > 0
     ? `\nTÓPICOS DA AULA DESTE MÓDULO (TOTAL: ${teachingConcepts.length}):\n` +
@@ -216,7 +217,11 @@ function buildPrompt(request: AnalysisRequest) {
         .join("\n") +
       `\n\nTÓPICO ATUAL DA AULA (${currentConceptIdx + 1} de ${teachingConcepts.length}): "${currentConcept?.title}"` +
       `\nOBJETIVO DESTE TÓPICO: ${currentConcept?.objective}` +
-      `\nFRASES RECOMENDADAS PARA TREINAR: ${currentConcept?.samplePhrases.join(", ")}` +
+      `\nETAPA DA FASE: ${(request.lessonStepIndex ?? 0) + 1} de 3` +
+      `\nALVO SINCRONIZADO COM A TELA: "${synchronizedTarget?.phraseEn || currentConcept?.targetPhrase || currentConcept?.samplePhrases[0]}"` +
+      `\nSIGNIFICADO SINCRONIZADO: "${synchronizedTarget?.meaningPt || currentConcept?.meaningPt || currentConcept?.objective}"` +
+      `\nPRONÚNCIA VISUAL: "${synchronizedTarget?.phoneticPt || currentConcept?.phoneticPt || ""}"` +
+      `\nCONTRATO: corrija e conduza usando exatamente esse alvo; não troque por outra frase nesta resposta.` +
       `\nDIRETRIZ DE PROGRESSÃO: Conduza o aluno neste tópico atual.` +
       (isFinalConcept
         ? `\nATENÇÃO - ESTE É O ÚLTIMO TÓPICO DO MÓDULO: Quando o aluno demonstrar domínio ou acertar, parabenize pela conclusão de toda a aula e oriente-o a clicar no botão 'Finalizar e Ir para Próxima Fase' para avançar no mapa, ou 'Refazer Aula' para praticar mais.`
@@ -363,7 +368,7 @@ async function requestGemini(apiKey: string, prompt: string) {
             generationConfig: {
               temperature: 0.85,
               topP: 0.9,
-              maxOutputTokens: 260,
+              maxOutputTokens: 600,
               responseMimeType: "application/json"
             }
           }),

@@ -39,9 +39,19 @@ import {
   getModuleById,
   getStoredModuleId,
   setStoredModuleId,
-  DEFAULT_MODULE_ID,
-  detectConceptIndexFromText
+  DEFAULT_MODULE_ID
 } from "@/lib/modules";
+import {
+  getLessonResumePosition,
+  LESSON_STEP_LABELS,
+  LESSON_STEPS_PER_PHASE
+} from "@/lib/lesson-progress";
+import {
+  getFallbackPhaseTargets,
+  getTeachingTargetForStep,
+  normalizePhaseTargets,
+  type TeachingTarget
+} from "@/lib/lesson-target";
 import { isNoiseOrHallucination } from "@/lib/voice/noise-filter";
 import { buildRealtimeInstructions } from "@/lib/realtime-session";
 import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
@@ -212,7 +222,8 @@ function buildOpeningLine(
   nickname?: string,
   gender?: string,
   moduleId?: string,
-  conceptIndex?: number
+  conceptIndex?: number,
+  teachingTarget?: TeachingTarget
 ) {
   const isFemale = gender === "feminino";
   const cleanNickname = nickname?.replace(/\s*\(admin\)/i, "").trim();
@@ -228,8 +239,9 @@ function buildOpeningLine(
     const teaching = mod.concepts?.filter((c) => !c.isExam) || [];
     const activeConcept = (typeof conceptIndex === "number" && teaching[conceptIndex]) ? teaching[conceptIndex] : teaching[0];
     if (activeConcept) {
-      const idx = typeof conceptIndex === "number" && conceptIndex >= 0 ? conceptIndex : 0;
-      return `Pra dizer '${activeConcept.meaningPt || activeConcept.objective}', fala: '${activeConcept.targetPhrase}'. Sua vez!`;
+      const meaning = teachingTarget?.meaningPt || activeConcept.meaningPt || activeConcept.objective;
+      const phrase = teachingTarget?.phraseEn || activeConcept.targetPhrase || activeConcept.samplePhrases[0];
+      return `Pra dizer '${meaning}', fala: '${phrase}'. Sua vez!`;
     }
     return `Fala${namePart}! ${mod.initialGreeting.pt}`;
   }
@@ -684,10 +696,50 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     [activeModule]
   );
   const [currentConceptIndex, setCurrentConceptIndex] = useState(0);
+  const [currentLessonStepIndex, setCurrentLessonStepIndex] = useState(0);
+  const [phaseTargets, setPhaseTargets] = useState<TeachingTarget[]>(() =>
+    getFallbackPhaseTargets(activeModule, 0)
+  );
   const [isStudyCardVisible, setIsStudyCardVisible] = useState(false);
+  const currentConceptIndexRef = useRef(0);
+  const currentLessonStepIndexRef = useRef(0);
+  const teachingTarget = useMemo(
+    () => getTeachingTargetForStep(phaseTargets, currentLessonStepIndex),
+    [currentLessonStepIndex, phaseTargets]
+  );
 
   useEffect(() => {
-    setIsStudyCardVisible(false);
+    currentConceptIndexRef.current = currentConceptIndex;
+    currentLessonStepIndexRef.current = currentLessonStepIndex;
+  }, [currentConceptIndex, currentLessonStepIndex]);
+
+  useEffect(() => {
+    const fallbackTargets = getFallbackPhaseTargets(activeModule, currentConceptIndex);
+    setPhaseTargets(fallbackTargets);
+    setIsStudyCardVisible(true);
+
+    if (activeModule.id === "free-conversation" || teachingConcepts.length === 0) return;
+
+    const controller = new AbortController();
+    fetch("/api/modules/lesson-target", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ moduleId: activeModule.id, phaseIndex: currentConceptIndex }),
+      signal: controller.signal
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data?.ok || controller.signal.aborted) return;
+        setPhaseTargets(normalizePhaseTargets(data.targets, activeModule, currentConceptIndex));
+      })
+      .catch((error) => {
+        if (!isAbortError(error)) console.warn("[Practice] Falha ao gerar alvos da fase:", error);
+      });
+
+    return () => controller.abort();
+  }, [activeModule, currentConceptIndex, teachingConcepts.length]);
+
+  useEffect(() => {
     // Sincroniza dinamicamente as instruções WebRTC com a fase atual do aluno
     if (realtimeRef.current && realtimeStatus === "connected") {
       try {
@@ -696,15 +748,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           selectedMode,
           studentProfile,
           selectedModuleId,
-          currentConceptIndex
+          currentConceptIndex,
+          currentLessonStepIndex,
+          phaseTargets
         );
         realtimeRef.current.updateInstructions(updatedInstructions);
       } catch (err) {
         console.warn("[Practice] Erro ao sincronizar instruções WebRTC:", err);
       }
     }
-  }, [currentConceptIndex, selectedModuleId, selectedLevel, selectedMode, studentProfile, realtimeStatus]);
+  }, [currentConceptIndex, currentLessonStepIndex, phaseTargets, selectedModuleId, selectedLevel, selectedMode, studentProfile, realtimeStatus]);
   const [isLessonCompleted, setIsLessonCompleted] = useState(false);
+  const [isModuleCompleted, setIsModuleCompleted] = useState(false);
   const [isCharacterAwake, setIsCharacterAwake] = useState(false);
   const hasUserAttemptedPhaseRef = useRef(false);
   const [showAllMessages, setShowAllMessages] = useState(false);
@@ -743,8 +798,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       window.sessionStorage.setItem("mr-crazy-module-entered", "true");
     } catch {}
     setModuleTurnsCount(0);
+    currentConceptIndexRef.current = 0;
+    currentLessonStepIndexRef.current = 0;
     setCurrentConceptIndex(0);
+    setCurrentLessonStepIndex(0);
     setIsLessonCompleted(false);
+    setIsModuleCompleted(false);
     setIsCharacterAwake(false);
     hasUserAttemptedPhaseRef.current = false;
     setCurrentEvaluation(null);
@@ -789,10 +848,138 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         studentProfile?.nickname,
         studentProfile?.gender,
         selectedModuleId,
-        currentConceptIndex
+        currentConceptIndex,
+        teachingTarget
       ),
-    [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname, selectedModuleId, currentConceptIndex]
+    [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname, selectedModuleId, currentConceptIndex, teachingTarget]
   );
+
+  useEffect(() => {
+    if (!storageReady || selectedModuleId === "free-conversation" || teachingConcepts.length === 0) return;
+    const controller = new AbortController();
+
+    fetch("/api/modules/progress", { signal: controller.signal })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null) as {
+          ok?: boolean;
+          error?: string;
+          progress?: Array<{
+            module_id?: string;
+            status?: string;
+            progress_percent?: number;
+            total_turns?: number;
+            completed_missions?: string[];
+          }>;
+        } | null;
+        if (!response.ok) throw new Error(data?.error || "Não foi possível carregar seu progresso salvo.");
+        return data;
+      })
+      .then((data) => {
+        if (!data?.ok || controller.signal.aborted || !Array.isArray(data.progress)) return;
+        const record = data.progress.find((item: { module_id?: string }) => item?.module_id === selectedModuleId);
+        if (!record) return;
+
+        const completedMissions = Array.isArray(record.completed_missions) ? record.completed_missions : [];
+        const resume = getLessonResumePosition(completedMissions, teachingConcepts.map((concept) => concept.id));
+        const completedModule = record.status === "completed" || record.progress_percent >= 100;
+
+        currentConceptIndexRef.current = resume.phaseIndex;
+        currentLessonStepIndexRef.current = resume.stepIndex;
+        setCurrentConceptIndex(resume.phaseIndex);
+        setCurrentLessonStepIndex(resume.stepIndex);
+        setModuleTurnsCount(Math.max(0, Number(record.total_turns) || 0));
+        setIsModuleCompleted(completedModule);
+        setIsLessonCompleted(!completedModule && resume.lessonCompleted);
+      })
+      .catch((error) => {
+        if (!isAbortError(error)) {
+          console.warn("[Practice] Falha ao restaurar progresso:", error);
+          setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar seu progresso salvo.");
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedModuleId, storageReady, teachingConcepts]);
+
+  const progressWriteQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
+
+  const persistLessonProgress = useCallback(({
+    addTurns = 0,
+    phaseIndex,
+    stepIndex
+  }: {
+    addTurns?: number;
+    phaseIndex?: number;
+    stepIndex?: number;
+  }) => {
+    if (selectedModuleId === "free-conversation") return true;
+    const write = async () => {
+      try {
+        const response = await fetch("/api/modules/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            moduleId: selectedModuleId,
+            addTurns,
+            phaseIndex,
+            stepIndex
+          })
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => null) as { error?: string } | null;
+          throw new Error(data?.error || "Não foi possível registrar o avanço.");
+        }
+        return true;
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Não foi possível registrar o avanço.");
+        return false;
+      }
+    };
+
+    progressWriteQueueRef.current = progressWriteQueueRef.current.then(write, write);
+    return progressWriteQueueRef.current;
+  }, [selectedModuleId]);
+
+  const completeCurrentLessonStep = useCallback(async (addTurns = 0) => {
+    const phaseIndex = currentConceptIndexRef.current;
+    const stepIndex = currentLessonStepIndexRef.current;
+    const phase = teachingConcepts[phaseIndex];
+    if (!phase) return;
+
+    const persisted = await persistLessonProgress({ addTurns, phaseIndex, stepIndex });
+    if (!persisted) return;
+
+    if (stepIndex < LESSON_STEPS_PER_PHASE - 1) {
+      const nextStep = stepIndex + 1;
+      currentLessonStepIndexRef.current = nextStep;
+      setCurrentLessonStepIndex(nextStep);
+      return;
+    }
+
+    if (phaseIndex < teachingConcepts.length - 1) {
+      const nextPhase = phaseIndex + 1;
+      currentConceptIndexRef.current = nextPhase;
+      currentLessonStepIndexRef.current = 0;
+      setCurrentConceptIndex(nextPhase);
+      setCurrentLessonStepIndex(0);
+      return;
+    }
+
+    setIsLessonCompleted(true);
+  }, [persistLessonProgress, teachingConcepts]);
+
+  const persistLessonProgressRef = useRef(persistLessonProgress);
+  const completeCurrentLessonStepRef = useRef(completeCurrentLessonStep);
+  const teachingTargetRef = useRef(teachingTarget);
+  const openingLineRef = useRef(openingLine);
+
+  useEffect(() => {
+    persistLessonProgressRef.current = persistLessonProgress;
+    completeCurrentLessonStepRef.current = completeCurrentLessonStep;
+    teachingTargetRef.current = teachingTarget;
+    openingLineRef.current = openingLine;
+  }, [completeCurrentLessonStep, openingLine, persistLessonProgress, teachingTarget]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1108,34 +1295,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       ]);
     }
 
-    setModuleTurnsCount((prev) => {
-      const nextTurns = prev + 1;
-      fetch("/api/modules/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          moduleId: scoringContextRef.current.selectedModuleId,
-          addTurns: 1
-        })
-      }).catch(() => {});
-
-      if (teachingConcepts.length > 0) {
-        setCurrentConceptIndex((curr) => {
-          const shouldAdvance = Boolean(result.correct);
-          if (shouldAdvance) {
-            if (curr < teachingConcepts.length - 1) {
-              return curr + 1;
-            }
-            setIsLessonCompleted(true);
-            return curr;
-          }
-          return curr;
-        });
-      }
-
-      return nextTurns;
-    });
-  }, [teachingConcepts]);
+    setModuleTurnsCount((prev) => prev + 1);
+    if (result.correct && teachingConcepts.length > 0) {
+      void completeCurrentLessonStep(1);
+    } else {
+      void persistLessonProgress({ addTurns: 1 });
+    }
+  }, [completeCurrentLessonStep, persistLessonProgress, teachingConcepts.length]);
 
   const handleImmediateStartNextStage = useCallback(() => {
     if (!stageTransition) return;
@@ -1205,7 +1371,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [isEvaluating, selectedModuleId, moduleTurnsCount, contextHistory, mistakes, activeModule, triggerGesture, speak]);
 
   useEffect(() => {
-    if (isLessonCompleted && !currentEvaluation && !isExamModalOpen) {
+    if (isLessonCompleted && !isModuleCompleted && !currentEvaluation && !isExamModalOpen) {
       // Abre a prova prática automaticamente ao concluir todas as fases de treino.
       setIsExamModalOpen(true);
       setMicrophoneEnabled(false);
@@ -1215,7 +1381,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         "Você concluiu as fases. Agora é a prova prática: converse em inglês e use o que aprendeu. A correção vem no final."
       );
     }
-  }, [isLessonCompleted, currentEvaluation, isExamModalOpen, activeModule, triggerGesture, speak]);
+  }, [isLessonCompleted, isModuleCompleted, currentEvaluation, isExamModalOpen, activeModule, triggerGesture, speak]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -1349,7 +1515,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
       },
       getRecentContext: () =>
-        (scoringContextRef.current.contextHistory.length ? scoringContextRef.current.contextHistory : [{ role: "crazy", text: openingLine }]).slice(-6).map((turn) => ({
+        (scoringContextRef.current.contextHistory.length ? scoringContextRef.current.contextHistory : [{ role: "crazy", text: openingLineRef.current }]).slice(-6).map((turn) => ({
           role: turn.role,
           text: turn.text
         })),
@@ -1390,11 +1556,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           setIsCharacterAwake(true);
           hasUserAttemptedPhaseRef.current = true;
           setIsStudyCardVisible(true);
+          setModuleTurnsCount((prev) => prev + 1);
+          void persistLessonProgressRef.current({ addTurns: 1 });
 
           setContextHistory((current) => {
             const base =
-              current.length === 0 && openingLine.trim()
-                ? [{ role: "crazy" as const, text: openingLine.trim() }]
+              current.length === 0 && openingLineRef.current.trim()
+                ? [{ role: "crazy" as const, text: openingLineRef.current.trim() }]
                 : current;
             const last = base[base.length - 1];
             if (last && last.role === "user" && last.text === clean) return base;
@@ -1408,24 +1576,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
         // Revela o cartão didático de fala assim que o Mr. Crazy começa a introduzir ou pedir treino da frase
         const lowerText = text.toLowerCase();
-        const activeTarget = teachingConcepts[currentConceptIndex];
-        const targetPhraseClean = (activeTarget?.targetPhrase || "").toLowerCase().trim();
+        const targetPhraseClean = (teachingTargetRef.current?.phraseEn || "").toLowerCase().trim();
         const isTeachingOrAskingToPractice =
           /(vamos treinar|fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora treinar essa|bora praticar essa|pronúncia aportuguesada|fase [1-9]|pra dizer)/i.test(lowerText) ||
           (targetPhraseClean.length >= 4 && lowerText.includes(targetPhraseClean));
 
         if (isTeachingOrAskingToPractice) {
           setIsStudyCardVisible(true);
-        }
-
-        // Sincronização em tempo real durante a fala:
-        // Assim que o Mr. Crazy cita uma fase ou frase de conceito, atualiza o índice no topo imediatamente!
-        if (teachingConcepts.length > 0) {
-          const streamDetectedIdx = detectConceptIndexFromText(text, teachingConcepts);
-          if (streamDetectedIdx !== null && streamDetectedIdx !== currentConceptIndex) {
-            setCurrentConceptIndex(streamDetectedIdx);
-            setIsStudyCardVisible(true);
-          }
         }
 
         if (!complete) {
@@ -1437,8 +1594,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         if (clean) {
           setContextHistory((current) => {
             const base =
-              current.length === 0 && openingLine.trim()
-                ? [{ role: "crazy" as const, text: openingLine.trim() }]
+              current.length === 0 && openingLineRef.current.trim()
+                ? [{ role: "crazy" as const, text: openingLineRef.current.trim() }]
                 : current;
             const last = base[base.length - 1];
             if (last && last.role === "crazy" && last.text === clean) return base;
@@ -1451,27 +1608,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           const isGreetingOnly = /(tudo ótimo por aqui|tudo bem por aqui|como você tá|e com você|bora treinar|o que manda|fala comigo|seja bem-vindo|seja bem-vinda)/i.test(lower);
           const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz|pra dizer)/i.test(lower);
           const isPraise = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
-          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|porra|cacete|caralho|burrada|que porcaria)/i.test(lower);
+          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|burrada|que porcaria)/i.test(lower);
 
-          // Sincroniza o cartão superior exatamente com a fase/conceito e a progressão do aluno:
-          if (teachingConcepts.length > 0) {
-            const detectedConceptIdx = detectConceptIndexFromText(clean, teachingConcepts);
-            if (detectedConceptIdx !== null) {
-              setCurrentConceptIndex(detectedConceptIdx);
-              hasUserAttemptedPhaseRef.current = false;
-              setIsStudyCardVisible(true);
-            }
+          if (isInstruction) setIsStudyCardVisible(true);
 
-            const isAllCompleted =
-              currentConceptIndex === teachingConcepts.length - 1 &&
-              isPraise &&
-              !isCorrection &&
-              !isInstruction &&
-              /(todas as fases|fases concluídas|concluiu o treino|pronto para a prova|fazer a prova|prova prática|prova final|dominou)/i.test(lower);
-
-            if (isAllCompleted) {
-              setIsLessonCompleted(true);
-            }
+          if (hasUserAttemptedPhaseRef.current && isPraise && !isCorrection) {
+            hasUserAttemptedPhaseRef.current = false;
+            void completeCurrentLessonStepRef.current();
           }
 
           if (isCorrection) {
@@ -1485,7 +1628,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             setCrazyLevel((prev) => clampCrazyLevel(prev - 12));
           }
 
-          setModuleTurnsCount((prev) => prev + 1);
         }
       },
       onError: (err) => {
@@ -1519,26 +1661,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       controller.setMicrophoneEnabled(false);
       setMicrophoneEnabled(false);
       setVoiceState("idle");
-
-      // Verifica silenciosamente se o microfone já foi permitido em sessões anteriores.
-      // Se sim, ativa automaticamente para o usuário não precisar re-confirmar a permissão —
-      // o botão do microfone ainda aparece desligado (invariante vermelho preservada), mas a
-      // faixa de áudio já está aberta e pronta para capturar assim que o usuário tocar.
-      void isMicrophoneAlreadyGranted().then((alreadyGranted) => {
-        if (
-          alreadyGranted &&
-          realtimeRef.current === controller &&
-          !abortController.signal.aborted &&
-          connectAbortRef.current === abortController
-        ) {
-          // Microfone ativado silenciosamente — o usuário ainda precisa tocar para falar,
-          // mas não haverá novo pop-up de permissão do navegador.
-          controller.setMicrophoneEnabled(true);
-          setMicrophoneEnabled(true);
-          setVoiceState("listening");
-          setIsCharacterAwake(true);
-        }
-      });
 
       return controller;
     }).catch((err) => {
@@ -1642,6 +1764,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           mode: selectedMode,
           moduleId: selectedModuleId,
           conceptIndex: currentConceptIndex,
+          lessonStepIndex: currentLessonStepIndex,
+          teachingTarget,
           learningLevel: selectedLevel,
           inputSource: "manual",
           contextHistory: [
@@ -1757,7 +1881,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [nextModule, handleSelectModule]);
 
   const handleRedoModule = useCallback(() => {
+    currentConceptIndexRef.current = 0;
+    currentLessonStepIndexRef.current = 0;
     setCurrentConceptIndex(0);
+    setCurrentLessonStepIndex(0);
     setIsLessonCompleted(false);
     setIsCharacterAwake(false);
     hasUserAttemptedPhaseRef.current = false;
@@ -2076,6 +2203,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   <span className="concept-step-title">
                     {activeConcept?.title || activeModule.title}
                   </span>
+                  <span className="concept-remaining-pill">
+                    Etapa {currentLessonStepIndex + 1}/{LESSON_STEPS_PER_PHASE}: {LESSON_STEP_LABELS[currentLessonStepIndex]}
+                  </span>
                 </div>
 
                 {/* Stepper visual com progresso das fases e a prova prática */}
@@ -2091,9 +2221,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                         title={`Fase ${idx + 1}: ${concept.title}`}
                         aria-label={`Fase ${idx + 1}: ${concept.title}`}
                         aria-current={isCurrent ? "step" : undefined}
-                        onClick={() => {
-                          setCurrentConceptIndex(idx);
-                        }}
+                        disabled={!isCurrent}
                       >
                         <div className="phase-stepper-bar-fill" />
                         <span className="phase-stepper-label">
@@ -2106,6 +2234,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     type="button"
                     className={`phase-stepper-step phase-stepper-boss ${currentConceptIndex >= totalPhases - 1 ? "is-boss-ready" : ""}`}
                     title="Prova prática do módulo"
+                    disabled={!isLessonCompleted && !isModuleCompleted}
                     onClick={() => setIsExamModalOpen(true)}
                   >
                     <div className="phase-stepper-bar-fill" />
@@ -2176,28 +2305,28 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 <p className="speech-bubble-text">{latestCrazySpeech}</p>
 
                 {/* Guia Didático Integrado de Pronúncia da Fase Ativa */}
-                {teachingConcepts[currentConceptIndex] && (
+                {isStudyCardVisible && teachingTarget && (
                   <div className="speech-bubble-didactic-footer">
                     <dl className="speech-study-guide">
                       <div className="speech-study-target">
                         <dt>Fale em inglês</dt>
-                        <dd lang="en">{teachingConcepts[currentConceptIndex].targetPhrase}</dd>
+                        <dd lang="en">{teachingTarget.phraseEn}</dd>
                       </div>
                       <div>
                         <dt>Significado</dt>
-                        <dd>{teachingConcepts[currentConceptIndex].meaningPt || teachingConcepts[currentConceptIndex].objective}</dd>
+                        <dd>{teachingTarget.meaningPt}</dd>
                       </div>
                       <div>
                         <dt>Pronúncia aproximada</dt>
-                        <dd>{teachingConcepts[currentConceptIndex].phoneticPt}</dd>
+                        <dd>{teachingTarget.phoneticPt}</dd>
                       </div>
                     </dl>
-                    {teachingConcepts[currentConceptIndex].targetPhrase && (
+                    {teachingTarget.phraseEn && (
                       <button
                         type="button"
                         className="speech-target-audio-btn"
                         onClick={() => {
-                          const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
+                          const phrase = teachingTarget.phraseEn;
                           if (phrase) speak(phrase, "idle", "en-US");
                         }}
                         title="Ouvir pronúncia exata em inglês"
@@ -2662,15 +2791,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           onClose={() => setIsExamModalOpen(false)}
           onSuccessApproved={(evalItem) => {
             setCurrentEvaluation(evalItem);
-            fetch("/api/modules/progress", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                moduleId: selectedModuleId,
-                score: evalItem.overall_score,
-                completed: true
-              })
-            }).catch(() => {});
+            setIsModuleCompleted(true);
           }}
           onNextModule={(nextModId) => {
             setIsExamModalOpen(false);

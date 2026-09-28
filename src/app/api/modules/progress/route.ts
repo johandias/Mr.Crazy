@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/server-auth";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { getModuleById } from "@/lib/modules";
+import {
+  calculateLessonProgressPercent,
+  getLessonStepMarker,
+  LESSON_STEPS_PER_PHASE
+} from "@/lib/lesson-progress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,6 +72,9 @@ export async function GET() {
         .order("evaluated_at", { ascending: false })
     ]);
 
+    if (progRes.error) throw progRes.error;
+    if (evalRes.error) throw evalRes.error;
+
     const progress = progRes.data ?? Array.from(memoryProgress.values()).filter((p) => p.user_email === userEmail);
     const evaluations = evalRes.data ?? (memoryEvaluations.get(userEmail) ?? []);
 
@@ -75,10 +84,11 @@ export async function GET() {
       evaluations
     });
   } catch (error) {
-    console.error("[Module Progress GET] Fallback to memory:", error);
-    const userProg = Array.from(memoryProgress.values()).filter((p) => p.user_email === userEmail);
-    const userEval = memoryEvaluations.get(userEmail) ?? [];
-    return NextResponse.json({ ok: true, progress: userProg, evaluations: userEval });
+    console.error("[Module Progress GET] Persistent read failed:", error);
+    return NextResponse.json(
+      { error: "Não foi possível carregar seu progresso salvo." },
+      { status: 503 }
+    );
   }
 }
 
@@ -97,7 +107,8 @@ export async function POST(request: Request) {
       completedMission?: string;
       progressPercent?: number;
       completed?: boolean;
-      score?: number;
+      phaseIndex?: number;
+      stepIndex?: number;
     };
 
     const moduleId = body.moduleId?.trim();
@@ -105,7 +116,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "moduleId é obrigatório." }, { status: 400 });
     }
 
-    const turnsToAdd = typeof body.addTurns === "number" ? Math.max(1, body.addTurns) : 1;
+    const turnsToAdd = typeof body.addTurns === "number" ? Math.max(0, Math.trunc(body.addTurns)) : 0;
+    const currentModule = getModuleById(moduleId);
+    const teachingPhases = currentModule.concepts.filter((concept) => !concept.isExam);
+    const phaseIds = teachingPhases.map((phase) => phase.id);
     const memoryKey = getMemoryKey(userEmail, moduleId);
     const existingMemory = memoryProgress.get(memoryKey);
 
@@ -116,12 +130,14 @@ export async function POST(request: Request) {
 
     if (isSupabaseConfigured) {
       try {
-        const { data } = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
           .from("mrcrazy_module_progress")
           .select("*")
           .eq("user_email", userEmail)
           .eq("module_id", moduleId)
           .maybeSingle();
+
+        if (error) throw error;
 
         if (data) {
           currentTurns = data.total_turns ?? currentTurns;
@@ -129,13 +145,35 @@ export async function POST(request: Request) {
           currentPercent = data.progress_percent ?? currentPercent;
           wasCompletedBefore = data.status === "completed";
         }
-      } catch {}
+      } catch (dbErr) {
+        console.error("[Module Progress POST] Failed to read current progress:", dbErr);
+        return NextResponse.json(
+          { error: "Não foi possível carregar seu progresso atual. Tente novamente." },
+          { status: 503 }
+        );
+      }
     }
 
     const newTurns = currentTurns + turnsToAdd;
     let newMissions = [...currentMissions];
     if (body.completedMission && !newMissions.includes(body.completedMission)) {
       newMissions.push(body.completedMission);
+    }
+
+    if (typeof body.phaseIndex === "number" && typeof body.stepIndex === "number") {
+      const phaseIndex = Math.min(
+        teachingPhases.length - 1,
+        Math.max(0, Math.trunc(body.phaseIndex))
+      );
+      const stepIndex = Math.min(
+        LESSON_STEPS_PER_PHASE - 1,
+        Math.max(0, Math.trunc(body.stepIndex))
+      );
+      const phase = teachingPhases[phaseIndex];
+      if (phase) {
+        const marker = getLessonStepMarker(phase.id, stepIndex);
+        if (!newMissions.includes(marker)) newMissions.push(marker);
+      }
     }
 
     // Calcula percentual com base em turnos, missões ou sinal explícito de conclusão
@@ -145,13 +183,14 @@ export async function POST(request: Request) {
     } else if (typeof body.progressPercent === "number") {
       newPercent = Math.min(100, Math.max(0, body.progressPercent));
     } else {
-      // Cada turno adiciona ~6%, cada missão completada adiciona 25%
-      const calculated = Math.min(95, newTurns * 6 + newMissions.length * 25);
+      const lessonPercent = calculateLessonProgressPercent(newMissions, phaseIds);
+      const engagementPercent = Math.min(20, newTurns * 2);
+      const calculated = Math.min(95, Math.max(lessonPercent, engagementPercent));
       newPercent = Math.max(currentPercent, calculated);
     }
 
     const newStatus: "not_started" | "in_progress" | "completed" =
-      newPercent >= 100 ? "completed" : "in_progress";
+      wasCompletedBefore || newPercent >= 100 ? "completed" : "in_progress";
 
     const record: ModuleProgressRecord = {
       user_email: userEmail,
@@ -167,7 +206,7 @@ export async function POST(request: Request) {
 
     if (isSupabaseConfigured) {
       try {
-        await supabaseAdmin.from("mrcrazy_module_progress").upsert(
+        const { error: upsertError } = await supabaseAdmin.from("mrcrazy_module_progress").upsert(
           {
             user_id: session.userId || null,
             user_email: userEmail,
@@ -181,6 +220,7 @@ export async function POST(request: Request) {
           },
           { onConflict: "user_email,module_id" }
         );
+        if (upsertError) throw upsertError;
 
         // Se concluiu o módulo agora (e não estava concluído antes), bonifica com XP
         if (newStatus === "completed" && !wasCompletedBefore) {
@@ -204,28 +244,8 @@ export async function POST(request: Request) {
           }
         }
 
-        // Se veio nota da prova prática, registra em mrcrazy_module_evaluations.
-        if (typeof body.score === "number" && body.score >= 0) {
-          try {
-            await supabaseAdmin.from("mrcrazy_module_evaluations").insert({
-              user_id: session.userId || null,
-              user_email: userEmail,
-              module_id: moduleId,
-              overall_score: Math.min(10, Math.max(0, Math.round(body.score * 10) / 10)),
-              pronunciation_score: Math.min(100, Math.round(body.score * 10)),
-              grammar_score: Math.min(100, Math.round(body.score * 10)),
-              fluency_score: Math.min(100, Math.round(body.score * 10)),
-              performance_level: body.score >= 8 ? "Excelente" : body.score >= 6 ? "Bom" : "Em Desenvolvimento",
-              summary_feedback: body.score >= 7 ? "Módulo aprovado com sucesso na prova prática!" : "Tentativa avaliada na prova prática.",
-              evaluated_at: new Date().toISOString()
-            });
-          } catch (evalErr) {
-            console.warn("[Module Progress POST] Evaluation save warning:", evalErr);
-          }
-        }
-
         // Registra sessão de prática para histórico e telemetria
-        try {
+        if (turnsToAdd > 0) try {
           await supabaseAdmin.from("mrcrazy_practice_sessions").insert({
             user_id: session.userId || null,
             user_email: userEmail,
@@ -241,7 +261,11 @@ export async function POST(request: Request) {
           // Ignora se tabela de sessões não estiver acessível
         }
       } catch (dbErr) {
-        console.warn("[Module Progress POST] DB upsert fallback:", dbErr);
+        console.error("[Module Progress POST] Persistent save failed:", dbErr);
+        return NextResponse.json(
+          { error: "Não foi possível registrar seu avanço. Tente novamente." },
+          { status: 503 }
+        );
       }
     }
 

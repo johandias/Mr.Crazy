@@ -21,6 +21,9 @@ type EvaluateRequestBody = {
   completedMissions?: string[];
   isExam?: boolean;
   confusionCount?: number;
+  answeredQuestions?: number;
+  requiredQuestions?: number;
+  questionPlan?: Array<{ id?: string; focus?: string; question?: string }>;
 };
 
 function getGeminiApiKey(): string | null {
@@ -55,6 +58,10 @@ export async function POST(request: Request) {
     const turns = Math.max(1, body.turns || 1);
     const isExam = Boolean(body.isExam);
     const confusionCount = Math.max(0, body.confusionCount || 0);
+    const answeredQuestions = Math.max(0, body.answeredQuestions || 0);
+    const requiredQuestions = Math.max(1, body.requiredQuestions || currentModule.examNpc.minTurns);
+    const questionPlan = Array.isArray(body.questionPlan) ? body.questionPlan.slice(0, 8) : [];
+    const answeredRatio = Math.min(1, answeredQuestions / requiredQuestions);
     const mistakes = Array.isArray(body.mistakes) ? body.mistakes : [];
     const context = Array.isArray(body.contextHistory) ? body.contextHistory.slice(-10) : [];
     const completedMissions = Array.isArray(body.completedMissions) ? body.completedMissions : [];
@@ -87,15 +94,20 @@ O aluno acaba de realizar a prova do módulo comunicando-se diretamente com o av
 
 Dados da Prova:
 - Total de falas do aluno: ${turns}
+- Perguntas obrigatórias respondidas: ${answeredQuestions}/${requiredQuestions}
 - Vezes em que o examinador NÃO ENTENDEU (ficou com cara de confuso): ${confusionCount}
+- Roteiro da banca:
+${questionPlan.map((q, i) => `${i + 1}. ${q.question || "Pergunta oral"} [foco: ${q.focus || "comunicação"}]`).join("\n") || "(Roteiro oral do módulo)"}
 - Diálogo realizado:
 ${conversationSnippet || "(Diálogo prático em inglês)"}
 
 REGRAS DE PONTUAÇÃO (Escala 0 a 100):
 - Se a nota final for MENOR que 60 (equivalente a < 6.0), o aluno é REPROVADO.
 - Se a nota for 60 ou mais (>= 6.0), o aluno é APROVADO.
+- Se respondeu menos que ${requiredQuestions} perguntas, a nota máxima é 59, mesmo que algumas respostas estejam boas.
 - Se o aluno falou em português, não conseguiu se comunicar ou teve muitas confusões, a nota DEVE ser abaixo de 60.
-- Se conseguiu cumprir o objetivo em inglês, atribua de 60 a 100 baseado na clareza e vocabulário.
+- Avalie cada resposta contra a pergunta feita: clareza, gramática, fluência, vocabulário e cumprimento do objetivo do cenário.
+- Não premie respostas vagas, decoradas ou fora da pergunta. Se cumpriu o roteiro em inglês, atribua de 60 a 100 baseado na qualidade real.
 
 Responda em formato JSON estrito:
 {
@@ -195,8 +207,10 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
     if (!evaluationData) {
       let calculatedScore: number;
       if (isExam) {
-        // Na prova: cada confusão retira 15 pontos; cada turno adiciona 18 pontos (base 30)
-        calculatedScore = Math.min(100, Math.max(20, 35 + turns * 16 - confusionCount * 18));
+        calculatedScore = Math.min(100, Math.max(20, 30 + answeredRatio * 55 + Math.min(turns, requiredQuestions) * 3 - confusionCount * 18));
+        if (answeredQuestions < requiredQuestions) {
+          calculatedScore = Math.min(59, calculatedScore);
+        }
       } else {
         calculatedScore = Math.min(98, Math.max(65, 70 + turns * 3 - mistakes.length * 4));
       }
@@ -224,8 +238,8 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
         summary_feedback: feedback,
         strengths: isExam
           ? [
-              "Enfrentou o diálogo sem auxílio em português",
-              `Manteve ${turns} turnos de interação direta em inglês`,
+              "Enfrentou perguntas de banca sem auxílio em português",
+              `Respondeu ${answeredQuestions}/${requiredQuestions} perguntas obrigatórias`,
               "Focou na missão do cenário"
             ]
           : [
@@ -236,12 +250,24 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
         improvement_areas: isExam
           ? [
               confusionCount > 0 ? `Evite pausas e palavras em português (${confusionCount} dúvidas do avatar)` : "Fale com ritmo mais natural",
-              "Estruture respostas completas para passar segurança"
+              answeredQuestions < requiredQuestions ? "Responda todas as perguntas antes de finalizar" : "Estruture respostas completas para passar segurança"
             ]
           : [
               mistakes.length > 0 ? `Atenção aos deslizes de ${mistakes[0]}` : "Continue expandindo respostas mais longas",
               "Revisite as frases-chave para ganhar mais naturalidade"
             ]
+      };
+    }
+
+    if (isExam && answeredQuestions < requiredQuestions) {
+      evaluationData = {
+        ...evaluationData,
+        overall_score: Math.min(59, evaluationData.overall_score),
+        summary_feedback: `Prova incompleta: você respondeu ${answeredQuestions}/${requiredQuestions} perguntas obrigatórias. A nota máxima fica abaixo de 6.0 até concluir toda a banca.`,
+        improvement_areas: Array.from(new Set([
+          "Responda todas as perguntas da banca antes de finalizar",
+          ...evaluationData.improvement_areas
+        ])).slice(0, 3)
       };
     }
 
@@ -264,7 +290,17 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
     // Atualiza progresso do módulo:
     // Se for prova e reprovado (nota < 6.0), NÃO marca completed!
     const memoryKey = getMemoryKey(userEmail, moduleId);
-    const existingProg = memoryProgress.get(memoryKey);
+    let existingProg = memoryProgress.get(memoryKey);
+    if (isSupabaseConfigured) {
+      const { data: persistedProgress, error: progressReadError } = await supabaseAdmin
+        .from("mrcrazy_module_progress")
+        .select("user_email, module_id, status, progress_percent, total_turns, completed_missions, last_practiced_at")
+        .eq("user_email", userEmail)
+        .eq("module_id", moduleId)
+        .maybeSingle();
+      if (progressReadError) throw progressReadError;
+      if (persistedProgress) existingProg = persistedProgress as ModuleProgressRecord;
+    }
     const updatedTurns = (existingProg?.total_turns ?? 0) + turns;
     const allMissions = isApproved
       ? Array.from(new Set([...(existingProg?.completed_missions ?? []), ...completedMissions, currentModule.mission]))
@@ -298,7 +334,7 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
     // Persiste no Supabase
     if (isSupabaseConfigured) {
       try {
-        await Promise.all([
+        const [evaluationWrite, progressWrite] = await Promise.all([
           supabaseAdmin.from("mrcrazy_module_evaluations").insert({
             user_id: session.userId || null,
             user_email: userEmail,
@@ -328,8 +364,14 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
             { onConflict: "user_email,module_id" }
           )
         ]);
+        if (evaluationWrite.error) throw evaluationWrite.error;
+        if (progressWrite.error) throw progressWrite.error;
       } catch (dbErr) {
-        console.warn("[Module Evaluate] Supabase persist fallback:", dbErr);
+        console.error("[Module Evaluate] Supabase persist failed:", dbErr);
+        return NextResponse.json(
+          { error: "A avaliação foi concluída, mas não foi possível registrar o avanço. Tente finalizar novamente." },
+          { status: 503 }
+        );
       }
     }
 

@@ -38,6 +38,12 @@ export interface AnalysisRequest {
   mode?: string;
   moduleId?: string;
   conceptIndex?: number;
+  lessonStepIndex?: number;
+  teachingTarget?: {
+    phraseEn: string;
+    meaningPt: string;
+    phoneticPt: string;
+  };
   learningLevel?: LearningLevel;
   contextHistory?: ConversationTurn[];
   inputSource?: "manual" | "voice_realtime" | "voice_fallback";

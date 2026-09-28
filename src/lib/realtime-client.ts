@@ -203,9 +203,11 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     capture = await openMicrophone({
       signal: lifetime.signal,
       deviceId: options.deviceId,
+      initialEnabled: microphoneEnabled,
       onLevel: options.onInputLevel,
       onMetrics: options.onInputMetrics
     });
+    capture.setEnabled(microphoneEnabled);
     log("capture_ready", "Dispositivo de entrada aberto.");
     listen(capture.track, "ended", () => report(new VoiceError("microphone_ended", "O microfone foi desconectado. Escolha uma entrada e reconecte."), true));
     listen(capture.track, "mute", () => {

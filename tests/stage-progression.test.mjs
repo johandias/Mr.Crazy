@@ -1,7 +1,16 @@
+import "./register-typescript.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { LEARNING_MODULES, getModuleById, detectConceptIndexFromText } from "../src/lib/modules.ts";
 import { isNoiseOrHallucination } from "../src/lib/voice/noise-filter.ts";
+import {
+  calculateLessonProgressPercent,
+  getLessonResumePosition,
+  getLessonStepMarker,
+  LESSON_STEPS_PER_PHASE
+} from "../src/lib/lesson-progress.ts";
+
+const { getFallbackPhaseTargets, normalizePhaseTargets } = await import("../src/lib/lesson-target.ts");
 
 test("score >= 70 qualifies for automatic progression to next module", () => {
   const currentModuleId = LEARNING_MODULES[0].id;
@@ -250,16 +259,73 @@ test("module completion triggers practical exam modal and does not auto-skip sta
   assert.equal(stageTransition, null, "Não deve iniciar contagem regressiva para pular a prova prática");
 });
 
+test("each module phase has three resumable lesson steps", () => {
+  const module = getModuleById("greetings");
+  const phaseIds = module.concepts.filter((concept) => !concept.isExam).map((concept) => concept.id);
+  const completedMissions = [
+    getLessonStepMarker(phaseIds[0], 0),
+    getLessonStepMarker(phaseIds[0], 1),
+    getLessonStepMarker(phaseIds[0], 2),
+    getLessonStepMarker(phaseIds[1], 0)
+  ];
+
+  assert.equal(LESSON_STEPS_PER_PHASE, 3);
+  assert.deepEqual(getLessonResumePosition(completedMissions, phaseIds), {
+    phaseIndex: 1,
+    stepIndex: 1,
+    lessonCompleted: false,
+    completedSteps: 4
+  });
+  assert.equal(calculateLessonProgressPercent(completedMissions, phaseIds), 32);
+});
+
+test("AI phase targets keep phrase, meaning, and phonetics in one contract", () => {
+  const module = getModuleById("greetings");
+  const fallback = getFallbackPhaseTargets(module, 0);
+  const targets = normalizePhaseTargets([
+    { phraseEn: "Good morning!", meaningPt: "Bom dia!", phoneticPt: "Gúd mórnin!" },
+    { phraseEn: "Hi, how are you?", meaningPt: "Oi, como você está?", phoneticPt: "Rái, ráu ar iú?" },
+    { phraseEn: "Hey, nice to meet you.", meaningPt: "Oi, prazer em conhecer você.", phoneticPt: "Rêi, náis tchú mít iú." }
+  ], module, 0);
+
+  assert.equal(fallback.length, 3);
+  assert.equal(targets.length, 3);
+  assert.equal(targets[1].phraseEn, "Hi, how are you?");
+  assert.equal(targets[1].meaningPt, "Oi, como você está?");
+  assert.equal(targets[1].phoneticPt, "Rái, ráu ar iú?");
+});
+
 test("practical exam introduces the rules, allows one retake, and withholds hints", async () => {
   const fs = await import("node:fs");
   const examModalCode = fs.readFileSync("src/components/exam/ExamModal.tsx", "utf-8");
   const examReplyCode = fs.readFileSync("src/app/api/exam/reply/route.ts", "utf-8");
+  const evaluateCode = fs.readFileSync("src/app/api/modules/evaluate/route.ts", "utf-8");
+  const examEngineCode = fs.readFileSync("src/lib/exam.ts", "utf-8");
 
-  assert.ok(examModalCode.includes("Agora é prova prática"), "Mr.Crazy deve introduzir a prova de forma curta");
+  assert.ok(examModalCode.includes("getExamBriefing"), "Mr.Crazy deve introduzir a prova pelo roteiro oficial");
+  assert.ok(examEngineCode.includes("Agora é prova oral real"), "A abertura deve explicar que é uma prova oral real");
+  assert.ok(examEngineCode.includes("final-challenge"), "A prova final deve ter banco de perguntas próprio");
+  assert.ok(examModalCode.includes("turnCount < requiredQuestionCount"), "A prova não deve finalizar antes de responder todas as perguntas");
   assert.ok(examModalCode.includes("Fazer uma segunda tentativa"), "A prova deve oferecer uma segunda tentativa");
   assert.ok(examModalCode.includes("Refazer este módulo"), "O aluno deve poder optar por refazer o módulo");
+  assert.ok(examReplyCode.includes("Question plan for this attempt"), "A API deve conduzir a banca com roteiro de perguntas");
   assert.ok(examReplyCode.includes("NEVER give hints, corrections, translations"), "O examinador não pode ajudar ou corrigir durante a prova");
+  assert.ok(evaluateCode.includes("a nota máxima é 59"), "Prova incompleta deve ficar abaixo da nota mínima");
   assert.ok(!examModalCode.includes("Chefão"), "A prova não deve usar o nome antigo");
+});
+
+test("guided lesson persists realtime turns and phase checkpoints", async () => {
+  const fs = await import("node:fs");
+  const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
+  const progressCode = fs.readFileSync("src/app/api/modules/progress/route.ts", "utf-8");
+  const targetRouteCode = fs.readFileSync("src/app/api/modules/lesson-target/route.ts", "utf-8");
+
+  assert.ok(practiceCode.includes("persistLessonProgressRef.current({ addTurns: 1 })"), "Turno realtime deve ser persistido");
+  assert.ok(practiceCode.includes("completeCurrentLessonStepRef.current()"), "Elogio após tentativa deve concluir etapa persistida");
+  assert.ok(practiceCode.includes("teachingTarget.phraseEn"), "Cartão deve usar o mesmo alvo sincronizado da IA");
+  assert.ok(progressCode.includes("getLessonStepMarker"), "API deve salvar checkpoint de fase e etapa");
+  assert.ok(progressCode.includes("if (upsertError) throw upsertError"), "Falha do Supabase não pode ser ignorada");
+  assert.ok(targetRouteCode.includes("A IA tem liberdade para escolher o conteúdo"), "Plano dinâmico deve permanecer no contexto da fase");
 });
 
 test("history reads real recorded sessions instead of rendering sample lessons", async () => {
@@ -288,6 +354,55 @@ test("microphone starts in muted state (red) and mode is renamed to Hold to Talk
   // Verifica que não há referências a WhatsApp nos botões e abas de voz
   assert.ok(!voiceControlCode.includes("Segurar (WhatsApp)"), "VoiceInputControl não deve conter Segurar (WhatsApp)");
   assert.ok(voiceControlCode.includes("Hold to Talk"), "VoiceInputControl deve usar Hold to Talk");
+});
+
+test("mobile practice keeps Mr.Crazy visible above the anchored voice dock", async () => {
+  const fs = await import("node:fs");
+  const responsiveCss = fs.readFileSync("src/app/responsive.css", "utf-8");
+  const voiceHubRule = responsiveCss.match(/\.practice-main \.practice-voice-hub\s*\{[\s\S]*?\}/)?.[0] ?? "";
+
+  assert.match(
+    responsiveCss,
+    /padding:\s*0 0 clamp\(146px, 21dvh, 170px\) !important/,
+    "A coluna mobile deve reservar espaco para o dock sem esmagar o avatar"
+  );
+  assert.match(voiceHubRule, /position:\s*absolute !important/, "O dock deve ficar fora do fluxo vertical mobile");
+  assert.match(voiceHubRule, /inset:\s*auto auto 6px 50% !important/, "O dock deve ficar ancorado no rodape do palco");
+  assert.doesNotMatch(voiceHubRule, /position:\s*relative/, "O dock relativo empurra o avatar para fora da viewport");
+});
+
+test("beta conversation fallback provides correction, explanation, and continuity", async () => {
+  const { getGeminiConversationReply } = await import("../src/lib/gemini-conversation.ts");
+  const result = await getGeminiConversationReply("I have 30 years old.", [], undefined);
+
+  assert.equal(result.provider, "fallback");
+  assert.equal(result.correction, "I am 30 years old.");
+  assert.match(result.explanationPt ?? "", /verbo to be/iu);
+  assert.ok(result.followUp, "A resposta deve manter a conversa avançando");
+});
+
+test("beta conversation keeps its composer above the mobile navigation", async () => {
+  const fs = await import("node:fs");
+  const componentCode = fs.readFileSync("src/components/BetaConversation.tsx", "utf-8");
+  const globalCss = fs.readFileSync("src/app/globals.css", "utf-8");
+
+  assert.ok(componentCode.includes("beta-coach-feedback"), "O chat deve renderizar feedback pedagógico estruturado");
+  assert.ok(componentCode.includes("Tentar novamente"), "Falhas de resposta devem permitir nova tentativa");
+  assert.ok(componentCode.includes("<textarea"), "O compositor deve aceitar mensagens maiores sem cortar o texto");
+  assert.match(globalCss, /\.app-shell:has\(\.beta-conversation-page\) > \.app-header\s*\{\s*display:\s*none/iu);
+  assert.match(globalCss, /padding:\s*0 0 calc\(52px \+ env\(safe-area-inset-bottom\)\)/iu);
+});
+
+test("beta conversation avoids truncated text on conversational openers", async () => {
+  const { getGeminiConversationReply } = await import("../src/lib/gemini-conversation.ts");
+  const result = await getGeminiConversationReply("Vamos la", [], undefined);
+
+  assert.equal(result.provider, "fallback");
+  assert.ok(result.reply.length > 10, "A resposta principal não pode ser um fragmento cortado");
+  assert.doesNotMatch(result.reply, /[,;:\-]$/u, "A resposta não pode terminar com vírgula ou conectivo solto");
+  assert.match(result.reply, /[.!?]$/u, "A resposta deve ter pontuação final completa");
+  assert.ok(result.correction, "Deve oferecer frase modelo");
+  assert.ok(result.followUp, "Deve convidar para continuar");
 });
 
 

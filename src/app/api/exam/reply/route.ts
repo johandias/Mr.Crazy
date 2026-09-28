@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/server-auth";
 import { getModuleById, type ExamNpcConfig } from "@/lib/modules";
+import { getExamCompletionReply, getExamQuestionPlan, getNextExamReply } from "@/lib/exam";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ type ExamReplyRequestBody = {
   userMessage: string;
   dialogue?: Array<{ role: "npc" | "user"; text: string }>;
   confusionCount?: number;
+  attemptNumber?: number;
 };
 
 const PORTUGUESE_MARKERS = [
@@ -132,6 +134,7 @@ export async function POST(request: Request) {
     const moduleId = body.moduleId?.trim();
     const userMessage = body.userMessage?.trim() || "";
     const dialogue = Array.isArray(body.dialogue) ? body.dialogue : [];
+    const attemptNumber = Math.max(1, Math.min(2, Math.round(body.attemptNumber || 1)));
 
     if (!moduleId || !userMessage) {
       return NextResponse.json({ error: "Dados incompletos." }, { status: 400 });
@@ -151,8 +154,20 @@ export async function POST(request: Request) {
       });
     }
 
-    const turnIndex = dialogue.filter((d) => d.role === "user").length;
+    const answeredQuestions = dialogue.filter((d) => d.role === "user").length;
+    const questionPlan = getExamQuestionPlan(moduleId, attemptNumber, examNpc.minTurns);
+    const nextPlannedQuestion = getNextExamReply(moduleId, attemptNumber, answeredQuestions);
+    const isExamComplete = answeredQuestions >= questionPlan.length;
     const apiKey = getGeminiApiKey();
+
+    if (isExamComplete) {
+      return NextResponse.json({
+        ok: true,
+        isConfusion: false,
+        isExamComplete: true,
+        reply: getExamCompletionReply(examNpc)
+      });
+    }
 
     if (apiKey) {
       try {
@@ -167,15 +182,19 @@ export async function POST(request: Request) {
 - Current conversation history:
 ${conversationHistoryText}
 Student just said: "${userMessage}"
-Number of turns completed by student so far: ${turnIndex + 1} of ${examNpc.minTurns}
+Questions answered by the student so far: ${answeredQuestions} of ${questionPlan.length}
+Question plan for this attempt:
+${questionPlan.map((q, index) => `${index + 1}. ${q.question} [focus: ${q.focus}]`).join("\n")}
+Next required exam question to ask now:
+"${nextPlannedQuestion}"
 
 INSTRUCTIONS:
 1. Speak 100% in natural American English.
 2. Keep your response SHORT (1 to 2 sentences, 15 to 25 words maximum).
 3. React naturally to what the student said in character.
-4. Ask the next logical question or make a realistic request in character to test the student.
+4. Ask the next required exam question above. You may make it sound natural, but do not change the skill being tested.
 5. This is an assessment: NEVER give hints, corrections, translations, grammar explanations, suggested wording, or pronunciation guidance. Keep the conversation moving without revealing whether an answer was correct.
-6. If the student has reached or passed ${examNpc.minTurns} turns, thank them and tell them they can now click 'Finalizar Prova' to calculate their grade.
+6. If all planned questions have been answered, thank them and tell them they can now click 'Finalizar Prova' to calculate their grade.
 7. Return ONLY the plain spoken English text. No quotation marks, no emojis, no commentary.`;
 
         const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
@@ -193,7 +212,7 @@ INSTRUCTIONS:
                   contents: [{ parts: [{ text: prompt }] }],
                   generationConfig: {
                     temperature: 0.7,
-                    maxOutputTokens: 60
+                    maxOutputTokens: 300
                   }
                 }),
                 signal: controller.signal
@@ -224,10 +243,11 @@ INSTRUCTIONS:
     }
 
     // Fallback inteligente determinístico por turno
-    const fallbackReply = getFallbackQuestion(examNpc, turnIndex);
+    const fallbackReply = nextPlannedQuestion || getFallbackQuestion(examNpc, answeredQuestions);
     return NextResponse.json({
       ok: true,
       isConfusion: false,
+      isExamComplete: answeredQuestions >= questionPlan.length,
       reply: fallbackReply
     });
   } catch (error) {

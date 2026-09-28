@@ -20,6 +20,7 @@ export type AudioFrequencyMetrics = {
 export async function openMicrophone(options: {
   signal: AbortSignal;
   deviceId?: string;
+  initialEnabled?: boolean;
   onLevel?: (level: number) => void;
   onMetrics?: (metrics: AudioFrequencyMetrics) => void;
 }): Promise<MicrophoneCapture> {
@@ -59,6 +60,7 @@ export async function openMicrophone(options: {
     stream.getTracks().forEach(item => item.stop());
     throw new VoiceError("microphone_no_track", "O dispositivo abriu sem uma faixa de áudio ativa.");
   }
+  track.enabled = options.initialEnabled ?? false;
   let stopped = false;
   let context: AudioContext | undefined;
   let source: MediaStreamAudioSourceNode | undefined;

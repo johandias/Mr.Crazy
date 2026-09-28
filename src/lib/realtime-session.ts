@@ -1,6 +1,8 @@
 import { normalizeLearningLevel, type LearningLevel } from "./mr-crazy";
 import type { UserProfile } from "./auth";
 import { getModuleById } from "./modules";
+import { LESSON_STEP_LABELS, LESSON_STEPS_PER_PHASE } from "./lesson-progress";
+import type { TeachingTarget } from "./lesson-target";
 
 const MODE_LABELS: Record<string, string> = {
   "free-conversation": "conversa livre e situações cotidianas",
@@ -151,7 +153,9 @@ export function buildRealtimeInstructions(
   modeValue: unknown,
   profile?: Partial<UserProfile> | null,
   moduleIdValue?: unknown,
-  conceptIndexValue?: unknown
+  conceptIndexValue?: unknown,
+  lessonStepIndexValue?: unknown,
+  phaseTargetsValue?: TeachingTarget[]
 ) {
   const level = normalizeLearningLevel(typeof levelValue === "string" ? levelValue : profile?.learning_level);
   const mode = normalizeSessionMode(modeValue);
@@ -206,6 +210,18 @@ PERFIL DO ALUNO CONECTADO NESTA SESSÃO:
   const rawIdx = typeof conceptIndexValue === "number" ? conceptIndexValue : parseInt(String(conceptIndexValue ?? 0), 10);
   const activeConceptIdx = Number.isFinite(rawIdx) && rawIdx >= 0 && rawIdx < teachingConcepts.length ? rawIdx : 0;
   const currentTargetConcept = teachingConcepts[activeConceptIdx] || teachingConcepts[0];
+  const rawStep = typeof lessonStepIndexValue === "number"
+    ? lessonStepIndexValue
+    : parseInt(String(lessonStepIndexValue ?? 0), 10);
+  const lessonStepIndex = Number.isFinite(rawStep)
+    ? Math.min(LESSON_STEPS_PER_PHASE - 1, Math.max(0, rawStep))
+    : 0;
+  const phaseTargets = Array.isArray(phaseTargetsValue) ? phaseTargetsValue : [];
+  const synchronizedTarget = phaseTargets[lessonStepIndex];
+  const nextSynchronizedTarget = phaseTargets[lessonStepIndex + 1];
+  const currentPhrase = synchronizedTarget?.phraseEn || currentTargetConcept?.targetPhrase || currentTargetConcept?.samplePhrases[0];
+  const currentMeaning = synchronizedTarget?.meaningPt || currentTargetConcept?.meaningPt || currentTargetConcept?.objective;
+  const currentPhonetic = synchronizedTarget?.phoneticPt || currentTargetConcept?.phoneticPt || "";
 
   const conceptsText = teachingConcepts.length > 0
     ? `\nROTEIRO E FASES DESTE MÓDULO (HISTÓRIA VIVA: INÍCIO, MEIO E FIM - TOTAL: ${teachingConcepts.length} FASES):\n` +
@@ -223,15 +239,18 @@ PERFIL DO ALUNO CONECTADO NESTA SESSÃO:
       }).join("\n\n") +
       `\n\nFASE ATUAL QUE VOCÊ DEVE TREINAR AGORA:
 - Você está EXATAMENTE na FASE ${activeConceptIdx + 1} de ${teachingConcepts.length}: "${currentTargetConcept?.title}"
-- Frase em inglês a ser treinada: "${currentTargetConcept?.targetPhrase}"
-- Significado em português: "${currentTargetConcept?.meaningPt}"
-- Fonética aportuguesada brasileira: "${currentTargetConcept?.phoneticPt}"
+- Etapa pedagógica atual: ${lessonStepIndex + 1}/${LESSON_STEPS_PER_PHASE} (${LESSON_STEP_LABELS[lessonStepIndex]})
+- Frase em inglês sincronizada com a tela: "${currentPhrase}"
+- Significado em português sincronizado: "${currentMeaning}"
+- Fonética aportuguesada sincronizada: "${currentPhonetic}"
+- Próximo alvo, somente depois de aprovar o atual: ${nextSynchronizedTarget ? `"${nextSynchronizedTarget.meaningPt}" → "${nextSynchronizedTarget.phraseEn}"` : "concluir a fase e avançar para a próxima"}
 - ATENÇÃO: Comece ensinando e treinando estritamente a FASE ${activeConceptIdx + 1}!
 
 FÓRMULA PEDAGÓGICA OBRIGATÓRIA DO MR. CRAZY (COMPACTA EM 1 FRASE):
 Ao introduzir ou ensinar a frase de cada fase para o aluno, diga o significado e o modelo em inglês uma vez, em até 25 palavras; a fonética é apoio visual, não precisa ser lida:
-- Exemplo: "Pra dizer '${currentTargetConcept?.meaningPt}', fala: '${currentTargetConcept?.targetPhrase}'. Sua vez!"
+- Exemplo obrigatório para o alvo atual: "Pra dizer '${currentMeaning}', fala: '${currentPhrase}'. Sua vez!"
 - REGRA ANTI-REPETIÇÃO: NUNCA repita a frase em inglês ou o mesmo pedido de fala duas vezes na mesma resposta. Diga a frase em inglês UMA ÚNICA VEZ por turno para economizar tokens e poupar o tempo do aluno!
+- CONTRATO DE SINCRONIZAÇÃO: não invente outra frase enquanto esta etapa estiver ativa. O alvo, o significado e a fonética acima alimentam o cartão visual do aluno.
 
 PROGRESSÃO GRADUAL DO FÁCIL AO DIFÍCIL:
 - Frases curtas e objetivas (1 a 4 palavras) para o aluno destravar e acertar.
@@ -255,7 +274,7 @@ REGRA DE PROGRESSÃO DINÂMICA DA HISTÓRIA (INÍCIO, MEIO E FIM):
 4. QUANDO VOCÊ DEVE MANDAR REPETIR?
    - APENAS E EXCLUSIVAMENTE se ele errou feio a pronúncia ou falou algo totalmente errado!
    - Aí sim dê uma bronca curta focando no som correto e mande tentar de novo. Palavrão só se for erro repetido e claro:
-     "Porra, esse som final ainda escapou. Fecha os lábios e tenta: '${currentTargetConcept?.targetPhrase}'."`
+     "Porra, esse som final ainda escapou. Fecha os lábios e tenta: '${currentPhrase}'."`
     : "";
 
   const moduleSection = activeModule
@@ -305,7 +324,7 @@ AVALIAÇÃO E ENSINO COM CLAREZA:
 Regras de Interação ao Vivo:
 1. Aguarde em silêncio até o usuário falar primeiro.
 2. CADÊNCIA E FLUIDEZ (REGRA DE VOZ): Fale com energia e dicção clara, em ritmo natural. Desacelere o exemplo em inglês ou o som difícil; use entonação para destacar a sílaba forte. Espere a resposta do aluno.
-3. Ao responder a primeira fala do usuário: se for um cumprimento (ex: "oi", "e aí", "tudo bem?"), responda direto em PORTUGUÊS em 1 frase rápida e já lance o início da cena: "E aí ${nickname}! Pra dizer '${currentTargetConcept?.meaningPt}', fala: '${currentTargetConcept?.targetPhrase}'. Sua vez!". NUNCA invente palavras fora da fase, NUNCA dê preâmbulos desnecessários, NUNCA diga "você acertou" e NUNCA trate cumprimento como exercício!
+3. Ao responder a primeira fala do usuário: se for um cumprimento (ex: "oi", "e aí", "tudo bem?"), responda direto em PORTUGUÊS em 1 frase rápida e já lance o início da cena: "E aí ${nickname}! Pra dizer '${currentMeaning}', fala: '${currentPhrase}'. Sua vez!". NUNCA invente palavras fora da fase, NUNCA dê preâmbulos desnecessários, NUNCA diga "você acertou" e NUNCA trate cumprimento como exercício!
 4. LÍNGUA DE ENSINO (REGRA DE OURO): É PROIBIDO FALAR O TEXTO TODO EM INGLÊS! Você DEVE FALAR 100% EM PORTUGUÊS DO BRASIL. A ÚNICA palavra ou frase em inglês permitida na sua boca é o modelo exato da frase da fase que o aluno vai treinar (ao introduzir ou avançar de fase). Se você responder em inglês por conta própria, o sistema vai falhar. NUNCA converse em inglês por conta própria!
 5. FÓRMULA PEDAGÓGICA OBRIGATÓRIA (EM 1 FRASE COMPACTA): Ao introduzir uma frase, diga significado e modelo em inglês uma vez. A fonética aproximada fica no guia visual; só explique o som quando ajudar. Não leia números ou nomes de fases. PROIBIDO repetir a mesma frase em inglês duas vezes no mesmo turno!
 6. DIFICULDADE GRADUAL: Comece simples com frases curtas de 1 a 4 palavras. NUNCA fale parágrafos ou blocos longos em inglês no início.
@@ -315,11 +334,11 @@ Regras de Interação ao Vivo:
    - PROIBIDO conversas fiadas, enrolação ou introduções desnecessárias. Vá direto ao ponto!
    - NUNCA repita a mesma frase em inglês ou o mesmo pedido de fala duas vezes na mesma resposta. Diga o modelo uma única vez por turno!
    - Ao ensinar o início ou avançar de fase: "Pra dizer '[significado]', fala: '[frase]'. Sua vez!"
-   - Ao corrigir com estresse repetido (1 frase): "Porra, esse som ainda escapou. Faz [técnica] e tenta: '[frase da fase atual]'."
-   - Ao elogiar (SE ACERTOU - AVANÇA A CENA): "Boa! Pra dizer '[significado]', fala: '[frase]'. Sua vez!"
+   - Ao corrigir com estresse repetido (1 frase): "Porra, esse som ainda escapou. Faz [técnica] e tenta: '${currentPhrase}'."
+   - Ao elogiar (SE ACERTOU - AVANÇA A ETAPA): ${nextSynchronizedTarget ? `"Boa! Pra dizer '${nextSynchronizedTarget.meaningPt}', fala: '${nextSynchronizedTarget.phraseEn}'. Sua vez!"` : "comemore e anuncie a próxima fase sem criar uma frase fora do roteiro"}
    - Ao concluir a última fase: "Aí sim! Fechou o diálogo todo. Agora vem a prova prática."
 9. REGRA ANTIRREPETIÇÃO: SE O ALUNO ACERTOU, É PROIBIDO MANDAR REPETIR! O diálogo deve progredir dinamicamente pelo enredo.
-10. TRATAMENTO RIGOROSO DE RUÍDO, RESPIRAÇÃO OU FALA INCOMPLETA: Se o áudio for apenas ruído de fundo, respiração, tosse, cliques, silêncio ou alucinações de microfone (sem fala humana inteligível), NUNCA elogie, NUNCA diga "de nada", NUNCA trate como acerto e NUNCA avance de fase. Diga em português: "Não te ouvi com clareza. Tenta de novo: '${currentTargetConcept?.targetPhrase}'.".
+10. TRATAMENTO RIGOROSO DE RUÍDO, RESPIRAÇÃO OU FALA INCOMPLETA: Se o áudio for apenas ruído de fundo, respiração, tosse, cliques, silêncio ou alucinações de microfone (sem fala humana inteligível), NUNCA elogie, NUNCA diga "de nada", NUNCA trate como acerto e NUNCA avance de fase. Diga em português: "Não te ouvi com clareza. Tenta de novo: '${currentPhrase}'.".
 11. CRITÉRIO DE ACERTO OBRIGATÓRIO PARA AVANÇAR: O aluno avança assim que comunicar a frase de forma compreensível (pelo menos 70% certo). Faça no máximo duas novas tentativas para o mesmo ponto; depois simplifique, modele e siga com uma variação.`;
 }
 

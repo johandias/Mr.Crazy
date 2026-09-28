@@ -16,6 +16,13 @@ import {
   ArrowRight
 } from "lucide-react";
 import { getModuleById, MODULES, type ExamNpcConfig } from "@/lib/modules";
+import {
+  getExamBriefing,
+  getExamCompletionReply,
+  getExamQuestionPlan,
+  getNextExamReply,
+  type ExamQuestion
+} from "@/lib/exam";
 import { PixelNpcCharacter, type NpcExpression } from "@/components/map/PixelNpcCharacter";
 import type { ModuleEvaluationItem } from "@/components/ModuleSelector";
 
@@ -23,6 +30,8 @@ interface ExamTurn {
   role: "npc" | "user";
   text: string;
   isConfusion?: boolean;
+  speaker?: "mrcrazy" | "examiner" | "student";
+  questionId?: string;
 }
 
 interface ExamModalProps {
@@ -60,6 +69,7 @@ export function ExamModal({
   const nextModule = currentIdx >= 0 && currentIdx < MODULES.length - 1 ? MODULES[currentIdx + 1] : null;
 
   const [dialogue, setDialogue] = useState<ExamTurn[]>([]);
+  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [npcExpression, setNpcExpression] = useState<NpcExpression>("neutral");
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -81,6 +91,7 @@ export function ExamModal({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const dialogueEndRef = useRef<HTMLDivElement>(null);
   const isSpeechSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+  const requiredQuestionCount = Math.max(1, examQuestions.length || examNpc.minTurns);
 
   // Fala o texto do examinador com Web Speech API em voz americana/inglesa
   const speakNpc = useCallback((text: string, expressionAfter: NpcExpression = "neutral") => {
@@ -114,13 +125,16 @@ export function ExamModal({
   }, []);
 
   const startPracticalAttempt = useCallback((attempt: number) => {
-    const initialGreeting = examNpc.initialGreetingEn;
-    const introduction = attempt === 1
-      ? "Agora é prova prática: converse em inglês sem dicas. No final eu avalio você. Manda bala."
-      : "Segunda tentativa: converse em inglês sem dicas. Eu só corrijo quando terminar. Manda bala.";
-    const startNpcConversation = () => speakNpc(initialGreeting, "neutral");
+    const questionPlan = getExamQuestionPlan(moduleId, attempt, examNpc.minTurns);
+    const introduction = getExamBriefing(currentModule, attempt, questionPlan.length);
+    const firstQuestion = questionPlan[0]?.question ?? examNpc.initialGreetingEn;
+    const startNpcConversation = () => speakNpc(firstQuestion, "neutral");
 
-    setDialogue([{ role: "npc", text: initialGreeting }]);
+    setExamQuestions(questionPlan);
+    setDialogue([
+      { role: "npc", text: introduction, speaker: "mrcrazy" },
+      { role: "npc", text: firstQuestion, speaker: "examiner", questionId: questionPlan[0]?.id }
+    ]);
     setNpcExpression("speaking");
     setConfusionCount(0);
     setTurnCount(0);
@@ -142,7 +156,7 @@ export function ExamModal({
     utterance.onend = startNpcConversation;
     utterance.onerror = startNpcConversation;
     window.speechSynthesis.speak(utterance);
-  }, [examNpc.initialGreetingEn, speakNpc]);
+  }, [currentModule, examNpc.initialGreetingEn, examNpc.minTurns, moduleId, speakNpc]);
 
   // Reinicia o exame ao abrir ou trocar de módulo
   useEffect(() => {
@@ -171,6 +185,7 @@ export function ExamModal({
       // 1. Adiciona a fala do aluno ao diálogo
       setDialogue((prev) => [...prev, { role: "user", text: cleanInput }]);
       setTurnCount((prev) => prev + 1);
+      const answeredQuestions = turnCount + 1;
       setTranscript("");
       setManualText("");
 
@@ -206,7 +221,8 @@ export function ExamModal({
             moduleId,
             userMessage: cleanInput,
             dialogue: [...dialogue, { role: "user", text: cleanInput }],
-            confusionCount
+            confusionCount,
+            attemptNumber
           })
         });
 
@@ -222,7 +238,13 @@ export function ExamModal({
             }
             setDialogue((prev) => [
               ...prev,
-              { role: "npc", text: replyData.reply, isConfusion: isConfused }
+              {
+                role: "npc",
+                text: replyData.reply,
+                isConfusion: isConfused,
+                speaker: "examiner",
+                questionId: examQuestions[answeredQuestions]?.id
+              }
             ]);
             speakNpc(replyData.reply, isConfused ? "confused" : "pleased");
             return;
@@ -234,52 +256,23 @@ export function ExamModal({
 
       // Fallback determinístico caso a API falhe
       setTimeout(() => {
-        let npcReply = "";
-        const lower = cleanInput.toLowerCase();
+        const npcReply = answeredQuestions >= requiredQuestionCount
+          ? getExamCompletionReply(examNpc)
+          : getNextExamReply(moduleId, attemptNumber, answeredQuestions);
 
-        if (examNpc.avatarType === "waiter") {
-          if (lower.includes("table") || lower.includes("two") || lower.includes("seat")) {
-            npcReply = "Right this way! Here is a comfortable table by the window. Can I start you off with something to drink?";
-          } else if (lower.includes("coffee") || lower.includes("water") || lower.includes("drink") || lower.includes("tea")) {
-            npcReply = "Excellent choice. I will bring that right away. Are you ready to order your main course, or do you need a minute?";
-          } else if (lower.includes("check") || lower.includes("bill") || lower.includes("pay")) {
-            npcReply = "Certainly, here is the check for your table. We accept card or cash. Did you enjoy everything tonight?";
-          } else {
-            npcReply = "Sounds delicious! I have put that order through to the kitchen. Can I get you anything else in the meantime?";
+        setDialogue((prev) => [
+          ...prev,
+          {
+            role: "npc",
+            text: npcReply,
+            speaker: "examiner",
+            questionId: examQuestions[answeredQuestions]?.id
           }
-        } else if (examNpc.avatarType === "neighbor") {
-          if (lower.includes("brazil") || lower.includes("name is") || lower.includes("i'm")) {
-            npcReply = "Oh, wonderful to meet you! Brazil is beautiful. Have you been living in this neighborhood long, or did you just move in?";
-          } else if (lower.includes("how are you") || lower.includes("good morning") || lower.includes("fine")) {
-            npcReply = "I'm doing really well, thank you for asking! What do you like to do around here?";
-          } else {
-            npcReply = "That's very interesting! It's always great having friendly neighbors around. You can finalize your exam when ready!";
-          }
-        } else if (examNpc.avatarType === "cashier") {
-          if (lower.includes("how much") || lower.includes("price") || lower.includes("cost")) {
-            npcReply = "This jacket is twenty-nine dollars, and it's on a special 20% discount today! Would you like to try it on?";
-          } else if (lower.includes("card") || lower.includes("cash") || lower.includes("pay")) {
-            npcReply = "Perfect, you can tap your card right on the terminal. Would you like your receipt in the bag or via email?";
-          } else {
-            npcReply = "We certainly have that in medium and large in the back. Let me grab one for you to check out!";
-          }
-        } else if (examNpc.avatarType === "receptionist") {
-          if (lower.includes("vacation") || lower.includes("holiday") || lower.includes("visit")) {
-            npcReply = "Understood. Vacation for ten days. Where will you be staying during your visit, and do you have your return ticket ready?";
-          } else if (lower.includes("hotel") || lower.includes("reservation") || lower.includes("name")) {
-            npcReply = "All your documents are in order. Welcome to the country, enjoy your stay!";
-          } else {
-            npcReply = "Please place your luggage on the scale and keep your passport open to the photo page.";
-          }
-        } else {
-          npcReply = "Understood. That makes complete sense. Could you share what your primary goal is with your English studies?";
-        }
-
-        setDialogue((prev) => [...prev, { role: "npc", text: npcReply }]);
+        ]);
         speakNpc(npcReply, "pleased");
       }, 700);
     },
-    [isEvaluating, moduleId, dialogue, confusionCount, examNpc, speakNpc]
+    [attemptNumber, confusionCount, dialogue, examNpc, examQuestions, isEvaluating, moduleId, requiredQuestionCount, speakNpc, turnCount]
   );
 
   // Inicia / para gravação de voz
@@ -364,6 +357,9 @@ export function ExamModal({
           turns: Math.max(1, turnCount),
           isExam: true,
           confusionCount,
+          answeredQuestions: turnCount,
+          requiredQuestions: requiredQuestionCount,
+          questionPlan: examQuestions.map((q) => ({ id: q.id, focus: q.focus, question: q.question })),
           contextHistory
         })
       });
@@ -390,9 +386,10 @@ export function ExamModal({
         throw new Error(data.error || "Falha na avaliação");
       }
     } catch {
-      // Fallback determinístico seguro
-      const score10 = Math.max(2.0, Number((8.5 - confusionCount * 1.8 + Math.min(1.5, turnCount * 0.4)).toFixed(1)));
-      const approved = score10 >= 6.0;
+      // Sem confirmação da API, a prova não pode liberar avanço sem persistir a nota.
+      const completionRatio = Math.min(1, turnCount / requiredQuestionCount);
+      const score10 = Math.max(2.0, Number((2 + completionRatio * 6.5 - confusionCount * 1.4).toFixed(1)));
+      const approved = false;
 
       const fallbackEval: ModuleEvaluationItem = {
         module_id: moduleId,
@@ -400,10 +397,8 @@ export function ExamModal({
         pronunciation_score: Math.round(score10 * 10),
         grammar_score: Math.round(Math.max(30, score10 * 10 - 5)),
         fluency_score: Math.round(score10 * 10),
-        performance_level: approved ? "Bom" : "Em Desenvolvimento",
-        summary_feedback: approved
-          ? `Parabéns! Você foi APROVADO na prova com nota ${score10}/10.0! Comunicação efetiva em inglês com ${examNpc.name}.`
-          : `Você obteve nota ${score10}/10.0. A nota mínima para aprovação é 6.0. O avatar não compreendeu várias falas. Tente novamente!`,
+        performance_level: "Em Desenvolvimento",
+        summary_feedback: `Sua prova foi concluída, mas a nota não pôde ser registrada. Finalize novamente para salvar o avanço antes de liberar o próximo módulo.`,
         strengths: ["Participou da conversa", "Focou no cenário"],
         improvement_areas: ["Falar exclusivamente em inglês", "Pronúncia mais clara"],
         evaluated_at: new Date().toISOString()
@@ -419,9 +414,6 @@ export function ExamModal({
         rawEvaluation: fallbackEval
       });
 
-      if (approved) {
-        onSuccessApproved?.(fallbackEval);
-      }
     } finally {
       setIsEvaluating(false);
     }
@@ -466,8 +458,8 @@ export function ExamModal({
 
         <div className="exam-intro-banner" role="status">
           <strong>Mr.Crazy:</strong> {attemptNumber === 1
-            ? "converse em inglês. Eu só avalio e corrijo quando a prova acabar."
-            : "segunda tentativa: converse em inglês sem dicas. A correção vem no final."}
+            ? "responda às perguntas em inglês. Eu avalio clareza, gramática, fluência e objetivo."
+            : "perguntas novas, mesma regra: só inglês. A correção vem no final."}
         </div>
 
         {/* Corpo Principal: Avatar do NPC + Diálogo */}
@@ -520,8 +512,8 @@ export function ExamModal({
             {/* Contador de Turnos & Alertas */}
             <div className="exam-metrics-card">
               <div className="metric-row">
-                <span className="metric-label">Turnos realizados:</span>
-                <span className="metric-value">{turnCount} / {examNpc.minTurns}</span>
+                <span className="metric-label">Perguntas respondidas:</span>
+                <span className="metric-value">{Math.min(turnCount, requiredQuestionCount)} / {requiredQuestionCount}</span>
               </div>
               <div className="metric-row">
                 <span className="metric-label">Vezes sem entender:</span>
@@ -532,7 +524,7 @@ export function ExamModal({
               <div className="metric-progress-bar">
                 <div
                   className="metric-progress-fill"
-                  style={{ width: `${Math.min(100, (turnCount / examNpc.minTurns) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (turnCount / requiredQuestionCount) * 100)}%` }}
                 />
               </div>
             </div>
@@ -543,6 +535,11 @@ export function ExamModal({
             <div className="exam-dialogue-feed">
               {dialogue.map((turn, index) => {
                 const isNpc = turn.role === "npc";
+                const author = turn.role === "user"
+                  ? "Você (Aluno)"
+                  : turn.speaker === "mrcrazy"
+                    ? "Mr.Crazy"
+                    : examNpc.name;
                 return (
                   <div
                     key={`exam-turn-${index}`}
@@ -551,7 +548,7 @@ export function ExamModal({
                     <div className={`exam-bubble ${isNpc ? "npc-bubble" : "user-bubble"} ${turn.isConfusion ? "confusion-turn" : ""}`}>
                       <div className="bubble-header">
                         <span className="bubble-author">
-                          {isNpc ? examNpc.name : "Você (Aluno)"}
+                          {author}
                         </span>
                         {turn.isConfusion && (
                           <span className="confusion-pill">🤔 Confuso / Não entendeu</span>
@@ -567,7 +564,7 @@ export function ExamModal({
 
             {/* Input e Controles de Fala */}
             <div className="exam-input-dock">
-              {turnCount >= examNpc.minTurns && !evaluationResult && (
+              {turnCount >= requiredQuestionCount && !evaluationResult && (
                 <div
                   className="exam-ready-banner animate-fade-in"
                   style={{
@@ -584,7 +581,7 @@ export function ExamModal({
                   }}
                 >
                   <CheckCircle2 size={14} />
-                  <span>Você respondeu às perguntas do examinador! Clique em <strong>Finalizar Prova</strong> para receber sua nota e resumo.</span>
+                  <span>Você respondeu à banca. Clique em <strong>Finalizar Prova</strong> para o Mr.Crazy dar nota e resumo.</span>
                 </div>
               )}
 
@@ -641,7 +638,7 @@ export function ExamModal({
                   type="button"
                   className="exam-finish-action-btn"
                   onClick={handleFinishExam}
-                  disabled={turnCount < 2 || isEvaluating}
+                  disabled={turnCount < requiredQuestionCount || isEvaluating}
                   title="Concluir a prova e calcular sua nota final"
                 >
                   <Award size={16} />

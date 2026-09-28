@@ -82,6 +82,19 @@ export async function POST(request: Request) {
       crazyLevel: typeof body.crazyLevel === "number" ? body.crazyLevel : 14,
       mode: typeof body.mode === "string" ? body.mode : "free-conversation",
       moduleId: typeof body.moduleId === "string" ? body.moduleId : undefined,
+      conceptIndex: typeof body.conceptIndex === "number" ? Math.max(0, Math.trunc(body.conceptIndex)) : undefined,
+      lessonStepIndex: typeof body.lessonStepIndex === "number" ? Math.max(0, Math.trunc(body.lessonStepIndex)) : undefined,
+      teachingTarget:
+        body.teachingTarget &&
+        typeof body.teachingTarget.phraseEn === "string" &&
+        typeof body.teachingTarget.meaningPt === "string" &&
+        typeof body.teachingTarget.phoneticPt === "string"
+          ? {
+              phraseEn: body.teachingTarget.phraseEn.slice(0, 120),
+              meaningPt: body.teachingTarget.meaningPt.slice(0, 140),
+              phoneticPt: body.teachingTarget.phoneticPt.slice(0, 160)
+            }
+          : undefined,
       learningLevel: normalizeLearningLevel(body.learningLevel),
       contextHistory: normalizeContextHistory(body.contextHistory).slice(-2),
       inputSource:

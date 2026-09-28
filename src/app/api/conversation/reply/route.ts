@@ -14,11 +14,11 @@ function normalizeHistory(value: unknown): BetaConversationTurn[] {
       if (!item || typeof item !== "object") return null;
       const turn = item as Partial<BetaConversationTurn>;
       const role = turn.role === "user" || turn.role === "crazy" ? turn.role : null;
-      const text = typeof turn.text === "string" ? turn.text.trim().slice(0, 360) : "";
+      const text = typeof turn.text === "string" ? turn.text.trim().slice(0, 700) : "";
       return role && text ? { role, text } : null;
     })
     .filter((item): item is BetaConversationTurn => Boolean(item))
-    .slice(-8);
+    .slice(-12);
 }
 
 export async function POST(request: Request) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     releaseSlot = await acquireUserQueueSlot(userIdentifier, "beta-conversation", 1, 8_000);
 
     const body = (await request.json()) as { message?: unknown; history?: unknown };
-    const message = typeof body.message === "string" ? body.message.trim().slice(0, 500) : "";
+    const message = typeof body.message === "string" ? body.message.trim().slice(0, 700) : "";
     if (!message) return NextResponse.json({ error: "Mensagem obrigatória." }, { status: 400 });
 
     const user = await getCurrentUser();
