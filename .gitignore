@@ -12,7 +12,6 @@ coverage/
 .DS_Store
 Thumbs.db
 .playwright-mcp/
-AGENTS.md
 CLAUDE.md
 *-smoke.json
 *-canvas-*.json
