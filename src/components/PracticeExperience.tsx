@@ -43,6 +43,7 @@ import {
   detectConceptIndexFromText
 } from "@/lib/modules";
 import { isNoiseOrHallucination } from "@/lib/voice/noise-filter";
+import { buildRealtimeInstructions } from "@/lib/realtime-session";
 import { ModuleSelector, type ModuleEvaluationItem } from "@/components/ModuleSelector";
 import { PracticeStartScreen } from "@/components/PracticeStartScreen";
 import { ModuleEvaluationModal } from "@/components/ModuleEvaluationModal";
@@ -672,7 +673,22 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     setIsStudyCardVisible(false);
-  }, [currentConceptIndex, selectedModuleId]);
+    // Sincroniza dinamicamente as instruções WebRTC com a fase atual do aluno
+    if (realtimeRef.current && realtimeStatus === "connected") {
+      try {
+        const updatedInstructions = buildRealtimeInstructions(
+          selectedLevel,
+          selectedMode,
+          studentProfile,
+          selectedModuleId,
+          currentConceptIndex
+        );
+        realtimeRef.current.updateInstructions(updatedInstructions);
+      } catch (err) {
+        console.warn("[Practice] Erro ao sincronizar instruções WebRTC:", err);
+      }
+    }
+  }, [currentConceptIndex, selectedModuleId, selectedLevel, selectedMode, studentProfile, realtimeStatus]);
   const [isLessonCompleted, setIsLessonCompleted] = useState(false);
   const [isCharacterAwake, setIsCharacterAwake] = useState(false);
   const hasUserAttemptedPhaseRef = useRef(false);

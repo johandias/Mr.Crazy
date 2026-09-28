@@ -16,6 +16,7 @@ export type RealtimeController = {
   sendText: (text: string) => boolean;
   setMicrophoneEnabled: (enabled: boolean) => void;
   interrupt: () => void;
+  updateInstructions: (instructions: string) => boolean;
 };
 type Options = {
   level: LearningLevel;
@@ -164,13 +165,13 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
   const recoverTurn = () => {
     clear("turn");
     if (!pendingTurn || userSpeaking || responseActive || playbackActive) return;
-    later("turn", 1500, () => {
+    later("turn", 4500, () => {
       if (!pendingTurn || userSpeaking || responseActive || playbackActive) return;
       pendingTurn = false;
       responseActive = true;
       syncCapture();
       if (send({ type: "response.create" })) {
-        log("response_recovery", "Solicitada resposta ao áudio confirmado.");
+        log("response_recovery", "Solicitada resposta de contingência.");
         watchResponse();
       } else {
         responseActive = false;
@@ -187,7 +188,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     if (document.visibilityState === "hidden") clear("capture-muted");
     capture?.resume();
     syncCapture();
-    if (audio?.srcObject && document.visibilityState !== "hidden") {
+    if (audio?.srcObject && audio.paused && document.visibilityState !== "hidden") {
       void audio.play().catch(() => report(new VoiceError("playback_blocked", "O navegador bloqueou o som. Toque na tela para liberar o áudio.")));
     }
   };
@@ -417,12 +418,13 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         case "output_audio_buffer.cleared":
           playbackActive = false;
           echoGuardActive = true;
+          pendingTurn = false;
+          clear("turn");
           if (!responseActive) clear("response");
           syncCapture();
-          later("echo", 600, () => {
+          later("echo", 500, () => {
             echoGuardActive = false;
             syncCapture();
-            recoverTurn();
           });
           break;
         case "response.done": {
@@ -433,7 +435,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
             const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
             commitAssistant(text || assistantText);
           }
-          if (!playbackActive) { clear("response"); syncCapture(); recoverTurn(); }
+          pendingTurn = false; clear("turn"); if (!playbackActive) { clear("response"); syncCapture(); }
           if (event.response?.status === "failed") report(new VoiceError("response_failed", "A API não conseguiu gerar a resposta.", { providerCode: event.response.status_details?.error?.code }));
           break;
         }

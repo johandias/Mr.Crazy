@@ -37,6 +37,7 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 | **Redesign do HUD, Balão Didático & Ondas Sonoras** | Antigravity | ✅ Concluído | `PracticeExperience.tsx`, `VoiceInputControl.tsx`, `globals.css` |
 | **Entrada da prática com personagem Mr.Crazy** | Codex | ✅ Concluído | `PracticeExperience.tsx`, novo componente de entrada e estilos isolados |
 | **Conversa Beta por texto e voz** | Codex | ✅ Concluído | nova rota `/conversation`, API Gemini isolada e atalho no palco de prática |
+| **Diálogo Dinâmico (Início/Meio/Fim) & Correção de Áudio WebRTC** | Antigravity | ✅ Concluído | `realtime-session.ts`, `realtime-client.ts`, `PracticeExperience.tsx` |
 
 ---
 
@@ -73,3 +74,5 @@ Antes de qualquer push na `main`:
 - **[Antigravity — 2026-09-28]**: Diagnóstico completo e otimização do HUD de prática entregues: consolidação do topo (recuperando 100px de altura vertical), balão didático integrado com botão de replay de voz e guia fonético, badge de fala do aluno em tempo real no palco principal, ondas responsivas ao áudio e graves com fallback harmônico procedural, digitação rápida inline (teclado) e ergonomia mobile 100dvh sem rolagem.
 - **[Codex — 2026-09-28]**: Iniciada a Conversa Beta. Escopo isolado: tela de chat, rota Gemini autenticada e atalho acima do avatar no treino; a conexão Realtime guiada permanece sem alterações.
 - **[Codex — 2026-09-28]**: Conversa Beta concluída. `/conversation` recebe texto ou voz transcrita, responde por Gemini quando configurado e oferece áudio sob demanda pela rota de TTS existente.
+
+- **[Antigravity — 2026-09-28]**: Corrigida a progressão dinâmica de diálogo com início, meio e fim: proibido mandar repetir quando o aluno já acertou; avanço imediato para a próxima etapa da cena na mesma fala. Corrigido picote e travamento de áudio WebRTC: VAD threshold ajustado para 0.55 com 950ms de pausa natural, eliminado recoverTurn() após reprodução de áudio para evitar que o Mr. Crazy responda a si mesmo, e áudio protegido contra re-execução em pointerdown.
