@@ -2,7 +2,7 @@
 
 import type { RefObject, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, Mic, MicOff, Hand } from "lucide-react";
+import { LoaderCircle, Mic, MicOff, Radio } from "lucide-react";
 import type { RealtimeConnectionStatus, VoiceDiagnostic } from "@/lib/realtime-client";
 
 export type LiveAudioVisualizer = {

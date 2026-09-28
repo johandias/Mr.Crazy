@@ -142,13 +142,13 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
   };
   let echoGuardActive = false;
   const syncCapture = () => {
-    const shouldCapture = microphoneEnabled && !playbackActive && !responseActive && !echoGuardActive && document.visibilityState !== "hidden";
+    const shouldCapture = microphoneEnabled && !pendingTurn && !playbackActive && !responseActive && !echoGuardActive && document.visibilityState !== "hidden";
     capture?.setEnabled(shouldCapture);
     if (!connected || closed) return;
     options.onVoiceState(
       playbackActive
         ? (audio?.paused ? "preparing_speech" : "speaking")
-        : responseActive
+        : responseActive || pendingTurn
         ? "analyzing"
         : microphoneEnabled && document.visibilityState !== "hidden"
         ? "listening"
@@ -164,9 +164,9 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
   });
   const recoverTurn = () => {
     clear("turn");
-    if (!pendingTurn || userSpeaking || responseActive || playbackActive) return;
-    later("turn", 4500, () => {
-      if (!pendingTurn || userSpeaking || responseActive || playbackActive) return;
+    if (!pendingTurn || userSpeaking || playbackActive) return;
+    later("turn", 1500, () => {
+      if (!pendingTurn || userSpeaking || playbackActive) return;
       pendingTurn = false;
       responseActive = true;
       syncCapture();
@@ -334,11 +334,14 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           userSpeaking = true;
           clear("turn");
           options.onUserSpeechStarted?.();
-          // Se o Mr. Crazy estiver falando ou gerando áudio, NÃO cancele!
-          // Isso impede que o eco do alto-falante ou ruído ambiente corte o Mr. Crazy no meio da explicação.
+          // A captura é desativada durante a fala do tutor; portanto, este evento
+          // representa uma nova intervenção do aluno e precisa interromper a resposta.
           if (playbackActive || responseActive) {
-            log("speech_started_ignored", "Voz detectada durante a fala do Mr. Crazy; cancelamento evitado para garantir a explicação completa.");
-            break;
+            send({ type: "response.cancel" });
+            send({ type: "output_audio_buffer.clear" });
+            audio?.pause();
+            playbackActive = false;
+            responseActive = false;
           }
           responseActive = false;
           playbackActive = false;
@@ -352,10 +355,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           break;
         case "input_audio_buffer.speech_stopped":
           userSpeaking = false;
-          responseActive = true; // immediately block mic
           options.onVoiceState("analyzing");
-          watchResponse();
-          recoverTurn();
           syncCapture();
           break;
         case "input_audio_buffer.committed":
@@ -545,6 +545,10 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         microphoneEnabled = enabled;
         if (!enabled) clear("capture-muted");
         resume();
+      },
+      updateInstructions(instructions) {
+        if (!instructions.trim()) return false;
+        return send({ type: "session.update", session: { instructions } });
       },
       interrupt() {
         if (responseActive) send({ type: "response.cancel" });

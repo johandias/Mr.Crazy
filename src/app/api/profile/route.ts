@@ -60,6 +60,29 @@ export async function POST(request: Request) {
     // Telemetria incremental
     if (typeof body.addPracticeSeconds === "number" && body.addPracticeSeconds > 0) {
       updates.practice_time_seconds = (user.practice_time_seconds || 0) + Math.round(body.addPracticeSeconds);
+      
+      // Lógica de Streak
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const lastPractice = user.last_practice_date ? new Date(user.last_practice_date) : null;
+      if (lastPractice) lastPractice.setHours(0, 0, 0, 0);
+      
+      if (!lastPractice) {
+        updates.streak_days = 1;
+        updates.last_practice_date = new Date().toISOString();
+      } else {
+        const diffTime = Math.abs(today.getTime() - lastPractice.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+          updates.streak_days = (user.streak_days || 0) + 1;
+          updates.last_practice_date = new Date().toISOString();
+        } else if (diffDays > 1) {
+          updates.streak_days = 1;
+          updates.last_practice_date = new Date().toISOString();
+        }
+      }
     } else if (typeof body.practice_time_seconds === "number") {
       updates.practice_time_seconds = Math.round(body.practice_time_seconds);
     }

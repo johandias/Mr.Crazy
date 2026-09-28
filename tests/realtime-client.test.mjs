@@ -75,7 +75,7 @@ function setup(t, config = {}) {
   });
   return {
     connect: async () => controller = await connectRealtime({
-      level: "basic", mode: "free-conversation", signal: lifetime.signal, onStatus: value => statuses.push(value),
+      level: "basic", mode: "free-conversation", initialMicrophoneEnabled: true, signal: lifetime.signal, onStatus: value => statuses.push(value),
       onVoiceState: value => states.push(value), onUserTranscript: (text, done) => users.push({text,done}),
       onAssistantTranscript: (text, done) => replies.push({text,done}), onError: value => errors.push(value), onDiagnostic: value => diagnostics.push(value)
     }),
@@ -238,6 +238,18 @@ test("text response is single-flight and repeats of the same answer are not lost
   assert.equal(c.sendText("hello"),true);assert.equal(c.sendText("again"),false);
   for(let i=0;i<2;i++) {p.emit({type:"response.created"});p.emit({type:"response.output_audio_transcript.done",transcript:"Hello!"});p.emit({type:"response.done",response:{status:"completed"}});}
   assert.equal(p.replies.filter(x=>x.done).length,2);
+});
+
+test("active guided phase can update the realtime tutor instructions", async t => {
+  const p = setup(t);
+  const c = await p.connect();
+
+  assert.equal(c.updateInstructions("Ensine a próxima frase com calma."), true);
+  assert.deepEqual(p.sent.at(-1), {
+    type: "session.update",
+    session: { instructions: "Ensine a próxima frase com calma." }
+  });
+  assert.equal(c.updateInstructions("   "), false);
 });
 
 test("a selected unavailable device is not silently replaced", async t => {

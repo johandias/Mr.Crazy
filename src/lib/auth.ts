@@ -29,8 +29,14 @@ export interface UserProfile {
   evolution_score: number;
   xp: number;
   streak_days: number;
+  last_practice_date?: string;
   created_at: string;
   password_hash?: string;
+
+  // Enriched
+  computedLevel?: string;
+  sessionsCount?: number;
+  activeModuleProgress?: any;
 }
 
 export interface SessionTokenPayload {

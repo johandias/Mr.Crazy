@@ -99,7 +99,11 @@ export async function openMicrophone(options: {
         }
 
         analyser.getFloatTimeDomainData(timeData);
-        analyser.getByteFrequencyData(freqData);
+        if (typeof analyser.getByteFrequencyData === "function") {
+          analyser.getByteFrequencyData(freqData);
+        } else {
+          freqData.fill(0);
+        }
 
         let sumSq = 0;
         for (let i = 0; i < timeData.length; i++) sumSq += timeData[i] * timeData[i];

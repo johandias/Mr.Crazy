@@ -55,8 +55,8 @@ export async function POST(request: Request) {
         voice,
         input: text,
         response_format: "mp3",
-        speed: 1.05,
-        instructions: "Você é um homem brasileiro, com voz masculina encorpada, natural e realista. Fale português do Brasil com pronúncia 100% nativa e natural, sem sotaque estrangeiro. Pronuncie termos e frases em inglês com pronúncia americana nativa clara (en-US). Delivery: masculino, caloroso, direto, humano, descontraído e próximo ao microfone. Mantenha conciso."
+        speed: 1,
+        instructions: "Você é um professor brasileiro homem: voz encorpada, próxima, natural e realista. Fale português do Brasil com dicção nativa. Nos exemplos em inglês, use pronúncia americana clara, um pouco mais lenta, conectada e com a sílaba tônica evidente. Varie a entonação entre acolhimento, desafio, correção firme e elogio curto; faça pausas naturais antes da vez do aluno. Nunca acelere uma correção, nem soe como locutor ou leia cada sílaba mecanicamente. Não acrescente palavras ao texto recebido."
       }),
       cache: "no-store"
     });

@@ -18,6 +18,8 @@ import {
   AlertCircle,
   Volume2,
   Sliders,
+  Calendar,
+  Layers,
   ChevronRight
 } from "lucide-react";
 import type { UserProfile } from "@/lib/auth";
@@ -43,10 +45,13 @@ const LEVEL_LABELS: Record<string, { label: string; tag: string; desc: string }>
 
 export function EvolutionDashboard() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "techniques" ? "techniques" : "stats";
+  const initialTabParam = searchParams.get("tab");
+  const validTabs = ["stats", "modules", "techniques"];
+  const initialTab = validTabs.includes(initialTabParam as string) ? initialTabParam as "stats" | "modules" | "techniques" : "stats";
 
-  const [activeTab, setActiveTab] = useState<"stats" | "techniques">(initialTab);
+  const [activeTab, setActiveTab] = useState<"stats" | "modules" | "techniques">(initialTab);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [summary, setSummary] = useState<any>(null);
   const [insights, setInsights] = useState<LearningInsightData | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -54,18 +59,20 @@ export function EvolutionDashboard() {
   const insightsRequest = useRef(false);
 
   useEffect(() => {
-    if (searchParams.get("tab") === "techniques") {
-      setActiveTab("techniques");
+    const tab = searchParams.get("tab");
+    if (validTabs.includes(tab as string)) {
+      setActiveTab(tab as "stats" | "modules" | "techniques");
     }
   }, [searchParams]);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/api/profile");
+        const res = await fetch("/api/progress/summary");
         const data = await res.json();
-        if (res.ok && data.profile) {
-          setProfile(data.profile);
+        if (res.ok) {
+          if (data.profile) setProfile(data.profile);
+          setSummary(data);
         }
       } catch {
         // silencioso
@@ -106,7 +113,12 @@ export function EvolutionDashboard() {
     return m > 0 ? `${h}h ${m}m` : `${h} horas`;
   };
 
-  const currentLevel = LEVEL_LABELS[profile?.learning_level || "basic"] || LEVEL_LABELS.basic;
+  const levelKey = summary?.computedLevel?.toLowerCase() || profile?.learning_level || "basic";
+  const currentLevel = LEVEL_LABELS[levelKey] || { 
+    label: summary?.computedLevel || "Básico", 
+    tag: "", 
+    desc: "Nível calculado com base no seu desenvolvimento." 
+  };
 
   if (loadingProfile) {
     return (
@@ -130,6 +142,16 @@ export function EvolutionDashboard() {
         >
           <Award size={18} />
           <span>Minha evolução</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "modules"}
+          className={`evolution-tab-btn ${activeTab === "modules" ? "active" : ""}`}
+          onClick={() => setActiveTab("modules")}
+        >
+          <Layers size={18} />
+          <span>Módulos</span>
         </button>
         <button
           type="button"
@@ -198,8 +220,19 @@ export function EvolutionDashboard() {
               </div>
               <div className="metric-body">
                 <span className="metric-label">Nível Atual</span>
-                <strong className="metric-value">{currentLevel.label} ({currentLevel.tag})</strong>
+                <strong className="metric-value">{currentLevel.label} {currentLevel.tag ? `(${currentLevel.tag})` : ""}</strong>
                 <span className="metric-footnote">{currentLevel.desc}</span>
+              </div>
+            </div>
+
+            <div className="metric-card highlight-metric swipe-card-wide">
+              <div className="metric-icon-box xp-color">
+                <Calendar size={22} />
+              </div>
+              <div className="metric-body">
+                <span className="metric-label">Sessões de Prática</span>
+                <strong className="metric-value">{summary?.weeklyStats?.practiceCount ?? summary?.practiceSessions?.length ?? 0}</strong>
+                <span className="metric-footnote">Aulas recentes realizadas</span>
               </div>
             </div>
 
@@ -214,6 +247,43 @@ export function EvolutionDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Módulos em Progresso (Top 3) */}
+          {summary?.moduleProgress && summary.moduleProgress.length > 0 && (
+            <div className="evolution-card-panel" style={{ marginTop: '24px' }}>
+              <div className="panel-header">
+                <BookOpen size={18} />
+                <h3>Módulos em Progresso</h3>
+              </div>
+              <p className="panel-subtext" style={{ marginBottom: '16px' }}>Seus módulos mais praticados recentemente:</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {summary.moduleProgress.slice(0, 3).map((m: any) => (
+                  <div key={m.module_id} style={{ padding: '12px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-card)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Módulo {m.module_id}</h4>
+                      <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '12px', background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
+                        {m.status === 'completed' ? 'Concluído' : m.status === 'in_progress' ? 'Em andamento' : 'Não iniciado'}
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-subtle)', borderRadius: '4px', marginTop: '10px' }}>
+                      <div style={{ width: `${m.progress_percent || 0}%`, height: '100%', backgroundColor: m.status === 'completed' ? '#10b981' : 'var(--primary)', borderRadius: '4px' }} />
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', display: 'block' }}>
+                      {m.progress_percent || 0}% concluído
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <button 
+                onClick={() => setActiveTab('modules')}
+                className="ghost-cta-btn" 
+                style={{ marginTop: '16px', width: '100%', justifyContent: 'center' }}
+              >
+                <span>Ver todos os módulos</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
 
           {/* Seção 1: Sons e Sílabas Monitorados pela IA */}
           {/* Diagnóstico Executivo de 1 Frase */}
@@ -379,7 +449,76 @@ export function EvolutionDashboard() {
         </div>
       )}
 
-      {/* ABA 2: TÉCNICAS E INSIGHTS COM IA */}
+      {/* ABA MÓDULOS */}
+      {activeTab === "modules" && (
+        <div className="evolution-section-content">
+          <div className="evolution-banner-header">
+            <div>
+              <span className="badge-pill" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                Sua Jornada de Módulos
+              </span>
+              <h2>Progresso de Ensino</h2>
+              <p>
+                Nível alcançado: <strong>{currentLevel.label}</strong> {currentLevel.tag ? `(${currentLevel.tag})` : ""} — {summary?.totalModulesCompleted || 0} módulos completados até agora.
+              </p>
+            </div>
+            <Link href="/practice" className="primary-link quick-practice-btn">
+              <span>Avançar de Fase</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
+            {summary?.moduleProgress && summary.moduleProgress.length > 0 ? (
+              summary.moduleProgress.map((m: any) => (
+                <div key={m.module_id} className="evolution-card-panel" style={{ padding: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div>
+                      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Layers size={20} className={m.status === 'completed' ? 'text-emerald-500' : 'text-blue-500'} />
+                        Módulo {m.module_id}
+                      </h3>
+                      <p style={{ margin: 0, marginTop: '4px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                        Status: {m.status === 'completed' ? 'Concluído' : m.status === 'in_progress' ? 'Em andamento' : 'Não iniciado'}
+                      </p>
+                    </div>
+                    {m.status === 'completed' && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10b981', fontSize: '13px', fontWeight: 500, background: 'rgba(16, 185, 129, 0.1)', padding: '4px 10px', borderRadius: '12px' }}>
+                        <CheckCircle2 size={14} /> Completado
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div style={{ width: '100%', height: '10px', backgroundColor: 'var(--bg-subtle)', borderRadius: '5px', overflow: 'hidden' }}>
+                    <div 
+                      style={{ 
+                        width: `${m.progress_percent || 0}%`, 
+                        height: '100%', 
+                        backgroundColor: m.status === 'completed' ? '#10b981' : 'var(--primary)', 
+                        borderRadius: '5px',
+                        transition: 'width 0.5s ease'
+                      }} 
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.progress_percent || 0}% Concluído</span>
+                    <span>{m.total_turns || 0} interações</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="evolution-card-panel" style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <BookOpen size={40} style={{ margin: '0 auto 16px', color: 'var(--text-secondary)', opacity: 0.5 }} />
+                <h3>Nenhum módulo iniciado</h3>
+                <p style={{ color: 'var(--text-secondary)' }}>Você ainda não começou sua jornada de módulos.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ABA 3: TÉCNICAS E INSIGHTS COM IA */}
       {activeTab === "techniques" && (
         <div className="evolution-section-content">
           <div className="evolution-banner-header">

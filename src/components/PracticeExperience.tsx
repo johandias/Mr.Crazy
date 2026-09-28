@@ -77,6 +77,10 @@ type SessionMode = {
   icon: LucideIcon;
 };
 
+function isUserGender(value: unknown): value is UserGender {
+  return value === "masculino" || value === "feminino" || value === "outro" || value === "prefiro_nao_dizer";
+}
+
 type CharacterId = "voxel" | "rpg";
 
 type LevelOption = {
