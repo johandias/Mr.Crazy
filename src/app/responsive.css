@@ -648,6 +648,8 @@
   .goal-flag { white-space: normal; }
   .goal-text { font-size: 0.8rem; line-height: 1.4; }
   .exam-intro-banner { margin: 0 16px 10px; font-size: 0.78rem; }
+  .exam-task-context { margin: 0 12px 8px; padding: 9px 10px; }
+  .exam-task-context p { font-size: 0.75rem; }
 
   .exam-stage-grid { display: flex; flex-direction: column; max-height: none; min-height: 0; }
   .exam-npc-column {
@@ -671,6 +673,9 @@
   .exam-finish-action-btn span { display: none; }
   .exam-result-overlay { padding: 10px; overflow-y: auto; align-items: flex-end; }
   .exam-result-card { max-height: calc(100dvh - 20px); overflow-y: auto; }
+  .exam-answer-review { padding: 10px; }
+  .exam-answer-review-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .exam-answer-review-item { padding: 9px 10px; }
   .result-actions-row { flex-direction: column; align-items: stretch; }
 }
 

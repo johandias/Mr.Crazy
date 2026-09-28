@@ -10597,6 +10597,131 @@ meter {
   margin-bottom: 4px;
 }
 
+.exam-task-context {
+  margin: 0 14px 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 47, 73, 0.28);
+}
+
+.exam-task-kicker,
+.exam-answer-review-heading .card-title {
+  display: block;
+  color: #67e8f9;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.exam-task-context strong {
+  display: block;
+  margin-top: 3px;
+  color: #f8fafc;
+  font-size: 0.86rem;
+  text-transform: capitalize;
+}
+
+.exam-task-context p {
+  margin: 3px 0 0;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.exam-answer-review {
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.exam-answer-review-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.exam-answer-review-hint {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.exam-answer-review-list {
+  display: grid;
+  gap: 8px;
+}
+
+.exam-answer-review-item {
+  padding: 10px 11px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.exam-answer-review-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #67e8f9;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.exam-answer-review-topline strong {
+  flex: 0 0 auto;
+  color: #fbbf24;
+}
+
+.exam-answer-review-item p {
+  margin: 6px 0 0;
+  color: #cbd5e1;
+  font-size: 0.76rem;
+  line-height: 1.38;
+}
+
+.exam-answer-review-item b {
+  color: #f8fafc;
+}
+
+.exam-answer-review-question {
+  color: #f8fafc !important;
+  font-weight: 700;
+}
+
+.exam-answer-review-item .review-positive {
+  color: #86efac;
+}
+
+.exam-answer-review-item .review-pronunciation {
+  color: #a5f3fc;
+}
+
+.exam-next-step {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border-left: 3px solid #fbbf24;
+  background: rgba(120, 53, 15, 0.16);
+}
+
+.exam-next-step strong {
+  color: #fbbf24;
+  font-size: 0.78rem;
+}
+
+.exam-next-step span {
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .result-actions-row {
   display: flex;
   align-items: center;

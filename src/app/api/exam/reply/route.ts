@@ -176,6 +176,7 @@ export async function POST(request: Request) {
           .map((d) => `${d.role === "npc" ? examNpc.name : "Student"}: "${d.text}"`)
           .join("\n");
 
+        const nextQuestion = questionPlan[answeredQuestions];
         const prompt = `You are ${examNpc.name}, ${examNpc.roleEn} in the following practical English exam scenario:
 - Scenario: ${currentModule.scenario}
 - Mission/Goal: ${examNpc.scenarioGoal}
@@ -187,6 +188,9 @@ Question plan for this attempt:
 ${questionPlan.map((q, index) => `${index + 1}. ${q.question} [focus: ${q.focus}]`).join("\n")}
 Next required exam question to ask now:
 "${nextPlannedQuestion}"
+Question focus: ${nextQuestion?.focus || "scenario communication"}
+What the candidate must demonstrate: ${nextQuestion?.responseGoal || "a complete, relevant answer"}
+Correction focus for the evaluator: ${nextQuestion?.correctionFocus || "clarity and relevance"}
 
 INSTRUCTIONS:
 1. Speak 100% in natural American English.
@@ -227,10 +231,12 @@ INSTRUCTIONS:
               if (replyText) {
                 const cleanedReply = replyText.replace(/^["']|["']$/g, "").trim();
                 return NextResponse.json({
-                  ok: true,
-                  isConfusion: false,
-                  reply: cleanedReply
-                });
+                    ok: true,
+                    isConfusion: false,
+                    reply: cleanedReply,
+                    nextQuestionId: nextQuestion?.id ?? null,
+                    questionFocus: nextQuestion?.focus ?? null
+                  });
               }
             }
           } catch {
@@ -248,7 +254,9 @@ INSTRUCTIONS:
       ok: true,
       isConfusion: false,
       isExamComplete: answeredQuestions >= questionPlan.length,
-      reply: fallbackReply
+      reply: fallbackReply,
+      nextQuestionId: questionPlan[answeredQuestions]?.id ?? null,
+      questionFocus: questionPlan[answeredQuestions]?.focus ?? null
     });
   } catch (error) {
     console.error("[Exam Reply API Error]:", error);

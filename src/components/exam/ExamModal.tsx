@@ -17,11 +17,14 @@ import {
 } from "lucide-react";
 import { getModuleById, MODULES, type ExamNpcConfig } from "@/lib/modules";
 import {
+  buildExamQuestionFeedback,
+  getExamContext,
   getExamBriefing,
   getExamCompletionReply,
   getExamQuestionPlan,
   getNextExamReply,
-  type ExamQuestion
+  type ExamQuestion,
+  type ExamQuestionFeedback
 } from "@/lib/exam";
 import { PixelNpcCharacter, type NpcExpression } from "@/components/map/PixelNpcCharacter";
 import type { ModuleEvaluationItem } from "@/components/ModuleSelector";
@@ -85,6 +88,8 @@ export function ExamModal({
     feedback: string;
     strengths: string[];
     improvement_areas: string[];
+    questionFeedback: ExamQuestionFeedback[];
+    nextStep: string;
     rawEvaluation: ModuleEvaluationItem;
   } | null>(null);
 
@@ -126,12 +131,15 @@ export function ExamModal({
 
   const startPracticalAttempt = useCallback((attempt: number) => {
     const questionPlan = getExamQuestionPlan(moduleId, attempt, examNpc.minTurns);
+    const contextBriefing = getExamContext(currentModule);
     const introduction = getExamBriefing(currentModule, attempt, questionPlan.length);
     const firstQuestion = questionPlan[0]?.question ?? examNpc.initialGreetingEn;
+    const mrCrazyOpening = `${contextBriefing} ${introduction}`;
     const startNpcConversation = () => speakNpc(firstQuestion, "neutral");
 
     setExamQuestions(questionPlan);
     setDialogue([
+      { role: "npc", text: contextBriefing, speaker: "mrcrazy" },
       { role: "npc", text: introduction, speaker: "mrcrazy" },
       { role: "npc", text: firstQuestion, speaker: "examiner", questionId: questionPlan[0]?.id }
     ]);
@@ -150,7 +158,7 @@ export function ExamModal({
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(introduction);
+    const utterance = new SpeechSynthesisUtterance(mrCrazyOpening);
     utterance.lang = "pt-BR";
     utterance.rate = 1;
     utterance.onend = startNpcConversation;
@@ -183,7 +191,10 @@ export function ExamModal({
       if (!cleanInput || isEvaluating) return;
 
       // 1. Adiciona a fala do aluno ao diálogo
-      setDialogue((prev) => [...prev, { role: "user", text: cleanInput }]);
+      setDialogue((prev) => [
+        ...prev,
+        { role: "user", text: cleanInput, questionId: examQuestions[turnCount]?.id }
+      ]);
       setTurnCount((prev) => prev + 1);
       const answeredQuestions = turnCount + 1;
       setTranscript("");
@@ -243,7 +254,7 @@ export function ExamModal({
                 text: replyData.reply,
                 isConfusion: isConfused,
                 speaker: "examiner",
-                questionId: examQuestions[answeredQuestions]?.id
+                questionId: replyData.nextQuestionId ?? examQuestions[answeredQuestions]?.id
               }
             ]);
             speakNpc(replyData.reply, isConfused ? "confused" : "pleased");
@@ -348,6 +359,17 @@ export function ExamModal({
         role: t.role === "npc" ? "crazy" : "user",
         text: t.text
       }));
+      const examAnswers = dialogue
+        .filter((turn) => turn.role === "user")
+        .map((turn, index) => {
+          const question = examQuestions.find((item) => item.id === turn.questionId) ?? examQuestions[index];
+          return {
+            questionId: question?.id,
+            question: question?.question,
+            focus: question?.focus,
+            answer: turn.text
+          };
+        });
 
       const res = await fetch("/api/modules/evaluate", {
         method: "POST",
@@ -359,7 +381,15 @@ export function ExamModal({
           confusionCount,
           answeredQuestions: turnCount,
           requiredQuestions: requiredQuestionCount,
-          questionPlan: examQuestions.map((q) => ({ id: q.id, focus: q.focus, question: q.question })),
+          questionPlan: examQuestions.map((q) => ({
+            id: q.id,
+            focus: q.focus,
+            question: q.question,
+            responseGoal: q.responseGoal,
+            correctionFocus: q.correctionFocus,
+            modelAnswer: q.modelAnswer
+          })),
+          examAnswers,
           contextHistory
         })
       });
@@ -376,6 +406,10 @@ export function ExamModal({
           feedback: data.evaluation.summary_feedback,
           strengths: data.evaluation.strengths || [],
           improvement_areas: data.evaluation.improvement_areas || [],
+          questionFeedback: Array.isArray(data.questionFeedback) && data.questionFeedback.length > 0
+            ? data.questionFeedback
+            : examQuestions.map((question, index) => buildExamQuestionFeedback(question, examAnswers[index]?.answer || "")),
+          nextStep: String(data.nextStep || "Continue praticando respostas completas no contexto do módulo."),
           rawEvaluation: data.evaluation
         });
 
@@ -411,6 +445,10 @@ export function ExamModal({
         feedback: fallbackEval.summary_feedback,
         strengths: fallbackEval.strengths,
         improvement_areas: fallbackEval.improvement_areas,
+        questionFeedback: examQuestions.map((question, index) =>
+          buildExamQuestionFeedback(question, examAnswers[index]?.answer || "")
+        ),
+        nextStep: "Revise as respostas por pergunta e repita o módulo focando no ponto mais fraco.",
         rawEvaluation: fallbackEval
       });
 
@@ -418,6 +456,8 @@ export function ExamModal({
       setIsEvaluating(false);
     }
   };
+
+  const currentExamQuestion = examQuestions[Math.min(turnCount, Math.max(0, examQuestions.length - 1))];
 
   if (!isOpen) return null;
 
@@ -532,6 +572,13 @@ export function ExamModal({
 
           {/* Coluna do Diálogo & Chat em Tempo Real */}
           <div className="exam-chat-column">
+            {currentExamQuestion && !evaluationResult && (
+              <div className="exam-task-context" aria-live="polite">
+                <span className="exam-task-kicker">FOCO DESTA PERGUNTA</span>
+                <strong>{currentExamQuestion.focus}</strong>
+                <p>{currentExamQuestion.responseGoal}</p>
+              </div>
+            )}
             <div className="exam-dialogue-feed">
               {dialogue.map((turn, index) => {
                 const isNpc = turn.role === "npc";
@@ -713,6 +760,36 @@ export function ExamModal({
                     </ul>
                   </div>
                 )}
+              </div>
+
+              {evaluationResult.questionFeedback.length > 0 && (
+                <section className="exam-answer-review" aria-label="Correção por pergunta">
+                  <div className="exam-answer-review-heading">
+                    <span className="card-title">CORREÇÃO POR PERGUNTA</span>
+                    <span className="exam-answer-review-hint">O que funcionou e como melhorar</span>
+                  </div>
+                  <div className="exam-answer-review-list">
+                    {evaluationResult.questionFeedback.map((review, index) => (
+                      <article className="exam-answer-review-item" key={`${review.question_id}-${index}`}>
+                        <div className="exam-answer-review-topline">
+                          <span>#{index + 1} · {review.focus}</span>
+                          <strong>{(review.score / 10).toFixed(1)}/10</strong>
+                        </div>
+                        <p className="exam-answer-review-question">{review.question}</p>
+                        <p><b>Sua resposta:</b> {review.answer}</p>
+                        <p className="review-positive"><b>Funcionou:</b> {review.what_went_well}</p>
+                        <p><b>Ajuste:</b> {review.correction}</p>
+                        <p><b>Modelo:</b> {review.model_answer}</p>
+                        <p className="review-pronunciation"><b>Pronúncia:</b> {review.pronunciation_tip}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <div className="exam-next-step">
+                <strong>Próximo treino</strong>
+                <span>{evaluationResult.nextStep}</span>
               </div>
 
               {/* Ações Finais */}

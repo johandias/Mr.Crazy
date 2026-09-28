@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/server-auth";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getModuleById } from "@/lib/modules";
+import { buildExamQuestionFeedback, type ExamQuestion, type ExamQuestionFeedback } from "@/lib/exam";
 import {
   memoryProgress,
   memoryEvaluations,
@@ -23,7 +24,15 @@ type EvaluateRequestBody = {
   confusionCount?: number;
   answeredQuestions?: number;
   requiredQuestions?: number;
-  questionPlan?: Array<{ id?: string; focus?: string; question?: string }>;
+  questionPlan?: Array<{
+    id?: string;
+    focus?: string;
+    question?: string;
+    responseGoal?: string;
+    correctionFocus?: string;
+    modelAnswer?: string;
+  }>;
+  examAnswers?: Array<{ questionId?: string; question?: string; focus?: string; answer?: string }>;
 };
 
 function getGeminiApiKey(): string | null {
@@ -37,6 +46,35 @@ function getGeminiApiKey(): string | null {
 
 function stripJsonFences(raw: string): string {
   return raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+}
+
+function normalizeQuestionFeedback(
+  value: unknown,
+  questionPlan: ExamQuestion[],
+  answers: Array<{ questionId?: string; question?: string; focus?: string; answer?: string }>
+): ExamQuestionFeedback[] {
+  const parsed = Array.isArray(value) ? value : [];
+  return questionPlan.map((question, index) => {
+    const answer = answers.find((item) => item.questionId === question.id) ?? answers[index];
+    const candidate = (parsed.find((item) => {
+      const entry = item as Record<string, unknown>;
+      return entry?.question_id === question.id;
+    }) ?? parsed[index]) as Record<string, unknown> | undefined;
+    const fallback = buildExamQuestionFeedback(question, String(answer?.answer || ""));
+    if (!candidate || typeof candidate !== "object") return fallback;
+
+    return {
+      question_id: question.id,
+      focus: question.focus,
+      question: question.question,
+      answer: String(answer?.answer || fallback.answer),
+      score: Math.min(100, Math.max(0, Math.round(Number(candidate.score) || fallback.score))),
+      what_went_well: String(candidate.what_went_well || fallback.what_went_well),
+      correction: String(candidate.correction || fallback.correction),
+      model_answer: String(candidate.model_answer || question.modelAnswer || fallback.model_answer),
+      pronunciation_tip: String(candidate.pronunciation_tip || fallback.pronunciation_tip)
+    };
+  });
 }
 
 export async function POST(request: Request) {
@@ -60,11 +98,14 @@ export async function POST(request: Request) {
     const confusionCount = Math.max(0, body.confusionCount || 0);
     const answeredQuestions = Math.max(0, body.answeredQuestions || 0);
     const requiredQuestions = Math.max(1, body.requiredQuestions || currentModule.examNpc.minTurns);
-    const questionPlan = Array.isArray(body.questionPlan) ? body.questionPlan.slice(0, 8) : [];
+    const questionPlan = (Array.isArray(body.questionPlan) ? body.questionPlan.slice(0, 8) : []) as ExamQuestion[];
+    const examAnswers = Array.isArray(body.examAnswers) ? body.examAnswers.slice(0, 8) : [];
     const answeredRatio = Math.min(1, answeredQuestions / requiredQuestions);
     const mistakes = Array.isArray(body.mistakes) ? body.mistakes : [];
     const context = Array.isArray(body.contextHistory) ? body.contextHistory.slice(-10) : [];
     const completedMissions = Array.isArray(body.completedMissions) ? body.completedMissions : [];
+    let questionFeedback: ExamQuestionFeedback[] = [];
+    let nextStep = "Continue praticando a situação do módulo em respostas completas.";
 
     const apiKey = getGeminiApiKey();
     let evaluationData: {
@@ -97,7 +138,9 @@ Dados da Prova:
 - Perguntas obrigatórias respondidas: ${answeredQuestions}/${requiredQuestions}
 - Vezes em que o examinador NÃO ENTENDEU (ficou com cara de confuso): ${confusionCount}
 - Roteiro da banca:
-${questionPlan.map((q, i) => `${i + 1}. ${q.question || "Pergunta oral"} [foco: ${q.focus || "comunicação"}]`).join("\n") || "(Roteiro oral do módulo)"}
+${questionPlan.map((q, i) => `${i + 1}. ${q.question || "Pergunta oral"} [foco: ${q.focus || "comunicação"}; objetivo: ${q.responseGoal || "responder com relevância"}; correção: ${q.correctionFocus || "clareza"}]`).join("\n") || "(Roteiro oral do módulo)"}
+- Respostas pareadas com as perguntas:
+${examAnswers.map((item, i) => `${i + 1}. Pergunta: "${item.question || questionPlan[i]?.question || "Pergunta oral"}"\n   Resposta do aluno: "${item.answer || "(sem resposta)"}"`).join("\n") || "(Nenhuma resposta pareada)"}
 - Diálogo realizado:
 ${conversationSnippet || "(Diálogo prático em inglês)"}
 
@@ -107,6 +150,7 @@ REGRAS DE PONTUAÇÃO (Escala 0 a 100):
 - Se respondeu menos que ${requiredQuestions} perguntas, a nota máxima é 59, mesmo que algumas respostas estejam boas.
 - Se o aluno falou em português, não conseguiu se comunicar ou teve muitas confusões, a nota DEVE ser abaixo de 60.
 - Avalie cada resposta contra a pergunta feita: clareza, gramática, fluência, vocabulário e cumprimento do objetivo do cenário.
+- Para cada pergunta, diga o que funcionou, corrija somente erros comprováveis, apresente uma resposta-modelo contextualizada e uma dica de pronúncia para o próximo treino. Não invente erro.
 - Não premie respostas vagas, decoradas ou fora da pergunta. Se cumpriu o roteiro em inglês, atribua de 60 a 100 baseado na qualidade real.
 
 Responda em formato JSON estrito:
@@ -118,7 +162,18 @@ Responda em formato JSON estrito:
   "performance_level": "Bom",
   "summary_feedback": "Mensagem avaliativa direta indicando se foi aprovado ou reprovado (nota mínima 6.0), o que o avatar compreendeu e o que precisa ser ajustado.",
   "strengths": ["Ponto forte 1", "Ponto forte 2"],
-  "improvement_areas": ["Ponto de melhoria 1", "Ponto de melhoria 2"]
+  "improvement_areas": ["Ponto de melhoria 1", "Ponto de melhoria 2"],
+  "next_step": "Próximo treino recomendado em português, curto e acionável.",
+  "question_feedback": [
+    {
+      "question_id": "id da pergunta",
+      "score": 0,
+      "what_went_well": "O que funcionou nesta resposta.",
+      "correction": "Correção objetiva ou confirmação de que a frase funcionou.",
+      "model_answer": "Resposta-modelo ligada ao contexto.",
+      "pronunciation_tip": "Uma dica curta de ritmo ou som."
+    }
+  ]
 }
 Observação: performance_level deve ser exatamente um destes: "Iniciante", "Em Desenvolvimento", "Bom", "Excelente" ou "Dominado". Responda apenas com JSON puro.`
           : `Você é o Mr. Crazy, o professor de inglês mais carismático e motivador do Brasil!
@@ -161,7 +216,7 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
                   contents: [{ role: "user", parts: [{ text: prompt }] }],
                   generationConfig: {
                     temperature: 0.6,
-                    maxOutputTokens: 380,
+                    maxOutputTokens: isExam ? 900 : 380,
                     responseMimeType: "application/json",
                     thinkingConfig: { thinkingBudget: 0 }
                   }
@@ -178,6 +233,10 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
               if (textContent) {
                 const parsed = JSON.parse(stripJsonFences(textContent));
                 if (typeof parsed.overall_score === "number") {
+                  if (isExam) {
+                    questionFeedback = normalizeQuestionFeedback(parsed.question_feedback, questionPlan, examAnswers);
+                    nextStep = String(parsed.next_step || nextStep);
+                  }
                   evaluationData = {
                     overall_score: Math.min(100, Math.max(0, Math.round(parsed.overall_score))),
                     pronunciation_score: Math.min(100, Math.max(0, Math.round(parsed.pronunciation_score || 75))),
@@ -259,6 +318,12 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
       };
     }
 
+    if (isExam && questionFeedback.length === 0) {
+      questionFeedback = questionPlan.map((question, index) =>
+        buildExamQuestionFeedback(question, examAnswers[index]?.answer || "")
+      );
+    }
+
     if (isExam && answeredQuestions < requiredQuestions) {
       evaluationData = {
         ...evaluationData,
@@ -269,6 +334,7 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
           ...evaluationData.improvement_areas
         ])).slice(0, 3)
       };
+      nextStep = `Responda todas as ${requiredQuestions} perguntas e revise: ${questionFeedback[0]?.focus || "respostas completas"}.`;
     }
 
     const isApproved = evaluationData.overall_score >= 60;
@@ -380,7 +446,10 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
       evaluation: evaluationRecord,
       progress: progressRecord,
       isApproved,
-      score10: +(evaluationData.overall_score / 10).toFixed(1)
+      score10: +(evaluationData.overall_score / 10).toFixed(1),
+      questionFeedback,
+      nextStep,
+      context: currentModule.scenario
     });
   } catch (error) {
     console.error("[Module Evaluate POST] Error:", error);

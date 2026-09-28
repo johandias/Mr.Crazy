@@ -1,6 +1,7 @@
 import "./register-typescript.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { LEARNING_MODULES, getModuleById, detectConceptIndexFromText } from "../src/lib/modules.ts";
 import { isNoiseOrHallucination } from "../src/lib/voice/noise-filter.ts";
 import {
@@ -326,6 +327,30 @@ test("practical exam introduces the rules, allows one retake, and withholds hint
   assert.ok(examReplyCode.includes("NEVER give hints, corrections, translations"), "O examinador não pode ajudar ou corrigir durante a prova");
   assert.ok(evaluateCode.includes("a nota máxima é 59"), "Prova incompleta deve ficar abaixo da nota mínima");
   assert.ok(!examModalCode.includes("Chefão"), "A prova não deve usar o nome antigo");
+});
+
+test("practical exam keeps module context from briefing through correction", () => {
+  const examCode = readFileSync("src/lib/exam.ts", "utf-8");
+
+  assert.ok(examCode.includes("EXAM_CONTEXTS"), "A prova deve situar o aluno no contexto do módulo");
+  assert.ok(examCode.includes("Agora é prova oral real"), "Mr.Crazy deve explicar que a atividade vale como prova");
+  assert.ok(examCode.includes("responseGoal"), "Cada pergunta deve informar o que será aplicado");
+  assert.ok(examCode.includes("correctionFocus"), "Cada pergunta deve informar o critério da correção");
+  assert.ok(examCode.includes("modelAnswer"), "Cada pergunta deve ter uma referência contextual para o resultado");
+  assert.ok(examCode.includes("buildExamQuestionFeedback"), "A prova deve gerar correção contextual mesmo sem a IA");
+});
+
+test("exam result renders contextual correction and paired answers", async () => {
+  const fs = await import("node:fs");
+  const modalCode = fs.readFileSync("src/components/exam/ExamModal.tsx", "utf-8");
+  const evaluateCode = fs.readFileSync("src/app/api/modules/evaluate/route.ts", "utf-8");
+
+  assert.ok(modalCode.includes("examAnswers"), "A prova deve enviar cada resposta pareada à pergunta");
+  assert.ok(modalCode.includes("questionFeedback"), "O modal deve mostrar a correção por pergunta");
+  assert.ok(modalCode.includes("Próximo treino"), "O resultado deve indicar a próxima prática");
+  assert.ok(evaluateCode.includes("Respostas pareadas com as perguntas"), "O avaliador deve receber o contexto de cada resposta");
+  assert.ok(evaluateCode.includes("question_feedback"), "A API deve retornar feedback detalhado por questão");
+  assert.ok(evaluateCode.includes("Não invente erro"), "A correção deve evitar inventar erros");
 });
 
 test("guided lesson persists realtime turns and phase checkpoints", async () => {
