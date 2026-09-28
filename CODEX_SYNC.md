@@ -78,3 +78,5 @@ Antes de qualquer push na `main`:
 - **[Codex — 2026-09-28]**: Conversa Beta concluída. `/conversation` recebe texto ou voz transcrita, responde por Gemini quando configurado e oferece áudio sob demanda pela rota de TTS existente.
 
 - **[Antigravity — 2026-09-28]**: Corrigida a progressão dinâmica de diálogo com início, meio e fim: proibido mandar repetir quando o aluno já acertou; avanço imediato para a próxima etapa da cena na mesma fala. Corrigido picote e travamento de áudio WebRTC: VAD threshold ajustado para 0.55 com 950ms de pausa natural, eliminado recoverTurn() após reprodução de áudio para evitar que o Mr. Crazy responda a si mesmo, e áudio protegido contra re-execução em pointerdown.
+
+- **[Antigravity � 2026-09-28]**: Persist�ncia de permiss�o de microfone: novo mic-permission.ts com Permissions API + localStorage (fallback iOS < 16.4). Primeira concess�o grava flag; retornos eliminam re-prompt. Microfone ativa silenciosamente ao reconectar � invariante vermelho preservada. CSS mobile: touch-action:manipulation, font-size>=16px, will-change+contain, breakpoints iPhone SE e landscape, scroll momentum. 24 testes passando, commit 993b017.
