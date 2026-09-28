@@ -11,6 +11,12 @@ export type BetaConversationTurn = {
   text: string;
 };
 
+export type ConversationUserProfile = {
+  nickname?: string;
+  level?: string;
+  difficulties?: string[];
+};
+
 function getGeminiModels() {
   return Array.from(
     new Set(
@@ -21,13 +27,22 @@ function getGeminiModels() {
   );
 }
 
-function buildConversationPrompt(message: string, history: BetaConversationTurn[]) {
+function buildConversationPrompt(
+  message: string,
+  history: BetaConversationTurn[],
+  profile?: ConversationUserProfile
+) {
+  const studentName = profile?.nickname || "Aluno";
   const context = history
     .slice(-8)
-    .map((turn) => `${turn.role === "user" ? "Aluno" : "Mr.Crazy"}: ${JSON.stringify(turn.text)}`)
+    .map((turn) => `${turn.role === "user" ? studentName : "Mr.Crazy"}: ${JSON.stringify(turn.text)}`)
     .join("\n");
 
-  return `Você é Mr.Crazy, professor brasileiro de inglês para brasileiros, em uma conversa beta por mensagens.
+  const studentContext = profile?.nickname
+    ? `\nAluno: "${profile.nickname}" (nível: ${profile.level || "básico"}, foco: ${profile.difficulties?.join(", ") || "pronúncia e fluência"}). Chame-o pelo nome quando for natural e incentive-o.`
+    : "";
+
+  return `Você é Mr.Crazy, professor brasileiro de inglês para brasileiros, em uma conversa beta por mensagens.${studentContext}
 
 Mantenha continuidade com o histórico e responda como um professor direto, carismático e exigente. Corrija somente o ponto mais importante quando houver erro. Incentive o aluno a falar inglês, sem humilhar, xingar ou prolongar a explicação.
 
@@ -52,52 +67,70 @@ function fallbackReply(message: string) {
 export async function getGeminiConversationReply(
   message: string,
   history: BetaConversationTurn[],
-  apiKey?: string
+  apiKey?: string,
+  profile?: ConversationUserProfile
 ) {
   if (!apiKey) {
     return { reply: fallbackReply(message), provider: "fallback" as const };
   }
 
-  const prompt = buildConversationPrompt(message, history);
+  const prompt = buildConversationPrompt(message, history, profile);
   let lastError: unknown = null;
 
   for (const model of getGeminiModels()) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8_000);
+    const timer = setTimeout(() => controller.abort(), 9_000);
 
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.72, topP: 0.9, maxOutputTokens: 150 }
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: prompt }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 96
+            }
           }),
           signal: controller.signal
         }
       );
 
-      if (!response.ok) throw new Error(`Gemini request failed with ${response.status}`);
+      clearTimeout(timer);
 
-      const data = (await response.json()) as GeminiTextResponse;
-      const reply = data.candidates?.[0]?.content?.parts
-        ?.map((part) => part.text ?? "")
-        .join("")
-        .replace(/\s+/gu, " ")
-        .trim()
-        .slice(0, 500);
+      if (!response.ok) {
+        lastError = new Error(`Gemini status ${response.status}`);
+        continue;
+      }
 
-      if (!reply) throw new Error("Gemini response was empty");
-      return { reply, provider: "gemini" as const };
+      const payload = (await response.json()) as GeminiTextResponse;
+      const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim();
+
+      if (!text) {
+        lastError = new Error("Gemini empty response");
+        continue;
+      }
+
+      return {
+        reply: text.replace(/\s+/gu, " ").trim(),
+        provider: "gemini" as const,
+        model
+      };
     } catch (error) {
+      clearTimeout(timer);
       lastError = error;
-    } finally {
-      clearTimeout(timeoutId);
     }
   }
 
-  console.warn("[conversation] Gemini unavailable", lastError instanceof Error ? lastError.message : "unknown error");
+  console.warn("[gemini-conversation] All candidate models failed, returning fallback:", lastError);
   return { reply: fallbackReply(message), provider: "fallback" as const };
 }

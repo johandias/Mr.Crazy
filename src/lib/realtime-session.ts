@@ -146,7 +146,6 @@ SILÊNCIO AO CONECTAR:
 export function normalizeSessionMode(value: unknown) {
   return typeof value === "string" && value in MODE_LABELS ? value : "free-conversation";
 }
-
 export function buildRealtimeInstructions(
   levelValue: unknown,
   modeValue: unknown,
@@ -170,7 +169,7 @@ export function buildRealtimeInstructions(
   const xp = profile?.xp || 0;
   const computedLevel = profile?.computedLevel || profile?.learning_level || "basic";
   const sessionsCount = profile?.sessionsCount || 0;
-  const activeModuleStatus = profile?.activeModuleProgress?.status || "n�o iniciado";
+  const activeModuleStatus = profile?.activeModuleProgress?.status || "não iniciado";
   const activeModulePct = profile?.activeModuleProgress?.progress_percent || 0;
 
   const genderInstruction =
@@ -195,7 +194,9 @@ PERFIL DO ALUNO CONECTADO NESTA SESSÃO:
 - Como gosta de aprender: "${learningStyle}".
 - Como o aluno se considera no inglês: "${selfAssessed}".
 - Maiores dificuldades conhecidas: ${difficulties}. (Dê apoio anatômico nesses pontos quando surgirem!).
-- Histórico de prática: ${practiceMins} minutos acumulados, ${xp} XP conquistados. Elogie a dedicação e constância.
+- Nível real calculado: ${computedLevel.toUpperCase()}.
+- Histórico de prática: ${practiceMins} minutos acumulados, ${sessionsCount} sessões feitas, ${xp} XP conquistados. Elogie a dedicação e constância.
+- Módulo atual: ${activeModulePct}% concluído (${activeModuleStatus}).
 ---------------------------------------------------------------------`;
 
   const teachingConcepts = activeModule ? activeModule.concepts.filter((c) => !c.isExam) : [];
@@ -348,4 +349,13 @@ export function buildRealtimeSession(
         turn_detection: {
           type: "server_vad",
           threshold: 0.55,
-          prefix_padding_ms: 4
+          prefix_padding_ms: 400,
+          silence_duration_ms: 950,
+          create_response: true,
+          interrupt_response: false
+        }
+      },
+      output: { voice: "echo" }
+    }
+  };
+}

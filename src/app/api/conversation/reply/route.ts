@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/server-auth";
+import { getCurrentSession, getCurrentUser } from "@/lib/server-auth";
 import { getGeminiConversationReply, type BetaConversationTurn } from "@/lib/gemini-conversation";
 import { acquireUserQueueSlot, checkRateLimit } from "@/lib/rate-limiter";
 
@@ -44,8 +44,20 @@ export async function POST(request: Request) {
     const message = typeof body.message === "string" ? body.message.trim().slice(0, 500) : "";
     if (!message) return NextResponse.json({ error: "Mensagem obrigatória." }, { status: 400 });
 
+    const user = await getCurrentUser();
     const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.MRCRAZY_TEST_KEY;
-    const result = await getGeminiConversationReply(message, normalizeHistory(body.history), apiKey);
+    const result = await getGeminiConversationReply(
+      message,
+      normalizeHistory(body.history),
+      apiKey,
+      user
+        ? {
+            nickname: user.nickname,
+            level: user.learning_level,
+            difficulties: Array.isArray(user.main_difficulties) ? user.main_difficulties : []
+          }
+        : undefined
+    );
 
     return NextResponse.json(result, {
       headers: {

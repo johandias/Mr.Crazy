@@ -592,8 +592,22 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setActiveGesture(gesture);
     gestureTimeoutRef.current = setTimeout(() => {
       setActiveGesture("idle");
-    }, 3800);
+    }, 2600);
   }, []);
+
+  useEffect(() => {
+    if (voiceState !== "speaking") return;
+
+    setActiveGesture("idle");
+    let turn = 0;
+    const gestures: CharacterGesture[] = ["idle", "finger", "idle"];
+    const interval = window.setInterval(() => {
+      turn = (turn + 1) % gestures.length;
+      setActiveGesture(gestures[turn]);
+    }, 1450);
+
+    return () => window.clearInterval(interval);
+  }, [voiceState]);
 
   const handleAvatarTap = useCallback(() => {
     setIsCharacterAwake(true);
@@ -1435,9 +1449,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           // Disparo automático de gestos, avaliação de fase e sincronização estrita com o Mr. Crazy
           const lower = clean.toLowerCase();
           const isGreetingOnly = /(tudo ótimo por aqui|tudo bem por aqui|como você tá|e com você|bora treinar|o que manda|fala comigo|seja bem-vindo|seja bem-vinda)/i.test(lower);
-          const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz)/i.test(lower);
+          const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz|pra dizer)/i.test(lower);
           const isPraise = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
-          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|burro|burrada|que porcaria)/i.test(lower);
+          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|porra|cacete|caralho|burrada|que porcaria)/i.test(lower);
 
           // Sincroniza o cartão superior exatamente com a fase/conceito e a progressão do aluno:
           if (teachingConcepts.length > 0) {

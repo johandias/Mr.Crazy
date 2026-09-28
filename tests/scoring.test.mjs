@@ -119,6 +119,6 @@ test("consecutive repeated mistakes teach an easier alternative", () => {
 
   assert.equal(result.correct, false);
   assert.equal(result.mistake_type, "preposition");
-  assert.match(result.reaction, /(DE NOVO|EU NÃO ACREDITO|brincadeira|Foco, criatura|Chega de teimosia|enlouquecer)/u);
+  assert.match(result.reaction, /(Porra|Cacete|De novo esse vício|Caralho|Foco\.)/u);
   assert.match(result.follow_up, /I have to go home/u);
 });

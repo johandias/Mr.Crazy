@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,73 +18,145 @@ import {
   AlertCircle,
   Volume2,
   Sliders,
-  Calendar,
-  Layers,
-  ChevronRight
+  ChevronRight,
+  BarChart3,
+  Lock,
+  Star,
+  TrendingUp,
+  Zap,
+  MessageSquare
 } from "lucide-react";
-import type { UserProfile } from "@/lib/auth";
 import type { LearningInsightData } from "@/app/api/insights/route";
+import type { ProgressSummaryResponse, ModuleProgressEntry } from "@/app/api/progress/summary/route";
 
-const LEVEL_LABELS: Record<string, { label: string; tag: string; desc: string }> = {
-  basic: {
-    label: "Básico",
-    tag: "A1-A2",
-    desc: "Destravando a fala inicial, comandos simples e vocabulário do cotidiano."
-  },
-  intermediate: {
-    label: "Intermediário",
-    tag: "B1-B2",
-    desc: "Construindo frases completas, tempos no passado e expressando motivos."
-  },
-  advanced: {
-    label: "Avançado",
-    tag: "C1",
-    desc: "Refinando pronúncia nativa, phrasal verbs, ritmo e debates complexos."
-  }
+// ────────────────────────────────────────────────────────────
+// Constantes de UI
+// ────────────────────────────────────────────────────────────
+
+const DIFFICULTY_COLORS: Record<string, string> = {
+  basic: "#22d3ee",
+  intermediate: "#f59e0b",
+  advanced: "#a78bfa",
+  all: "#6ee7b7"
 };
+
+const STATUS_LABELS: Record<ModuleProgressEntry["status"], string> = {
+  not_started: "Não iniciado",
+  in_progress: "Em progresso",
+  completed: "Concluído"
+};
+
+function formatTime(secs: number): string {
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h} horas`;
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+}
+
+// ────────────────────────────────────────────────────────────
+// Sub-componente: Módulo individual
+// ────────────────────────────────────────────────────────────
+
+function ModuleProgressCard({ mod }: { mod: ModuleProgressEntry }) {
+  const color = DIFFICULTY_COLORS[mod.difficulty] || "#6ee7b7";
+  const isLocked = mod.status === "not_started" && mod.progressPercent === 0;
+  const isDone = mod.status === "completed";
+
+  return (
+    <div className={`module-progress-card${isDone ? " module-done" : ""}${isLocked ? " module-locked" : ""}`}>
+      {/* Cabeçalho */}
+      <div className="module-card-header">
+        <span className="module-badge-pill" style={{ borderColor: color, color }}>{mod.moduleBadge}</span>
+        <span className={`module-status-tag status-${mod.status}`}>
+          {isDone ? <CheckCircle2 size={13} /> : isLocked ? <Lock size={13} /> : <TrendingUp size={13} />}
+          {STATUS_LABELS[mod.status]}
+        </span>
+      </div>
+
+      {/* Título */}
+      <h4 className="module-card-title">{mod.moduleTitle}</h4>
+
+      {/* Barra de progresso */}
+      <div className="module-progress-bar-wrap">
+        <div
+          className="module-progress-bar-fill"
+          style={{ width: `${mod.progressPercent}%`, background: color }}
+        />
+      </div>
+      <div className="module-progress-meta">
+        <span>{mod.progressPercent}% completo</span>
+        <span>{mod.totalTurns} turnos</span>
+      </div>
+
+      {/* Nota do Chefão */}
+      {mod.bestScore !== null && (
+        <div className="module-best-score">
+          <Star size={13} />
+          <span>Nota do Chefão: <strong>{mod.bestScore.toFixed(1)}/10</strong></span>
+        </div>
+      )}
+
+      {/* Última prática */}
+      {mod.lastPracticedAt && (
+        <div className="module-last-practice">
+          <Clock size={12} />
+          <span>Última prática: {formatDate(mod.lastPracticedAt)}</span>
+        </div>
+      )}
+
+      {/* XP reward */}
+      <div className="module-xp-reward">
+        <Zap size={12} />
+        <span>+{mod.xpReward} XP ao concluir</span>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// Componente principal
+// ────────────────────────────────────────────────────────────
 
 export function EvolutionDashboard() {
   const searchParams = useSearchParams();
-  const initialTabParam = searchParams.get("tab");
-  const validTabs = ["stats", "modules", "techniques"];
-  const initialTab = validTabs.includes(initialTabParam as string) ? initialTabParam as "stats" | "modules" | "techniques" : "stats";
+  const initialTab = searchParams.get("tab") === "techniques" ? "techniques" : searchParams.get("tab") === "modules" ? "modules" : "stats";
 
-  const [activeTab, setActiveTab] = useState<"stats" | "modules" | "techniques">(initialTab);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [summary, setSummary] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"stats" | "modules" | "techniques">(initialTab as "stats" | "modules" | "techniques");
+  const [summary, setSummary] = useState<ProgressSummaryResponse | null>(null);
   const [insights, setInsights] = useState<LearningInsightData | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [insightsError, setInsightsError] = useState("");
   const insightsRequest = useRef(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (validTabs.includes(tab as string)) {
+    if (tab === "techniques" || tab === "modules" || tab === "stats") {
       setActiveTab(tab as "stats" | "modules" | "techniques");
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const res = await fetch("/api/progress/summary");
-        const data = await res.json();
-        if (res.ok) {
-          if (data.profile) setProfile(data.profile);
-          setSummary(data);
-        }
-      } catch {
-        // silencioso
-      } finally {
-        setLoadingProfile(false);
-      }
+  const fetchSummary = useCallback(async () => {
+    setLoadingSummary(true);
+    try {
+      const res = await fetch("/api/progress/summary");
+      const data = await res.json();
+      if (res.ok && data.ok) setSummary(data as ProgressSummaryResponse);
+    } catch {
+      // silencioso
+    } finally {
+      setLoadingSummary(false);
     }
-    loadData();
-    fetchInsights();
   }, []);
 
-  async function fetchInsights(force = false) {
+  const fetchInsights = useCallback(async (force = false) => {
     if (insightsRequest.current || (insights && !force)) return;
     insightsRequest.current = true;
     setLoadingInsights(true);
@@ -103,24 +175,20 @@ export function EvolutionDashboard() {
       insightsRequest.current = false;
       setLoadingInsights(false);
     }
-  }
+  }, [insights]);
 
+  useEffect(() => {
+    fetchSummary();
+    // Carrega insights em segundo plano para a aba stats
+    setTimeout(() => fetchInsights(), 800);
+  }, [fetchSummary]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const profile = summary?.profile;
+  const computedLevel = summary?.computedLevel;
+  const moduleProgress = summary?.moduleProgress ?? [];
   const practiceMinutes = Math.round((profile?.practice_time_seconds || 0) / 60);
-  const formatPracticeTime = (mins: number) => {
-    if (mins < 60) return `${mins} min`;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h} horas`;
-  };
 
-  const levelKey = summary?.computedLevel?.toLowerCase() || profile?.learning_level || "basic";
-  const currentLevel = LEVEL_LABELS[levelKey] || { 
-    label: summary?.computedLevel || "Básico", 
-    tag: "", 
-    desc: "Nível calculado com base no seu desenvolvimento." 
-  };
-
-  if (loadingProfile) {
+  if (loadingSummary) {
     return (
       <div className="evolution-loading-container">
         <div className="evolution-spinner" />
@@ -129,9 +197,15 @@ export function EvolutionDashboard() {
     );
   }
 
+  // Módulos agrupados por dificuldade para a aba de módulos
+  const basicModules = moduleProgress.filter((m) => m.difficulty === "basic");
+  const intermediateModules = moduleProgress.filter((m) => m.difficulty === "intermediate");
+  const advancedModules = moduleProgress.filter((m) => m.difficulty === "advanced" || m.difficulty === "all");
+  const inProgressModules = moduleProgress.filter((m) => m.status === "in_progress").slice(0, 3);
+
   return (
     <div className="evolution-dashboard">
-      {/* Seletor de Abas */}
+      {/* ── Seletor de Abas ── */}
       <div className="evolution-tabs" role="tablist">
         <button
           type="button"
@@ -141,7 +215,7 @@ export function EvolutionDashboard() {
           onClick={() => setActiveTab("stats")}
         >
           <Award size={18} />
-          <span>Minha evolução</span>
+          <span>Minha Evolução</span>
         </button>
         <button
           type="button"
@@ -150,7 +224,7 @@ export function EvolutionDashboard() {
           className={`evolution-tab-btn ${activeTab === "modules" ? "active" : ""}`}
           onClick={() => setActiveTab("modules")}
         >
-          <Layers size={18} />
+          <BarChart3 size={18} />
           <span>Módulos</span>
         </button>
         <button
@@ -164,19 +238,21 @@ export function EvolutionDashboard() {
           }}
         >
           <Sparkles size={18} />
-          <span>Técnicas com IA</span>
+          <span>IA</span>
         </button>
       </div>
 
-      {/* ABA 1: ESTATÍSTICAS E TELEMETRIA REAL */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* ABA 1: ESTATÍSTICAS E TELEMETRIA REAL               */}
+      {/* ═══════════════════════════════════════════════════ */}
       {activeTab === "stats" && (
         <div className="evolution-section-content">
           <div className="evolution-banner-header">
             <div>
               <span className="badge-pill">Dados Reais das suas Aulas</span>
-              <h2>Olá, {profile?.nickname || "Aluno"}!</h2>
+              <h2>Olá, {profile?.nickname || "Aluno"}! 👋</h2>
               <p>
-                Estas métricas refletem sua dedicação real no Mr.Crazy, tempo de fala ativa acumulado e os padrões de pronúncia que a IA está acompanhando.
+                Métricas baseadas no seu progresso real — tempo de fala ativa, XP acumulado e nível calculado pelos módulos concluídos.
               </p>
             </div>
             <Link href="/practice" className="primary-link quick-practice-btn">
@@ -185,129 +261,133 @@ export function EvolutionDashboard() {
             </Link>
           </div>
 
+          {/* Nível calculado pelo progresso real */}
+          {computedLevel && (
+            <div className="computed-level-banner">
+              <div className="computed-level-left">
+                <span className="computed-level-icon">🎯</span>
+                <div>
+                  <span className="computed-level-label">Seu Nível Real</span>
+                  <strong className="computed-level-value">
+                    {computedLevel.label} <span className="level-tag">{computedLevel.tag}</span>
+                  </strong>
+                </div>
+              </div>
+              <div className="computed-level-progress">
+                <span className="next-milestone-text">{computedLevel.nextMilestone}</span>
+                <div className="level-progress-track">
+                  <div
+                    className="level-progress-fill"
+                    style={{ width: `${computedLevel.progressToNext}%` }}
+                  />
+                </div>
+                <span className="level-progress-pct">{computedLevel.progressToNext}%</span>
+              </div>
+            </div>
+          )}
+
           {/* Dica de deslize no mobile */}
           <div className="mobile-swipe-hint">
-            <span>👉 Arraste para o lado para ver suas métricas</span>
+            <span>👉 Arraste para ver suas métricas</span>
           </div>
 
-          {/* Grid / Carrossel de Métricas Principais */}
+          {/* Grid de Métricas */}
           <div className="stats-metric-grid horizontal-swipe-track">
             <div className="metric-card highlight-metric swipe-card-wide">
-              <div className="metric-icon-box clock-color">
-                <Clock size={22} />
-              </div>
+              <div className="metric-icon-box clock-color"><Clock size={22} /></div>
               <div className="metric-body">
                 <span className="metric-label">Tempo Real de Fala</span>
-                <strong className="metric-value">{formatPracticeTime(practiceMinutes)}</strong>
+                <strong className="metric-value">{formatTime(profile?.practice_time_seconds || 0)}</strong>
                 <span className="metric-footnote">Medição real de prática oral</span>
               </div>
             </div>
 
             <div className="metric-card highlight-metric swipe-card-wide">
-              <div className="metric-icon-box flame-color">
-                <Flame size={22} />
-              </div>
+              <div className="metric-icon-box flame-color"><Flame size={22} /></div>
               <div className="metric-body">
                 <span className="metric-label">Sequência de Dias</span>
-                <strong className="metric-value">{profile?.streak_days || 1} dias</strong>
+                <strong className="metric-value">{profile?.streak_days || 1} dias 🔥</strong>
                 <span className="metric-footnote">Constância registrada</span>
               </div>
             </div>
 
             <div className="metric-card highlight-metric swipe-card-wide">
-              <div className="metric-icon-box target-color">
-                <Target size={22} />
-              </div>
+              <div className="metric-icon-box target-color"><Target size={22} /></div>
               <div className="metric-body">
-                <span className="metric-label">Nível Atual</span>
-                <strong className="metric-value">{currentLevel.label} {currentLevel.tag ? `(${currentLevel.tag})` : ""}</strong>
-                <span className="metric-footnote">{currentLevel.desc}</span>
+                <span className="metric-label">Módulos Concluídos</span>
+                <strong className="metric-value">{summary?.totalModulesCompleted || 0}/12</strong>
+                <span className="metric-footnote">{summary?.totalTurns || 0} turnos de prática</span>
               </div>
             </div>
 
             <div className="metric-card highlight-metric swipe-card-wide">
-              <div className="metric-icon-box xp-color">
-                <Calendar size={22} />
-              </div>
+              <div className="metric-icon-box xp-color"><Award size={22} /></div>
               <div className="metric-body">
-                <span className="metric-label">Sessões de Prática</span>
-                <strong className="metric-value">{summary?.weeklyStats?.practiceCount ?? summary?.practiceSessions?.length ?? 0}</strong>
-                <span className="metric-footnote">Aulas recentes realizadas</span>
-              </div>
-            </div>
-
-            <div className="metric-card highlight-metric swipe-card-wide">
-              <div className="metric-icon-box xp-color">
-                <Award size={22} />
-              </div>
-              <div className="metric-body">
-                <span className="metric-label">XP & Evolução</span>
+                <span className="metric-label">XP Total</span>
                 <strong className="metric-value">{profile?.xp || 0} XP</strong>
                 <span className="metric-footnote">Score de evolução: {profile?.evolution_score || 0}%</span>
               </div>
             </div>
           </div>
 
-          {/* Módulos em Progresso (Top 3) */}
-          {summary?.moduleProgress && summary.moduleProgress.length > 0 && (
-            <div className="evolution-card-panel" style={{ marginTop: '24px' }}>
+          {/* Módulos em progresso (resumo rápido) */}
+          {inProgressModules.length > 0 && (
+            <div className="evolution-card-panel">
               <div className="panel-header">
-                <BookOpen size={18} />
-                <h3>Módulos em Progresso</h3>
+                <TrendingUp size={18} />
+                <div>
+                  <h3>Módulos em Andamento</h3>
+                  <p className="panel-subtext">Continue de onde parou:</p>
+                </div>
               </div>
-              <p className="panel-subtext" style={{ marginBottom: '16px' }}>Seus módulos mais praticados recentemente:</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {summary.moduleProgress.slice(0, 3).map((m: any) => (
-                  <div key={m.module_id} style={{ padding: '12px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-card)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Módulo {m.module_id}</h4>
-                      <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '12px', background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
-                        {m.status === 'completed' ? 'Concluído' : m.status === 'in_progress' ? 'Em andamento' : 'Não iniciado'}
-                      </span>
+              <div className="in-progress-list">
+                {inProgressModules.map((mod) => (
+                  <div key={mod.moduleId} className="in-progress-row">
+                    <span className="in-progress-title">{mod.moduleTitle}</span>
+                    <div className="in-progress-bar-wrap">
+                      <div
+                        className="in-progress-bar-fill"
+                        style={{ width: `${mod.progressPercent}%`, background: DIFFICULTY_COLORS[mod.difficulty] || "#6ee7b7" }}
+                      />
                     </div>
-                    <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-subtle)', borderRadius: '4px', marginTop: '10px' }}>
-                      <div style={{ width: `${m.progress_percent || 0}%`, height: '100%', backgroundColor: m.status === 'completed' ? '#10b981' : 'var(--primary)', borderRadius: '4px' }} />
-                    </div>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', display: 'block' }}>
-                      {m.progress_percent || 0}% concluído
-                    </span>
+                    <span className="in-progress-pct">{mod.progressPercent}%</span>
+                    <Link href="/practice" className="in-progress-btn">
+                      <ChevronRight size={14} />
+                    </Link>
                   </div>
                 ))}
+                <button
+                  type="button"
+                  className="ghost-action see-all-modules-btn"
+                  onClick={() => setActiveTab("modules")}
+                >
+                  <BarChart3 size={14} />
+                  <span>Ver todos os módulos</span>
+                </button>
               </div>
-              <button 
-                onClick={() => setActiveTab('modules')}
-                className="ghost-cta-btn" 
-                style={{ marginTop: '16px', width: '100%', justifyContent: 'center' }}
-              >
-                <span>Ver todos os módulos</span>
-                <ArrowRight size={16} />
-              </button>
             </div>
           )}
 
-          {/* Seção 1: Sons e Sílabas Monitorados pela IA */}
-          {/* Diagnóstico Executivo de 1 Frase */}
-          <div className="insight-summary-track">
+          {/* Diagnóstico da IA */}
           {insights?.diagnostic && (
-            <div className="clean-diagnostic-banner">
-              <Sparkles size={18} className="diagnostic-icon" />
-              <p>{insights.diagnostic}</p>
-            </div>
-          )}
-
-          {/* Desafio do Dia Direto e Prático */}
-          {insights?.dailyChallenge && (
-            <div className="daily-challenge-clean-card">
-              <div className="challenge-tag">
-                <Target size={14} />
-                <span>Desafio de Hoje</span>
+            <div className="insight-summary-track">
+              <div className="clean-diagnostic-banner">
+                <Sparkles size={18} className="diagnostic-icon" />
+                <p>{insights.diagnostic}</p>
               </div>
-              <p className="challenge-text">{insights.dailyChallenge}</p>
+              {insights.dailyChallenge && (
+                <div className="daily-challenge-clean-card">
+                  <div className="challenge-tag">
+                    <Target size={14} />
+                    <span>Desafio de Hoje</span>
+                  </div>
+                  <p className="challenge-text">{insights.dailyChallenge}</p>
+                </div>
+              )}
             </div>
           )}
 
-          </div>
-          {/* Seção 1: Fonemas & Sons Críticos (Clean & Compacto) */}
+          {/* Sons e Sílabas */}
           {insights?.soundSyllables && insights.soundSyllables.length > 0 && (
             <div className="evolution-card-panel">
               <div className="panel-header">
@@ -317,36 +397,31 @@ export function EvolutionDashboard() {
                   <p className="panel-subtext">Posicionamento muscular direto para destravar sons nativos:</p>
                 </div>
               </div>
-
               <div className="sound-syllables-clean-grid horizontal-swipe-track">
                 {insights.soundSyllables.map((item) => (
                   <div key={item.sound} className="sound-insight-clean-card swipe-card-wide">
                     <div className="sound-card-header">
                       <span className="sound-badge">{item.sound}</span>
                     </div>
-
                     <p className="sound-clean-tip">
                       <strong>Como posicionar:</strong> {item.anatomy}
                     </p>
-
                     <details className="insight-details">
                       <summary>Ver análise</summary>
-                    {item.observation && (
-                      <div className="sound-obs-box">
-                        <strong>O que a IA identificou:</strong>
-                        <p>{item.observation}</p>
-                      </div>
-                    )}
-
-                    {item.agentHelp && (
-                      <div className="sound-help-box">
-                        <strong>Como o Mr.Crazy ajuda nas aulas:</strong>
-                        <p>{item.agentHelp}</p>
-                      </div>
-                    )}
-
+                      {item.observation && (
+                        <div className="sound-obs-box">
+                          <strong>O que a IA identificou:</strong>
+                          <p>{item.observation}</p>
+                        </div>
+                      )}
+                      {item.agentHelp && (
+                        <div className="sound-help-box">
+                          <strong>Como o Mr.Crazy ajuda:</strong>
+                          <p>{item.agentHelp}</p>
+                        </div>
+                      )}
                     </details>
-                    {item.drillWords && item.drillWords.length > 0 && (
+                    {item.drillWords?.length > 0 && (
                       <div className="drill-chips-clean">
                         {item.drillWords.map((word) => (
                           <span key={word} className="drill-chip">{word}</span>
@@ -359,7 +434,7 @@ export function EvolutionDashboard() {
             </div>
           )}
 
-          {/* Seção 2: Correções Práticas (Evite ➔ Diga) */}
+          {/* Correções */}
           {insights?.agentCorrections && insights.agentCorrections.length > 0 && (
             <div className="evolution-card-panel">
               <div className="panel-header">
@@ -369,7 +444,6 @@ export function EvolutionDashboard() {
                   <p className="panel-subtext">Substitua vícios comuns por estruturas de nativos:</p>
                 </div>
               </div>
-
               <div className="corrections-clean-grid horizontal-swipe-track">
                 {insights.agentCorrections.map((corr) => (
                   <div key={corr.area} className="correction-clean-card swipe-card-wide">
@@ -377,7 +451,6 @@ export function EvolutionDashboard() {
                       <CheckCircle2 size={16} className="text-emerald-400" />
                       <h4>{corr.area}</h4>
                     </div>
-
                     <div className="corr-comparison-row">
                       <div className="corr-pill-avoid">
                         <span className="pill-tag">Evite</span>
@@ -388,17 +461,10 @@ export function EvolutionDashboard() {
                         <span className="pill-text">{corr.say || corr.solution}</span>
                       </div>
                     </div>
-
                     <details className="insight-details">
                       <summary>Entender o ajuste</summary>
-                    {corr.impact && (
-                      <div className="corr-impact">
-                        <strong>Impacto:</strong> {corr.impact}
-                      </div>
-                    )}
-                    <p className="corr-quick-rule">
-                      <strong>Regra:</strong> {corr.solution}
-                    </p>
+                      {corr.impact && <div className="corr-impact"><strong>Impacto:</strong> {corr.impact}</div>}
+                      <p className="corr-quick-rule"><strong>Regra:</strong> {corr.solution}</p>
                     </details>
                   </div>
                 ))}
@@ -406,14 +472,14 @@ export function EvolutionDashboard() {
             </div>
           )}
 
-          {/* Dificuldades cadastradas e monitoradas */}
+          {/* Dificuldades cadastradas */}
           <div className="evolution-card-panel">
             <div className="panel-header">
               <BookOpen size={18} />
               <h3>Pontos de Foco Cadastrados</h3>
             </div>
             <p className="panel-subtext">
-              Preferências selecionadas para calibrar a sensibilidade de correção do professor:
+              Preferências para calibrar a sensibilidade de correção do professor:
             </p>
             {profile?.main_difficulties && profile.main_difficulties.length > 0 ? (
               <div className="difficulties-chip-grid">
@@ -426,20 +492,18 @@ export function EvolutionDashboard() {
               </div>
             ) : (
               <p className="empty-diff-notice">
-                Nenhuma dificuldade específica selecionada. Você pode calibrar suas preferências em{" "}
-                <Link href="/settings">Ajustes</Link>.
+                Nenhuma dificuldade selecionada.{" "}
+                <Link href="/settings">Calibre em Ajustes</Link>.
               </p>
             )}
           </div>
 
-          {/* Chamada para técnicas com IA */}
-          <div className="ai-insight-cta-card" onClick={() => setActiveTab("techniques")}>
-            <div className="cta-icon-wrap">
-              <Sparkles size={26} />
-            </div>
+          {/* CTA para técnicas */}
+          <div className="ai-insight-cta-card" onClick={() => { setActiveTab("techniques"); if (!insights) fetchInsights(); }}>
+            <div className="cta-icon-wrap"><Sparkles size={26} /></div>
             <div className="cta-text">
-              <h4>Quer saber exatamente como acelerar seu aprendizado?</h4>
-              <p>Acesse os Insights & Técnicas com IA para dicas de filmes, séries, músicas e leitura adaptadas para o seu nível.</p>
+              <h4>Quer acelerar seu aprendizado?</h4>
+              <p>Veja insights e técnicas com IA adaptadas para o seu nível.</p>
             </div>
             <button type="button" className="ghost-cta-btn">
               <span>Ver Técnicas</span>
@@ -449,76 +513,107 @@ export function EvolutionDashboard() {
         </div>
       )}
 
-      {/* ABA MÓDULOS */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* ABA 2: MÓDULOS (PROGRESSO REAL POR MÓDULO)          */}
+      {/* ═══════════════════════════════════════════════════ */}
       {activeTab === "modules" && (
         <div className="evolution-section-content">
           <div className="evolution-banner-header">
             <div>
-              <span className="badge-pill" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
-                Sua Jornada de Módulos
-              </span>
-              <h2>Progresso de Ensino</h2>
+              <span className="badge-pill">Progresso Real</span>
+              <h2>Jornada de Módulos</h2>
               <p>
-                Nível alcançado: <strong>{currentLevel.label}</strong> {currentLevel.tag ? `(${currentLevel.tag})` : ""} — {summary?.totalModulesCompleted || 0} módulos completados até agora.
+                {summary?.totalModulesCompleted || 0} módulo(s) concluído(s) de 12 • {summary?.totalTurns || 0} turnos de prática no total
               </p>
             </div>
-            <Link href="/practice" className="primary-link quick-practice-btn">
-              <span>Avançar de Fase</span>
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
-            {summary?.moduleProgress && summary.moduleProgress.length > 0 ? (
-              summary.moduleProgress.map((m: any) => (
-                <div key={m.module_id} className="evolution-card-panel" style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <div>
-                      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Layers size={20} className={m.status === 'completed' ? 'text-emerald-500' : 'text-blue-500'} />
-                        Módulo {m.module_id}
-                      </h3>
-                      <p style={{ margin: 0, marginTop: '4px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                        Status: {m.status === 'completed' ? 'Concluído' : m.status === 'in_progress' ? 'Em andamento' : 'Não iniciado'}
-                      </p>
-                    </div>
-                    {m.status === 'completed' && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10b981', fontSize: '13px', fontWeight: 500, background: 'rgba(16, 185, 129, 0.1)', padding: '4px 10px', borderRadius: '12px' }}>
-                        <CheckCircle2 size={14} /> Completado
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div style={{ width: '100%', height: '10px', backgroundColor: 'var(--bg-subtle)', borderRadius: '5px', overflow: 'hidden' }}>
-                    <div 
-                      style={{ 
-                        width: `${m.progress_percent || 0}%`, 
-                        height: '100%', 
-                        backgroundColor: m.status === 'completed' ? '#10b981' : 'var(--primary)', 
-                        borderRadius: '5px',
-                        transition: 'width 0.5s ease'
-                      }} 
-                    />
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.progress_percent || 0}% Concluído</span>
-                    <span>{m.total_turns || 0} interações</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="evolution-card-panel" style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <BookOpen size={40} style={{ margin: '0 auto 16px', color: 'var(--text-secondary)', opacity: 0.5 }} />
-                <h3>Nenhum módulo iniciado</h3>
-                <p style={{ color: 'var(--text-secondary)' }}>Você ainda não começou sua jornada de módulos.</p>
+            {computedLevel && (
+              <div className="modules-level-badge">
+                <Target size={14} />
+                <span>{computedLevel.label} {computedLevel.tag}</span>
               </div>
             )}
+          </div>
+
+          {/* Avaliações recentes */}
+          {summary?.recentEvaluations && summary.recentEvaluations.length > 0 && (
+            <div className="recent-evals-strip">
+              <span className="recent-evals-label">
+                <Star size={13} /> Notas do Chefão:
+              </span>
+              {summary.recentEvaluations.map((ev, i) => (
+                <span key={i} className="eval-chip">
+                  {ev.moduleTitle.split(" ")[0]}: <strong>{ev.score.toFixed(1)}</strong>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Básico */}
+          {basicModules.length > 0 && (
+            <div className="module-group">
+              <div className="module-group-header">
+                <span className="module-group-dot" style={{ background: DIFFICULTY_COLORS.basic }} />
+                <h3>Básico <span className="module-group-tag">A1-A2</span></h3>
+                <span className="module-group-count">
+                  {basicModules.filter((m) => m.status === "completed").length}/{basicModules.length}
+                </span>
+              </div>
+              <div className="module-cards-grid">
+                {basicModules.map((mod) => (
+                  <ModuleProgressCard key={mod.moduleId} mod={mod} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Intermediário */}
+          {intermediateModules.length > 0 && (
+            <div className="module-group">
+              <div className="module-group-header">
+                <span className="module-group-dot" style={{ background: DIFFICULTY_COLORS.intermediate }} />
+                <h3>Intermediário <span className="module-group-tag">B1-B2</span></h3>
+                <span className="module-group-count">
+                  {intermediateModules.filter((m) => m.status === "completed").length}/{intermediateModules.length}
+                </span>
+              </div>
+              <div className="module-cards-grid">
+                {intermediateModules.map((mod) => (
+                  <ModuleProgressCard key={mod.moduleId} mod={mod} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Avançado */}
+          {advancedModules.length > 0 && (
+            <div className="module-group">
+              <div className="module-group-header">
+                <span className="module-group-dot" style={{ background: DIFFICULTY_COLORS.advanced }} />
+                <h3>Avançado <span className="module-group-tag">C1</span></h3>
+                <span className="module-group-count">
+                  {advancedModules.filter((m) => m.status === "completed").length}/{advancedModules.length}
+                </span>
+              </div>
+              <div className="module-cards-grid">
+                {advancedModules.map((mod) => (
+                  <ModuleProgressCard key={mod.moduleId} mod={mod} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="modules-cta">
+            <Link href="/practice" className="primary-link">
+              <MessageSquare size={16} />
+              <span>Praticar Agora</span>
+            </Link>
           </div>
         </div>
       )}
 
-      {/* ABA 3: TÉCNICAS E INSIGHTS COM IA */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* ABA 3: TÉCNICAS E INSIGHTS COM IA                   */}
+      {/* ═══════════════════════════════════════════════════ */}
       {activeTab === "techniques" && (
         <div className="evolution-section-content">
           <div className="evolution-banner-header">
@@ -528,7 +623,7 @@ export function EvolutionDashboard() {
               </span>
               <h2>Técnicas e Hábitos para o Dia a Dia</h2>
               <p>
-                Aprenda inglês com métodos que funcionam de verdade na sua rotina: usando filmes, séries, músicas e leitura ativa.
+                Aprenda inglês com métodos que funcionam de verdade: filmes, séries, músicas e leitura ativa.
               </p>
             </div>
             <button
@@ -559,28 +654,25 @@ export function EvolutionDashboard() {
           {insights && (
             <div className="insights-feed">
               <div className="insight-summary-track">
-              {/* Diagnóstico Geral */}
-              <div className="ai-diagnostic-card">
-                <div className="diagnostic-header">
-                  <Sparkles size={18} />
-                  <strong>Diagnóstico das suas Aulas</strong>
-                </div>
-                <p>{insights.diagnostic}</p>
-              </div>
-
-              {/* Desafio Diário */}
-              {insights.dailyChallenge && (
-                <div className="daily-challenge-box">
-                  <div className="challenge-icon">🎯</div>
-                  <div>
-                    <span className="challenge-title">Desafio Prático de Hoje</span>
-                    <p className="challenge-desc">{insights.dailyChallenge}</p>
+                <div className="ai-diagnostic-card">
+                  <div className="diagnostic-header">
+                    <Sparkles size={18} />
+                    <strong>Diagnóstico das suas Aulas</strong>
                   </div>
+                  <p>{insights.diagnostic}</p>
                 </div>
-              )}
 
+                {insights.dailyChallenge && (
+                  <div className="daily-challenge-box">
+                    <div className="challenge-icon">🎯</div>
+                    <div>
+                      <span className="challenge-title">Desafio Prático de Hoje</span>
+                      <p className="challenge-desc">{insights.dailyChallenge}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              {/* Lista de Técnicas Práticas - Com Carrossel Horizontal Mobile */}
+
               <div className="section-title-row">
                 <h3 className="section-subtitle">Técnicas que Realmente Funcionam</h3>
                 <span className="desktop-hide swipe-badge-pill">👉 Arraste para o lado</span>
@@ -590,7 +682,6 @@ export function EvolutionDashboard() {
                 {insights.techniques.map((tech) => {
                   const CategoryIcon =
                     tech.category === "movies" ? Film : tech.category === "music" ? Music : BookOpen;
-
                   return (
                     <article key={tech.title} className="technique-card swipe-card-wide">
                       <div className="technique-card-top">
@@ -602,9 +693,7 @@ export function EvolutionDashboard() {
                           <span className="difficulty-tag">{tech.difficulty}</span>
                         </div>
                       </div>
-
                       <p className="technique-desc">{tech.description}</p>
-
                       <details className="technique-steps insight-details">
                         <summary>Como praticar</summary>
                         <ol>
@@ -613,7 +702,6 @@ export function EvolutionDashboard() {
                           ))}
                         </ol>
                       </details>
-
                       {tech.example && (
                         <div className="technique-example">
                           <strong>Exemplo prático:</strong>
@@ -625,14 +713,12 @@ export function EvolutionDashboard() {
                 })}
               </div>
 
-              {/* Áreas de Foco Imediato - Com Carrossel Horizontal Mobile */}
               {insights.focusAreas && insights.focusAreas.length > 0 && (
                 <div className="focus-areas-container">
                   <div className="section-title-row">
                     <h3 className="section-subtitle">Onde Focar Agora</h3>
                     <span className="desktop-hide swipe-badge-pill">👉 Arraste para o lado</span>
                   </div>
-
                   <div className="focus-grid horizontal-swipe-track">
                     {insights.focusAreas.map((focus) => (
                       <div key={focus.title} className="focus-card swipe-card-wide">

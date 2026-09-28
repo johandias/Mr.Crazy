@@ -246,14 +246,12 @@ function pickVariant(values: readonly string[]) {
 }
 
 const positiveReactions = [
-  "ALELUIA! Finalmente uma frase limpa sem gambiarra!",
-  "AÍ SIM! Minha pressão arterial até baixou agora!",
-  "GLÓRIA A DEUS! Viu só como você consegue quando para de inventar moda?!",
-  "Sensacional! Até que enfim você me ouviu e mandou bem!",
-  "Agora sim! Isso é inglês de verdade, mandou com autoridade!",
-  "MILAGRE! Saiu perfeito, sem vícios e no ritmo certo!",
-  "Aí eu dou valor! Destravou a fala como gente grande!",
-  "Perfeito! Se continuar acertando assim eu não vou enfartar hoje!"
+  "Aí sim! Ficou claro e natural.",
+  "Boa! Agora essa frase funciona na vida real.",
+  "Mandou bem. Vamos aproveitar o embalo.",
+  "Perfeito, deu para entender de primeira.",
+  "Agora sim, inglês limpo e direto.",
+  "Boa tentativa transformada em acerto. Bora seguir."
 ];
 
 const positiveCorrections = [
@@ -265,21 +263,19 @@ const positiveCorrections = [
 ];
 
 const wrongIntros = [
-  "NÃÃO! Que barbaridade foi essa?! Para tudo!",
-  "Pelo amor dos meus filhinhos! Você tá inventando moda em inglês?!",
-  "Ai meus neurônios! Não acredito que você mandou uma gafe dessa!",
-  "Tá de sacanagem comigo?! Que gambiarra gramatical horrorosa!",
-  "Para o mundo que eu quero descer! Olha o erro aí gritando!",
-  "Meus olhos e ouvidos estão sangrando com essa frase! Presta atenção!",
-  "Acorda pra vida, criatura! Você sabe muito bem que não se fala assim!"
+  "Opa, segura aí. Vamos arrumar o ponto certo.",
+  "Quase. Esse detalhe muda a frase; olha só.",
+  "Calma, não inventa moda ainda. Ajusta isso aqui.",
+  "Esse caminho embolou. Vamos deixar a frase natural.",
+  "Foco no detalhe, que eu te mostro como destravar."
 ];
 
 const repeatedWrongIntros = [
-  "DE NOVO O MESMO ERRO?! Você tá querendo me enlouquecer de vez?!",
-  "EU NÃO ACREDITO! Eu acabei de te dar a bronca desse exato ponto e você repetiu?!",
-  "Tá de brincadeira com a minha cara?! Travou no mesmo erro pela segunda vez!",
-  "Foco, criatura! Se você errar essa mesma regra de novo eu vou arrancar meus cabelos!",
-  "Chega de teimosia! Já é a terceira vez que você comete esse mesmo deslize absurdo!"
+  "Porra, o mesmo detalhe voltou. Vamos atacar só ele.",
+  "Cacete, travou no mesmo ponto. Faz o ajuste e solta a frase.",
+  "De novo esse vício? Respira: técnica primeiro, velocidade depois.",
+  "Caralho, esse som está teimoso. Muda a boca e tenta uma última vez.",
+  "Foco. É o mesmo ponto, então vamos simplificar e acertar agora."
 ];
 
 function getPositiveReaction() {
