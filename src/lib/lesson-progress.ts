@@ -2,6 +2,7 @@ export const LESSON_STEP_LABELS = ["Descobrir", "Praticar", "Aplicar"] as const;
 export const LESSON_STEPS_PER_PHASE = LESSON_STEP_LABELS.length;
 
 const LESSON_MARKER_PREFIX = "lesson-step:";
+const LESSON_TARGET_PREFIX = "lesson-target:";
 
 export type LessonResumePosition = {
   phaseIndex: number;
@@ -20,6 +21,44 @@ export function getLessonStepMarker(phaseId: string, stepIndex: number) {
 
 export function isLessonStepMarker(value: string) {
   return value.startsWith(LESSON_MARKER_PREFIX);
+}
+
+function normalizeMarkerText(value: string) {
+  return value.replace(/\s+/gu, " ").trim().toLowerCase();
+}
+
+export function getLessonTargetMarker(phaseId: string, stepIndex: number, phrase: string) {
+  const boundedStep = Math.min(
+    LESSON_STEPS_PER_PHASE - 1,
+    Math.max(0, Math.trunc(stepIndex))
+  );
+  const normalizedPhrase = normalizeMarkerText(phrase);
+  const encodedPhrase = encodeURIComponent(normalizedPhrase).slice(0, 180);
+  return `${LESSON_TARGET_PREFIX}${phaseId}:${boundedStep}:${encodedPhrase}`;
+}
+
+export function isLessonTargetMarker(value: string) {
+  return value.startsWith(LESSON_TARGET_PREFIX);
+}
+
+export function getLessonTargetPhrases(completedMissions: string[], phaseId?: string) {
+  const phrases: string[] = [];
+  const prefix = phaseId ? `${LESSON_TARGET_PREFIX}${phaseId}:` : LESSON_TARGET_PREFIX;
+
+  for (const marker of completedMissions) {
+    if (!marker.startsWith(prefix)) continue;
+    const parts = marker.slice(LESSON_TARGET_PREFIX.length).split(":");
+    const encodedPhrase = parts.slice(2).join(":");
+    if (!encodedPhrase) continue;
+    try {
+      const phrase = decodeURIComponent(encodedPhrase).trim();
+      if (phrase && !phrases.includes(phrase)) phrases.push(phrase);
+    } catch {
+      // Ignore corrupted legacy markers.
+    }
+  }
+
+  return phrases;
 }
 
 export function getLessonResumePosition(

@@ -925,7 +925,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             moduleId: selectedModuleId,
             addTurns,
             phaseIndex,
-            stepIndex
+            stepIndex,
+            teachingTarget: teachingTargetRef.current
+              ? {
+                  phaseId: teachingTargetRef.current.phaseId,
+                  phraseEn: teachingTargetRef.current.phraseEn
+                }
+              : undefined
           })
         });
         if (!response.ok) {

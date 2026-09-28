@@ -4,6 +4,7 @@ import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getModuleById } from "@/lib/modules";
 import {
   calculateLessonProgressPercent,
+  getLessonTargetMarker,
   getLessonStepMarker,
   LESSON_STEPS_PER_PHASE
 } from "@/lib/lesson-progress";
@@ -109,6 +110,10 @@ export async function POST(request: Request) {
       completed?: boolean;
       phaseIndex?: number;
       stepIndex?: number;
+      teachingTarget?: {
+        phaseId?: string;
+        phraseEn?: string;
+      };
     };
 
     const moduleId = body.moduleId?.trim();
@@ -173,6 +178,13 @@ export async function POST(request: Request) {
       if (phase) {
         const marker = getLessonStepMarker(phase.id, stepIndex);
         if (!newMissions.includes(marker)) newMissions.push(marker);
+
+        const targetPhrase = body.teachingTarget?.phraseEn?.trim();
+        const targetPhaseId = body.teachingTarget?.phaseId?.trim() || phase.id;
+        if (targetPhrase) {
+          const targetMarker = getLessonTargetMarker(targetPhaseId, stepIndex, targetPhrase);
+          if (!newMissions.includes(targetMarker)) newMissions.push(targetMarker);
+        }
       }
     }
 

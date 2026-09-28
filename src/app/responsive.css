@@ -135,6 +135,7 @@
     min-width: 0;
     margin-bottom: 1px !important;
     flex-shrink: 0;
+    gap: 7px !important;
   }
   /* Oculta a barra de Puticidade/XP em mobile para economizar espaço */
   .practice-main .practice-header-stats-row {
@@ -278,6 +279,7 @@
   .practice-main .speech-bubble-text {
     font-size: 0.82rem !important;
     line-height: 1.35 !important;
+    overflow-wrap: anywhere;
   }
   .practice-main .speech-bubble-didactic-footer {
     display: grid !important;
@@ -302,6 +304,7 @@
     margin-top: 2px !important;
     font-size: 0.72rem !important;
     line-height: 1.3 !important;
+    overflow-wrap: anywhere;
   }
   .practice-main .speech-study-target dd {
     font-size: 0.94rem !important;
@@ -389,6 +392,26 @@
     flex-direction: column;
     align-items: center;
     z-index: 6;
+  }
+
+  @media (max-width: 430px), (max-height: 720px) {
+    .practice-main .header-actions .icon-link,
+    .practice-main .stage-exam-action-btn {
+      width: 38px !important;
+      min-width: 38px !important;
+      padding-inline: 8px !important;
+    }
+    .practice-main .stage-exam-action-btn span,
+    .practice-main .active-module-pill-btn .module-pill-badge {
+      display: none !important;
+    }
+    .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
+      max-height: clamp(132px, 24dvh, 174px) !important;
+    }
+    .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
+      min-height: clamp(144px, 23dvh, 174px) !important;
+      margin-bottom: clamp(18px, 4dvh, 30px) !important;
+    }
   }
   /* Seletor de Modo Compacto */
   .practice-main .voice-mode-selector-pill {

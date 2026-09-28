@@ -24,15 +24,23 @@ export function getFallbackPhaseTargets(
   const phraseEn = concept?.targetPhrase || concept?.samplePhrases[0] || module.samplePhrases[0] || "Let's practice.";
   const meaningPt = concept?.meaningPt || concept?.objective || module.mission;
   const phoneticPt = concept?.phoneticPt || "Ouça e copie o modelo do Mr.Crazy.";
+  const candidatePhrases = [
+    phraseEn,
+    ...(concept?.samplePhrases ?? []),
+    ...(module.samplePhrases ?? [])
+  ]
+    .map((phrase) => phrase.replace(/\s+/gu, " ").trim())
+    .filter(Boolean);
+  const uniquePhrases = Array.from(new Set(candidatePhrases));
 
   return LESSON_STEP_LABELS.map((stepLabel, stepIndex) => ({
     phaseId: concept?.id || `${module.id}-phase-${phaseIndex + 1}`,
     phaseIndex,
     stepIndex,
     stepLabel,
-    phraseEn,
-    meaningPt,
-    phoneticPt
+    phraseEn: uniquePhrases[stepIndex] || phraseEn,
+    meaningPt: stepIndex === 0 ? meaningPt : `${meaningPt} (${stepLabel.toLowerCase()} na cena real).`,
+    phoneticPt: uniquePhrases[stepIndex] === phraseEn ? phoneticPt : "Ouça o modelo americano e copie o ritmo."
   }));
 }
 

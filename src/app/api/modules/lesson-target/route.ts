@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/server-auth";
 import { getModuleById } from "@/lib/modules";
 import { getFallbackPhaseTargets, normalizePhaseTargets } from "@/lib/lesson-target";
+import { getLessonTargetPhrases } from "@/lib/lesson-progress";
+import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +11,20 @@ export const dynamic = "force-dynamic";
 type GeminiResponse = {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
 };
+
+async function getAlreadyTrainedPhrases(userEmail: string, moduleId: string, phaseId?: string) {
+  if (!isSupabaseConfigured) return [];
+
+  const { data, error } = await supabaseAdmin
+    .from("mrcrazy_module_progress")
+    .select("completed_missions")
+    .eq("user_email", userEmail)
+    .eq("module_id", moduleId)
+    .maybeSingle();
+
+  if (error || !Array.isArray(data?.completed_missions)) return [];
+  return getLessonTargetPhrases(data.completed_missions, phaseId).slice(-12);
+}
 
 function getModels() {
   return Array.from(
@@ -41,6 +57,11 @@ export async function POST(request: Request) {
     );
     const phase = phases[phaseIndex];
     const fallbackTargets = getFallbackPhaseTargets(currentModule, phaseIndex);
+    const trainedPhrases = await getAlreadyTrainedPhrases(
+      session.email.toLowerCase().trim(),
+      moduleId,
+      phase?.id
+    );
     const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.MRCRAZY_TEST_KEY;
 
     if (!apiKey || !phase) {
@@ -54,13 +75,21 @@ Cenário: ${currentModule.scenario}
 Fase ${phaseIndex + 1}/${phases.length}: ${phase.title}
 Objetivo imutável da fase: ${phase.objective}
 Referências: ${phase.samplePhrases.join(" | ")}
+Já treinado nesta fase: ${trainedPhrases.length ? trainedPhrases.join(" | ") : "nada registrado ainda"}
 
 Crie exatamente 3 alvos conectados e progressivos para a mesma fase:
 1. Descobrir: modelo simples e essencial.
 2. Praticar: variação curta do mesmo objetivo.
 3. Aplicar: uso real dentro do cenário do módulo.
 
-A IA tem liberdade para escolher o conteúdo, mas não pode sair do módulo nem do objetivo desta fase. Evite repetir a mesma frase. Cada frase deve ter no máximo 10 palavras. A fonética deve ser uma aproximação legível para brasileiros e corresponder exatamente à frase inglesa.
+A IA tem liberdade para escolher o conteúdo, mas não pode sair do módulo nem do objetivo desta fase. Evite repetir frases já treinadas, salvo se for a base indispensável da fase. Cada frase deve ter no máximo 10 palavras.
+
+Metodologia obrigatória:
+- Descobrir ensina o termo central e quando usar.
+- Praticar muda uma palavra ou intenção, mantendo o mesmo objetivo.
+- Aplicar coloca a frase numa situação real do cenário.
+- meaningPt deve explicar o uso, não só traduzir seco.
+- phoneticPt deve ser uma aproximação brasileira fiel à frase inglesa, com sílaba forte quando útil.
 
 Responda somente JSON válido:
 {"targets":[{"phraseEn":"...","meaningPt":"...","phoneticPt":"..."},{"phraseEn":"...","meaningPt":"...","phoneticPt":"..."},{"phraseEn":"...","meaningPt":"...","phoneticPt":"..."}]}`;

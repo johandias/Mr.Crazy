@@ -5,6 +5,8 @@ import { LEARNING_MODULES, getModuleById, detectConceptIndexFromText } from "../
 import { isNoiseOrHallucination } from "../src/lib/voice/noise-filter.ts";
 import {
   calculateLessonProgressPercent,
+  getLessonTargetMarker,
+  getLessonTargetPhrases,
   getLessonResumePosition,
   getLessonStepMarker,
   LESSON_STEPS_PER_PHASE
@@ -289,10 +291,22 @@ test("AI phase targets keep phrase, meaning, and phonetics in one contract", () 
   ], module, 0);
 
   assert.equal(fallback.length, 3);
+  assert.ok(new Set(fallback.map((target) => target.phraseEn)).size > 1, "Fallback deve variar os alvos da fase quando houver frases de apoio");
   assert.equal(targets.length, 3);
   assert.equal(targets[1].phraseEn, "Hi, how are you?");
   assert.equal(targets[1].meaningPt, "Oi, como você está?");
   assert.equal(targets[1].phoneticPt, "Rái, ráu ar iú?");
+});
+
+test("lesson progress stores trained targets to avoid repetitive teaching", () => {
+  const phrase = "Hey there, how are you?";
+  const marker = getLessonTargetMarker("greetings-1", 1, phrase);
+  const phrases = getLessonTargetPhrases([
+    getLessonStepMarker("greetings-1", 0),
+    marker
+  ], "greetings-1");
+
+  assert.deepEqual(phrases, [phrase.toLowerCase()]);
 });
 
 test("practical exam introduces the rules, allows one retake, and withholds hints", async () => {
@@ -326,8 +340,10 @@ test("guided lesson persists realtime turns and phase checkpoints", async () => 
   assert.ok(practiceCode.includes("shouldShowStudyGuide"), "Dica e pronúncia devem aparecer apenas no contexto de treino");
   assert.ok(practiceCode.includes("speechBubbleHasOverflow"), "Balão longo deve sinalizar rolagem sem cortar o conteúdo");
   assert.ok(progressCode.includes("getLessonStepMarker"), "API deve salvar checkpoint de fase e etapa");
+  assert.ok(progressCode.includes("getLessonTargetMarker"), "API deve salvar a frase treinada para reduzir repeticao");
   assert.ok(progressCode.includes("if (upsertError) throw upsertError"), "Falha do Supabase não pode ser ignorada");
   assert.ok(targetRouteCode.includes("A IA tem liberdade para escolher o conteúdo"), "Plano dinâmico deve permanecer no contexto da fase");
+  assert.ok(targetRouteCode.includes("Já treinado nesta fase"), "Plano dinâmico deve considerar histórico salvo do aluno");
 });
 
 test("history reads real recorded sessions instead of rendering sample lessons", async () => {
