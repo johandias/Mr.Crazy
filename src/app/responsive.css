@@ -682,27 +682,3 @@
 @media (prefers-reduced-motion: reduce) {
   .learning-map-page-view *, .rpg-character * { animation: none !important; transition: none !important; }
 }
-
-/* O professor ocupa um palco proprio no front principal mobile.
-   O dock continua fixo no rodape, sem cobrir o avatar ou a fala. */
-@media (max-width: 991px) {
-  .practice-main.clean-layout .clean-stage.history-is-closed .character-avatar-wrapper {
-    flex: 0 0 clamp(132px, 21dvh, 166px) !important;
-    min-height: clamp(132px, 21dvh, 166px) !important;
-    max-height: clamp(132px, 21dvh, 166px) !important;
-    margin: 0 auto !important;
-    align-items: flex-start !important;
-    z-index: 4 !important;
-  }
-
-  .practice-main.clean-layout .clean-stage.history-is-closed .character-avatar-wrapper .character-stage {
-    width: clamp(126px, 20dvh, 160px) !important;
-    height: clamp(126px, 20dvh, 160px) !important;
-    transform: translateY(-2px);
-  }
-
-  .practice-main.clean-layout .practice-voice-hub {
-    bottom: 2px !important;
-    z-index: 6 !important;
-  }
-}
