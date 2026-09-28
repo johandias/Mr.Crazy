@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -2088,6 +2089,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
+            <Link href="/conversation" className="conversation-beta-launch">
+              <Sparkles size={13} />
+              <span>Conversa beta</span>
+            </Link>
+
             {/* Balão de Fala do Mr. Crazy: com replay de voz e guia fonético integrado */}
             <div
               className={`character-speech-bubble-container ${isHistoryExpanded ? "hidden-on-mobile" : ""} ${voiceState === "speaking" ? "is-speaking" : ""}`}

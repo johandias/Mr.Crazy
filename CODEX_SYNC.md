@@ -35,7 +35,8 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 | **Documentação e Protocolo Multi-Agente** | Antigravity | ✅ Concluído | `AGENTS.md`, `CODEX_SYNC.md` |
 | **Sincronização de Áudio & Mic Mutado Inicial** | Antigravity | ✅ Concluído | `PracticeExperience.tsx`, `VoiceInputControl.tsx`, `globals.css` |
 | **Redesign do HUD, Balão Didático & Ondas Sonoras** | Antigravity | ✅ Concluído | `PracticeExperience.tsx`, `VoiceInputControl.tsx`, `globals.css` |
-| **Entrada da prática com personagem Mr.Crazy** | Codex | 🚧 Em andamento | `PracticeExperience.tsx`, novo componente de entrada e estilos isolados |
+| **Entrada da prática com personagem Mr.Crazy** | Codex | ✅ Concluído | `PracticeExperience.tsx`, novo componente de entrada e estilos isolados |
+| **Conversa Beta por texto e voz** | Codex | ✅ Concluído | nova rota `/conversation`, API Gemini isolada e atalho no palco de prática |
 
 ---
 
@@ -70,3 +71,5 @@ Antes de qualquer push na `main`:
 - **[Antigravity — 2026-09-27]**: Microfone inicial corrigido para mudo/vermelho, modo renomeado para "Hold to Talk" e dock elevado. Todos os 24 testes unitários passando. `AGENTS.md` e `CODEX_SYNC.md` criados e prontos para coordenação paralela com o Codex.
 - **[Codex — 2026-09-27]**: Iniciada a tela de entrada da prática. Escopo: novo componente visual isolado que reutiliza o `RpgCharacter`; o mapa continua sendo a escolha de módulo e o treino de voz permanece inalterado.
 - **[Antigravity — 2026-09-28]**: Diagnóstico completo e otimização do HUD de prática entregues: consolidação do topo (recuperando 100px de altura vertical), balão didático integrado com botão de replay de voz e guia fonético, badge de fala do aluno em tempo real no palco principal, ondas responsivas ao áudio e graves com fallback harmônico procedural, digitação rápida inline (teclado) e ergonomia mobile 100dvh sem rolagem.
+- **[Codex — 2026-09-28]**: Iniciada a Conversa Beta. Escopo isolado: tela de chat, rota Gemini autenticada e atalho acima do avatar no treino; a conexão Realtime guiada permanece sem alterações.
+- **[Codex — 2026-09-28]**: Conversa Beta concluída. `/conversation` recebe texto ou voz transcrita, responde por Gemini quando configurado e oferece áudio sob demanda pela rota de TTS existente.
