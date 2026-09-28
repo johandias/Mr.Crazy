@@ -1,9 +1,16 @@
 "use client";
 
-import type { RefObject, PointerEvent, CSSProperties } from "react";
+import type { RefObject, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, Mic, MicOff, Hand, Radio } from "lucide-react";
+import { LoaderCircle, Mic, MicOff, Hand } from "lucide-react";
 import type { RealtimeConnectionStatus, VoiceDiagnostic } from "@/lib/realtime-client";
+
+export type LiveAudioVisualizer = {
+  source: "user" | "crazy" | "none";
+  level: number;
+  bass: number;
+  bands: number[];
+};
 
 type Props = {
   status: RealtimeConnectionStatus;
@@ -12,6 +19,7 @@ type Props = {
   error?: string;
   diagnostics?: VoiceDiagnostic[];
   meterRef?: RefObject<HTMLMeterElement | null>;
+  audioMetricsRef?: RefObject<LiveAudioVisualizer>;
   deviceId?: string;
   onDeviceChange?: (id: string) => void;
   onToggle: () => void;
@@ -24,54 +32,87 @@ type Props = {
   onHoldCancel?: () => void;
 };
 
-/** Barras de onda inline que respondem ao som */
+/** Barras de onda inline que respondem em tempo real ao som, voz e graves */
 function InlineWaveBars({
-  meterRef,
+  audioMetricsRef,
   active,
   speaking,
   isHolding,
+  isMirrored = false,
 }: {
-  meterRef?: RefObject<HTMLMeterElement | null>;
+  audioMetricsRef?: RefObject<LiveAudioVisualizer>;
   active: boolean;
   speaking: boolean;
   isHolding: boolean;
+  isMirrored?: boolean;
 }) {
-  const levelRef = useRef(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
-    if (!active && !speaking) {
-      levelRef.current = 0;
-      containerRef.current?.style.setProperty("--user-level", "0");
-      return;
-    }
     let rafId: number;
+    // Pesos harmônicos: centro e graves com maior curso visual
+    const weights = [0.45, 0.7, 0.95, 0.85, 1, 0.9, 1, 0.85, 0.95, 0.7, 0.5, 0.35];
+    const prevHeights = new Array(12).fill(3);
+
     const tick = () => {
-      const raw = meterRef?.current?.value ?? 0;
-      const prev = levelRef.current;
-      levelRef.current = raw > prev ? prev * 0.35 + raw * 0.65 : prev * 0.82 + raw * 0.18;
-      containerRef.current?.style.setProperty("--user-level", levelRef.current.toFixed(3));
+      const metrics = audioMetricsRef?.current;
+      const isUser = (active || isHolding) && metrics?.source === "user";
+      const isCrazy = speaking || metrics?.source === "crazy";
+      const bands = metrics?.bands || [];
+      const bass = metrics?.bass ?? 0;
+
+      const container = containerRef.current;
+      if (container) {
+        if (isHolding) {
+          container.className = "dock-wave-bars is-holding";
+        } else if (isUser) {
+          container.className = "dock-wave-bars is-active";
+        } else if (isCrazy) {
+          container.className = "dock-wave-bars is-speaking";
+        } else {
+          container.className = "dock-wave-bars";
+        }
+      }
+
+      for (let i = 0; i < 12; i++) {
+        // Se espelhado, inverte a ordem para que os graves fiquem voltados para o microfone central
+        const bandIdx = isMirrored ? (11 - i) : i;
+        const raw = bands[bandIdx] ?? 0;
+        const weight = weights[i];
+
+        let targetH = 3;
+        if (isUser || isCrazy) {
+          // Graves (bass) dão impacto dinâmico na região de graves da voz
+          const isBassZone = isMirrored ? i >= 5 : i <= 6;
+          const bassPunch = isBassZone ? bass * 9 * weight : bass * 3 * weight;
+          targetH = Math.max(3, Math.min(22, 3 + raw * 16 * weight + bassPunch));
+        }
+
+        // Suavização física de subida ágil e descida gradual
+        const prev = prevHeights[i];
+        const smoothed = targetH > prev ? prev * 0.3 + targetH * 0.7 : prev * 0.72 + targetH * 0.28;
+        prevHeights[i] = smoothed;
+
+        const span = barsRef.current[i];
+        if (span) {
+          span.style.height = `${smoothed.toFixed(1)}px`;
+        }
+      }
+
       rafId = requestAnimationFrame(tick);
     };
+
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [active, speaking, meterRef]);
-
-  const weights = [0.35, 0.65, 0.9, 0.75, 1, 0.85, 1, 0.75, 0.9, 0.65, 0.4, 0.28];
+  }, [active, speaking, isHolding, isMirrored, audioMetricsRef]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`dock-wave-bars ${active ? "is-active" : ""} ${speaking ? "is-speaking" : ""} ${isHolding ? "is-holding" : ""}`}
-    >
-      {weights.map((w, i) => (
+    <div ref={containerRef} className="dock-wave-bars">
+      {Array.from({ length: 12 }).map((_, i) => (
         <span
           key={i}
-          style={{
-            animationDelay: `${i * 55}ms`,
-            "--height-mult": `${w}`,
-            "--center-weight": `${w.toFixed(2)}`
-          } as CSSProperties}
+          ref={(el) => { barsRef.current[i] = el; }}
         />
       ))}
     </div>
@@ -90,6 +131,7 @@ export function VoiceInputControl({
   onHoldEnd,
   onHoldCancel,
   meterRef,
+  audioMetricsRef,
 }: Props) {
   const connecting = status === "connecting";
   const isConnected = status === "connected";
@@ -218,7 +260,7 @@ export function VoiceInputControl({
           {/* CENTRO: barras de som responsivas + instrução */}
           <div className="ptt-dock-center">
             <InlineWaveBars
-              meterRef={meterRef}
+              audioMetricsRef={audioMetricsRef}
               active={isHolding || speaking}
               speaking={speaking}
               isHolding={isHolding}
@@ -263,10 +305,11 @@ export function VoiceInputControl({
         {/* Barrinhas de som da esquerda quando ouvindo ou falando */}
         <div className="dock-wave-side-container">
           <InlineWaveBars
-            meterRef={meterRef}
+            audioMetricsRef={audioMetricsRef}
             active={active}
             speaking={speaking}
             isHolding={false}
+            isMirrored={false}
           />
         </div>
 
@@ -308,10 +351,11 @@ export function VoiceInputControl({
         {/* Barrinhas de som da direita espelhadas para harmonia visual */}
         <div className="dock-wave-side-container">
           <InlineWaveBars
-            meterRef={meterRef}
+            audioMetricsRef={audioMetricsRef}
             active={active}
             speaking={speaking}
             isHolding={false}
+            isMirrored={true}
           />
         </div>
       </div>

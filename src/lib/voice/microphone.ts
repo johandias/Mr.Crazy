@@ -8,10 +8,19 @@ export type MicrophoneCapture = {
   resume: () => void;
 };
 
+export type AudioFrequencyMetrics = {
+  level: number;
+  bass: number;
+  mid: number;
+  high: number;
+  bands: number[];
+};
+
 export async function openMicrophone(options: {
   signal: AbortSignal;
   deviceId?: string;
   onLevel?: (level: number) => void;
+  onMetrics?: (metrics: AudioFrequencyMetrics) => void;
 }): Promise<MicrophoneCapture> {
   if (options.signal.aborted) throw new DOMException("Aborted", "AbortError");
   if (!navigator.mediaDevices?.getUserMedia) {
@@ -60,25 +69,74 @@ export async function openMicrophone(options: {
     if (context) void context.close().catch(() => {});
     stream.getTracks().forEach(item => item.stop());
     options.onLevel?.(0);
+    options.onMetrics?.({ level: 0, bass: 0, mid: 0, high: 0, bands: new Array(12).fill(0) });
   };
   options.signal.addEventListener("abort", stop, { once: true });
   if (options.signal.aborted) { stop(); throw new DOMException("Aborted", "AbortError"); }
   // Metering is observational. Server VAD remains responsible for turn detection.
   try {
     const AudioContextClass = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (AudioContextClass && options.onLevel) {
+    if (AudioContextClass && (options.onLevel || options.onMetrics)) {
       context = new AudioContextClass();
       source = context.createMediaStreamSource(stream);
       const analyser = context.createAnalyser();
-      analyser.fftSize = 512;
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.55;
       source.connect(analyser);
-      const samples = new Float32Array(analyser.fftSize);
+
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      const timeData = new Float32Array(analyser.fftSize);
+
       timer = setInterval(() => {
         if (stopped) return;
-        analyser.getFloatTimeDomainData(samples);
-        const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
-        options.onLevel?.(track.enabled && !track.muted ? Math.min(1, rms * 8) : 0);
-      }, 35);
+        if (!track.enabled || track.muted) {
+          options.onLevel?.(0);
+          options.onMetrics?.({ level: 0, bass: 0, mid: 0, high: 0, bands: new Array(12).fill(0) });
+          return;
+        }
+
+        analyser.getFloatTimeDomainData(timeData);
+        analyser.getByteFrequencyData(freqData);
+
+        let sumSq = 0;
+        for (let i = 0; i < timeData.length; i++) sumSq += timeData[i] * timeData[i];
+        const rms = Math.sqrt(sumSq / timeData.length);
+        const level = Math.min(1, rms * 7.5);
+
+        // Análise de graves (frequências fundamentais de voz / graves de 20Hz a 250Hz)
+        let bassSum = 0;
+        for (let b = 0; b <= 3; b++) bassSum += freqData[b];
+        const bass = Math.min(1, (bassSum / (4 * 255)) * 1.7);
+
+        // Médios (250Hz a 2000Hz)
+        let midSum = 0;
+        for (let b = 4; b <= 20; b++) midSum += freqData[b];
+        const mid = Math.min(1, (midSum / (17 * 255)) * 1.4);
+
+        // Agudos (2000Hz+)
+        let highSum = 0;
+        for (let b = 21; b <= 60; b++) highSum += freqData[b];
+        const high = Math.min(1, (highSum / (40 * 255)) * 1.5);
+
+        // 12 Bandas de espectro para equalizador visual dinâmico
+        const bandRanges = [
+          [0, 1], [1, 2], [2, 3], [3, 5], [5, 8], [8, 12],
+          [12, 18], [18, 26], [26, 36], [36, 50], [50, 70], [70, 100]
+        ];
+        const bands = bandRanges.map(([start, end]) => {
+          let bSum = 0;
+          let count = 0;
+          for (let k = start; k <= end && k < freqData.length; k++) {
+            bSum += freqData[k];
+            count++;
+          }
+          const avg = count > 0 ? bSum / (count * 255) : 0;
+          return Math.min(1, avg * 1.5);
+        });
+
+        options.onLevel?.(level);
+        options.onMetrics?.({ level, bass, mid, high, bands });
+      }, 30);
       void context.resume().catch(() => {});
     }
   } catch {

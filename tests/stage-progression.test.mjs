@@ -206,5 +206,25 @@ test("study guide auto-reveal triggers only when Mr. Crazy asks to practice", ()
   assert.equal(isAskingPractice("Sua vez de mandar ver nessa frase!"), true);
 });
 
+test("detectConceptIndexFromText correctly detects dynamic names and ultra-concise stressed prompts", () => {
+  const greetingsModule = getModuleById("greetings");
+  const teachingConcepts = greetingsModule.concepts.filter((c) => !c.isExam);
+
+  // Caso do usuário real: Mr. Crazy ensina a frase com o nome dinâmico do aluno ("Johan" em vez de "Carlos")
+  const speechDynamicName = "Boa, caralho! Fase 2: Pra dizer seu nome, fala: 'Hi, my name is Johan' (Rái, mái nêim iz Johan). Vai!";
+  const detectedIdxName = detectConceptIndexFromText(speechDynamicName, teachingConcepts);
+  assert.equal(detectedIdxName, 1, "Deve identificar Fase 2 mesmo com substituição dinâmica do nome do aluno");
+
+  // Transição rápida com xingamento e comemoração para Fase 3
+  const speechPhase3 = "ALELUIA, CARALHO! Mandou bala! Fase 3: Pra dizer de onde você é, fala: 'I'm from Brazil' (Áim frôm Brâzil). Vai!";
+  const detectedIdx3 = detectConceptIndexFromText(speechPhase3, teachingConcepts);
+  assert.equal(detectedIdx3, 2, "Deve identificar Fase 3 na fala enxuta com xingamento de comemoração");
+
+  // Correção curta e estressada mantendo na mesma fase
+  const speechCorrection = "Porra, fala pra fora, caralho! Fala: 'I'm from Brazil'!";
+  const detectedIdxCorrection = detectConceptIndexFromText(speechCorrection, teachingConcepts);
+  assert.equal(detectedIdxCorrection, 2, "Correção rápida mantém na Fase 3");
+});
+
 
 

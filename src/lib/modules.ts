@@ -810,14 +810,17 @@ export function setStoredModuleId(id: string): void {
   } catch {}
 }
 
+export type LearningModuleConcept = ModuleConcept;
+
 export function detectConceptIndexFromText(
   text: string,
-  concepts: LearningModuleConcept[]
+  concepts: ModuleConcept[]
 ): number | null {
   if (!text || !Array.isArray(concepts) || concepts.length === 0) return null;
   const lower = text.toLowerCase();
+  const textClean = lower.replace(/[^a-z0-9\s]/g, " ");
 
-  // 1. Verificação explícita de fase de destino ("vamos para a fase 2", "próxima fase: fase 3", "bora pra fase 4")
+  // 1. Verificação explícita de fase de destino ("vamos para a fase 2", "próxima fase: fase 3", "bora pra fase 4", "fase 2:")
   const destinationMatch = /(?:vamos|bora|próxima|partiu|para a|pra|seguir para a|avançar para a)\s*(?:fase|etapa|passo)\s*([1-9])/i.exec(lower);
   if (destinationMatch && destinationMatch[1]) {
     const phaseNum = parseInt(destinationMatch[1], 10);
@@ -826,21 +829,8 @@ export function detectConceptIndexFromText(
     }
   }
 
-  // 2. Verificação pela frase-alvo (targetPhrase) ou frase de exemplo (samplePhrases)
-  for (let i = 0; i < concepts.length; i++) {
-    const c = concepts[i];
-    const candidatePhrases = [c.targetPhrase, ...(c.samplePhrases || [])].filter(Boolean) as string[];
-    for (const phrase of candidatePhrases) {
-      const phraseClean = phrase.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
-      const textClean = lower.replace(/[^a-z0-9\s]/g, "");
-      if (phraseClean && phraseClean.length >= 4 && textClean.includes(phraseClean)) {
-        return i;
-      }
-    }
-  }
-
-  // 3. Verificação explícita geral por número da fase ("fase 1", "fase 2", etc.)
-  // Se houver múltiplas menções (ex: "Fase 1 concluída, agora Fase 2"), prioriza a última fase citada
+  // 2. Verificação explícita geral por número de fase ("Fase 2", "Fase 3", etc.)
+  // Prioriza a última fase citada no discurso (caso cite "Fase 1 dominada, agora Fase 2:")
   const allPhaseMatches = [...lower.matchAll(/(?:fase|etapa|passo)\s*([1-9])/gi)];
   if (allPhaseMatches.length > 0) {
     const lastMatch = allPhaseMatches[allPhaseMatches.length - 1];
@@ -852,13 +842,58 @@ export function detectConceptIndexFromText(
     }
   }
 
-  // 4. Verificação por significado ou palavras-chave marcantes do significado
+  // 3. Verificação pela frase-alvo (targetPhrase) ou frases de exemplo (samplePhrases)
+  for (let i = 0; i < concepts.length; i++) {
+    const c = concepts[i];
+    const candidatePhrases = [c.targetPhrase, ...(c.samplePhrases || [])].filter(Boolean) as string[];
+    for (const phrase of candidatePhrases) {
+      const phraseClean = phrase.toLowerCase().replace(/[^a-z0-9\s]/g, " ").trim();
+      if (phraseClean && phraseClean.length >= 4 && textClean.includes(phraseClean)) {
+        return i;
+      }
+    }
+  }
+
+  // 4. Verificação por expressões-chave marcantes em inglês de cada conceito (trata nomes dinâmicos como "Hi, my name is...")
+  for (let i = 0; i < concepts.length; i++) {
+    const c = concepts[i];
+    const target = c.targetPhrase || "";
+    const keyPatterns: RegExp[] = [];
+    if (/name is|i'm [a-z]+/i.test(target)) keyPatterns.push(/my name is\b|i'm [a-z]+, nice to meet/i);
+    if (/from brazil/i.test(target)) keyPatterns.push(/from brazil\b/i);
+    if (/good morning|hello/i.test(target)) keyPatterns.push(/good morning|hello\b/i);
+    if (/how are you/i.test(target)) keyPatterns.push(/how are you|how're you/i);
+    if (/table for two/i.test(target)) keyPatterns.push(/table for two/i);
+    if (/coffee/i.test(target)) keyPatterns.push(/get a coffee|have a coffee|a coffee/i);
+    if (/burger/i.test(target)) keyPatterns.push(/burger with fries|the burger/i);
+    if (/the check/i.test(target)) keyPatterns.push(/the check|get the check/i);
+    if (/how much/i.test(target)) keyPatterns.push(/how much is this|how much/i);
+    if (/try this on/i.test(target)) keyPatterns.push(/try this on|try it on/i);
+    if (/credit card/i.test(target)) keyPatterns.push(/credit card/i);
+    if (/restroom/i.test(target)) keyPatterns.push(/restroom|where is the restroom/i);
+    if (/baggage claim/i.test(target)) keyPatterns.push(/baggage claim/i);
+    if (/vacation/i.test(target)) keyPatterns.push(/on vacation/i);
+    if (/reservation/i.test(target)) keyPatterns.push(/reservation/i);
+
+    for (const pattern of keyPatterns) {
+      if (pattern.test(lower)) {
+        return i;
+      }
+    }
+  }
+
+  // 5. Verificação por significado ou palavras-chave em português de cada conceito
   for (let i = 0; i < concepts.length; i++) {
     const c = concepts[i];
     if (c.meaningPt) {
-      const meaningClean = c.meaningPt.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
-      const textClean = lower.replace(/[^a-z0-9\s]/g, "");
+      const meaningClean = c.meaningPt.toLowerCase().replace(/[^a-z0-9\s]/g, " ").trim();
       if (meaningClean.length >= 6 && textClean.includes(meaningClean)) {
+        return i;
+      }
+    }
+    if (c.title) {
+      const titleClean = c.title.toLowerCase().replace(/[^a-z0-9\s]/g, " ").trim();
+      if (titleClean.length >= 8 && textClean.includes(titleClean)) {
         return i;
       }
     }
@@ -866,4 +901,5 @@ export function detectConceptIndexFromText(
 
   return null;
 }
+
 

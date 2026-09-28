@@ -24,7 +24,7 @@ import {
   ExternalLink,
   X
 } from "lucide-react";
-import { VoiceInputControl } from "@/components/VoiceInputControl";
+import { VoiceInputControl, type LiveAudioVisualizer } from "@/components/VoiceInputControl";
 import type { VoiceDiagnostic } from "@/lib/realtime-client";
 import { AppShell } from "@/components/AppShell";
 import { PictureInPictureManager, type PictureInPictureManagerHandle } from "@/components/PictureInPictureManager";
@@ -462,7 +462,26 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
   }, []);
 
+  const microphoneEnabledRef = useRef(false);
+  const voiceStateRef = useRef<VoiceState>("idle");
+  const isHoldingAudioRef = useRef(false);
+  const audioMetricsRef = useRef<LiveAudioVisualizer>({
+    source: "none",
+    level: 0,
+    bass: 0,
+    bands: new Array(12).fill(0)
+  });
+
+  useEffect(() => {
+    microphoneEnabledRef.current = microphoneEnabled;
+  }, [microphoneEnabled]);
+
+  useEffect(() => {
+    voiceStateRef.current = voiceState;
+  }, [voiceState]);
+
   const handleHoldStart = useCallback(() => {
+    isHoldingAudioRef.current = true;
     setIsHoldingToTalk(true);
     setMicrophoneEnabled(true);
     setIsCharacterAwake(true);
@@ -470,12 +489,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, []);
 
   const handleHoldEnd = useCallback(() => {
+    isHoldingAudioRef.current = false;
     setIsHoldingToTalk(false);
     setMicrophoneEnabled(false);
     realtimeRef.current?.commitTurn();
   }, []);
 
   const handleHoldCancel = useCallback(() => {
+    isHoldingAudioRef.current = false;
     setIsHoldingToTalk(false);
     setMicrophoneEnabled(false);
     realtimeRef.current?.cancelTurn();
@@ -1237,6 +1258,43 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           setIsCharacterAwake(true);
         }
       },
+      onInputMetrics: (metrics) => {
+        if (microphoneEnabledRef.current || isHoldingAudioRef.current) {
+          if (metrics.level > 0.03) {
+            setIsCharacterAwake(true);
+          }
+          audioMetricsRef.current = {
+            source: "user",
+            level: metrics.level,
+            bass: metrics.bass,
+            bands: metrics.bands
+          };
+        } else if (audioMetricsRef.current.source === "user") {
+          audioMetricsRef.current = {
+            source: "none",
+            level: 0,
+            bass: 0,
+            bands: new Array(12).fill(0)
+          };
+        }
+      },
+      onOutputMetrics: (metrics) => {
+        if (voiceStateRef.current === "speaking" && metrics.level > 0.02) {
+          audioMetricsRef.current = {
+            source: "crazy",
+            level: metrics.level,
+            bass: metrics.bass,
+            bands: metrics.bands
+          };
+        } else if (audioMetricsRef.current.source === "crazy") {
+          audioMetricsRef.current = {
+            source: "none",
+            level: 0,
+            bass: 0,
+            bands: new Array(12).fill(0)
+          };
+        }
+      },
       onUserSpeechStarted: () => {
         setIsCharacterAwake(true);
       },
@@ -1308,11 +1366,21 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         const activeTarget = teachingConcepts[currentConceptIndex];
         const targetPhraseClean = (activeTarget?.targetPhrase || "").toLowerCase().trim();
         const isTeachingOrAskingToPractice =
-          /(vamos treinar|fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora treinar essa|bora praticar essa|pronúncia aportuguesada)/i.test(lowerText) ||
+          /(vamos treinar|fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora treinar essa|bora praticar essa|pronúncia aportuguesada|fase [1-9]|pra dizer)/i.test(lowerText) ||
           (targetPhraseClean.length >= 4 && lowerText.includes(targetPhraseClean));
 
         if (isTeachingOrAskingToPractice) {
           setIsStudyCardVisible(true);
+        }
+
+        // Sincronização em tempo real durante a fala:
+        // Assim que o Mr. Crazy cita uma fase ou frase de conceito, atualiza o índice no topo imediatamente!
+        if (teachingConcepts.length > 0) {
+          const streamDetectedIdx = detectConceptIndexFromText(text, teachingConcepts);
+          if (streamDetectedIdx !== null && streamDetectedIdx !== currentConceptIndex) {
+            setCurrentConceptIndex(streamDetectedIdx);
+            setIsStudyCardVisible(true);
+          }
         }
 
         if (!complete) {
@@ -1338,31 +1406,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           const isGreetingOnly = /(tudo ótimo por aqui|tudo bem por aqui|como você tá|e com você|bora treinar|o que manda|fala comigo|seja bem-vindo|seja bem-vinda)/i.test(lower);
           const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz)/i.test(lower);
           const isPraise = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
-          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|cacete|caramba|pqp|esguicho|acorda|tente|repete|de novo|mais uma vez|não consegui te ouvir|não te ouvi|não entendi|porra|burro|burrada|desgraça|caralho)/i.test(lower);
+          const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|burro|burrada|que porcaria)/i.test(lower);
 
           // Sincroniza o cartão superior exatamente com a fase/conceito e a progressão do aluno:
-          // REGRA RÍGIDA: O aluno SÓ AVANÇA DE FASE se ele tiver feito uma tentativa real (hasUserAttemptedPhaseRef.current === true)
-          // E o Mr. Crazy estiver elogiando/concluindo a fase (isPraise && !isCorrection).
           if (teachingConcepts.length > 0) {
             const detectedConceptIdx = detectConceptIndexFromText(clean, teachingConcepts);
             if (detectedConceptIdx !== null) {
-              if (detectedConceptIdx > currentConceptIndex) {
-                // Tentativa de avançar de fase:
-                // SÓ avança se o aluno de fato falou na fase atual e recebeu elogio de conclusão!
-                if (hasUserAttemptedPhaseRef.current && isPraise && !isCorrection) {
-                  const nextIndex = Math.min(currentConceptIndex + 1, detectedConceptIdx);
-                  setCurrentConceptIndex(nextIndex);
-                  hasUserAttemptedPhaseRef.current = false;
-                }
-              } else if (detectedConceptIdx < currentConceptIndex) {
-                // Caso Mr. Crazy decida voltar explicitamente a uma fase anterior
-                setCurrentConceptIndex(detectedConceptIdx);
-                hasUserAttemptedPhaseRef.current = false;
-              }
+              setCurrentConceptIndex(detectedConceptIdx);
+              hasUserAttemptedPhaseRef.current = false;
+              setIsStudyCardVisible(true);
             }
 
             const isAllCompleted =
-              hasUserAttemptedPhaseRef.current &&
               currentConceptIndex === teachingConcepts.length - 1 &&
               isPraise &&
               !isCorrection &&
@@ -1953,6 +2008,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                       key={concept.id || idx}
                       className={`phase-stepper-step ${isPassed ? "is-passed" : ""} ${isCurrent ? "is-current" : ""}`}
                       title={`Fase ${idx + 1}: ${concept.title}`}
+                      onClick={() => {
+                        setCurrentConceptIndex(idx);
+                        setIsStudyCardVisible(true);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: "pointer" }}
                     >
                       <div className="phase-stepper-bar-fill" />
                       <span className="phase-stepper-label">
@@ -2089,6 +2151,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 error={errorMessage}
                 diagnostics={voiceDiagnostics}
                 meterRef={inputMeterRef}
+                audioMetricsRef={audioMetricsRef}
                 deviceId={inputDeviceId}
                 isAwake={isCharacterAwake}
                 onToggle={handleAvatarMicClick}

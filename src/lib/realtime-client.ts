@@ -1,11 +1,12 @@
 import type { LearningLevel, VoiceState } from "@/lib/mr-crazy";
-import { openMicrophone, type MicrophoneCapture } from "./voice/microphone";
+import { openMicrophone, type AudioFrequencyMetrics, type MicrophoneCapture } from "./voice/microphone";
 import { VoiceError, getConnectionError, isAbortError, waitFor, type VoiceDiagnostic, type VoiceStage } from "./voice/diagnostics";
 import { isNoiseOrHallucination } from "./voice/noise-filter";
 
 export { getConnectionError, isAbortError } from "./voice/diagnostics";
 export { isNoiseOrHallucination } from "./voice/noise-filter";
 export type { VoiceDiagnostic } from "./voice/diagnostics";
+export type { AudioFrequencyMetrics } from "./voice/microphone";
 export type RealtimeConnectionStatus = "idle" | "connecting" | "connected" | "failed";
 export type RealtimeController = {
   disconnect: () => void;
@@ -33,6 +34,8 @@ type Options = {
   onError: (message: string) => void;
   onDiagnostic?: (event: VoiceDiagnostic) => void;
   onInputLevel?: (level: number) => void;
+  onInputMetrics?: (metrics: AudioFrequencyMetrics) => void;
+  onOutputMetrics?: (metrics: AudioFrequencyMetrics) => void;
 };
 type Content = { text?: string; transcript?: string };
 type ServerEvent = {
@@ -77,6 +80,9 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
   let peer: RTCPeerConnection | undefined;
   let channel: RTCDataChannel | undefined;
   let audio: HTMLAudioElement | undefined;
+  let remoteAudioCtx: AudioContext | undefined;
+  let remoteAnalyser: AnalyserNode | undefined;
+  let remoteTimer: ReturnType<typeof setInterval> | undefined;
   let closed = false;
   let connected = false;
   let microphoneEnabled = options.initialMicrophoneEnabled ?? false;
@@ -112,6 +118,10 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     cleanup.forEach(remove => remove());
     timers.forEach(timer => clearTimeout(timer));
     timers.clear();
+    clearInterval(remoteTimer);
+    if (remoteAudioCtx) void remoteAudioCtx.close().catch(() => {});
+    remoteAudioCtx = undefined;
+    remoteAnalyser = undefined;
     capture?.stop();
     channel?.close();
     peer?.close();
@@ -189,7 +199,12 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
   try {
     if (options.signal?.aborted) { disconnect(); throw new DOMException("Aborted", "AbortError"); }
     log("capture_start", "Solicitando acesso ao microfone.");
-    capture = await openMicrophone({ signal: lifetime.signal, deviceId: options.deviceId, onLevel: options.onInputLevel });
+    capture = await openMicrophone({
+      signal: lifetime.signal,
+      deviceId: options.deviceId,
+      onLevel: options.onInputLevel,
+      onMetrics: options.onInputMetrics
+    });
     log("capture_ready", "Dispositivo de entrada aberto.");
     listen(capture.track, "ended", () => report(new VoiceError("microphone_ended", "O microfone foi desconectado. Escolha uma entrada e reconecte."), true));
     listen(capture.track, "mute", () => {
@@ -202,6 +217,73 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
       }
     });
     listen(capture.track, "unmute", () => clear("capture-muted"));
+
+    const setupRemoteAnalyser = (stream: MediaStream) => {
+      try {
+        const AudioContextClass = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return;
+        if (!remoteAudioCtx) remoteAudioCtx = new AudioContextClass();
+        const source = remoteAudioCtx.createMediaStreamSource(stream);
+        remoteAnalyser = remoteAudioCtx.createAnalyser();
+        remoteAnalyser.fftSize = 256;
+        remoteAnalyser.smoothingTimeConstant = 0.55;
+        source.connect(remoteAnalyser);
+
+        const freqData = new Uint8Array(remoteAnalyser.frequencyBinCount);
+        const timeData = new Float32Array(remoteAnalyser.fftSize);
+
+        clearInterval(remoteTimer);
+        remoteTimer = setInterval(() => {
+          if (closed || !remoteAnalyser) return;
+          if (!playbackActive) {
+            options.onOutputMetrics?.({ level: 0, bass: 0, mid: 0, high: 0, bands: new Array(12).fill(0) });
+            return;
+          }
+
+          remoteAnalyser.getFloatTimeDomainData(timeData);
+          remoteAnalyser.getByteFrequencyData(freqData);
+
+          let sumSq = 0;
+          for (let i = 0; i < timeData.length; i++) sumSq += timeData[i] * timeData[i];
+          const rms = Math.sqrt(sumSq / timeData.length);
+          const level = Math.min(1, rms * 7.5);
+
+          // Análise de graves (voz do Mr. Crazy / graves e peso de 20Hz a 250Hz)
+          let bassSum = 0;
+          for (let b = 0; b <= 3; b++) bassSum += freqData[b];
+          const bass = Math.min(1, (bassSum / (4 * 255)) * 1.7);
+
+          let midSum = 0;
+          for (let b = 4; b <= 20; b++) midSum += freqData[b];
+          const mid = Math.min(1, (midSum / (17 * 255)) * 1.4);
+
+          let highSum = 0;
+          for (let b = 21; b <= 60; b++) highSum += freqData[b];
+          const high = Math.min(1, (highSum / (40 * 255)) * 1.5);
+
+          const bandRanges = [
+            [0, 1], [1, 2], [2, 3], [3, 5], [5, 8], [8, 12],
+            [12, 18], [18, 26], [26, 36], [36, 50], [50, 70], [70, 100]
+          ];
+          const bands = bandRanges.map(([start, end]) => {
+            let bSum = 0;
+            let count = 0;
+            for (let k = start; k <= end && k < freqData.length; k++) {
+              bSum += freqData[k];
+              count++;
+            }
+            const avg = count > 0 ? bSum / (count * 255) : 0;
+            return Math.min(1, avg * 1.5);
+          });
+
+          options.onOutputMetrics?.({ level, bass, mid, high, bands });
+        }, 30);
+        void remoteAudioCtx.resume().catch(() => {});
+      } catch (err) {
+        console.warn("[Voice] Remote analyser error", err);
+      }
+    };
+
     stage = "offer";
     peer = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
     channel = peer.createDataChannel("oai-events");
@@ -214,7 +296,9 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     peer.addTrack(capture.track, capture.stream);
     listen(peer, "track", ((event: RTCTrackEvent) => {
       if (!audio) return;
-      audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+      const remoteStream = event.streams[0] ?? new MediaStream([event.track]);
+      audio.srcObject = remoteStream;
+      setupRemoteAnalyser(remoteStream);
       resume();
     }) as EventListener);
     listen(audio, "playing", () => { if (playbackActive) options.onVoiceState("speaking"); });
