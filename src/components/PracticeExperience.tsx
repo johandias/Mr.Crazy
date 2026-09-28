@@ -1972,58 +1972,56 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   </span>
                 </div>
               </div>
+
+              {/* Cartão Didático: Significado + Frase em Inglês + Guia Fonético Brasileiro */}
+              <AnimatePresence>
+                {isStudyCardVisible && teachingConcepts[currentConceptIndex] && (
+                  <motion.div
+                    className="teaching-study-card"
+                    initial={{ opacity: 0, height: 0, y: -6 }}
+                    animate={{ opacity: 1, height: "auto", y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -6 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                  >
+                    {teachingConcepts[currentConceptIndex].meaningPt && (
+                      <div className="study-card-item study-meaning">
+                        <span className="study-item-label">Significado</span>
+                        <span className="study-item-value">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
+                      </div>
+                    )}
+                    {teachingConcepts[currentConceptIndex].targetPhrase && (
+                      <div className="study-card-item study-phrase">
+                        <span className="study-item-label">Inglês</span>
+                        <button
+                          type="button"
+                          className="study-speak-trigger-btn"
+                          onClick={() => {
+                            const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
+                            if (phrase) speak(phrase, "speaking", "en-US");
+                          }}
+                          title="Ouvir pronúncia da frase em inglês"
+                        >
+                          <Volume2 size={13} className="inline-speak-icon" />
+                          <span className="study-item-value english-phrase">
+                            {teachingConcepts[currentConceptIndex].targetPhrase}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                    {teachingConcepts[currentConceptIndex].phoneticPt && (
+                      <div className="study-card-item study-phonetic">
+                        <span className="study-item-label">Fonética</span>
+                        <span className="study-item-value phonetic-guide">
+                          🗣️ {teachingConcepts[currentConceptIndex].phoneticPt}
+                        </span>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })()}
-
-            {/* Cartão Didático: Significado + Frase em Inglês + Guia Fonético Brasileiro */}
-            <AnimatePresence>
-              {isStudyCardVisible && teachingConcepts[currentConceptIndex] && (
-                <motion.div
-                  className="teaching-study-card"
-                  initial={{ opacity: 0, height: 0, y: -6 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -6 }}
-                  transition={{ duration: 0.22, ease: "easeOut" }}
-                >
-                  {teachingConcepts[currentConceptIndex].meaningPt && (
-                    <div className="study-card-item study-meaning">
-                      <span className="study-item-label">Significado</span>
-                      <span className="study-item-value">"{teachingConcepts[currentConceptIndex].meaningPt}"</span>
-                    </div>
-                  )}
-                  {teachingConcepts[currentConceptIndex].targetPhrase && (
-                    <div className="study-card-item study-phrase">
-                      <span className="study-item-label">Inglês</span>
-                      <button
-                        type="button"
-                        className="study-speak-trigger-btn"
-                        onClick={() => {
-                          const phrase = teachingConcepts[currentConceptIndex]?.targetPhrase;
-                          if (phrase) speak(phrase, "speaking", "en-US");
-                        }}
-                        title="Ouvir pronúncia da frase em inglês"
-                      >
-                        <Volume2 size={13} className="inline-speak-icon" />
-                        <span className="study-item-value english-phrase">
-                          {teachingConcepts[currentConceptIndex].targetPhrase}
-                        </span>
-                      </button>
-                    </div>
-                  )}
-                  {teachingConcepts[currentConceptIndex].phoneticPt && (
-                    <div className="study-card-item study-phonetic">
-                      <span className="study-item-label">Fonética</span>
-                      <span className="study-item-value phonetic-guide">
-                        🗣️ {teachingConcepts[currentConceptIndex].phoneticPt}
-                      </span>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
 
         {pipNotification && (
           <div className="popup-banner-tip pip-floating-toast">
