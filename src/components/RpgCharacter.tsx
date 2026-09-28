@@ -231,7 +231,7 @@ export const RpgCharacter = memo(function RpgCharacter({
 
             <g className="rpg-hero">
               {/* Capa com tecido e sombras multicamada */}
-              <g className="rpg-cape">
+              <g className={`rpg-cape ${activity === "speaking" ? "cape-speaking" : ""}`}>
                 <rect x="46" y="80" width="68" height="48" fill="#4a121c" />
                 <rect x="42" y="88" width="76" height="32" fill="#6d1b2a" />
                 <rect x="48" y="118" width="64" height="14" fill="#882234" />
@@ -240,7 +240,7 @@ export const RpgCharacter = memo(function RpgCharacter({
               </g>
 
               {/* Pernas, Calças e Botas com cadarços e solados */}
-              <g className="rpg-legs">
+              <g className={`rpg-legs ${activity === "speaking" ? "legs-speaking" : ""}`}>
                 {/* Calça com dobra nos joelhos */}
                 <rect className="rpg-trouser" x="57" y="117" width="18" height="22" fill="#1e2530" />
                 <rect className="rpg-trouser" x="85" y="117" width="18" height="22" fill="#1e2530" />
@@ -257,7 +257,7 @@ export const RpgCharacter = memo(function RpgCharacter({
               </g>
 
               {/* Tronco, Jaqueta e Cinto */}
-              <g className="rpg-body">
+              <g className={`rpg-body ${activity === "speaking" ? "body-speaking" : ""}`}>
                 <rect className="rpg-armor-dark" x="48" y="76" width="64" height="46" fill="#163d45" />
                 <rect className="rpg-armor" x="54" y="80" width="52" height="38" fill="#317b89" />
                 {/* Linha central do zíper / jaqueta */}
@@ -273,7 +273,7 @@ export const RpgCharacter = memo(function RpgCharacter({
               </g>
 
               {/* Braço Esquerdo (Segurando grimório / livro de inglês) */}
-              <g className={`rpg-arm rpg-arm-left ${gesture === "heart" ? "arm-heart-left" : ""}`}>
+              <g className={`rpg-arm rpg-arm-left ${gesture === "heart" ? "arm-heart-left" : ""} ${activity === "speaking" ? "arm-speaking-support" : ""}`}>
                 <rect className="rpg-armor-dark" x="35" y="82" width="17" height="33" fill="#163d45" />
                 <rect className="rpg-glove" x="32" y="107" width="18" height="14" fill="#3d2817" />
                 {gesture !== "heart" ? (
@@ -298,11 +298,13 @@ export const RpgCharacter = memo(function RpgCharacter({
                   <rect className="rpg-armor-dark" x="108" y="82" width="17" height="33" fill="#163d45" />
                   <rect className="rpg-glove" x="110" y="107" width="18" height="14" fill="#3d2817" />
                   {/* Cajado do Professor Mr.Crazy */}
-                  <rect x="130" y="52" width="7" height="88" fill="#78350f" />
-                  <rect x="132" y="54" width="3" height="84" fill="#b45309" />
-                  <rect x="124" y="40" width="19" height="19" rx="3" fill="#0284c7" />
-                  <rect x="128" y="44" width="11" height="11" fill="#38bdf8" />
-                  <rect x="131" y="47" width="5" height="5" fill="#ffffff" />
+                  <g className={activity === "speaking" ? "rpg-staff-speaking" : ""}>
+                    <rect x="130" y="52" width="7" height="88" fill="#78350f" />
+                    <rect x="132" y="54" width="3" height="84" fill="#b45309" />
+                    <rect x="124" y="40" width="19" height="19" rx="3" fill="#0284c7" />
+                    <rect x="128" y="44" width="11" height="11" fill="#38bdf8" />
+                    <rect x="131" y="47" width="5" height="5" fill="#ffffff" />
+                  </g>
                 </g>
               )}
 

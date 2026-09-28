@@ -417,6 +417,21 @@ test("mobile practice keeps Mr.Crazy visible above the anchored voice dock", asy
   assert.match(responsiveCss, /character-speech-bubble-container\.has-overflow\.is-scrolled/, "Texto longo deve receber fade durante a rolagem");
 });
 
+test("Mr.Crazy animates body, gestures, and mouth while speaking", async () => {
+  const fs = await import("node:fs");
+  const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
+  const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
+  const globalCss = fs.readFileSync("src/app/globals.css", "utf-8");
+
+  assert.ok(characterCode.includes("rpg-phonemes-active"), "A boca deve alternar visemas durante a fala");
+  assert.ok(characterCode.includes("arm-speaking-support"), "O braço do livro deve acompanhar a explicação");
+  assert.ok(characterCode.includes("rpg-staff-speaking"), "O cajado deve participar dos gestos do professor");
+  assert.ok(practiceCode.includes("thumbsup"), "A coreografia deve incluir gesto de aprovação");
+  assert.ok(practiceCode.includes("heart"), "A coreografia deve incluir gesto de incentivo");
+  assert.ok(globalCss.includes("speech-chest"), "O corpo deve respirar e se mover durante a fala");
+  assert.ok(globalCss.includes("mouth-articulation"), "A animação da boca deve ter articulação própria");
+});
+
 test("beta conversation fallback provides correction, explanation, and continuity", async () => {
   const { getGeminiConversationReply } = await import("../src/lib/gemini-conversation.ts");
   const result = await getGeminiConversationReply("I have 30 years old.", [], undefined);

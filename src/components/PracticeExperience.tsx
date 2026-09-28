@@ -612,14 +612,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
     setActiveGesture("idle");
     let turn = 0;
-    const gestures: CharacterGesture[] = ["idle", "finger", "idle"];
+    const gestures: CharacterGesture[] = emotion === "crazy" || emotion === "irritated"
+      ? ["idle", "finger", "idle", "thumbsup", "idle"]
+      : ["idle", "thumbsup", "idle", "heart", "idle"];
     const interval = window.setInterval(() => {
       turn = (turn + 1) % gestures.length;
       setActiveGesture(gestures[turn]);
     }, 1450);
 
     return () => window.clearInterval(interval);
-  }, [voiceState]);
+  }, [emotion, voiceState]);
 
   const handleAvatarTap = useCallback(() => {
     setIsCharacterAwake(true);
