@@ -180,6 +180,9 @@ INSTRUCTIONS:
         const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
         for (const model of models) {
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
+
             const geminiRes = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
               {
@@ -192,9 +195,11 @@ INSTRUCTIONS:
                     maxOutputTokens: 60
                   }
                 }),
-                signal: AbortSignal.timeout(4000)
+                signal: controller.signal
               }
             );
+
+            clearTimeout(timeoutId);
 
             if (geminiRes.ok) {
               const data = await geminiRes.json();

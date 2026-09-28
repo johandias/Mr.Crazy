@@ -775,6 +775,7 @@ export const LEARNING_MODULES: LearningModule[] = [
 ];
 
 export const DEFAULT_MODULE_ID = "greetings";
+export const MODULES = LEARNING_MODULES;
 
 const ID_ALIASES: Record<string, string> = {
   "work": "intermediate-conversations",
