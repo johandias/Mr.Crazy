@@ -201,7 +201,8 @@ function buildOpeningLine(
   openingIndex: number,
   nickname?: string,
   gender?: string,
-  moduleId?: string
+  moduleId?: string,
+  conceptIndex?: number
 ) {
   const isFemale = gender === "feminino";
   const cleanNickname = nickname?.replace(/\s*\(admin\)/i, "").trim();
@@ -213,6 +214,12 @@ function buildOpeningLine(
     const mod = getModuleById(moduleId);
     if (mod.id === "free-conversation") {
       return `Hey${namePart}! Good to see you! We're in free conversation mode now. Let's talk in English! How are you doing today?`;
+    }
+    const teaching = mod.concepts?.filter((c) => !c.isExam) || [];
+    const activeConcept = (typeof conceptIndex === "number" && teaching[conceptIndex]) ? teaching[conceptIndex] : teaching[0];
+    if (activeConcept) {
+      const idx = typeof conceptIndex === "number" && conceptIndex >= 0 ? conceptIndex : 0;
+      return `Fase ${idx + 1}: Pra dizer '${activeConcept.meaningPt || activeConcept.objective}', fala: '${activeConcept.targetPhrase}' (${activeConcept.phoneticPt}). Manda bala!`;
     }
     return `Fala${namePart}! ${mod.initialGreeting.pt}`;
   }
@@ -736,9 +743,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         openingIndex,
         studentProfile?.nickname,
         studentProfile?.gender,
-        selectedModuleId
+        selectedModuleId,
+        currentConceptIndex
       ),
-    [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname, selectedModuleId]
+    [openingIndex, selectedLevel, selectedMode, studentProfile?.gender, studentProfile?.nickname, selectedModuleId, currentConceptIndex]
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -1129,33 +1137,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           setCurrentEvaluation(evalItem);
           const score = typeof evalItem.overall_score === "number" ? evalItem.overall_score : 70;
 
-          // Se a nota for maior que 7 (score >= 70 em escala 0-100) e houver próximo módulo:
-          if (score >= 70 && nextModule) {
-            const firstConcept = nextModule.concepts?.[0];
-            setStageTransition({
-              nextModule,
-              score,
-              feedback: evalItem.summary_feedback || "Mandou muito bem nas frases!",
-              countdown: 5,
-              targetConcept: firstConcept
-                ? {
-                    title: firstConcept.title,
-                    objective: firstConcept.objective,
-                    phrase:
-                      firstConcept.samplePhrases?.[0] ||
-                      nextModule.initialGreeting.en ||
-                      nextModule.samplePhrases?.[0] ||
-                      "Let's practice English!"
-                  }
-                : undefined
-            });
-            triggerGesture("thumbsup");
-            return;
-          }
-
           triggerGesture(score >= 70 ? "heart" : "watergun");
           speak(
-            `Você concluiu a avaliação do módulo ${activeModule.title} com nota ${score}! ${evalItem.summary_feedback}`
+            `Você concluiu a avaliação do módulo ${activeModule.cleanTitle || activeModule.title} com nota ${score}! ${evalItem.summary_feedback}`
           );
         }
       }
@@ -1164,13 +1148,20 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     } finally {
       setIsEvaluating(false);
     }
-  }, [isEvaluating, selectedModuleId, moduleTurnsCount, contextHistory, mistakes, activeModule.title, nextModule, triggerGesture, speak]);
+  }, [isEvaluating, selectedModuleId, moduleTurnsCount, contextHistory, mistakes, activeModule, triggerGesture, speak]);
 
   useEffect(() => {
-    if (isLessonCompleted && !currentEvaluation && !isEvaluating && !stageTransition) {
-      void handleEvaluateModule();
+    if (isLessonCompleted && !currentEvaluation && !isExamModalOpen) {
+      // Abre o Chefão (Prova do Módulo) automaticamente ao concluir todas as fases de treino!
+      setIsExamModalOpen(true);
+      setMicrophoneEnabled(false);
+      realtimeRef.current?.setMicrophoneEnabled(false);
+      triggerGesture("thumbsup");
+      speak(
+        `Sensacional! Você concluiu todas as fases de treino do módulo! Agora vamos fechar com o Chefão! Mostre o que você aprendeu pro examinador!`
+      );
     }
-  }, [isLessonCompleted, currentEvaluation, isEvaluating, stageTransition, handleEvaluateModule]);
+  }, [isLessonCompleted, currentEvaluation, isExamModalOpen, activeModule, triggerGesture, speak]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -2525,6 +2516,22 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           onClose={() => setIsExamModalOpen(false)}
           onSuccessApproved={(evalItem) => {
             setCurrentEvaluation(evalItem);
+            fetch("/api/modules/progress", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                moduleId: selectedModuleId,
+                score: evalItem.overall_score,
+                completed: true
+              })
+            }).catch(() => {});
+          }}
+          onNextModule={(nextModId) => {
+            setIsExamModalOpen(false);
+            handleSelectModule(nextModId);
+            const nextMod = getModuleById(nextModId);
+            triggerGesture("thumbsup");
+            speak(`Sensacional! Você passou no Chefão e avançou para a etapa ${nextMod.cleanTitle || nextMod.title}!`);
           }}
         />
 

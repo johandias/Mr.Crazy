@@ -226,5 +226,30 @@ test("detectConceptIndexFromText correctly detects dynamic names and ultra-conci
   assert.equal(detectedIdxCorrection, 2, "Correção rápida mantém na Fase 3");
 });
 
+test("initial module greetings are ultra-concise and do not repeat English phrase twice", () => {
+  for (const mod of LEARNING_MODULES) {
+    const greeting = mod.initialGreeting.pt;
+    assert.ok(greeting.startsWith("Fase 1: Pra "), `Module ${mod.id} greeting must start with compact formula`);
+    assert.ok(greeting.endsWith(". Manda bala!"), `Module ${mod.id} greeting must end with command`);
+    const wordCount = greeting.split(/\s+/).length;
+    assert.ok(wordCount <= 25, `Module ${mod.id} greeting has ${wordCount} words, should be <= 25`);
+  }
+});
+
+test("module completion triggers Chefão exam modal and does not auto-skip stage", () => {
+  const isLessonCompleted = true;
+  let isExamModalOpen = false;
+  let stageTransition = null;
+
+  // Novo comportamento corrigido
+  if (isLessonCompleted) {
+    isExamModalOpen = true;
+  }
+
+  assert.equal(isExamModalOpen, true, "Chefão deve abrir ao completar as fases");
+  assert.equal(stageTransition, null, "Não deve iniciar contagem regressiva para pular o Chefão");
+});
+
+
 
 

@@ -160,7 +160,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Bora começar na vila inicial: Greetings & Introductions! Vamos treinar como dizer 'Olá! Bom dia'. Em inglês se fala 'Hello! Good morning', e a pronúncia soa como 'Rélou! Gúd mórnin'. Fala pra mim: 'Hello! Good morning'."
+      pt: "Fase 1: Pra dizer 'Olá! Bom dia', fala: 'Hello! Good morning' (Rélou! Gúd mórnin). Manda bala!"
     },
     promptContext: "MÓDULO ATIVO: Etapa 1. Greetings & Introductions (A1). FOCO ESTRITO: O aluno deve treinar saudações, apresentações, nome, origem e como responder cumprimentos. NUNCA fuja desse tema. Ensine a frase em português e forneça o modelo em inglês para o aluno praticar.",
     mapCoords: { xPct: 12.5, yPct: 58.3 }
@@ -261,7 +261,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Bem-vindo ao restaurante e café! Vamos treinar como pedir uma mesa para dois. Em inglês se fala 'A table for two, please', e a pronúncia soa como 'Â têibol fór tchú, pliz'. Fala pra mim: 'A table for two, please'."
+      pt: "Fase 1: Pra pedir uma mesa pra dois, fala: 'A table for two, please' (Â têibol fór tchú, pliz). Manda bala!"
     },
     promptContext: "MÓDULO ATIVO: Etapa 2. Restaurant & Café (A2). FOCO ESTRITO: O aluno deve treinar pedidos de comida, mesa, bebidas e a conta. Simule o atendimento do garçom americano de forma didática.",
     mapCoords: { xPct: 25.5, yPct: 34.5 }
@@ -362,7 +362,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Chegamos às compras no centro comercial! Vamos treinar como perguntar quanto custa algo. Em inglês se fala 'How much is this?', e a pronúncia soa como 'Ráu mãtchi iz diz?'. Fala pra mim: 'How much is this?'."
+      pt: "Fase 1: Pra perguntar quanto custa, fala: 'How much is this?' (Ráu mãtchi iz diz?). Manda bala!"
     },
     promptContext: "MÓDULO ATIVO: Etapa 3. Shopping & Daily Life (A2-B1). FOCO ESTRITO: Treinar compras, preços, tamanhos, provador e pagamento em inglês.",
     mapCoords: { xPct: 38.5, yPct: 60.5 }
@@ -463,7 +463,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Desembarcamos no aeroporto internacional! Vamos treinar como responder ao oficial de imigração. Em inglês se fala 'I'm here on vacation for ten days', e a pronúncia soa como 'Áim ríer ón veiquêichon fór tén dêiz'. Fala pra mim: 'I'm here on vacation for ten days'."
+      pt: "Fase 1: Pra dizer que tá de férias, fala: 'I'm here on vacation for ten days' (Áim ríer ón veiquêichon fór tén dêiz). Manda bala!"
     },
     promptContext: "MÓDULO ATIVO: Etapa 4. Travel & Airport (B1). FOCO ESTRITO: Treinar imigração, aeroporto, táxi e check-in no hotel em inglês.",
     mapCoords: { xPct: 52.1, yPct: 32 }
@@ -564,7 +564,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Chegamos ao escritório moderno! Vamos treinar como contar o que você fez no fim de semana. Em inglês se fala 'Last weekend I went out with friends', e a pronúncia soa como 'Lést uíki-end ái uênt áut uíd frêndz'. Fala pra mim: 'Last weekend I went out with friends'."
+      pt: "Fase 1: Pra falar do fim de semana, fala: 'Last weekend I went out with friends' (Lést uíki-end ái uênt áut uíd frêndz). Manda bala!"
     },
     promptContext: "MÓDULO ATIVO: Etapa 5. Intermediate Conversations (B1-B2). FOCO ESTRITO: Treinar narração no passado, dar opiniões, falar de trabalho e rotina.",
     mapCoords: { xPct: 64.6, yPct: 60.5 }
@@ -665,7 +665,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Entramos na sala executiva de alto nível! Vamos treinar seu pitch profissional. Em inglês se fala 'I specialize in operations and team leadership', e a pronúncia soa como 'Ái spéchialáiz in ópêrêichonz ênd tím lídership'. Fala pra mim: 'I specialize in operations and team leadership'."
+      pt: "Fase 1: Pra falar da sua liderança, fala: 'I specialize in operations and team leadership' (Ái spéchialáiz in ópêrêichonz ênd tím lídership). Manda bala!"
     },
     promptContext: "MÓDULO ATIVO: Etapa 6. Advanced Communication (B2-C1). FOCO ESTRITO: Treinar entrevistas avançadas, argumentação executiva, debates e precisão em inglês.",
     mapCoords: { xPct: 76.4, yPct: 34 }
@@ -766,7 +766,7 @@ export const LEARNING_MODULES: LearningModule[] = [
       minTurns: 4
     },
     initialGreeting: {
-      pt: "Você alcançou a Fortaleza Dourada do Mr. Crazy! Vamos afiar seus reflexos rápidos de improviso. Em inglês se fala 'That's an interesting point to think about', e a pronúncia soa como 'Déts én íntrêstin póint tchú tink âbáut'. Fala pra mim: 'That's an interesting point to think about'.",
+      pt: "Fase 1: Pra comentar um ponto interessante, fala: 'That's an interesting point to think about' (Déts én íntrêstin póint tchú tink âbáut). Manda bala!",
       en: "Welcome to the Citadel! You've traversed the entire map. Are you ready to prove your fluency once and for all?"
     },
     promptContext: "MÓDULO ATIVO: Etapa 7. Final Challenge (C1 Boss Challenge). FOCO ESTRITO: O teste supremo de fluência. Fale em inglês americano autêntico, desafiador, espirituoso e veloz. Teste o aluno em vocabulário, ritmo e respostas rápidas. Acolha com orgulho quando ele demonstrar domínio!",

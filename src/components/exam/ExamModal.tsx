@@ -17,7 +17,7 @@ import {
   HelpCircle,
   Flame
 } from "lucide-react";
-import { getModuleById, type ExamNpcConfig } from "@/lib/modules";
+import { getModuleById, MODULES, type ExamNpcConfig } from "@/lib/modules";
 import { PixelNpcCharacter, type NpcExpression } from "@/components/map/PixelNpcCharacter";
 import type { ModuleEvaluationItem } from "@/components/ModuleSelector";
 
@@ -32,6 +32,7 @@ interface ExamModalProps {
   moduleId: string;
   onClose: () => void;
   onSuccessApproved?: (evaluation: ModuleEvaluationItem) => void;
+  onNextModule?: (nextModuleId: string) => void;
 }
 
 // Detecção heurística instantânea de português ou fala confusa
@@ -50,10 +51,13 @@ export function ExamModal({
   isOpen,
   moduleId,
   onClose,
-  onSuccessApproved
+  onSuccessApproved,
+  onNextModule
 }: ExamModalProps) {
   const currentModule = getModuleById(moduleId);
   const examNpc: ExamNpcConfig = currentModule.examNpc;
+  const currentIdx = MODULES.findIndex((m) => m.id === moduleId);
+  const nextModule = currentIdx >= 0 && currentIdx < MODULES.length - 1 ? MODULES[currentIdx + 1] : null;
 
   const [dialogue, setDialogue] = useState<ExamTurn[]>([]);
   const [npcExpression, setNpcExpression] = useState<NpcExpression>("neutral");
@@ -173,10 +177,44 @@ export function ExamModal({
         return;
       }
 
-      // 3. Usuário falou em inglês: NPC responde no contexto do papel
+      // 3. Usuário falou em inglês: Obtém resposta dinâmica do examinador
       setNpcExpression("listening");
 
-      // Gerador dinâmico de resposta contextual do NPC
+      try {
+        const replyRes = await fetch("/api/exam/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            moduleId,
+            userMessage: cleanInput,
+            dialogue: [...dialogue, { role: "user", text: cleanInput }],
+            confusionCount
+          })
+        });
+
+        if (replyRes.ok) {
+          const replyData = await replyRes.json();
+          if (replyData.ok && replyData.reply) {
+            const isConfused = Boolean(replyData.isConfusion);
+            if (isConfused) {
+              setNpcExpression("confused");
+              setConfusionCount((prev) => prev + 1);
+            } else {
+              setNpcExpression("pleased");
+            }
+            setDialogue((prev) => [
+              ...prev,
+              { role: "npc", text: replyData.reply, isConfusion: isConfused }
+            ]);
+            speakNpc(replyData.reply, isConfused ? "confused" : "pleased");
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to get exam reply from API, using fallback:", err);
+      }
+
+      // Fallback determinístico caso a API falhe
       setTimeout(() => {
         let npcReply = "";
         const lower = cleanInput.toLowerCase();
@@ -195,9 +233,9 @@ export function ExamModal({
           if (lower.includes("brazil") || lower.includes("name is") || lower.includes("i'm")) {
             npcReply = "Oh, wonderful to meet you! Brazil is beautiful. Have you been living in this neighborhood long, or did you just move in?";
           } else if (lower.includes("how are you") || lower.includes("good morning") || lower.includes("fine")) {
-            npcReply = "I'm doing really well, thank you for asking! Let me know if you need any recommendations for the best spots around town.";
+            npcReply = "I'm doing really well, thank you for asking! What do you like to do around here?";
           } else {
-            npcReply = "That's very interesting! It's always great having friendly neighbors around. Have a fantastic day ahead!";
+            npcReply = "That's very interesting! It's always great having friendly neighbors around. You can finalize your exam when ready!";
           }
         } else if (examNpc.avatarType === "cashier") {
           if (lower.includes("how much") || lower.includes("price") || lower.includes("cost")) {
@@ -216,14 +254,14 @@ export function ExamModal({
             npcReply = "Please place your luggage on the scale and keep your passport open to the photo page.";
           }
         } else {
-          npcReply = "Understood. That makes complete sense from your perspective. Could you elaborate on how you plan to execute that?";
+          npcReply = "Understood. That makes complete sense. Could you share what your primary goal is with your English studies?";
         }
 
         setDialogue((prev) => [...prev, { role: "npc", text: npcReply }]);
         speakNpc(npcReply, "pleased");
       }, 700);
     },
-    [isEvaluating, examNpc, speakNpc]
+    [isEvaluating, moduleId, dialogue, confusionCount, examNpc, speakNpc]
   );
 
   // Inicia / para gravação de voz
@@ -505,6 +543,27 @@ export function ExamModal({
 
             {/* Input e Controles de Fala */}
             <div className="exam-input-dock">
+              {turnCount >= examNpc.minTurns && !evaluationResult && (
+                <div
+                  className="exam-ready-banner animate-fade-in"
+                  style={{
+                    padding: "6px 12px",
+                    background: "rgba(16, 185, 129, 0.15)",
+                    border: "1px solid rgba(16, 185, 129, 0.4)",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "#34d399",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginBottom: "8px"
+                  }}
+                >
+                  <CheckCircle2 size={14} />
+                  <span>Você respondeu às perguntas do examinador! Clique em <strong>Finalizar Prova</strong> para receber sua nota e resumo.</span>
+                </div>
+              )}
+
               {transcript && (
                 <div className="exam-transcript-preview">
                   <span className="transcript-label">Detectando fala:</span>
@@ -615,7 +674,7 @@ export function ExamModal({
               <div className="result-points-grid">
                 {evaluationResult.strengths.length > 0 && (
                   <div className="result-points-card strengths-card">
-                    <span className="card-title">Pontos Fortes:</span>
+                    <span className="card-title">✅ Resumo do que você acertou (Pontos Fortes):</span>
                     <ul>
                       {evaluationResult.strengths.map((str, i) => (
                         <li key={`str-${i}`}>{str}</li>
@@ -625,7 +684,7 @@ export function ExamModal({
                 )}
                 {evaluationResult.improvement_areas.length > 0 && (
                   <div className="result-points-card areas-card">
-                    <span className="card-title">O que melhorar:</span>
+                    <span className="card-title">⚠️ O que você errou / Pontos para melhorar:</span>
                     <ul>
                       {evaluationResult.improvement_areas.map((area, i) => (
                         <li key={`area-${i}`}>{area}</li>
@@ -663,14 +722,33 @@ export function ExamModal({
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    className="result-success-btn"
-                    onClick={onClose}
-                  >
-                    <span>Avançar no Mapa de Aprendizado</span>
-                    <ArrowRight size={18} />
-                  </button>
+                  <>
+                    {nextModule ? (
+                      <button
+                        type="button"
+                        className="result-success-btn"
+                        onClick={() => {
+                          if (onNextModule) {
+                            onNextModule(nextModule.id);
+                          } else {
+                            onClose();
+                          }
+                        }}
+                      >
+                        <span>Avançar para Próxima Etapa: {nextModule.cleanTitle || nextModule.title}</span>
+                        <ArrowRight size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="result-success-btn"
+                        onClick={onClose}
+                      >
+                        <span>Parabéns! Você Concluiu Todo o Treinamento!</span>
+                        <Award size={18} />
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
