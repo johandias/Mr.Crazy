@@ -2400,7 +2400,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 emotion={emotion}
                 voiceState={voiceState}
                 gesture={activeGesture}
-                isAwake={isCharacterAwake}
+                // No front principal, o professor precisa estar visível antes da primeira fala.
+                // A cena da rede fica reservada para a tela de entrada/interação inicial.
+                isAwake={isCharacterAwake || (!isPracticeIntro && !isSelectingModule)}
                 onAwaken={() => setIsCharacterAwake(true)}
                 onTap={handleAvatarTap}
               />
