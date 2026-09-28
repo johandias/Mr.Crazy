@@ -2874,15 +2874,21 @@ meter {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #64748b;
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.7);
   transition: all 0.2s ease;
 }
 
 .voice-action-text {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #fca5a5;
   letter-spacing: 0.1px;
+}
+
+.voice-action-badge:not(.is-active):not(.is-speaking):not(.is-connecting) {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(26, 17, 24, 0.9);
 }
 
 .voice-action-badge.is-active .voice-action-indicator-dot {
@@ -2944,81 +2950,90 @@ meter {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.22);
 }
 
-/* ——— Modo Segura-Solta: dock horizontal 3 zonas ——— */
+/* ——— Modo Hold to Talk: dock horizontal elevado e com alta representatividade ——— */
 .ptt-dock-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  max-width: 360px;
-  padding: 8px 12px;
-  background: rgba(13, 17, 26, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 20px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  max-width: 380px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 41, 59, 0.88) 100%);
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-radius: 22px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55), 0 0 20px rgba(245, 158, 11, 0.12);
+  transform: translateY(-8px);
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 
-/* Botão de segurar — esquerda */
+/* Botão de segurar (Hold to Talk) — esquerda com alto destaque */
 .ptt-dock-hold-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 13px;
-  font-size: 0.75rem;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  min-height: 46px;
+  border-radius: 14px;
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.15px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   user-select: none;
   touch-action: none;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   flex-shrink: 0;
   border: 1.5px solid transparent;
 }
 
 .ptt-dock-hold-btn.is-idle {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.38);
-  color: #fbbf24;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.12) 100%);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fef08a;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
 }
 
 .ptt-dock-hold-btn.is-idle:hover {
-  background: rgba(245, 158, 11, 0.22);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.32) 0%, rgba(217, 119, 6, 0.22) 100%);
   border-color: #f59e0b;
-  box-shadow: 0 3px 14px rgba(245, 158, 11, 0.3);
+  color: #ffffff;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
 }
 
 .ptt-dock-hold-btn.is-recording {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.7);
-  color: #fca5a5;
-  transform: scale(1.04);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.32) 0%, rgba(220, 38, 38, 0.22) 100%);
+  border-color: rgba(239, 68, 68, 0.85);
+  color: #ffffff;
+  transform: scale(1.05);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.7);
   animation: pttHoldPulse 0.85s ease-in-out infinite alternate;
 }
 
 .ptt-dock-hold-btn.is-cancelling {
-  background: rgba(127, 29, 29, 0.55);
+  background: rgba(127, 29, 29, 0.75);
   border-color: #f87171;
   color: #fecaca;
   transform: scale(0.96);
 }
 
 .ptt-dock-hold-btn.is-connecting {
-  background: rgba(14, 165, 233, 0.1);
+  background: rgba(14, 165, 233, 0.15);
   border-color: #38bdf8;
   color: #7dd3fc;
 }
 
 @keyframes pttHoldPulse {
   0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
-  100% { box-shadow: 0 0 22px rgba(239, 68, 68, 0.8); }
+  100% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.85); }
 }
 
 .ptt-dock-label {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -3072,7 +3087,7 @@ meter {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.45);
 }
 
-/* Segurar para falar (WhatsApp): Gradiente Carmesim vibrante */
+/* Hold to Talk: som captado enquanto segura */
 .dock-wave-bars.is-holding span {
   background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.55);
@@ -3084,7 +3099,7 @@ meter {
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
 }
 
-/* Indicador de Gravação Segura-Solta (WhatsApp) */
+/* Indicador de Gravação Hold to Talk */
 .ptt-recording-pill {
   display: inline-flex;
   align-items: center;
@@ -3095,6 +3110,7 @@ meter {
   border: 1px solid rgba(239, 68, 68, 0.5);
   box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
   margin-bottom: 2px;
+  transform: translateY(-8px);
   animation: pttPillPulse 1.2s ease-in-out infinite alternate;
 }
 
@@ -3272,19 +3288,19 @@ meter {
   100% { transform: scale(1.06); }
 }
 
-/* DESLIGADO (Inativo / Silenciado - Vidro Dark com Borda Vermelho Alerta) */
+/* DESLIGADO (Inativo / Silenciado - Vermelho Mute com Glow) */
 .avatar-mic-circle-btn.is-inactive {
-  background: linear-gradient(145deg, #1e293b, #0f172a);
-  border-color: rgba(239, 68, 68, 0.4);
+  background: radial-gradient(circle at 35% 30%, rgba(239, 68, 68, 0.25) 0%, #1f1418 65%, #0f172a 100%);
+  border-color: #ef4444;
   color: #ef4444;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), 0 4px 16px rgba(0, 0, 0, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.12);
 }
 
 .avatar-mic-circle-btn.is-inactive:hover {
-  background: linear-gradient(145deg, #334155, #1e293b);
-  border-color: #ef4444;
-  color: #f87171;
-  box-shadow: 0 0 18px rgba(239, 68, 68, 0.4);
+  background: radial-gradient(circle at 35% 30%, rgba(239, 68, 68, 0.38) 0%, #29161d 65%, #1e293b 100%);
+  border-color: #f87171;
+  color: #ffffff;
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.65), 0 4px 18px rgba(0, 0, 0, 0.7);
 }
 
 /* CONECTANDO (Cyan / Âmbar Giratório) */
@@ -3445,8 +3461,7 @@ meter {
   .clean-layout {
     width: 100%;
     min-height: 100dvh;
-    min-height: 100dvh;
-    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) calc(76px + max(14px, env(safe-area-inset-bottom))) max(14px, env(safe-area-inset-left));
+    padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) calc(24px + max(12px, env(safe-area-inset-bottom))) max(14px, env(safe-area-inset-left));
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -3512,6 +3527,21 @@ meter {
     height: 48px;
     min-width: 48px;
     min-height: 48px;
+  }
+
+  .clean-voice-dock.is-ptt-mode {
+    transform: translateY(-6px);
+  }
+
+  .ptt-dock-row {
+    transform: translateY(-8px);
+    max-width: 96%;
+    padding: 8px 12px;
+  }
+
+  .ptt-dock-hold-btn {
+    min-height: 44px;
+    padding: 8px 14px;
   }
 
   .pip-standalone-btn {

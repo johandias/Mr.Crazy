@@ -1224,7 +1224,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setRealtimeReply("");
     setRealtimeStatus("connecting");
     if (!isAutoConnect) setIsCharacterAwake(true);
-    setMicrophoneEnabled(!isAutoConnect);
+    setMicrophoneEnabled(false);
     setVoiceDiagnostics([]);
     setErrorMessage("");
     setVoiceState("preparing_speech");
@@ -1240,7 +1240,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       mode,
       moduleId,
       conceptIndex,
-      initialMicrophoneEnabled: !isAutoConnect,
+      initialMicrophoneEnabled: false,
       signal: abortController.signal,
       deviceId: inputDeviceRef.current,
       onInputLevel: (level) => {
@@ -1462,8 +1462,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       }
       realtimeRef.current = controller;
       setRealtimeStatus("connected");
-      setMicrophoneEnabled(true);
-      setVoiceState("listening");
+      controller.setMicrophoneEnabled(false);
+      setMicrophoneEnabled(false);
+      setVoiceState("idle");
       return controller;
     }).catch((err) => {
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
@@ -1641,7 +1642,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       const enabled = !microphoneEnabled;
       realtimeRef.current.setMicrophoneEnabled(enabled);
       setMicrophoneEnabled(enabled);
-      if (enabled) setIsCharacterAwake(true);
+      if (enabled) {
+        setIsCharacterAwake(true);
+        setVoiceState("listening");
+      } else {
+        setVoiceState("idle");
+      }
       return;
     }
     void connectSession();

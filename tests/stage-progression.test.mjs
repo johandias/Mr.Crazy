@@ -250,6 +250,21 @@ test("module completion triggers Chefão exam modal and does not auto-skip stage
   assert.equal(stageTransition, null, "Não deve iniciar contagem regressiva para pular o Chefão");
 });
 
+test("microphone starts in muted state (red) and mode is renamed to Hold to Talk", async () => {
+  const fs = await import("node:fs");
+  const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
+  const voiceControlCode = fs.readFileSync("src/components/VoiceInputControl.tsx", "utf-8");
+
+  // Verifica que o microfone inicia explicitamente mutado (vermelho)
+  assert.ok(practiceCode.includes("initialMicrophoneEnabled: false"), "connectRealtime deve receber initialMicrophoneEnabled: false");
+  assert.ok(practiceCode.includes("setMicrophoneEnabled(false)"), "setMicrophoneEnabled deve iniciar false");
+
+  // Verifica que não há referências a WhatsApp nos botões e abas de voz
+  assert.ok(!voiceControlCode.includes("Segurar (WhatsApp)"), "VoiceInputControl não deve conter Segurar (WhatsApp)");
+  assert.ok(voiceControlCode.includes("Hold to Talk"), "VoiceInputControl deve usar Hold to Talk");
+});
+
+
 
 
 

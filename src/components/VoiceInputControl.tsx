@@ -197,7 +197,7 @@ export function VoiceInputControl({
   ═══════════════════════════════════════════════════════════════ */
   if (isPtt) {
     return (
-      <section className="voice-input-control clean-voice-dock" aria-label="Controle de voz">
+      <section className="voice-input-control clean-voice-dock is-ptt-mode" aria-label="Controle de voz">
         {/* Seletor de Modo Compacto */}
         <div className="voice-mode-selector-pill">
           <button
@@ -212,8 +212,8 @@ export function VoiceInputControl({
             type="button"
             className="voice-mode-tab-btn is-active"
           >
-            <Hand size={12} />
-            <span>Segurar (WhatsApp)</span>
+            <Mic size={12} />
+            <span>Hold to Talk</span>
           </button>
         </div>
 
@@ -241,19 +241,19 @@ export function VoiceInputControl({
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
             onContextMenu={e => e.preventDefault()}
-            aria-label={isHolding ? "Gravando — solte para enviar" : "Segure para falar"}
+            aria-label={isHolding ? "Gravando — solte para enviar" : "Hold to Talk"}
           >
             {connecting ? (
-              <LoaderCircle size={18} className="connection-spinner" />
+              <LoaderCircle size={20} className="connection-spinner" />
             ) : isHolding ? (
-              <Radio size={18} />
+              <Radio size={20} />
             ) : (
-              <Hand size={18} />
+              <Mic size={20} />
             )}
             <span className="ptt-dock-label">
               {connecting ? "Conectando..." :
                isHolding ? (isCancelling ? "Cancelar" : "Gravando...") :
-               "Segure p/ Falar"}
+               "Hold to Talk"}
             </span>
           </button>
 
@@ -294,10 +294,10 @@ export function VoiceInputControl({
           type="button"
           className="voice-mode-tab-btn"
           onClick={() => onTalkModeChange?.("push-to-talk")}
-          title="Mudar para modo Segura-Solta (estilo WhatsApp)"
+          title="Mudar para modo Hold to Talk"
         >
-          <Hand size={12} />
-          <span>Segurar (WhatsApp)</span>
+          <Mic size={12} />
+          <span>Hold to Talk</span>
         </button>
       </div>
 
