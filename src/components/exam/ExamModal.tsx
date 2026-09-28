@@ -13,9 +13,7 @@ import {
   RotateCcw,
   Volume2,
   Award,
-  ArrowRight,
-  HelpCircle,
-  Flame
+  ArrowRight
 } from "lucide-react";
 import { getModuleById, MODULES, type ExamNpcConfig } from "@/lib/modules";
 import { PixelNpcCharacter, type NpcExpression } from "@/components/map/PixelNpcCharacter";

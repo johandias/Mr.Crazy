@@ -32,7 +32,7 @@ function getGeminiApiKey(): string | null {
   );
 }
 
-function getFallbackQuestion(examNpc: ExamNpcConfig, turnIndex: number, userLower: string): string {
+function getFallbackQuestion(examNpc: ExamNpcConfig, turnIndex: number): string {
   switch (examNpc.avatarType) {
     case "neighbor":
       if (turnIndex === 0) {
@@ -218,7 +218,7 @@ INSTRUCTIONS:
     }
 
     // Fallback inteligente determinístico por turno
-    const fallbackReply = getFallbackQuestion(examNpc, turnIndex, userMessage.toLowerCase());
+    const fallbackReply = getFallbackQuestion(examNpc, turnIndex);
     return NextResponse.json({
       ok: true,
       isConfusion: false,
