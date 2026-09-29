@@ -75,12 +75,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Checagem de aprovação do administrador
+    // 4. Checagem de ativação da conta
     if (user.status === "pending") {
       return NextResponse.json(
         {
-          error: "Sua conta está aguardando liberação do administrador para entrar.",
-          status: "pending"
+          error: "Sua conta ainda não foi ativada. Digite o código de 6 dígitos enviado para seu e-mail para validar seu acesso.",
+          status: "pending",
+          needsVerification: true,
+          email: user.email
         },
         { status: 403 }
       );

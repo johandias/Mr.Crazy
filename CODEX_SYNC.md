@@ -6,9 +6,9 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
-- **Último Commit Estável**: `ee9f9eb`
+- **Último Commit Estável**: `c4fa9f9`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 24 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`)
+- **Suíte de Testes**: 52 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/email-verification.test.mjs`)
 
 ---
 
@@ -130,7 +130,7 @@ Antes de qualquer push na `main`:
   3. **Polimento dos Cartoes e Enquadramento de Texto**: O badge de fase foi unificado em linha unica sem quebras deselegantes (concept-badge-header-row). O prompt do Gemini (/api/modules/lesson-target) e o limpador (lesson-target.ts) foram ajustados para entregar traducoes curtas e idiomaticas (2-6 palavras), eliminando explicacoes de dicionario como 'Usado para cumprimentar...'.
   4. **Todos os 42 testes passando com sucesso** (27 stage progression, 9 scoring, 6 realtime session).
 
-- **[Antigravity - 2026-09-29]**: Modo Conversa Beta: explicacao pedagogica em portugues para iniciantes e alternativas interativas de resposta:
+- **[Antigravity — 2026-09-29]**: Modo Conversa Beta: explicacao pedagogica em portugues para iniciantes e alternativas interativas de resposta:
   1. **Explicacao Pedagogica em Portugues (Iniciante vs Avancado)**:
      - Adicionado banner explicativo colapsavel (.beta-explainer-banner) explicando o funcionamento do modo livre, correcao instantanea e uso das alternativas rapidas.
      - Para iniciantes, o banner inicia expandido com badge 'Para iniciantes' e o Mr. Crazy faz abertura acolhedora em portugues contextualizando as situacoes do dia a dia.
@@ -142,6 +142,8 @@ Antes de qualquer push na `main`:
      - A mensagem enviada recebe badge visual de 'Alternativa rapida' (.beta-chosen-badge).
      - Fallback resiliente no backend (generateContextualOptions) garante que alternativas contextuais sempre estejam presentes para qualquer cenario (restaurante, trabalho, viagem, hobbies, rotina).
   3. **43 testes unitarios passando** (28 stage progression, 9 scoring, 6 realtime session).
+
+- **[Codex — 2026-09-29]**: Em andamento: correção da conexão WebRTC do microfone após a otimização de latência. Escopo isolado: ICE/SDP, fallback das rotas de sessão, retry sem travamento ao tocar no microfone, diagnóstico visível e testes de regressão. Mudanças paralelas em `src/lib/auth.ts`, `src/lib/email.ts` e `supabase/migrations/202609290001_email_verification_codes.sql` serão preservadas.
 
 - **[Antigravity — 2026-09-29]**: Otimizacao profunda de performance, audio WebRTC, latencia e enquadramento visual:
   1. **Enquadramento do Mr. Crazy**: Personagem ampliado e posicionado em primeiro plano sem margens pretas mortas. O SVG agora usa characterViewBox dinamico ("14 18 132 130" quando de pe ou pulando), proporcionando zoom frontal de 23% que elimina espacos vazios. Dimensoes no .clean-layout .clean-stage ajustadas para min(100%, clamp(220px, 46dvh, 380px)) com halo proporcional de iluminacao.
@@ -170,3 +172,20 @@ Antes de qualquer push na `main`:
      - Interface & Acessibilidade: Legendas em tempo real (escuta pura vs com texto), guia didático automático, feedback tátil (vibração) e modo econômico.
      - Conta & Sessão: Métricas, gerenciamento de acesso e reset de cache.
   3. **Integridade de Código e Testes**: Todos os 43 testes passando com sucesso.
+
+- **[Antigravity — 2026-09-29]**: Verificação de Conta por E-mail via Resend e Aprovação Dupla:
+  1. **Envio de Código e Link Transacional via Resend (`src/lib/email.ts`)**:
+     - Integração com a API REST do Resend (`https://api.resend.com/emails`) usando `RESEND_API_KEY` e `RESEND_FROM_EMAIL` (com fallback seguro e modo simulado para desenvolvimento local/testes).
+     - Template de e-mail de alta conversão com design escuro/ouro do Mr. Crazy, código de 6 dígitos em destaque e botão de ativação em 1 clique (`/verify?email=...&code=...`).
+  2. **Mecanismo de Aprovação Dupla Preservado (`src/lib/auth.ts`)**:
+     - O usuário pode ser ativado inserindo o código de 6 dígitos recebido por e-mail ou clicando no link direto.
+     - O administrador continua podendo aprovar ou rejeitar qualquer conta pendente diretamente no painel `/admin` (ambas as vias ativam o status para `"approved"`).
+     - Adicionada rota de reenvio de código (`/api/auth/resend-code`) com novo código e expiração de 24h.
+  3. **Comunicação 100% Voltada ao Aluno (Zero Menção a Admin)**:
+     - As telas de cadastro, login e o formulário (`LoginForm.tsx` e rotas de API) orientam o aluno exclusivamente sobre o código de 6 dígitos e link de validação enviados para o seu e-mail.
+     - Removida qualquer menção a "aguardando aprovação do administrador" na visão do estudante.
+     - Nova tela de validação em 1 clique (`src/app/verify/page.tsx`) com animações de carregamento, feedback de sucesso e redirecionamento direto para a prática.
+  4. **Migration e Testes**:
+     - Criada migration `supabase/migrations/202609290001_email_verification_codes.sql`.
+     - Criada suíte dedicada de 9 testes em `tests/email-verification.test.mjs`.
+     - **Todos os 52 testes da suíte completa passando sem falhas (28 + 9 + 6 + 9).**

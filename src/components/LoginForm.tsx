@@ -2,12 +2,22 @@
 
 import { type FormEvent, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, LockKeyhole, UserPlus, LogIn, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  LockKeyhole,
+  UserPlus,
+  LogIn,
+  AlertCircle,
+  CheckCircle2,
+  MailCheck,
+  RefreshCw,
+  KeyRound
+} from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<"login" | "register">("login");
+  const [tab, setTab] = useState<"login" | "register" | "verify">("login");
 
   // Form states
   const [email, setEmail] = useState("");
@@ -15,23 +25,40 @@ export function LoginForm() {
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("masculino");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [isPending, setIsPending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("pending") === "1") {
-      setIsPending(true);
-      setErrorMessage("Conta cadastrada com sucesso! Esperando liberação do administrador para entrar.");
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
+      setVerificationEmail(emailParam);
+    }
+
+    if (searchParams.get("verify") === "1" || searchParams.get("pending") === "1") {
+      setTab("verify");
+      if (emailParam) setVerificationEmail(emailParam);
+      setSuccessMessage(
+        "Enviamos um código de 6 dígitos e um link de confirmação para seu e-mail. Digite o código para validar sua conta."
+      );
+    } else if (searchParams.get("verifyError") === "invalid") {
+      setTab("verify");
+      if (emailParam) setVerificationEmail(emailParam);
+      setErrorMessage("O link ou código de confirmação expirou ou é inválido. Digite o código ou solicite um novo.");
+    } else if (searchParams.get("verifyError") === "missing") {
+      setTab("verify");
+      setErrorMessage("Link de validação incompleto. Informe seu e-mail e o código de 6 dígitos.");
     } else if (searchParams.get("rejected") === "1") {
-      setIsPending(false);
       setErrorMessage("Seu acesso foi suspenso ou recusado pelo administrador.");
     } else if (searchParams.get("switch") === "1") {
-      setIsPending(false);
       setSuccessMessage("Sessão anterior finalizada. Digite as credenciais da sua outra conta para entrar.");
     } else if (searchParams.get("reset") === "1") {
-      setIsPending(false);
       setSuccessMessage("Você saiu da sua conta com sucesso.");
     }
   }, [searchParams]);
@@ -40,6 +67,7 @@ export function LoginForm() {
     event.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
+    setResendStatus("");
     setIsSubmitting(true);
 
     try {
@@ -52,14 +80,20 @@ export function LoginForm() {
         error: string;
         redirectTo: string;
         status: string;
+        needsVerification: boolean;
+        email: string;
       }>;
 
       if (!response.ok) {
-        if (result.status === "pending") {
-          setIsPending(true);
-          throw new Error("Sua conta foi criada e está esperando liberação do administrador para usar o sistema.");
+        if (result.status === "pending" || result.needsVerification) {
+          const targetEmail = result.email || email;
+          setVerificationEmail(targetEmail);
+          setTab("verify");
+          setSuccessMessage(
+            "Sua conta ainda não foi ativada. Digite o código de 6 dígitos enviado para seu e-mail para validar."
+          );
+          return;
         }
-        setIsPending(false);
         throw new Error(result.error ?? "E-mail ou senha inválidos.");
       }
 
@@ -76,6 +110,7 @@ export function LoginForm() {
     event.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
+    setResendStatus("");
     setIsSubmitting(true);
 
     try {
@@ -88,31 +123,117 @@ export function LoginForm() {
         error: string;
         message: string;
         status: string;
+        needsVerification: boolean;
+        email: string;
         redirectTo: string;
       }>;
 
       if (!response.ok) {
-        setIsPending(false);
         throw new Error(result.error ?? "Erro ao criar conta.");
       }
 
-      if (result.status === "pending") {
-        setIsPending(true);
-        setErrorMessage("Conta cadastrada com sucesso! Esperando liberação do administrador para entrar.");
-        setTab("login");
+      if (result.status === "pending" || result.needsVerification) {
+        const targetEmail = result.email || email;
+        setVerificationEmail(targetEmail);
+        setTab("verify");
         setPassword("");
+        setSuccessMessage(
+          result.message ||
+            "Conta criada com sucesso! Enviamos um código de 6 dígitos e um link de confirmação para seu e-mail. Digite o código para validar sua conta."
+        );
         return;
       }
 
-      setSuccessMessage(
-        result.message ?? "Conta criada com sucesso! Redirecionando..."
-      );
+      setSuccessMessage(result.message ?? "Conta criada com sucesso! Redirecionando...");
       router.replace(result.redirectTo ?? "/practice");
       router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Erro ao cadastrar.");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleVerify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    setResendStatus("");
+    setIsSubmitting(true);
+
+    const targetEmail = (verificationEmail || email).trim().toLowerCase();
+    const targetCode = verificationCode.trim();
+
+    if (!targetEmail) {
+      setErrorMessage("Informe o e-mail associado à conta.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!targetCode || targetCode.length < 6) {
+      setErrorMessage("Digite o código de 6 dígitos completo enviado para seu e-mail.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail, code: targetCode })
+      });
+
+      const result = (await response.json()) as Partial<{
+        error: string;
+        message: string;
+        redirectTo: string;
+      }>;
+
+      if (!response.ok) {
+        throw new Error(result.error ?? "Código de confirmação incorreto ou expirado.");
+      }
+
+      setSuccessMessage(result.message ?? "Conta confirmada com sucesso! Redirecionando...");
+      setTimeout(() => {
+        router.replace(searchParams.get("next") ?? result.redirectTo ?? "/practice");
+        router.refresh();
+      }, 800);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Erro ao validar o código.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendCode() {
+    const targetEmail = (verificationEmail || email).trim().toLowerCase();
+    if (!targetEmail) {
+      setErrorMessage("Informe seu e-mail para receber um novo código.");
+      return;
+    }
+
+    setIsResending(true);
+    setResendStatus("");
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/auth/resend-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail })
+      });
+
+      const data = (await response.json()) as Partial<{ error: string; message: string }>;
+
+      if (!response.ok) {
+        throw new Error(data.error || "Não foi possível reenviar o código.");
+      }
+
+      setResendStatus(data.message || "Novo código enviado com sucesso para seu e-mail!");
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Erro ao reenviar código.");
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -124,6 +245,8 @@ export function LoginForm() {
           onClick={() => {
             setTab("login");
             setErrorMessage("");
+            setSuccessMessage("");
+            setResendStatus("");
           }}
           type="button"
         >
@@ -135,12 +258,20 @@ export function LoginForm() {
           onClick={() => {
             setTab("register");
             setErrorMessage("");
+            setSuccessMessage("");
+            setResendStatus("");
           }}
           type="button"
         >
           <UserPlus size={16} />
           Criar Conta
         </button>
+        {tab === "verify" && (
+          <button className="auth-tab-btn active" type="button">
+            <MailCheck size={16} />
+            Validar E-mail
+          </button>
+        )}
       </div>
 
       {successMessage ? (
@@ -150,26 +281,21 @@ export function LoginForm() {
         </div>
       ) : null}
 
-      {errorMessage ? (
-        <div className={`auth-notice ${isPending ? "pending-notice" : "error-notice"}`}>
-          {isPending ? (
-            <>
-              <Clock size={22} />
-              <div>
-                <strong>Esperando Liberação do Administrador</strong>
-                <p>{errorMessage}</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <AlertCircle size={18} />
-              <span>{errorMessage}</span>
-            </>
-          )}
+      {resendStatus ? (
+        <div className="auth-notice success-notice">
+          <MailCheck size={18} />
+          <span>{resendStatus}</span>
         </div>
       ) : null}
 
-      {tab === "login" ? (
+      {errorMessage ? (
+        <div className="auth-notice error-notice">
+          <AlertCircle size={18} />
+          <span>{errorMessage}</span>
+        </div>
+      ) : null}
+
+      {tab === "login" && (
         <form className="login-form" onSubmit={handleLogin}>
           <label>
             E-mail ou Usuário
@@ -201,7 +327,9 @@ export function LoginForm() {
             <ArrowRight size={18} />
           </button>
         </form>
-      ) : (
+      )}
+
+      {tab === "register" && (
         <form className="login-form" onSubmit={handleRegister}>
           <label>
             Seu E-mail
@@ -268,13 +396,133 @@ export function LoginForm() {
           </div>
 
           <p className="auth-helper-text">
-            ℹ️ O Mr.Crazy é restrito. Ao criar sua conta, ela será submetida para aprovação do administrador antes do primeiro acesso.
+            🔒 Ao cadastrar, enviaremos um código de 6 dígitos e um link para o seu e-mail para validar seu acesso instantaneamente.
           </p>
           <button className="primary-link" disabled={isSubmitting} type="submit">
             <UserPlus size={18} />
-            {isSubmitting ? "Criando solicitação..." : "Solicitar Acesso"}
+            {isSubmitting ? "Criando conta..." : "Criar Conta & Receber Código"}
             <ArrowRight size={18} />
           </button>
+        </form>
+      )}
+
+      {tab === "verify" && (
+        <form className="login-form auth-verify-form" onSubmit={handleVerify}>
+          <div className="auth-verify-header" style={{ textAlign: "center", marginBottom: 16 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                backgroundColor: "rgba(245, 158, 11, 0.15)",
+                border: "1px solid rgba(245, 158, 11, 0.4)",
+                color: "#f59e0b",
+                marginBottom: 10
+              }}
+            >
+              <KeyRound size={24} />
+            </div>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 6px 0", color: "#f8fafc" }}>
+              Código de Ativação
+            </h3>
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "#94a3b8", lineHeight: 1.4 }}>
+              Enviamos um código de 6 dígitos e um link para{" "}
+              <strong style={{ color: "#f59e0b" }}>{verificationEmail || email}</strong>.
+            </p>
+          </div>
+
+          <label>
+            E-mail cadastrado
+            <input
+              autoComplete="email"
+              inputMode="email"
+              onChange={(e) => setVerificationEmail(e.target.value)}
+              placeholder="seu-email@exemplo.com"
+              required
+              type="email"
+              value={verificationEmail || email}
+            />
+          </label>
+
+          <label>
+            Código de 6 dígitos
+            <input
+              autoComplete="one-time-code"
+              autoFocus
+              inputMode="numeric"
+              maxLength={6}
+              onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="123456"
+              required
+              style={{
+                textAlign: "center",
+                fontSize: "1.5rem",
+                letterSpacing: "8px",
+                fontWeight: 800,
+                fontFamily: "monospace"
+              }}
+              type="text"
+              value={verificationCode}
+            />
+          </label>
+
+          <button className="primary-link" disabled={isSubmitting} type="submit">
+            <MailCheck size={18} />
+            {isSubmitting ? "Validando..." : "Validar Código & Entrar"}
+            <ArrowRight size={18} />
+          </button>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 14,
+              fontSize: "0.85rem"
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={isResending}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#f59e0b",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                cursor: isResending ? "not-allowed" : "pointer",
+                padding: "6px 0",
+                textDecoration: "underline"
+              }}
+            >
+              <RefreshCw size={14} className={isResending ? "animate-spin" : ""} />
+              {isResending ? "Enviando..." : "Reenviar código por e-mail"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTab("login");
+                setErrorMessage("");
+                setSuccessMessage("");
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#94a3b8",
+                cursor: "pointer",
+                padding: "6px 0",
+                textDecoration: "underline"
+              }}
+            >
+              Voltar ao login
+            </button>
+          </div>
         </form>
       )}
     </div>

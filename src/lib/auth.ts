@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
-import { supabaseAdmin, isSupabaseConfigured } from "./supabase";
+import { supabaseAdmin, isSupabaseConfigured } from "./supabase.ts";
 
 export const AUTH_COOKIE_NAME = "mr_crazy_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 dias
@@ -32,6 +32,8 @@ export interface UserProfile {
   last_practice_date?: string;
   created_at: string;
   password_hash?: string;
+  verification_code?: string;
+  verification_expires_at?: string;
 
   // Enriched
   computedLevel?: string;
@@ -237,12 +239,19 @@ export async function registerNewUser(
   nickname?: string,
   age?: number,
   gender: UserGender = "prefiro_nao_dizer"
-): Promise<{ user: UserProfile; isPending: boolean }> {
+): Promise<{ user: UserProfile; isPending: boolean; verificationCode?: string }> {
   const cleanEmail = email.toLowerCase().trim();
   const isAdmin = cleanEmail === ADMIN_EMAIL;
   const status = isAdmin ? "approved" : "pending";
   const role = isAdmin ? "admin" : "student";
   const passwordHash = hashPassword(plainPassword);
+
+  const verificationCode = !isAdmin
+    ? Math.floor(100000 + Math.random() * 900000).toString()
+    : undefined;
+  const verificationExpiresAt = !isAdmin
+    ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    : undefined;
 
   const defaultProfile: UserProfile = {
     id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -261,7 +270,9 @@ export async function registerNewUser(
     evolution_score: 0,
     xp: 0,
     streak_days: 1,
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    verification_code: verificationCode,
+    verification_expires_at: verificationExpiresAt
   };
 
   if (isSupabaseConfigured) {
@@ -280,6 +291,11 @@ export async function registerNewUser(
         onboarding_completed: isAdmin
       };
 
+      if (verificationCode) {
+        insertPayload.verification_code = verificationCode;
+        insertPayload.verification_expires_at = verificationExpiresAt;
+      }
+
       if (defaultProfile.age) {
         insertPayload.age = defaultProfile.age;
       }
@@ -292,9 +308,9 @@ export async function registerNewUser(
 
       if (error) {
         console.error("[Supabase registerNewUser error]:", error.message, error.details || "", error.hint || "");
-        // Se falhou por causa da coluna nova ainda não criada no DB, tenta inserir sem as colunas novas
+        // Se falhou por causa da coluna nova ainda não criada no DB remoto, tenta inserir sem as colunas novas
         if (error.message.includes("column") || error.code === "42703") {
-          const fallbackPayload = {
+          const fallbackPayload: Record<string, unknown> = {
             email: cleanEmail,
             password_hash: passwordHash,
             role,
@@ -306,16 +322,35 @@ export async function registerNewUser(
             learning_style: defaultProfile.learning_style,
             main_difficulties: defaultProfile.main_difficulties
           };
+          if (defaultProfile.age) {
+            fallbackPayload.age = defaultProfile.age;
+          }
           const retryRes = await supabaseAdmin.from("mrcrazy_users").insert(fallbackPayload).select().single();
           if (retryRes.data) {
-            return { user: retryRes.data as UserProfile, isPending: status === "pending" };
+            const savedUser = {
+              ...(retryRes.data as UserProfile),
+              verification_code: verificationCode,
+              verification_expires_at: verificationExpiresAt
+            };
+            memoryUsers.set(cleanEmail, {
+              ...savedUser,
+              password_hash: passwordHash
+            });
+            return { user: savedUser, isPending: status === "pending", verificationCode };
           }
         }
         if (error.code === "23505") {
           throw new Error("Já existe uma conta cadastrada com este e-mail no banco de dados.");
         }
       } else if (data) {
-        return { user: data as UserProfile, isPending: status === "pending" };
+        const savedUser = data as UserProfile;
+        memoryUsers.set(cleanEmail, {
+          ...savedUser,
+          verification_code: savedUser.verification_code || verificationCode,
+          verification_expires_at: savedUser.verification_expires_at || verificationExpiresAt,
+          password_hash: passwordHash
+        });
+        return { user: savedUser, isPending: status === "pending", verificationCode };
       }
     } catch (err) {
       console.error("[Supabase registerNewUser exception]:", err);
@@ -332,7 +367,120 @@ export async function registerNewUser(
     password_hash: passwordHash
   });
 
-  return { user: defaultProfile, isPending: status === "pending" };
+  return { user: defaultProfile, isPending: status === "pending", verificationCode };
+}
+
+export async function verifyUserEmailCode(
+  email: string,
+  code: string
+): Promise<{ success: boolean; error?: string; user?: UserProfile; alreadyApproved?: boolean }> {
+  const cleanEmail = email.toLowerCase().trim();
+  const cleanCode = code.trim();
+
+  if (!cleanEmail || !cleanCode) {
+    return { success: false, error: "E-mail e código de verificação são obrigatórios." };
+  }
+
+  const user = await findUserByEmail(cleanEmail);
+  if (!user) {
+    return { success: false, error: "Nenhuma conta encontrada com este e-mail." };
+  }
+
+  // Se já foi aprovado anteriormente (por código ou pelo administrador)
+  if (user.status === "approved") {
+    return { success: true, user, alreadyApproved: true };
+  }
+
+  if (user.status === "rejected") {
+    return { success: false, error: "Esta conta foi suspensa ou desativada." };
+  }
+
+  const memUser = memoryUsers.get(cleanEmail);
+  const expectedCode = user.verification_code || memUser?.verification_code;
+
+  if (!expectedCode || expectedCode !== cleanCode) {
+    return { success: false, error: "Código de confirmação incorreto ou expirado. Verifique seu e-mail." };
+  }
+
+  const expiresAt = user.verification_expires_at || memUser?.verification_expires_at;
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+    return { success: false, error: "Este código expirou. Clique em 'Reenviar código' para receber um novo." };
+  }
+
+  const approvedNow = new Date().toISOString();
+
+  if (isSupabaseConfigured) {
+    try {
+      await supabaseAdmin
+        .from("mrcrazy_users")
+        .update({
+          status: "approved",
+          approved_at: approvedNow,
+          verification_code: null,
+          verification_expires_at: null,
+          updated_at: approvedNow
+        })
+        .eq("email", cleanEmail);
+    } catch (err) {
+      console.error("[Supabase verifyUserEmailCode update error]:", err);
+    }
+  }
+
+  if (memUser) {
+    memUser.status = "approved";
+    memUser.verification_code = undefined;
+    memUser.verification_expires_at = undefined;
+  }
+
+  user.status = "approved";
+  user.verification_code = undefined;
+  user.verification_expires_at = undefined;
+
+  return { success: true, user };
+}
+
+export async function regenerateVerificationCode(
+  email: string
+): Promise<{ success: boolean; code?: string; error?: string; user?: UserProfile }> {
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await findUserByEmail(cleanEmail);
+
+  if (!user) {
+    return { success: false, error: "Nenhuma conta encontrada com este e-mail." };
+  }
+
+  if (user.status === "approved") {
+    return { success: false, error: "Esta conta já foi ativada. Você já pode fazer login." };
+  }
+
+  const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  if (isSupabaseConfigured) {
+    try {
+      await supabaseAdmin
+        .from("mrcrazy_users")
+        .update({
+          verification_code: newCode,
+          verification_expires_at: expiresAt,
+          updated_at: new Date().toISOString()
+        })
+        .eq("email", cleanEmail);
+    } catch (err) {
+      console.error("[Supabase regenerateVerificationCode error]:", err);
+    }
+  }
+
+  const memUser = memoryUsers.get(cleanEmail);
+  if (memUser) {
+    memUser.verification_code = newCode;
+    memUser.verification_expires_at = expiresAt;
+  }
+
+  user.verification_code = newCode;
+  user.verification_expires_at = expiresAt;
+
+  return { success: true, code: newCode, user };
 }
 
 export async function listAllUsers(): Promise<UserProfile[]> {

@@ -146,6 +146,8 @@ export function VoiceInputControl({
   onHoldCancel,
   meterRef,
   audioMetricsRef,
+  error,
+  onReconnect,
 }: Props) {
   const connecting = status === "connecting";
   const isConnected = status === "connected";
@@ -284,8 +286,15 @@ export function VoiceInputControl({
                isHolding ? "Ouvindo você..." :
                "Segure e fale a frase"}
             </span>
-          </div>
         </div>
+          </div>
+
+        {error ? (
+          <div className="avatar-mic-error-box" role="alert">
+            <p className="avatar-mic-error">{error}</p>
+            {onReconnect ? <button type="button" className="retry-connection-btn" onClick={onReconnect}>Reconectar microfone</button> : null}
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -389,6 +398,13 @@ export function VoiceInputControl({
            "Toque no microfone para falar"}
         </span>
       </div>
+
+      {error ? (
+        <div className="avatar-mic-error-box" role="alert">
+          <p className="avatar-mic-error">{error}</p>
+          {onReconnect ? <button type="button" className="retry-connection-btn" onClick={onReconnect}>Reconectar microfone</button> : null}
+        </div>
+      ) : null}
     </section>
   );
 }

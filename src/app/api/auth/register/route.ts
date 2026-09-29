@@ -6,6 +6,7 @@ import {
   AUTH_COOKIE_NAME,
   getSessionMaxAge
 } from "@/lib/auth";
+import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -61,43 +62,74 @@ export async function POST(request: Request) {
       );
     }
 
-    const { user, isPending } = await registerNewUser(email, password, nickname, age, gender);
+    const { user, isPending, verificationCode } = await registerNewUser(
+      email,
+      password,
+      nickname,
+      age,
+      gender
+    );
 
-    const response = NextResponse.json({
-      ok: true,
-      status: user.status,
-      message: isPending
-        ? "Conta criada com sucesso! Aguardando a aprovação do administrador para liberar seu acesso."
-        : "Conta de administrador criada com sucesso!",
-      redirectTo: isPending ? "/login?pending=1" : user.role === "admin" ? "/admin" : "/practice"
-    });
+    // Se for estudante pendente de ativação, dispara o e-mail via Resend com código e link
+    if (isPending && verificationCode) {
+      // Determina a URL base para o link de 1 clique
+      let origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "";
+      if (!origin) {
+        const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+        const proto = request.headers.get("x-forwarded-proto") || "https";
+        origin = host ? `${proto}://${host}` : "https://www.mrcrazy.fun";
+      }
+      const verifyUrl = `${origin.replace(/\/$/, "")}/verify?email=${encodeURIComponent(user.email)}&code=${encodeURIComponent(verificationCode)}`;
 
-    // Se for admin, já loga direto
-    if (!isPending) {
-      const token = createAuthToken({
-        userId: user.id,
+      // Envia o e-mail em segundo plano de forma segura
+      await sendVerificationEmail({
         email: user.email,
-        role: user.role,
-        status: user.status
+        nickname: user.nickname,
+        code: verificationCode,
+        verifyUrl
       });
 
-      response.cookies.set({
-        name: AUTH_COOKIE_NAME,
-        value: token,
-        httpOnly: true,
-        sameSite: "lax",
-        secure: request.url.startsWith("https://") || process.env.VERCEL === "1",
-        path: "/",
-        maxAge: getSessionMaxAge()
+      return NextResponse.json({
+        ok: true,
+        status: user.status,
+        needsVerification: true,
+        email: user.email,
+        message:
+          "Conta criada com sucesso! Enviamos um código de 6 dígitos e um link de confirmação para o seu e-mail. Digite o código para validar sua conta."
       });
     }
 
+    // Se for administrador (seed/direto), loga diretamente
+    const response = NextResponse.json({
+      ok: true,
+      status: user.status,
+      message: "Conta de administrador criada com sucesso!",
+      redirectTo: user.role === "admin" ? "/admin" : "/practice"
+    });
+
+    const token = createAuthToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status
+    });
+
+    response.cookies.set({
+      name: AUTH_COOKIE_NAME,
+      value: token,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: request.url.startsWith("https://") || process.env.VERCEL === "1",
+      path: "/",
+      maxAge: getSessionMaxAge()
+    });
+
     return response;
-  } catch {
+  } catch (err) {
+    console.error("[POST /api/auth/register error]:", err);
     return NextResponse.json(
       { error: "Erro interno ao processar o cadastro. Tente novamente." },
       { status: 500 }
     );
   }
 }
-

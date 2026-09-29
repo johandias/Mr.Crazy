@@ -468,16 +468,23 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     }) as EventListener);
     const offer = await waitFor(peer.createOffer(), lifetime.signal, 5000, "offer_timeout");
     await waitFor(peer.setLocalDescription(offer), lifetime.signal, 5000, "local_description_timeout");
-    if (peer.iceGatheringState !== "complete" && !peer.localDescription?.sdp?.includes("a=candidate:")) {
-      await waitFor(new Promise<void>(resolve => {
-        listen(peer!, "icecandidate", (e: Event) => {
-          if ((e as RTCPeerConnectionIceEvent).candidate) resolve();
-        });
-        listen(peer!, "icegatheringstatechange", () => {
-          if (peer?.iceGatheringState === "complete") resolve();
-        });
-        later("ice-gather", 150, resolve);
-      }), lifetime.signal, 400, "ice_gather_timeout").catch(() => {});
+    if (peer.iceGatheringState !== "complete") {
+      try {
+        // O endpoint SDP precisa receber candidatos ICE suficientes. Resolver no
+        // primeiro candidato (ou em 150 ms) gera ofertas incompletas em redes
+        // móveis/Vercel e deixa o botão preso em "Conectando".
+        await waitFor(new Promise<void>(resolve => {
+          const checkComplete = () => {
+            if (peer?.iceGatheringState === "complete") resolve();
+          };
+          listen(peer!, "icegatheringstatechange", checkComplete);
+          checkComplete();
+        }), lifetime.signal, 1800, "ice_gather_timeout");
+      } catch (error) {
+        const availableSdp = peer.localDescription?.sdp ?? "";
+        if (!availableSdp.includes("a=candidate:")) throw error;
+        log("ice_partial", "ICE não terminou no limite; usando os candidatos disponíveis.");
+      }
     }
     const query = new URLSearchParams({
       level: options.level,
@@ -546,7 +553,11 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     try {
       body = await openDirect();
     } catch (error) {
-      if (error instanceof VoiceError && error.code.startsWith("client_secret")) throw error;
+      // O token efêmero é um caminho rápido, mas pode estar indisponível em um
+      // deploy antigo ou ser bloqueado por CORS. Falhas de autenticação/cota não
+      // devem gerar uma segunda chamada; falhas de infraestrutura podem usar o
+      // proxy SDP, que é o caminho compatível de recuperação.
+      if (error instanceof VoiceError && [401, 403, 429].includes(error.details.httpStatus ?? 0)) throw error;
       const message = getConnectionError(error);
       log(error instanceof VoiceError ? error.code : error instanceof Error ? error.name : "direct_session_failed", `Conexão direta falhou; tentando proxy. ${message}`, error instanceof VoiceError ? error.details : {});
       body = await openViaProxy();

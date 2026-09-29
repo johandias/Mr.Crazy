@@ -1749,10 +1749,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [cancelSpeech]);
 
   useEffect(() => {
-    if (!storageReady || hasAutoConnectedRef.current) return;
+    // A primeira concessão do microfone precisa nascer de um gesto do usuário.
+    // Conectar enquanto a tela de entrada/mapa ainda está aberta faz o navegador
+    // bloquear getUserMedia fora de uma ação e deixa a aula aparentemente muda.
+    if (!storageReady || isPracticeIntro || isSelectingModule || hasAutoConnectedRef.current) return;
     hasAutoConnectedRef.current = true;
     void connectSession(undefined, true);
-  }, [storageReady, connectSession]);
+  }, [storageReady, isPracticeIntro, isSelectingModule, connectSession]);
 
   useEffect(() => {
     return () => {
@@ -1968,8 +1971,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           emotion={emotion}
           voiceState={voiceState}
           onStart={() => {
+            hasAutoConnectedRef.current = true;
             setIsPracticeIntro(false);
             setIsSelectingModule(false);
+            void connectSession(undefined, false);
           }}
           onOpenMap={() => {
             setIsPracticeIntro(false);

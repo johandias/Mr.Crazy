@@ -185,7 +185,7 @@ test("input meter reads signal independently of provider VAD and stops on mute",
     createAnalyser() {return {fftSize:512,getFloatTimeDomainData(samples){samples.fill(0.05);}};}
     async resume() {} async close() {closed++;}
   };
-  const c=await openMicrophone({signal:p.lifetime.signal,onLevel:n=>levels.push(n)});
+  const c=await openMicrophone({signal:p.lifetime.signal,initialEnabled:true,onLevel:n=>levels.push(n)});
   t.mock.timers.tick(150);assert.ok(levels.at(-1)>0);
   c.setEnabled(false);t.mock.timers.tick(150);assert.equal(levels.at(-1),0);
   c.stop();assert.equal(closed,1);assert.equal(c.track.readyState,"ended");
@@ -200,6 +200,17 @@ test("direct HTTP failure falls back to proxy and releases mic when proxy also f
   assert.equal(p.diagnostics.at(-1).stage,"api");assert.equal(p.diagnostics.at(-1).httpStatus,502);
   assert.equal(p.microphone.readyState,"ended");assert.equal(p.statuses.at(-1),"failed");
   assert.doesNotMatch(JSON.stringify(p.diagnostics),/<html>/);
+});
+
+test("client-secret failure falls back to the server SDP proxy", async t => {
+  const p = setup(t, {
+    tokenResponse: Response.json({ error: "client secrets unavailable", code: "realtime_not_configured" }, { status: 503 })
+  });
+  await p.connect();
+  assert.equal(p.statuses.at(-1), "connected");
+  assert.match(String(p.requests[0].url), /client-secret/);
+  assert.match(String(p.requests[1].url), /api\/realtime\/session/);
+  assert.equal(p.requests.length, 2);
 });
 
 test("permission denial never reaches the API", async t => {
