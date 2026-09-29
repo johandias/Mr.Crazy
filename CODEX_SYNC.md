@@ -143,7 +143,7 @@ Antes de qualquer push na `main`:
      - Fallback resiliente no backend (generateContextualOptions) garante que alternativas contextuais sempre estejam presentes para qualquer cenario (restaurante, trabalho, viagem, hobbies, rotina).
   3. **43 testes unitarios passando** (28 stage progression, 9 scoring, 6 realtime session).
 
-- **[Codex — 2026-09-29]**: Em andamento: correção da conexão WebRTC do microfone após a otimização de latência. Escopo isolado: ICE/SDP, fallback das rotas de sessão, retry sem travamento ao tocar no microfone, diagnóstico visível e testes de regressão. Mudanças paralelas em `src/lib/auth.ts`, `src/lib/email.ts` e `supabase/migrations/202609290001_email_verification_codes.sql` serão preservadas.
+- **[Codex — 2026-09-29]**: Entregue e publicado: correção da conexão WebRTC do microfone após a otimização de latência. Ajustados ICE/SDP, fallback do token efêmero para o proxy, início da permissão somente por gesto, diagnóstico visível, schema GA da sessão (`gpt-4o-mini-transcribe` + `max_output_tokens`) e histórico inicial sem itens assistant inválidos. Produção validada: conectar, manter mudo, ativar e desativar microfone. Commits `e4d5e14`, `dd18190`, `1f927aa` e `f8a5869`; mudanças paralelas de conta preservadas.
 
 - **[Antigravity — 2026-09-29]**: Otimizacao profunda de performance, audio WebRTC, latencia e enquadramento visual:
   1. **Enquadramento do Mr. Crazy**: Personagem ampliado e posicionado em primeiro plano sem margens pretas mortas. O SVG agora usa characterViewBox dinamico ("14 18 132 130" quando de pe ou pulando), proporcionando zoom frontal de 23% que elimina espacos vazios. Dimensoes no .clean-layout .clean-stage ajustadas para min(100%, clamp(220px, 46dvh, 380px)) com halo proporcional de iluminacao.
