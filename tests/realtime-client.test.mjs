@@ -77,7 +77,8 @@ function setup(t, config = {}) {
     connect: async () => controller = await connectRealtime({
       level: "basic", mode: "free-conversation", initialMicrophoneEnabled: true, signal: lifetime.signal, onStatus: value => statuses.push(value),
       onVoiceState: value => states.push(value), onUserTranscript: (text, done) => users.push({text,done}),
-      onAssistantTranscript: (text, done) => replies.push({text,done}), onError: value => errors.push(value), onDiagnostic: value => diagnostics.push(value)
+      onAssistantTranscript: (text, done) => replies.push({text,done}), onError: value => errors.push(value), onDiagnostic: value => diagnostics.push(value),
+      getRecentContext: config.getRecentContext
     }),
     sent, states, users, replies, errors, tracks, statuses, diagnostics, requests, emit, doc, win, audio, channel, lifetime, Stream,
     get peer() { return peer; }, get microphone() { return tracks[0]; }
@@ -93,6 +94,21 @@ test("uses one owned microphone track and confirms the provider session before c
   assert.match(String(p.requests[0].url), /client-secret/);
   assert.match(String(p.requests[1].url), /api\.openai\.com\/v1\/realtime\/calls/);
   assert.equal(p.audio.attached, true);
+});
+
+test("initial context only creates user items accepted by the realtime channel", async t => {
+  const p = setup(t, { getRecentContext: () => [
+    { role: "crazy", text: "Bora treinar." },
+    { role: "user", text: "Hello!" },
+    { role: "assistant", text: "Oi!" }
+  ] });
+  await p.connect();
+  const contextItems = p.sent.filter(event => event.type === "conversation.item.create");
+  assert.deepEqual(contextItems, [{
+    type: "conversation.item.create",
+    item: { type: "message", role: "user", content: [{ type: "input_text", text: "Hello!" }] }
+  }]);
+  assert.equal(p.errors.length, 0);
 });
 
 test("late Portuguese transcript is preserved without duplicate responses", async t => {

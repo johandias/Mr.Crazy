@@ -568,8 +568,12 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     await waitFor(ready, lifetime.signal, 12_000, "transport_timeout");
     if (closed) throw new DOMException("Aborted", "AbortError");
     connected = true;
+    // A API aceita histórico criado pelo cliente como mensagem do usuário. Não
+    // recrie itens assistant/output_text no handshake: em sessões WebRTC GA isso
+    // pode gerar erro de operação antes do primeiro turno e deixar o mic mudo.
     for (const turn of (options.getRecentContext?.() ?? []).slice(-6)) {
-      send({ type: "conversation.item.create", item: { type: "message", role: turn.role === "user" ? "user" : "assistant", content: [{ type: turn.role === "user" ? "input_text" : "output_text", text: turn.text }] } });
+      if (turn.role !== "user" || !turn.text.trim()) continue;
+      send({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text: turn.text }] } });
     }
     stage = "listening"; log("connected", "Conversa conectada. Detecção automática de fala ativa.");
     options.onStatus("connected"); syncCapture();
