@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -415,6 +415,21 @@ export function ExamModal({
 
         if (approved) {
           onSuccessApproved?.(data.evaluation);
+        }
+
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          try {
+            window.speechSynthesis.cancel();
+            const speechText = approved
+              ? "Parabéns! Você foi aprovado na prova com nota " + score10 + "! " + (data.evaluation.summary_feedback || "")
+              : "Você tirou nota " + score10 + ". A nota mínima para aprovação é 6.0. Revise os pontos e tente novamente!";
+            const utterance = new SpeechSynthesisUtterance(speechText);
+            utterance.lang = "pt-BR";
+            utterance.rate = 1.05;
+            window.speechSynthesis.speak(utterance);
+          } catch {
+            // ignore speech error
+          }
         }
       } else {
         throw new Error(data.error || "Falha na avaliação");

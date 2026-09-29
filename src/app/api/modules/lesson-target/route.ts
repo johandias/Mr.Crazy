@@ -4,6 +4,7 @@ import { getModuleById } from "@/lib/modules";
 import { getFallbackPhaseTargets, normalizePhaseTargets } from "@/lib/lesson-target";
 import { getLessonTargetPhrases } from "@/lib/lesson-progress";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
+import { memoryProgress, getMemoryKey } from "@/app/api/modules/progress/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,17 +14,31 @@ type GeminiResponse = {
 };
 
 async function getAlreadyTrainedPhrases(userEmail: string, moduleId: string, phaseId?: string) {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured) {
+    const mem = memoryProgress.get(getMemoryKey(userEmail, moduleId));
+    if (!mem || !Array.isArray(mem.completed_missions)) return [];
+    return getLessonTargetPhrases(mem.completed_missions, phaseId).slice(-12);
+  }
 
-  const { data, error } = await supabaseAdmin
-    .from("mrcrazy_module_progress")
-    .select("completed_missions")
-    .eq("user_email", userEmail)
-    .eq("module_id", moduleId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("mrcrazy_module_progress")
+      .select("completed_missions")
+      .eq("user_email", userEmail)
+      .eq("module_id", moduleId)
+      .maybeSingle();
 
-  if (error || !Array.isArray(data?.completed_missions)) return [];
-  return getLessonTargetPhrases(data.completed_missions, phaseId).slice(-12);
+    if (error || !Array.isArray(data?.completed_missions)) {
+      const mem = memoryProgress.get(getMemoryKey(userEmail, moduleId));
+      if (!mem || !Array.isArray(mem.completed_missions)) return [];
+      return getLessonTargetPhrases(mem.completed_missions, phaseId).slice(-12);
+    }
+    return getLessonTargetPhrases(data.completed_missions, phaseId).slice(-12);
+  } catch {
+    const mem = memoryProgress.get(getMemoryKey(userEmail, moduleId));
+    if (!mem || !Array.isArray(mem.completed_missions)) return [];
+    return getLessonTargetPhrases(mem.completed_missions, phaseId).slice(-12);
+  }
 }
 
 function getModels() {
