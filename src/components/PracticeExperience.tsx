@@ -2227,22 +2227,17 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             <div className="teaching-concept-wrapper">
               <div className="teaching-concept-pill-bar">
                 <div className="teaching-concept-badge">
-                  <span className="concept-step-number">
-                    Fase {currentPhaseNum}/{totalPhases}
-                  </span>
-                  <span className="concept-remaining-pill">
-                    {remainingPhases === 0
-                      ? "👑 Última Fase!"
-                      : remainingPhases === 1
-                      ? "Falta 1 fase para a prova"
-                      : `Faltam ${remainingPhases} fases`}
-                  </span>
-                  <span className="concept-step-title">
-                    {activeConcept?.title || activeModule.title}
-                  </span>
-                  <span className="concept-remaining-pill">
-                    Etapa {currentLessonStepIndex + 1}/{LESSON_STEPS_PER_PHASE}: {LESSON_STEP_LABELS[currentLessonStepIndex]}
-                  </span>
+                  <div className="concept-badge-header-row">
+                    <span className="concept-step-number">
+                      Fase {currentPhaseNum}/{totalPhases}
+                    </span>
+                    <span className="concept-step-title">
+                      {activeConcept?.title || activeModule.title}
+                    </span>
+                    <span className="concept-step-stage-pill">
+                      {LESSON_STEP_LABELS[currentLessonStepIndex]}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Stepper visual com progresso das fases e a prova prática */}
@@ -2306,11 +2301,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            <Link href="/conversation" className="conversation-beta-launch">
-              <Sparkles size={13} />
-              <span>Conversa beta</span>
-            </Link>
-
             {/* Balão de Fala do Mr. Crazy: com replay de voz e guia fonético integrado */}
             <div
               ref={speechBubbleScrollRef}

@@ -45,6 +45,7 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
         </Link>
         <nav className="top-nav" aria-label="Navegação principal">
           <Link href="/practice">Praticar</Link>
+          <Link href="/conversation" className="beta-top-nav-link">Modo Beta</Link>
           <Link href="/progress">Progresso</Link>
           <Link href="/history">Histórico</Link>
           {isAdmin ? (

@@ -74,7 +74,16 @@ export function getFallbackPhaseTargets(
 
 function cleanTargetText(value: unknown, fallback: string, maxLength: number) {
   if (typeof value !== "string") return fallback;
-  const clean = value.replace(/[\r\n]+/gu, " ").replace(/\s+/gu, " ").trim();
+  let clean = value.replace(/[\r\n]+/gu, " ").replace(/\s+/gu, " ").trim();
+  // Limpa prefixos prolixos como "Usado para..." ou "Serve para..."
+  clean = clean.replace(/^(usado|serve)\s+para\s+/iu, "");
+  // Se ainda for uma definição longa com vírgula, resume para a ação central
+  if (clean.length > 55 && clean.includes(",")) {
+    const commaIdx = clean.indexOf(",");
+    if (commaIdx >= 10) {
+      clean = clean.slice(0, commaIdx).trim();
+    }
+  }
   return clean ? clean.slice(0, maxLength) : fallback;
 }
 

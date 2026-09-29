@@ -103,7 +103,7 @@ Metodologia obrigatória:
 - Descobrir ensina o termo central e quando usar.
 - Praticar muda uma palavra ou intenção, mantendo o mesmo objetivo.
 - Aplicar coloca a frase numa situação real do cenário.
-- meaningPt deve explicar o uso, não só traduzir seco.
+- meaningPt deve ser uma tradução ou intenção curta e direta em português (2 a 6 palavras, ex: "oi, prazer em te conhecer", "pedir uma mesa para dois", "pedir a conta", "dizer de onde você é"). NUNCA crie textos longos, frases explicativas ou definições começando com "Usado para..."! O professor vai falar no áudio: "Pra dizer '[meaningPt]', fala: '[phraseEn]'".
 - phoneticPt deve ser uma aproximação brasileira fiel à frase inglesa, com sílaba forte quando útil.
 
 Responda somente JSON válido:

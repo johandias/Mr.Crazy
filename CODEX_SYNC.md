@@ -123,3 +123,9 @@ Antes de qualquer push na `main`:
   4. **Testes Unitários e de Regressão**: 42 testes passando com sucesso (27 stage progression, 9 scoring, 6 realtime session).
 
 
+
+- **[Antigravity - 2026-09-29]**: Enquadramento do Mr. Crazy, Modo Beta na navegacao inferior e polimento de cards:
+  1. **Enquadramento e Foco Visual no Mr. Crazy**: Corrigido override em globals.css que encolhia o personagem para 96px; restauradas as dimensoes ideais clamp(148px, 24dvh, 184px) em harmonia com responsive.css e os testes. Adicionado halo de iluminacao de palco (.character-avatar-wrapper::before), dando protagonismo e presenca visual clara ao Mr. Crazy.
+  2. **Modo Beta no Menu Inferior (MobileNav) & Desktop (AppShell)**: Eliminado o botao flutuante disperso no meio do palco. Criado botao com destaque escuro, borda roxa e pill 'BETA' agrupado com 'Praticar' na barra inferior para navegar a /conversation.
+  3. **Polimento dos Cartoes e Enquadramento de Texto**: O badge de fase foi unificado em linha unica sem quebras deselegantes (concept-badge-header-row). O prompt do Gemini (/api/modules/lesson-target) e o limpador (lesson-target.ts) foram ajustados para entregar traducoes curtas e idiomaticas (2-6 palavras), eliminando explicacoes de dicionario como 'Usado para cumprimentar...'.
+  4. **Todos os 42 testes passando com sucesso** (27 stage progression, 9 scoring, 6 realtime session).
