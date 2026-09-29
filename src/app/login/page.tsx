@@ -2,8 +2,16 @@ import { Suspense } from "react";
 import { LoginForm } from "@/components/LoginForm";
 import { redirectAuthenticated } from "@/lib/server-auth";
 
-export default async function LoginPage() {
-  await redirectAuthenticated();
+export default async function LoginPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const isResetOrSwitch = params?.reset === "1" || params?.switch === "1";
+  if (!isResetOrSwitch) {
+    await redirectAuthenticated();
+  }
 
   return (
     <main className="simple-page">

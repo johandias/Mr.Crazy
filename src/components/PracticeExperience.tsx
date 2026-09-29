@@ -555,9 +555,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [mistakes, setMistakes] = useState<MistakeCategory[]>([]);
   const [history, setHistory] = useState<PracticeHistory[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const [voiceDiagnostics, setVoiceDiagnostics] = useState<VoiceDiagnostic[]>([]);
-  const [inputDeviceId, setInputDeviceId] = useState("");
-  const inputDeviceRef = useRef("");
+  const [inputDeviceId, setInputDeviceId] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return window.localStorage.getItem("mr-crazy-input-device-id") || "";
+    } catch {
+      return "";
+    }
+  });
+  const inputDeviceRef = useRef(typeof window !== "undefined" ? window.localStorage.getItem("mr-crazy-input-device-id") || "" : "");
   const inputMeterRef = useRef<HTMLMeterElement | null>(null);
   const [contextHistory, setContextHistory] = useState<ConversationTurn[]>([]);
   const [storageReady, setStorageReady] = useState(false);
@@ -1269,7 +1275,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         if (!response.ok) throw new Error(`speech-${response.status}`);
         return response.blob();
       },
-      createAudio: (url) => new Audio(url),
+      createAudio: (url) => {
+        const audio = new Audio(url);
+        try {
+          const speed = parseFloat(window.localStorage.getItem("mr-crazy-speech-speed") || "1.0");
+          if (!isNaN(speed) && speed >= 0.5 && speed <= 2.0) audio.playbackRate = speed;
+          const vol = parseFloat(window.localStorage.getItem("mr-crazy-audio-volume") || "100");
+          if (!isNaN(vol)) audio.volume = Math.max(0, Math.min(1, vol / 100));
+        } catch {}
+        return audio;
+      },
       createObjectUrl: (blob) => URL.createObjectURL(blob),
       revokeObjectUrl: (url) => URL.revokeObjectURL(url),
       onState: setVoiceState,

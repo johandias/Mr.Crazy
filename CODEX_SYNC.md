@@ -156,3 +156,17 @@ Antes de qualquer push na `main`:
   2. Ajustada rota raiz (src/app/page.tsx) para carregar PracticeExperience atraves de PracticeExperienceClient com ssr: false, igualando o comportamento estavel de /practice e eliminando inconsistencias de hidratacao do React 19.
   3. Adicionado error boundary global (src/app/error.tsx) para recuperacao amigavel de erros com botao de recarregar.
   4. 43 testes unitarios passando. Commit 4f5c5dd enviado para a main.
+
+- **[Antigravity — 2026-09-29]**: Suite de Configuracoes Avancadas, Troca de Conta e Logout Totalmente Funcionais:
+  1. **Opcoes de Sair (Logout) e Trocar de Conta**:
+     - Criadas rotas e handlers dedicados (/api/auth/logout com suporte a GET/POST e parâmetro ?switch=1).
+     - Adicionado menu de usuário suspenso no topo do AppShell (exibindo email, avatar, atalhos, "Trocar de Conta" e "Sair").
+     - Adicionada seção dedicada "Conta & Sessão" na página de configurações (/settings), com botões para Trocar de Conta, Sair da Conta e Limpar Cache Local/Áudio.
+     - Suporte a feedback amigável no LoginForm ao trocar de conta ou deslogar sem redirecionamento automático indesejado.
+  2. **Suite de Configurações Avançadas com 5 Abas**:
+     - Perfil & Aluno: Apelido, sexo/flexão, nível de inglês (A1/A2, B1/B2, C1), meta diária (5, 15, 30, 60m), estilo de aprendizado e dificuldades fonéticas.
+     - Voz & Microfone: Modos Hold to Talk vs Tap to Talk, seleção de dispositivo de microfone com VU Meter interativo em tempo real para teste, sensibilidade VAD, velocidade da voz (0.85x a 1.15x) e controle de volume (10% a 100%).
+     - Personalidade da IA: Nível de Paciência (Brabo Clássico, Militar Hardcore, Modo Zen), foco de correção (fonética, fluência, gramática) e instruções dinâmicas.
+     - Interface & Acessibilidade: Legendas em tempo real (escuta pura vs com texto), guia didático automático, feedback tátil (vibração) e modo econômico.
+     - Conta & Sessão: Métricas, gerenciamento de acesso e reset de cache.
+  3. **Integridade de Código e Testes**: Todos os 43 testes passando com sucesso.

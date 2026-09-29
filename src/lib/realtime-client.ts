@@ -299,6 +299,10 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     audio.autoplay = true;
     audio.setAttribute("playsinline", "");
     audio.setAttribute("aria-hidden", "true");
+    try {
+      const vol = parseFloat(window.localStorage.getItem("mr-crazy-audio-volume") || "100");
+      if (!isNaN(vol)) audio.volume = Math.max(0, Math.min(1, vol / 100));
+    } catch {}
     // Mantém o elemento no DOM com baixa opacidade para evitar que o iOS/Android throttle o playback de background
     audio.style.position = "fixed";
     audio.style.pointerEvents = "none";

@@ -51,6 +51,9 @@ export async function POST(request: Request) {
     if (typeof body.learning_style === "string") {
       updates.learning_style = body.learning_style.trim();
     }
+    if (typeof body.learning_goal === "string") {
+      updates.learning_goal = body.learning_goal.trim();
+    }
     if (Array.isArray(body.main_difficulties)) {
       updates.main_difficulties = body.main_difficulties
         .filter((d) => typeof d === "string" && d.trim().length > 0)

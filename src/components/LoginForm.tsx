@@ -27,6 +27,12 @@ export function LoginForm() {
     } else if (searchParams.get("rejected") === "1") {
       setIsPending(false);
       setErrorMessage("Seu acesso foi suspenso ou recusado pelo administrador.");
+    } else if (searchParams.get("switch") === "1") {
+      setIsPending(false);
+      setSuccessMessage("Sessão anterior finalizada. Digite as credenciais da sua outra conta para entrar.");
+    } else if (searchParams.get("reset") === "1") {
+      setIsPending(false);
+      setSuccessMessage("Você saiu da sua conta com sucesso.");
     }
   }, [searchParams]);
 
