@@ -344,6 +344,62 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
     }
   };
 
+  const playPhraseAudio = async (phrase: string, playId: string) => {
+    if (playingMessageId === playId) {
+      audioRef.current?.pause();
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+      window.speechSynthesis?.cancel();
+      setPlayingMessageId(null);
+      return;
+    }
+
+    audioRef.current?.pause();
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    window.speechSynthesis?.cancel();
+    setPlayingMessageId(playId);
+
+    try {
+      const response = await fetch("/api/speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: phrase })
+      });
+      if (!response.ok) throw new Error("speech-unavailable");
+
+      const url = URL.createObjectURL(await response.blob());
+      audioUrlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        audioUrlRef.current = null;
+        setPlayingMessageId(null);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        audioUrlRef.current = null;
+        setPlayingMessageId(null);
+      };
+      await audio.play();
+    } catch {
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+      const utterance = new SpeechSynthesisUtterance(phrase);
+      utterance.lang = "en-US";
+      utterance.onend = () => setPlayingMessageId(null);
+      utterance.onerror = () => setPlayingMessageId(null);
+      window.speechSynthesis?.speak(utterance);
+    }
+  };
+
   const noticeText = isRecording
     ? "Ouvindo em inglês. Toque no botão vermelho para enviar."
     : isSending
@@ -503,7 +559,19 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
                 {message.role === "crazy" && message.teachingCard && (
                   <div className="beta-teaching-card" aria-label="Dica de como falar em inglês">
                     <div className="beta-teaching-card-header">
-                      <span className="beta-teaching-card-label">📚 Como falar em inglês</span>
+                      <div className="beta-teaching-card-badge-row">
+                        <span className="beta-teaching-card-label">📚 Como falar em inglês</span>
+                        <button
+                          type="button"
+                          className="beta-teaching-audio-btn"
+                          onClick={() => void playPhraseAudio(message.teachingCard!.mainPhrase, `tc-${message.id}`)}
+                          title="Ouvir pronúncia da frase em inglês"
+                          aria-label="Ouvir pronúncia da frase em inglês"
+                        >
+                          <Volume2 size={13} />
+                          <span>{playingMessageId === `tc-${message.id}` ? "Parar" : "Ouvir"}</span>
+                        </button>
+                      </div>
                       <span className="beta-teaching-card-intent">{message.teachingCard.intentPt}</span>
                     </div>
                     <div className="beta-teaching-card-main">
@@ -521,9 +589,16 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
                             className="beta-teaching-alt-btn"
                             onClick={() => handleSelectOption({ textEn: alt.phraseEn, textPt: alt.contextPt })}
                             disabled={isSending}
+                            title={`Responder com: "${alt.phraseEn}"`}
+                            aria-label={`Responder com: ${alt.phraseEn}`}
                           >
-                            <span className="beta-alt-phrase" lang="en">{alt.phraseEn}</span>
-                            <span className="beta-alt-context">{alt.contextPt}</span>
+                            <div className="beta-teaching-alt-info">
+                              <span className="beta-alt-phrase" lang="en">{alt.phraseEn}</span>
+                              <span className="beta-alt-context">{alt.contextPt}</span>
+                            </div>
+                            <span className="beta-teaching-alt-send">
+                              Enviar <ArrowRight size={13} />
+                            </span>
                           </button>
                         ))}
                       </div>
