@@ -640,6 +640,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const connectAbortRef = useRef<AbortController | null>(null);
   const hasAutoConnectedRef = useRef(false);
   const isConnectingRef = useRef(false);
+  const pendingMicEnableRef = useRef(false);
 
 
   const scoringContextRef = useRef({
@@ -1694,12 +1695,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       }
       realtimeRef.current = controller;
       setRealtimeStatus("connected");
-      controller.setMicrophoneEnabled(false);
-      setMicrophoneEnabled(false);
-      setVoiceState("idle");
+      const shouldEnable = pendingMicEnableRef.current && !isAutoConnect;
+      pendingMicEnableRef.current = false;
+      controller.setMicrophoneEnabled(shouldEnable);
+      setMicrophoneEnabled(shouldEnable);
+      setVoiceState(shouldEnable ? "listening" : "idle");
+      if (shouldEnable) {
+        setIsCharacterAwake(true);
+      }
 
       return controller;
     }).catch((err) => {
+      pendingMicEnableRef.current = false;
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
         if (!isAbortError(err)) {
           setRealtimeStatus("failed");
@@ -1871,7 +1878,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }
 
   function handleAvatarMicClick() {
-    if (isConnectingRef.current) return;
     setErrorMessage("");
     if (realtimeStatus === "connected" && realtimeRef.current) {
       const enabled = !microphoneEnabled;
@@ -1885,7 +1891,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       }
       return;
     }
-    void connectSession();
+    pendingMicEnableRef.current = true;
+    if (!isConnectingRef.current) {
+      void connectSession(undefined, false);
+    }
   }
 
   function finishRealtimeTurn() {

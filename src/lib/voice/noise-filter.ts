@@ -4,33 +4,31 @@
  */
 
 const NOISE_PHRASES = new Set([
+  "thanks for watching",
+  "thank you for watching",
+  "please subscribe",
+  "subscribe",
+  "like and subscribe",
+  "subtitles by",
+  "translated by",
+  "amara.org",
+  "silence",
+  "empty",
   "you",
   "thank you",
-  "thank you.",
-  "thank you very much",
   "thanks",
-  "thanks.",
-  "thanks for watching",
-  "bye",
-  "bye-bye",
-  "goodbye",
   "ok",
   "okay",
   "yeah",
   "yes",
-  "yep",
+  "bye",
   "uh",
   "um",
   "ah",
   "oh",
   "huh",
   "hmm",
-  "hum",
-  "opa",
-  "silence",
-  "obrigado",
-  "de nada",
-  "valeu"
+  "hum"
 ]);
 
 const BRACKET_TAG_REGEX = /^[\[(].*[\])]$/;

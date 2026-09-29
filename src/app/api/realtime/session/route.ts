@@ -53,32 +53,37 @@ export async function POST(request: Request) {
     stage = "profile";
     
     const user = await getCurrentUser();
-    if (user && isSupabaseConfigured) {
+    if (user && isSupabaseConfigured && supabaseAdmin) {
       try {
-        if (supabaseAdmin) {
-          const { data: moduleProgress } = await supabaseAdmin
-            .from('mrcrazy_module_progress')
-            .select('*')
-            .eq('user_email', user.email);
-            
-          const { data: practiceSessions } = await supabaseAdmin
-            .from('mrcrazy_practice_sessions')
-            .select('id')
-            .eq('user_email', user.email);
-            
-          const completedModules = (moduleProgress || []).filter(p => p.status === 'completed');
-          let computedLevel = user.learning_level || 'basic';
-          if (completedModules.length >= 4) computedLevel = 'intermediate';
-          if (completedModules.length >= 8) computedLevel = 'advanced';
-          
-          user.computedLevel = computedLevel;
-          user.sessionsCount = practiceSessions ? practiceSessions.length : 0;
-          
-          // Módulo atual em progresso
-          const inProgress = (moduleProgress || []).find(p => p.status === 'in_progress');
-          if (inProgress) {
-            user.activeModuleProgress = inProgress;
-          }
+        const timeoutPromise = new Promise<{ data: null }>((resolve) =>
+          setTimeout(() => resolve({ data: null }), 900)
+        );
+
+        const [progressRes, sessionsRes] = await Promise.all([
+          Promise.race([
+            supabaseAdmin.from('mrcrazy_module_progress').select('*').eq('user_email', user.email),
+            timeoutPromise
+          ]),
+          Promise.race([
+            supabaseAdmin.from('mrcrazy_practice_sessions').select('id').eq('user_email', user.email),
+            timeoutPromise
+          ])
+        ]);
+
+        const moduleProgress = progressRes?.data || [];
+        const practiceSessions = sessionsRes?.data || [];
+        const completedModules = (moduleProgress || []).filter((p: { status?: string }) => p.status === 'completed');
+        let computedLevel = user.learning_level || 'basic';
+        if (completedModules.length >= 4) computedLevel = 'intermediate';
+        if (completedModules.length >= 8) computedLevel = 'advanced';
+
+        user.computedLevel = computedLevel;
+        user.sessionsCount = practiceSessions ? practiceSessions.length : 0;
+
+        // Módulo atual em progresso
+        const inProgress = (moduleProgress || []).find((p: { status?: string }) => p.status === 'in_progress');
+        if (inProgress) {
+          user.activeModuleProgress = inProgress;
         }
       } catch(e) {
         console.error('Failed to enrich user profile for realtime session:', e);

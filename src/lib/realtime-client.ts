@@ -231,6 +231,11 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         remoteAnalyser.fftSize = 256;
         remoteAnalyser.smoothingTimeConstant = 0.55;
         source.connect(remoteAnalyser);
+        // Sink silencioso para estabilidade de clock do Web Audio no Chrome/Safari sem duplicar saída
+        const silentGain = remoteAudioCtx.createGain();
+        silentGain.gain.value = 0;
+        remoteAnalyser.connect(silentGain);
+        silentGain.connect(remoteAudioCtx.destination);
 
         const freqData = new Uint8Array(remoteAnalyser.frequencyBinCount);
         const timeData = new Float32Array(remoteAnalyser.fftSize);
@@ -280,7 +285,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           });
 
           options.onOutputMetrics?.({ level, bass, mid, high, bands });
-        }, 30);
+        }, 50);
         void remoteAudioCtx.resume().catch(() => {});
       } catch (err) {
         console.warn("[Voice] Remote analyser error", err);
@@ -294,7 +299,14 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     audio.autoplay = true;
     audio.setAttribute("playsinline", "");
     audio.setAttribute("aria-hidden", "true");
-    audio.style.display = "none";
+    // Mantém o elemento no DOM com baixa opacidade para evitar que o iOS/Android throttle o playback de background
+    audio.style.position = "fixed";
+    audio.style.pointerEvents = "none";
+    audio.style.opacity = "0.001";
+    audio.style.width = "1px";
+    audio.style.height = "1px";
+    audio.style.bottom = "0";
+    audio.style.right = "0";
     document.body.appendChild(audio);
     peer.addTrack(capture.track, capture.stream);
     listen(peer, "track", ((event: RTCTrackEvent) => {
@@ -307,7 +319,11 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     listen(audio, "playing", () => { if (playbackActive) options.onVoiceState("speaking"); });
     listen(document, "visibilitychange", resume);
     listen(window, "pageshow", resume);
-    listen(window, "pointerdown", resume);
+    listen(window, "pointerdown", () => {
+      if (audio?.srcObject && audio.paused && playbackActive && document.visibilityState !== "hidden") {
+        void audio.play().catch(() => {});
+      }
+    });
     listen(window, "pagehide", () => { capture?.setEnabled(false); });
     listen(peer, "connectionstatechange", () => {
       log("peer_state", `Transporte: ${peer?.connectionState}.`);
@@ -376,21 +392,17 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           transcripts.delete(key);
 
           if (isNoiseOrHallucination(rawTranscript)) {
-            log("noise_cancelled", `Ruído ou alucinação descartada: "${rawTranscript}". Resposta de áudio do assistente cancelada.`);
-            if (responseActive) {
+            log("noise_cancelled", `Ruído ou alucinação descartada: "${rawTranscript}".`);
+            // Se a resposta ainda não começou a falar e apenas estava sendo gerada, cancela.
+            // Mas se o professor já estiver falando (playbackActive), NUNCA corta o áudio no meio da frase!
+            if (responseActive && !playbackActive) {
               send({ type: "response.cancel" });
               send({ type: "output_audio_buffer.clear" });
+              responseActive = false;
+              clear("response");
+              clear("echo");
+              syncCapture();
             }
-            if (audio) {
-              audio.pause();
-            }
-            responseActive = false;
-            playbackActive = false;
-            assistantText = "";
-            assistantCommitted = false;
-            clear("response");
-            clear("echo");
-            syncCapture();
             options.onUserTranscript("", true);
             break;
           }
@@ -424,7 +436,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           clear("turn");
           if (!responseActive) clear("response");
           syncCapture();
-          later("echo", 500, () => {
+          later("echo", 350, () => {
             echoGuardActive = false;
             syncCapture();
           });
@@ -452,11 +464,16 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     }) as EventListener);
     const offer = await waitFor(peer.createOffer(), lifetime.signal, 5000, "offer_timeout");
     await waitFor(peer.setLocalDescription(offer), lifetime.signal, 5000, "local_description_timeout");
-    if (peer.iceGatheringState !== "complete") {
+    if (peer.iceGatheringState !== "complete" && !peer.localDescription?.sdp?.includes("a=candidate:")) {
       await waitFor(new Promise<void>(resolve => {
-        listen(peer!, "icegatheringstatechange", () => { if (peer?.iceGatheringState === "complete") resolve(); });
-        later("ice-gather", 1500, resolve);
-      }), lifetime.signal, 2000, "ice_gather_timeout");
+        listen(peer!, "icecandidate", (e: Event) => {
+          if ((e as RTCPeerConnectionIceEvent).candidate) resolve();
+        });
+        listen(peer!, "icegatheringstatechange", () => {
+          if (peer?.iceGatheringState === "complete") resolve();
+        });
+        later("ice-gather", 150, resolve);
+      }), lifetime.signal, 400, "ice_gather_timeout").catch(() => {});
     }
     const query = new URLSearchParams({
       level: options.level,

@@ -175,7 +175,7 @@ export const RpgCharacter = memo(function RpgCharacter({
     onTap?.();
   };
 
-  const activity = voiceState === "speaking" ? "speaking" : voiceState === "listening" ? "listening" : "idle";
+  const characterViewBox = (entranceStage === "hammock" || entranceStage === "alert") ? "0 0 160 160" : "14 18 132 130";
 
   return (
     <div
@@ -191,7 +191,7 @@ export const RpgCharacter = memo(function RpgCharacter({
       aria-label={`Mr.Crazy ${entranceStage === "hammock" ? "descansando na rede" : activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
       title={entranceStage === "standing" ? "Toque no Mr.Crazy para trocar de reação!" : "Mr.Crazy acordando para a aula!"}
     >
-      <svg className="rpg-character" viewBox="0 0 160 160" shapeRendering="crispEdges" aria-hidden="true">
+      <svg className="rpg-character" viewBox={characterViewBox} shapeRendering="crispEdges" aria-hidden="true">
         {/* ================================================================= */}
         {/* CENA 1: REDE DE DESCANSO BALANÇANDO (ENTRADA) */}
         {/* ================================================================= */}

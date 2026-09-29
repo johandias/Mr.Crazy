@@ -12921,8 +12921,8 @@ meter {
 
   /* — Boneco: wrapper ocupa espaço livre, sprite preenche o wrapper — */
   .clean-layout .character-avatar-wrapper { flex:1 1 auto; min-height:0; max-height:none; display:flex; align-items:center; justify-content:center; width:100%; margin:0 auto; overflow:visible; position:relative; z-index:4; }
-  .clean-layout .character-avatar-wrapper::before { content:""; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:min(80%, clamp(160px, 36dvh, 260px)); height:min(80%, clamp(160px, 36dvh, 260px)); background:radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(245, 158, 11, 0.06) 45%, transparent 72%); border-radius:50%; pointer-events:none; z-index:1; }
-  .clean-layout .clean-stage .character-avatar-wrapper .character-stage { width:min(100%, clamp(180px, 40dvh, 310px)) !important; height:min(100%, clamp(180px, 40dvh, 310px)) !important; max-height:none; max-width:78vw; min-width:0; aspect-ratio:1; margin:0 auto; overflow:visible; display:flex; align-items:center; justify-content:center; }
+  .clean-layout .character-avatar-wrapper::before { content:""; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:min(94%, clamp(200px, 44dvh, 360px)); height:min(94%, clamp(200px, 44dvh, 360px)); background:radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, rgba(245, 158, 11, 0.08) 45%, transparent 72%); border-radius:50%; pointer-events:none; z-index:1; }
+  .clean-layout .clean-stage .character-avatar-wrapper .character-stage { width:min(100%, clamp(220px, 46dvh, 380px)) !important; height:min(100%, clamp(220px, 46dvh, 380px)) !important; max-height:none; max-width:88vw; min-width:0; aspect-ratio:1; margin:0 auto; overflow:visible; display:flex; align-items:center; justify-content:center; }
   .clean-layout .clean-stage .character-avatar-wrapper .rpg-character { width:100%; height:100%; max-height:100%; display:block; overflow:visible; }
 
   /* — Dock de voz: mais padding, botão de mic maior — */

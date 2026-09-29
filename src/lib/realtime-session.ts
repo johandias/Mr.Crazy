@@ -365,15 +365,16 @@ export function buildRealtimeSession(
     type: "realtime",
     model: modelName,
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue, conceptIndexValue),
+    max_response_output_tokens: 300,
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
         transcription,
         turn_detection: {
           type: "server_vad",
-          threshold: 0.55,
-          prefix_padding_ms: 400,
-          silence_duration_ms: 950,
+          threshold: 0.52,
+          prefix_padding_ms: 250,
+          silence_duration_ms: 450,
           create_response: true,
           interrupt_response: false
         }
