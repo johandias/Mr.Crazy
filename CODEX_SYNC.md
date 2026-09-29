@@ -1,4 +1,4 @@
-# CODEX_SYNC.md — Quadro Vivo de Sincronização (Codex & Antigravity)
+﻿# CODEX_SYNC.md — Quadro Vivo de Sincronização (Codex & Antigravity)
 
 Este arquivo é o canal de coordenação e sincronização entre **Codex** e **Antigravity**. Atualize este documento sempre que iniciar ou concluir uma tarefa para evitar sobreposição e conflitos de merge.
 
@@ -25,6 +25,11 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 4. **Modal do Chefão (Prova Oral) Automático**:
    - Ao concluir a última fase de ensino de um módulo, o modal do Chefão abre automaticamente.
    - O examinador faz perguntas orais e calcula a nota (0 a 10) com resumo de acertos e melhorias antes de liberar o próximo módulo.
+5. **Compactação do Card do Microfone & Avatar Mr.Crazy 100% Visível**:
+   - Altura do card (.practice-voice-hub) compactada de 160px para ~112px com visual glassmorphic elegante.
+   - Botões, abas e badge otimizados sem perder ergonomia de toque.
+   - Eliminado margin-bottom do avatar e adicionado translateY de elevação para exibir o corpo inteiro, cajado e botas sem colisão com o dock.
+   - Todos os 40 testes passando e deploy efetuado.
 
 ---
 
@@ -79,9 +84,9 @@ Antes de qualquer push na `main`:
 
 - **[Antigravity — 2026-09-28]**: Corrigida a progressão dinâmica de diálogo com início, meio e fim: proibido mandar repetir quando o aluno já acertou; avanço imediato para a próxima etapa da cena na mesma fala. Corrigido picote e travamento de áudio WebRTC: VAD threshold ajustado para 0.55 com 950ms de pausa natural, eliminado recoverTurn() após reprodução de áudio para evitar que o Mr. Crazy responda a si mesmo, e áudio protegido contra re-execução em pointerdown.
 
-- **[Antigravity � 2026-09-28]**: Persist�ncia de permiss�o de microfone: novo mic-permission.ts com Permissions API + localStorage (fallback iOS < 16.4). Primeira concess�o grava flag; retornos eliminam re-prompt. Microfone ativa silenciosamente ao reconectar � invariante vermelho preservada. CSS mobile: touch-action:manipulation, font-size>=16px, will-change+contain, breakpoints iPhone SE e landscape, scroll momentum. 24 testes passando, commit 993b017.
+- **[Antigravity � 2026-09-28]**: Persist�ncia de permiss�o de microfone: novo mic-permission.ts com Permissions API + localStorage (fallback iOS < 16.4). Primeira concess�o grava flag; retornos eliminam re-prompt. Microfone ativa silenciosamente ao reconectar � invariante vermelho preservada. CSS mobile: touch-action:manipulation, font-size>=16px, will-change+contain, breakpoints iPhone SE e landscape, scroll momentum. 24 testes passando, commit 993b017.
 
-- **[Antigravity - 2026-09-28]**: Dashboard de evolu��o reescrito (EvolutionDashboard.tsx) com aba M�dulos e c�lculos de n�vel por progresso. Profile enriquecido no endpoint /api/progress/summary e rotas realtime atualizadas para passar computedLevel e sessionsCount para as instru��es do Mr.Crazy. Streak de dias sincronizado em /api/profile.
+- **[Antigravity - 2026-09-28]**: Dashboard de evolu��o reescrito (EvolutionDashboard.tsx) com aba M�dulos e c�lculos de n�vel por progresso. Profile enriquecido no endpoint /api/progress/summary e rotas realtime atualizadas para passar computedLevel e sessionsCount para as instru��es do Mr.Crazy. Streak de dias sincronizado em /api/profile.
 - **[Antigravity - 2026-09-28]**: Progresso real e dados no banco finalizados: criacao e validacao das tabelas (mrcrazy_users, mrcrazy_module_progress, mrcrazy_module_evaluations, mrcrazy_practice_sessions, scripts/migration.sql); rota /api/modules/progress corrigida para persistir conclusao de modulo (completed: true), creditar XP e salvar avaliacao; rota /api/progress/summary e EvolutionDashboard com dados reais e nivel calculado; Mr. Crazy agora reconhece o aluno por dados reais (nome, nivel calculado, dificuldades, sessoes e progresso do modulo ativo) em Realtime e Conversa Beta; 26 testes passando.
 
 - **[Codex — 2026-09-28]**: Revisão mobile concluída: prova prática ganhou layout seguro para viewport curta, controles de fala acessíveis e resultado rolável; histórico deixou de renderizar aulas fictícias e passou a buscar sessões reais, com estado vazio orientando a primeira prática. Também foram atualizados os mocks das rotas de voz para manter os testes independentes do Supabase. Build de produção e suíte de testes verificados.
@@ -106,3 +111,4 @@ Antes de qualquer push na `main`:
   2. Declaracao de const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]) movida para o topo da funcao (linha 438), antes de qualquer hook ou efeito dependente.
   3. Preservada a fronteira de cliente PracticeExperienceClient com ssr: false para evitar erros de hidratacao no Next.js App Router.
   4. Todos os 40 testes da suite passando com sucesso (26 stage progression, 9 scoring, 5 realtime session).
+
