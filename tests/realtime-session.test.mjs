@@ -4,10 +4,12 @@ import { test } from "node:test";
 
 const { buildRealtimeInstructions, buildRealtimeSession } = await import("../src/lib/realtime-session.ts");
 
-test("gpt realtime transcription config omits unsupported prompt field", () => {
+test("gpt realtime transcription config uses the GA-supported transcriber", () => {
   const session = buildRealtimeSession("basic", "free-conversation", null, "gpt-realtime-2.1-mini");
-  assert.equal(session.audio.input.transcription.model, "gpt-realtime-whisper");
+  assert.equal(session.audio.input.transcription.model, "gpt-4o-mini-transcribe");
   assert.equal("prompt" in session.audio.input.transcription, false);
+  assert.equal(session.max_output_tokens, 300);
+  assert.equal("max_response_output_tokens" in session, false);
 });
 
 test("non realtime transcription config can keep contextual prompt", () => {
@@ -54,4 +56,3 @@ test("realtime tutor instructions guide teaching natural English variations and 
   assert.match(session.instructions, /VARIAÇÕES NATURAIS E FORMAS DIFERENTES DE FALAR/);
   assert.match(session.instructions, /casual vs formal/i);
 });
-

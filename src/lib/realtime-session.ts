@@ -356,7 +356,10 @@ export function buildRealtimeSession(
 ) {
   const isGptRealtime = modelName.startsWith("gpt-realtime");
   const transcription = isGptRealtime
-    ? { model: "gpt-realtime-whisper" }
+    // O endpoint GA /v1/realtime/calls aceita os modelos de transcrição
+    // publicados para áudio; gpt-realtime-whisper é um modelo separado e faz
+    // a sessão inteira ser recusada com HTTP 400 em produção.
+    ? { model: "gpt-4o-mini-transcribe" }
     : {
         model: "whisper-1",
         prompt: "Conversa bilíngue: português brasileiro e inglês americano. Preserve as palavras no idioma falado, sem traduzir. Pedidos de ajuda em português não são tentativas de inglês."
@@ -365,7 +368,7 @@ export function buildRealtimeSession(
     type: "realtime",
     model: modelName,
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue, conceptIndexValue),
-    max_response_output_tokens: 300,
+    max_output_tokens: 300,
     audio: {
       input: {
         noise_reduction: { type: "far_field" },
