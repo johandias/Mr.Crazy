@@ -100,3 +100,9 @@ Antes de qualquer push na `main`:
   1. Microfone estritamente mutado no inicio da pratica: removido auto-unmute silencioso em PracticeExperience.tsx, garantido initialMicrophoneEnabled: false, track.enabled = false a nivel de hardware, setMicrophoneEnabled(false), icone MicOff vermelho e badge Toque no microfone para falar.
   2. Mr. Crazy visivel e desobstruido no mobile: substituido max-height: none no balao de fala do clean-layout em globals.css por clamp(76px, 18dvh, 126px) com overflow-y: auto; alterado .character-column de space-between para justify-content: flex-start !important; corrigido o breakpoint max-height 650px em globals.css que antes zerava o padding inferior; avatar com z-index: 4 !important e min-height: clamp(90px, 16dvh, 135px), ficando totalmente aberto e visivel acima do dock de voz.
   3. 36 testes passando (22 stage progression, 9 scoring, 5 realtime session).
+
+- **[Antigravity - 2026-09-28]**: Correcao definitiva do erro pos-login na rota /practice:
+  1. Causa identificada no bundle de producao (e6): a variavel emotion estava sendo referenciada no array de dependencias do useEffect antes de sua declaracao (TDZ - ReferenceError antes da inicializacao).
+  2. Declaracao de const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]) movida para o topo da funcao (linha 438), antes de qualquer hook ou efeito dependente.
+  3. Preservada a fronteira de cliente PracticeExperienceClient com ssr: false para evitar erros de hidratacao no Next.js App Router.
+  4. Todos os 40 testes da suite passando com sucesso (26 stage progression, 9 scoring, 5 realtime session).

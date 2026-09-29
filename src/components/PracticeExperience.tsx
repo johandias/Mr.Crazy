@@ -435,6 +435,7 @@ function getStoredSession(): StoredSession {
 export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [crazyLevel, setCrazyLevel] = useState(16);
+  const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]);
   const [xp, setXp] = useState(420);
   const [manualText, setManualText] = useState("");
   const [transcript, setTranscript] = useState("");
@@ -687,7 +688,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     };
   }, [voiceState]);
 
-  const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]);
   const activeLevel = useMemo(
     () => levelOptions.find((level) => level.id === selectedLevel) ?? levelOptions[0],
     [selectedLevel]
