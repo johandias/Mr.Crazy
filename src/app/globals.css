@@ -12614,15 +12614,15 @@ meter {
   .clean-layout .character-avatar-wrapper { flex:1 1 auto; min-height:clamp(90px, 16dvh, 135px); max-height:clamp(115px, 22dvh, 160px); display:flex; align-items:center; justify-content:center; width:100%; margin:2px auto; overflow:visible; position:relative; z-index:4; }
   .clean-layout .clean-stage .character-avatar-wrapper .character-stage { width:clamp(96px, 17dvh, 136px); height:clamp(96px, 17dvh, 136px); max-height:none; max-width:55vw; min-width:0; aspect-ratio:1; margin:0 auto; overflow:visible; display:flex; align-items:center; justify-content:center; }
   .clean-layout .clean-stage .character-avatar-wrapper .rpg-character { width:100%; height:100%; max-height:100%; display:block; overflow:visible; }
-  .clean-layout .practice-voice-hub { position:absolute; right:12px; bottom:6px; left:12px; z-index:6; gap:2px; margin:0; padding:4px 8px 3px; flex-shrink:0; border:1px solid rgba(94, 234, 212, 0.2); border-radius:16px; background:linear-gradient(180deg, rgba(13, 24, 34, 0.96), rgba(7, 13, 20, 0.98)); box-shadow:0 10px 24px rgba(0,0,0,.32); }
+  .clean-layout .practice-voice-hub { position:absolute; right:12px; bottom:6px; left:12px; z-index:6; gap:1px; margin:0; padding:2px 6px 1px; flex-shrink:0; border:1px solid rgba(94, 234, 212, 0.16); border-radius:14px; background:linear-gradient(180deg, rgba(13, 24, 34, 0.85), rgba(7, 13, 20, 0.92)); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:0 6px 18px rgba(0,0,0,.35); }
   .clean-layout .clean-voice-dock { margin:0; padding:0; transform:none; width:100%; }
-  .clean-layout .avatar-mic-circle-btn { width:48px; height:48px; min-width:48px; min-height:48px; }
-  .clean-layout .voice-mode-selector-pill { margin:0 0 2px; }
-  .clean-layout .voice-mode-tab-btn { min-height:26px; padding:2px 7px; font-size:.65rem; }
-  .clean-layout .voice-action-badge { margin:2px 0 0; padding:2px 8px; max-width:100%; }
-  .clean-layout .voice-action-text { white-space:normal; font-size:.68rem; text-align:center; }
-  .clean-layout .voice-dock-actions-row { margin:2px 0 0; gap:6px; }
-  .clean-layout .dock-action-pill-btn { min-height:26px; padding:2px 8px; font-size:.66rem; }
+  .clean-layout .avatar-mic-circle-btn { width:40px; height:40px; min-width:40px; min-height:40px; }
+  .clean-layout .voice-mode-selector-pill { margin:0; padding:1px 2px; }
+  .clean-layout .voice-mode-tab-btn { min-height:20px; padding:1px 6px; font-size:.60rem; }
+  .clean-layout .voice-action-badge { margin:0; padding:1px 7px; min-height:18px; max-width:100%; }
+  .clean-layout .voice-action-text { white-space:normal; font-size:.62rem; line-height:1.15; text-align:center; }
+  .clean-layout .voice-dock-actions-row { margin:1px 0 0; gap:4px; }
+  .clean-layout .dock-action-pill-btn { min-height:22px; padding:1px 7px; font-size:.62rem; }
   .clean-layout .ptt-dock-row { transform:none; margin:0; }
   .clean-layout .quick-inline-text-form { margin:0; }
   .clean-layout .quick-inline-text-form input { min-width:0; font-size:16px; }

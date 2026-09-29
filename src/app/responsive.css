@@ -257,9 +257,9 @@
   }
   .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
     width: min(96vw, 440px);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     flex-shrink: 0;
-    max-height: clamp(142px, 25dvh, 194px) !important;
+    max-height: clamp(100px, 18dvh, 138px) !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -321,13 +321,13 @@
   /* ——— CHARACTER AVATAR: tamanho proporcional e bonito no centro da tela ——— */
   .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
     flex: 1 1 auto;
-    min-height: clamp(152px, 24dvh, 184px) !important;
-    max-height: clamp(174px, 29dvh, 212px) !important;
+    min-height: clamp(132px, 20dvh, 164px) !important;
+    max-height: clamp(156px, 24dvh, 188px) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     width: 100%;
-    margin: -4px auto clamp(14px, 3dvh, 24px) !important;
+    margin: -8px auto 0 !important;
     overflow: visible !important;
     position: relative;
     z-index: 4 !important;
@@ -342,6 +342,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    transform: translateY(clamp(-14px, -2dvh, -6px));
   }
   .practice-main .clean-stage.history-is-closed .rpg-character {
     width: 100% !important;
@@ -382,16 +383,22 @@
     inset: auto auto 2px 50% !important;
     transform: translateX(-50%);
     width: calc(100% - 34px) !important;
-    max-width: 360px !important;
+    max-width: 335px !important;
     gap: 1px !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
-    padding: 3px 7px !important;
+    padding: 2px 6px 1px !important;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     z-index: 6;
+    background: linear-gradient(180deg, rgba(13, 24, 34, 0.85), rgba(7, 13, 20, 0.92)) !important;
+    border: 1px solid rgba(94, 234, 212, 0.16) !important;
+    border-radius: 14px !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
   }
 
   @media (max-width: 430px), (max-height: 720px) {
@@ -406,87 +413,93 @@
       display: none !important;
     }
     .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
-      max-height: clamp(132px, 24dvh, 174px) !important;
+      max-height: clamp(92px, 17dvh, 126px) !important;
     }
     .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
-      min-height: clamp(144px, 23dvh, 174px) !important;
-      margin-bottom: clamp(18px, 4dvh, 30px) !important;
+      min-height: clamp(120px, 18dvh, 150px) !important;
+      margin-bottom: 0 !important;
     }
   }
   /* Seletor de Modo Compacto */
   .practice-main .voice-mode-selector-pill {
-    padding: 1px 3px !important;
-    margin-bottom: 1px !important;
+    padding: 1px 2px !important;
+    margin-bottom: 0 !important;
+    gap: 2px !important;
   }
   .practice-main .voice-mode-tab-btn {
-    padding: 2px 6px !important;
-    font-size: 0.62rem !important;
-    min-height: 22px !important;
+    padding: 1px 6px !important;
+    font-size: 0.60rem !important;
+    min-height: 20px !important;
   }
   /* Mic row: botão + ondas laterais */
   .practice-main .mic-btn-row {
-    gap: 6px !important;
+    gap: 4px !important;
+    margin: 0 !important;
   }
   .practice-main .dock-wave-side-container {
-    max-width: 58px !important;
-    min-width: 30px !important;
+    max-width: 48px !important;
+    min-width: 24px !important;
+    height: 18px !important;
   }
   /* Dock PTT: linha horizontal compacta */
   .practice-main .ptt-dock-row {
     max-width: 100% !important;
-    padding: 6px 10px !important;
-    border-radius: 16px !important;
-    gap: 8px !important;
+    padding: 4px 8px !important;
+    border-radius: 12px !important;
+    gap: 6px !important;
   }
   .practice-main .ptt-dock-hold-btn {
-    padding: 6px 11px !important;
-    font-size: 0.72rem !important;
-    border-radius: 11px !important;
+    padding: 4px 9px !important;
+    font-size: 0.68rem !important;
+    border-radius: 9px !important;
   }
   .practice-main .ptt-dock-label {
-    font-size: 0.7rem !important;
+    font-size: 0.66rem !important;
   }
   .practice-main .dock-wave-bars {
-    height: 22px !important;
+    height: 18px !important;
   }
   .practice-main .ptt-recording-pill {
-    padding: 2px 10px !important;
-    font-size: 0.66rem !important;
-    margin-bottom: 1px !important;
+    padding: 1px 8px !important;
+    font-size: 0.62rem !important;
+    margin-bottom: 0 !important;
   }
   .practice-main .avatar-mic-halo-wrapper {
-    width: 52px !important;
-    height: 52px !important;
+    width: 44px !important;
+    height: 44px !important;
   }
   .practice-main .voice-input-control {
     flex-shrink: 0;
     margin: 0 !important;
-    gap: 3px !important;
+    gap: 1px !important;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
   .practice-main .voice-input-control .avatar-mic-circle-btn {
-    width: 46px !important;
-    height: 46px !important;
-    min-width: 46px !important;
-    min-height: 46px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
   .practice-main .voice-action-badge {
-    padding: 2px 9px !important;
-    margin-top: 1px !important;
+    padding: 1px 7px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    min-height: 18px !important;
   }
   .practice-main .voice-action-text {
-    font-size: 0.66rem !important;
+    font-size: 0.62rem !important;
+    line-height: 1.15 !important;
   }
   .practice-main .voice-dock-actions-row {
-    gap: 5px !important;
+    gap: 4px !important;
     margin: 1px 0 0 !important;
   }
   .practice-main .dock-action-pill-btn {
-    min-height: 24px !important;
-    padding: 2px 8px !important;
-    font-size: 0.64rem !important;
+    min-height: 22px !important;
+    padding: 1px 7px !important;
+    font-size: 0.62rem !important;
   }
   .practice-main .history-toggle-row {
     flex-shrink: 0;

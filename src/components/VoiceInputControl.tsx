@@ -353,11 +353,11 @@ export function VoiceInputControl({
             aria-label={connecting ? "Conectando" : active ? "Mutar microfone" : "Ativar microfone"}
           >
             {connecting ? (
-              <LoaderCircle size={26} className="connection-spinner" />
+              <LoaderCircle size={22} className="connection-spinner" />
             ) : active ? (
-              <Mic size={26} className="mic-icon-active" />
+              <Mic size={22} className="mic-icon-active" />
             ) : (
-              <MicOff size={24} className="mic-icon-inactive" />
+              <MicOff size={22} className="mic-icon-inactive" />
             )}
           </button>
         </div>
