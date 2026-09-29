@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
+import { memo, useState, useEffect, useRef, useCallback, type CSSProperties, type RefObject } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
+import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
 
 export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup" | "watergun";
 
@@ -23,6 +24,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   voiceState,
   gesture = "idle",
   isAwake = false,
+  audioMetricsRef,
   onAwaken,
   onTap
 }: Readonly<{
@@ -31,6 +33,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   voiceState: VoiceState;
   gesture?: CharacterGesture;
   isAwake?: boolean;
+  audioMetricsRef?: RefObject<LiveAudioVisualizer>;
   onAwaken?: () => void;
   onTap?: () => void;
 }>) {
@@ -73,21 +76,84 @@ export const RpgCharacter = memo(function RpgCharacter({
     };
   }, []);
 
-  // Articulação labial com fonemas vocálicos e consonantais durante a fala do professor
+  // Articulação labial e movimento reativo ao som durante a fala do professor
   useEffect(() => {
     if (voiceState !== "speaking") {
       setPhoneme(0);
+      if (containerRef.current) {
+        containerRef.current.style.setProperty("--live-level", "0");
+        containerRef.current.style.setProperty("--live-head-bob", "0px");
+      }
       return;
     }
-    const phonemeSequence = [0, 1, 0, 2, 1, 3, 0, 2];
-    let index = 0;
-    const interval = setInterval(() => {
-      index = (index + 1) % phonemeSequence.length;
-      setPhoneme(phonemeSequence[index]);
-    }, 115);
 
-    return () => clearInterval(interval);
-  }, [voiceState]);
+    let rafId: number;
+    let lastSwitchTime = 0;
+    let fallbackIndex = 0;
+    const phonemeSequence = [0, 1, 0, 2, 1, 3, 0, 2];
+
+    const tick = (now: number) => {
+      const metrics = audioMetricsRef?.current;
+      const isCrazyAudio = metrics?.source === "crazy";
+      const level = metrics?.level ?? 0;
+      const bass = metrics?.bass ?? 0;
+      const bands = metrics?.bands ?? [];
+
+      if (isCrazyAudio && (level > 0.02 || bass > 0.02)) {
+        // ÁUDIO REAL WebRTC: Boca e cabeça acompanham diretamente o som e as frequências
+        const smoothBob = Math.min(3.2, level * 4.8 + bass * 2.2);
+        if (containerRef.current) {
+          containerRef.current.style.setProperty("--live-level", String(level));
+          containerRef.current.style.setProperty("--live-head-bob", `${smoothBob.toFixed(1)}px`);
+        }
+
+        // Troca de fonema de acordo com o espectro e intensidade da fala a cada ~75ms
+        if (now - lastSwitchTime > 75) {
+          lastSwitchTime = now;
+
+          if (level < 0.028) {
+            // Pausa entre palavras: lábios relaxam em repouso natural
+            setPhoneme(4);
+          } else {
+            const highBands = (bands[6] ?? 0) + (bands[7] ?? 0) + (bands[8] ?? 0);
+            const lowBands = (bands[0] ?? 0) + (bands[1] ?? 0) + bass;
+
+            if (lowBands > 0.48) {
+              // Vogal redonda (O, U, W)
+              setPhoneme(2);
+            } else if (highBands > 0.4) {
+              // Vogal aberta esticada (E, I)
+              setPhoneme(1);
+            } else if (level > 0.16) {
+              // Vogal aberta cheia (A, O)
+              setPhoneme(0);
+            } else {
+              // Consoante ou transição articulada
+              setPhoneme(3);
+            }
+          }
+        }
+      } else {
+        // Fallback procedural suave quando em áudio sintetizado ou sem métricas WebRTC
+        if (now - lastSwitchTime > 115) {
+          lastSwitchTime = now;
+          fallbackIndex = (fallbackIndex + 1) % phonemeSequence.length;
+          setPhoneme(phonemeSequence[fallbackIndex]);
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (containerRef.current) {
+        containerRef.current.style.setProperty("--live-level", "0");
+        containerRef.current.style.setProperty("--live-head-bob", "0px");
+      }
+    };
+  }, [voiceState, audioMetricsRef]);
 
   // Se o aluno começou a falar (isAwake) ou Mr. Crazy começou a falar, sai da rede e fica de pé imediatamente
   useEffect(() => {
@@ -400,7 +466,7 @@ export const RpgCharacter = memo(function RpgCharacter({
               <g
                 className="rpg-head"
                 style={{
-                  transform: `translate(${lookOffset.x * 2.8}px, ${lookOffset.y * 1.9}px) rotate(${lookOffset.x * 3.2}deg)`,
+                  transform: `translate(${lookOffset.x * 2.8}px, calc(${lookOffset.y * 1.9}px + var(--live-head-bob, 0px))) rotate(${lookOffset.x * 3.2}deg)`,
                   transition: "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1)"
                 }}
               >
@@ -500,6 +566,13 @@ export const RpgCharacter = memo(function RpgCharacter({
                         <g className="phoneme-consonant">
                           <rect x="68" y="72" width="24" height="4" rx="2" fill="#3b0a12" />
                           <rect x="71" y="73" width="18" height="2" fill="#ffffff" />
+                        </g>
+                      )}
+                      {phoneme === 4 && (
+                        /* Fonema Pausa Natural: lábios em repouso durante silêncio entre palavras */
+                        <g className="phoneme-rest-live">
+                          <rect x="69" y="72" width="22" height="4" rx="2" fill="#3b0a12" />
+                          <rect x="74" y="73" width="12" height="2" fill="#f43f5e" />
                         </g>
                       )}
                     </g>

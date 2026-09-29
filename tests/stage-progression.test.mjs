@@ -466,6 +466,28 @@ test("beta conversation avoids truncated text on conversational openers", async 
   assert.ok(result.followUp, "Deve convidar para continuar");
 });
 
+test("character accompanies audio reactively and study guide teaches natural English variations", async () => {
+  const fs = await import("node:fs");
+  const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
+  const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
+  const { getNaturalVariation, getFallbackPhaseTargets } = await import("../src/lib/lesson-target.ts");
+  const { getModuleById } = await import("../src/lib/modules.ts");
+
+  // RpgCharacter accepts audioMetricsRef and has pause rest phoneme
+  assert.ok(characterCode.includes("audioMetricsRef?: RefObject<LiveAudioVisualizer>"), "RpgCharacter deve aceitar audioMetricsRef");
+  assert.ok(characterCode.includes("phoneme-rest-live"), "RpgCharacter deve conter fonema de repouso natural entre palavras");
+  assert.ok(practiceCode.includes("<RpgCharacter"), "PracticeExperience deve renderizar RpgCharacter");
+  assert.ok(practiceCode.includes("audioMetricsRef={audioMetricsRef}"), "PracticeExperience deve passar audioMetricsRef para o personagem");
+
+  // Teaching targets include natural spoken variations
+  const variation = getNaturalVariation("How are you doing?");
+  assert.ok(variation && variation.length > 5, "Deve sugerir variações como 'What's up?' para saudações comuns");
+  const module = getModuleById("greetings");
+  const fallback = getFallbackPhaseTargets(module, 0);
+  assert.ok(fallback.some((target) => Boolean(target.variationPt)), "Alvos de aula devem incluir alternativas naturais");
+});
+
+
 
 
 

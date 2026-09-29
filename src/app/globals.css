@@ -12577,6 +12577,8 @@ meter {
 .speech-study-guide dt { color:#aab9c9; font-size:.7rem; line-height:1.3; }
 .speech-study-guide dd { margin:2px 0 0; color:#e2e8f0; font-size:.88rem; line-height:1.35; overflow-wrap:anywhere; }
 .speech-study-target dd { color:#7dd3fc; font-size:1.08rem; font-weight:750; }
+.speech-study-variation dt { color:#38bdf8; font-weight:600; }
+.speech-study-variation dd { color:#a5f3fc; font-size:.82rem; font-style:italic; }
 .phase-stepper-step { border:0; background:transparent; padding:5px 2px; cursor:pointer; }
 .phase-stepper-step:focus-visible { outline:2px solid #7dd3fc; outline-offset:2px; border-radius:5px; }
 @media (max-width:991px) {

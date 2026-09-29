@@ -1984,6 +1984,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             voiceState={voiceState}
             gesture={activeGesture}
             isAwake={isCharacterAwake}
+            audioMetricsRef={audioMetricsRef}
             onAwaken={() => setIsCharacterAwake(true)}
             onTap={handleAvatarTap}
           />
@@ -2358,6 +2359,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                         <dt>Pronúncia aproximada</dt>
                         <dd>{teachingTarget.phoneticPt}</dd>
                       </div>
+                      {teachingTarget.variationPt && (
+                        <div className="speech-study-variation">
+                          <dt>Como nativos falam</dt>
+                          <dd>{teachingTarget.variationPt}</dd>
+                        </div>
+                      )}
                     </dl>
                     {teachingTarget.phraseEn && (
                       <button
@@ -2401,6 +2408,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 voiceState={voiceState}
                 gesture={activeGesture}
                 isAwake={isCharacterAwake}
+                audioMetricsRef={audioMetricsRef}
                 onAwaken={() => setIsCharacterAwake(true)}
                 onTap={handleAvatarTap}
               />

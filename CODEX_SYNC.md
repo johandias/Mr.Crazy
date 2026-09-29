@@ -1,4 +1,4 @@
-﻿# CODEX_SYNC.md — Quadro Vivo de Sincronização (Codex & Antigravity)
+# CODEX_SYNC.md — Quadro Vivo de Sincronização (Codex & Antigravity)
 
 Este arquivo é o canal de coordenação e sincronização entre **Codex** e **Antigravity**. Atualize este documento sempre que iniciar ou concluir uma tarefa para evitar sobreposição e conflitos de merge.
 
@@ -115,4 +115,11 @@ Antes de qualquer push na `main`:
   2. Declaracao de const emotion = useMemo(() => getEmotion(crazyLevel), [crazyLevel]) movida para o topo da funcao (linha 438), antes de qualquer hook ou efeito dependente.
   3. Preservada a fronteira de cliente PracticeExperienceClient com ssr: false para evitar erros de hidratacao no Next.js App Router.
   4. Todos os 40 testes da suite passando com sucesso (26 stage progression, 9 scoring, 5 realtime session).
+
+- **[Antigravity — 2026-09-29]**: Refinamento profissional do treino, articulação áudio-reativa e ensino de variações naturais:
+  1. **Articulação Áudio-Reativa do Mr. Crazy**: Conectado `audioMetricsRef` diretamente ao `<RpgCharacter />`. O personagem agora analisa nível sonoro (`level`), graves (`bass`) e espectro vocal em tempo real (`requestAnimationFrame`). Quando fala, os lábios alternam visemas vocálicos/consonantais de acordo com as frequências sonoras reais, fecham em repouso natural durante pausas entre palavras (fonema 4) e a cabeça oscila suavemente (`--live-head-bob`) com a ênfase vocal.
+  2. **Ensino de Formas Diferentes de Falar (Variações e Connected Speech)**: Adicionadas diretrizes no `realtime-session.ts` instruindo Mr. Crazy a ensinar inglês falado natural do dia a dia (casual vs formal, reduções conectadas como *gonna/wanna/gotta*, linking sounds) e validar alternativas idiomáticas usadas pelo aluno. Alvos de aula (`lesson-target.ts`) agora fornecem `variationPt` (ex: "Casual: 'Morning!'", "No balcão: 'Can I grab a coffee?'", "Check, please!"), exibidas de forma clara e profissional no cartão didático do balão.
+  3. **Visual Profissional e Polido do Treino (`/practice`)**: Estilização refinada de `.speech-study-variation`, tipografia aprimorada, contrastes e bordas glassmórficas no balão didático e dock de voz.
+  4. **Testes Unitários e de Regressão**: 42 testes passando com sucesso (27 stage progression, 9 scoring, 6 realtime session).
+
 

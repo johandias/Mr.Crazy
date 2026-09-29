@@ -47,3 +47,11 @@ test("realtime tutor receives the same phrase, meaning, and next target shown in
   assert.match(instructions, /Fonética aportuguesada sincronizada: "Rái, gúd mórnin!"/);
   assert.match(instructions, /Próximo alvo.*Good morning, how are you\?/);
 });
+
+test("realtime tutor instructions guide teaching natural English variations and connected speech", () => {
+  const session = buildRealtimeSession("basic", "travel", null, "gpt-realtime-2.1-mini", "travel", 0);
+  assert.match(session.instructions, /connected speech/i);
+  assert.match(session.instructions, /VARIAÇÕES NATURAIS E FORMAS DIFERENTES DE FALAR/);
+  assert.match(session.instructions, /casual vs formal/i);
+});
+

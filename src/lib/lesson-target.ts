@@ -9,7 +9,31 @@ export type TeachingTarget = {
   phraseEn: string;
   meaningPt: string;
   phoneticPt: string;
+  variationPt?: string;
 };
+
+const COMMON_VARIATIONS: Array<{ pattern: RegExp; variation: string }> = [
+  { pattern: /\bgood morning\b/i, variation: "Casual entre amigos: 'Morning!'" },
+  { pattern: /\bhow are you\b/i, variation: "Mais natural no dia a dia: 'How's it going?' ou 'What's up?'" },
+  { pattern: /\ba table for two\b/i, variation: "Rápido e direto: 'Table for two, please!'" },
+  { pattern: /\bcould i get (a |the )?coffee\b/i, variation: "No balcão: 'Can I grab a coffee?' ou 'Coffee to go!'" },
+  { pattern: /\bwhere is the (restroom|bathroom)\b/i, variation: "Espontâneo: 'Where's the restroom?'" },
+  { pattern: /\bthe check\b/i, variation: "Direto ao garçom: 'Check, please!'" },
+  { pattern: /\bnice to meet you\b/i, variation: "Super comum: 'Great to meet you!' ou 'Good meeting you!'" },
+  { pattern: /\bthank you\b/i, variation: "Expressivo e nativo: 'Thanks a lot!' ou 'I appreciate it!'" },
+  { pattern: /\bi would like\b/i, variation: "No dia a dia: 'I'll have...' ou 'Can I get...'" },
+  { pattern: /\bi don't understand\b/i, variation: "Coloquial: 'I didn't catch that' ou 'Say again?'" },
+  { pattern: /\bsee you later\b/i, variation: "Nativo e descontraído: 'Catch you later!' ou 'Take care!'" },
+  { pattern: /\bi have to go\b/i, variation: "Redução conectada: 'I gotta run!' ou 'I gotta go!'" },
+  { pattern: /\bexcuse me\b/i, variation: "Pra chamar atenção ou passar: 'Pardon me' ou 'Sorry, excuse me!'" }
+];
+
+export function getNaturalVariation(phraseEn: string): string | undefined {
+  for (const entry of COMMON_VARIATIONS) {
+    if (entry.pattern.test(phraseEn)) return entry.variation;
+  }
+  return undefined;
+}
 
 function getTeachingConcept(module: LearningModule, phaseIndex: number): ModuleConcept | undefined {
   const phases = module.concepts.filter((concept) => !concept.isExam);
@@ -29,19 +53,23 @@ export function getFallbackPhaseTargets(
     ...(concept?.samplePhrases ?? []),
     ...(module.samplePhrases ?? [])
   ]
-    .map((phrase) => phrase.replace(/\s+/gu, " ").trim())
-    .filter(Boolean);
+  .map((phrase) => phrase.replace(/\s+/gu, " ").trim())
+  .filter(Boolean);
   const uniquePhrases = Array.from(new Set(candidatePhrases));
 
-  return LESSON_STEP_LABELS.map((stepLabel, stepIndex) => ({
-    phaseId: concept?.id || `${module.id}-phase-${phaseIndex + 1}`,
-    phaseIndex,
-    stepIndex,
-    stepLabel,
-    phraseEn: uniquePhrases[stepIndex] || phraseEn,
-    meaningPt: stepIndex === 0 ? meaningPt : `${meaningPt} (${stepLabel.toLowerCase()} na cena real).`,
-    phoneticPt: uniquePhrases[stepIndex] === phraseEn ? phoneticPt : "Ouça o modelo americano e copie o ritmo."
-  }));
+  return LESSON_STEP_LABELS.map((stepLabel, stepIndex) => {
+    const currentPhrase = uniquePhrases[stepIndex] || phraseEn;
+    return {
+      phaseId: concept?.id || `${module.id}-phase-${phaseIndex + 1}`,
+      phaseIndex,
+      stepIndex,
+      stepLabel,
+      phraseEn: currentPhrase,
+      meaningPt: stepIndex === 0 ? meaningPt : `${meaningPt} (${stepLabel.toLowerCase()} na cena real).`,
+      phoneticPt: uniquePhrases[stepIndex] === phraseEn ? phoneticPt : "Ouça o modelo americano e copie o ritmo.",
+      variationPt: getNaturalVariation(currentPhrase)
+    };
+  });
 }
 
 function cleanTargetText(value: unknown, fallback: string, maxLength: number) {
@@ -62,11 +90,15 @@ export function normalizePhaseTargets(
     const candidate = value[stepIndex];
     if (!candidate || typeof candidate !== "object") return base;
     const target = candidate as Partial<TeachingTarget>;
+    const phrase = cleanTargetText(target.phraseEn, base.phraseEn, 120);
     return {
       ...base,
-      phraseEn: cleanTargetText(target.phraseEn, base.phraseEn, 120),
+      phraseEn: phrase,
       meaningPt: cleanTargetText(target.meaningPt, base.meaningPt, 140),
-      phoneticPt: cleanTargetText(target.phoneticPt, base.phoneticPt, 160)
+      phoneticPt: cleanTargetText(target.phoneticPt, base.phoneticPt, 160),
+      variationPt: typeof target.variationPt === "string"
+        ? cleanTargetText(target.variationPt, "", 160)
+        : getNaturalVariation(phrase) || base.variationPt
     };
   });
 }
