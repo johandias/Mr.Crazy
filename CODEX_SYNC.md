@@ -150,3 +150,9 @@ Antes de qualquer push na `main`:
   4. **Aceleracao da Conexao e Abertura do Microfone**: Timeout de ICE gathering reduzido de 1500ms para 150ms / resolucao imediata no primeiro candidato ICE. Consultas de perfil no Supabase em /api/realtime/session e /api/realtime/client-secret paralelizadas via Promise.all com timeout de seguranca de 900ms para nao bloquear a negociacao SDP.
   5. **Microfone Inicia no MUTE e Ativacao Fluida**: Invariante do microfone mutado no boot preservada (initialMicrophoneEnabled: false, borda vermelha, MicOff). Implementado pendingMicEnableRef em PracticeExperience.tsx: se o usuario clicar no microfone enquanto a conexao e estabelecida, a intencao e preservada e o microfone abre imediatamente assim que a sessao estiver pronta.
   6. **Todos os 43 testes da suite passando com sucesso** (28 stage progression, 9 scoring, 6 realtime session).
+
+- **[Antigravity — 2026-09-29]**: Correcao critica de tela preta "This page couldn't load":
+  1. Identificado e corrigido ReferenceError de 'activity' em src/components/RpgCharacter.tsx (variavel havia sido omitida na criacao do characterViewBox, mas ainda era acessada no aria-label e classes).
+  2. Ajustada rota raiz (src/app/page.tsx) para carregar PracticeExperience atraves de PracticeExperienceClient com ssr: false, igualando o comportamento estavel de /practice e eliminando inconsistencias de hidratacao do React 19.
+  3. Adicionado error boundary global (src/app/error.tsx) para recuperacao amigavel de erros com botao de recarregar.
+  4. 43 testes unitarios passando. Commit 4f5c5dd enviado para a main.
