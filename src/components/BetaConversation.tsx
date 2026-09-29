@@ -28,6 +28,14 @@ export type ConversationOption = {
   textPt?: string;
 };
 
+type TeachingCard = {
+  intentPt: string;
+  mainPhrase: string;
+  phoneticPt: string;
+  explanationPt: string;
+  alternatives: Array<{ phraseEn: string; contextPt: string }>;
+};
+
 type ChatMessage = {
   id: string;
   role: "user" | "crazy";
@@ -37,6 +45,7 @@ type ChatMessage = {
   explanationPt?: string;
   followUp?: string;
   options?: ConversationOption[];
+  teachingCard?: TeachingCard;
   isQuickOption?: boolean;
   createdAt?: string;
 };
@@ -47,6 +56,7 @@ type ConversationReplyPayload = {
   explanationPt?: string;
   followUp?: string;
   options?: ConversationOption[];
+  teachingCard?: TeachingCard;
   error?: string;
 };
 
@@ -57,7 +67,8 @@ type FailedTurn = {
 };
 
 const starterPrompts = [
-  "Quero praticar uma apresentação.",
+  "Como falo que estou com fome?",
+  "Qual frase uso para pedir desconto?",
   "Simule uma conversa em um restaurante.",
   "Corrija: I have 30 years old."
 ];
@@ -183,6 +194,7 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
           explanationPt: payload.explanationPt,
           followUp: payload.followUp,
           options: payload.options,
+          teachingCard: payload.teachingCard,
           createdAt: getMessageTime()
         }
       ]);
@@ -485,6 +497,37 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {message.role === "crazy" && message.teachingCard && (
+                  <div className="beta-teaching-card" aria-label="Dica de como falar em inglês">
+                    <div className="beta-teaching-card-header">
+                      <span className="beta-teaching-card-label">📚 Como falar em inglês</span>
+                      <span className="beta-teaching-card-intent">{message.teachingCard.intentPt}</span>
+                    </div>
+                    <div className="beta-teaching-card-main">
+                      <span className="beta-teaching-main-phrase" lang="en">{message.teachingCard.mainPhrase}</span>
+                      <span className="beta-teaching-phonetic">🔊 {message.teachingCard.phoneticPt}</span>
+                    </div>
+                    <p className="beta-teaching-explanation">{message.teachingCard.explanationPt}</p>
+                    {message.teachingCard.alternatives && message.teachingCard.alternatives.length > 0 && (
+                      <div className="beta-teaching-alternatives">
+                        <span className="beta-teaching-alternatives-label">Variações — toque para praticar:</span>
+                        {message.teachingCard.alternatives.map((alt, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className="beta-teaching-alt-btn"
+                            onClick={() => handleSelectOption({ textEn: alt.phraseEn, textPt: alt.contextPt })}
+                            disabled={isSending}
+                          >
+                            <span className="beta-alt-phrase" lang="en">{alt.phraseEn}</span>
+                            <span className="beta-alt-context">{alt.contextPt}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

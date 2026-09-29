@@ -22,12 +22,26 @@ export type ConversationOption = {
   textPt?: string;
 };
 
+export type TeachingCardAlternative = {
+  phraseEn: string;
+  contextPt: string;
+};
+
+export type TeachingCard = {
+  intentPt: string;
+  mainPhrase: string;
+  phoneticPt: string;
+  explanationPt: string;
+  alternatives: TeachingCardAlternative[];
+};
+
 export type ConversationCoachReply = {
   reply: string;
   correction?: string;
   explanationPt?: string;
   followUp?: string;
   options?: ConversationOption[];
+  teachingCard?: TeachingCard;
 };
 
 function getGeminiModels() {
@@ -38,6 +52,24 @@ function getGeminiModels() {
         .map((model) => model.replace(/^models\//u, "").trim())
     )
   );
+}
+
+export function detectsPedagogicalIntent(message: string): boolean {
+  const m = message.trim().toLowerCase();
+  const patterns = [
+    /como\s+(falo|digo|falar|dizer|se\s+diz|expressar|falar\s+de|expressar)\b/u,
+    /qual\s+(frase|a\s+melhor\s+(frase|forma)|forma|express[aã]o)\s+(para|pra|de|p\/)/u,
+    /o\s+que\s+significa\b/u,
+    /como\s+se\s+diz\b/u,
+    /como\s+posso\s+(dizer|falar|expressar)\b/u,
+    /que\s+frase\s+(uso|utilizo|posso\s+usar)\b/u,
+    /tem\s+como\s+(dizer|falar|expressar)\b/u,
+    /como\s+falo\b/u,
+    /como\s+digo\b/u,
+    /como\s+dizer\b/u,
+    /como\s+falar\b/u
+  ];
+  return patterns.some((re) => re.test(m));
 }
 
 function buildConversationPrompt(
@@ -70,6 +102,19 @@ function buildConversationPrompt(
     : `DIRETRIZES PARA ALUNO INTERMEDIÁRIO:
 - Responda em inglês natural, dê explicações pontuais em português quando corrigir ou contextualizar, e forneça 2 a 3 alternativas de resposta em 'options'.`;
 
+  const isPedagogical = detectsPedagogicalIntent(message);
+  const teachingCardInstruction = isPedagogical
+    ? `
+IMPORTANTE: O aluno está pedindo uma DICA PEDAGÓGICA sobre como falar algo.
+Além da resposta normal, OBRIGATORIAMENTE gere o campo 'teachingCard' com:
+- intentPt: resumo em PT do que o aluno quer dizer (<15 palavras)
+- mainPhrase: a frase MAIS NATURAL em inglês para essa situação
+- phoneticPt: pronúncia aproximada em português para um brasileiro ler
+- explanationPt: por que essa é a melhor frase (<20 palavras)
+- alternatives: array com 3 variações do mesmo sentido, cada uma com phraseEn e contextPt (quando usar)
+Formato: {"reply":"...","teachingCard":{"intentPt":"...","mainPhrase":"...","phoneticPt":"...","explanationPt":"...","alternatives":[{"phraseEn":"...","contextPt":"..."}]},...}`
+    : "";
+
   return `Você é Mr.Crazy, professor de inglês para brasileiros, conduzindo uma conversa interativa por mensagens.${studentContext}
 
 Objetivo: transformar cada turno em prática real e envolvente. Seja direto, carismático, dinâmico e focado no aprendizado. Você recebe apenas texto digitado ou transcrito.
@@ -86,7 +131,7 @@ REGRA ABSOLUTA DE COMPLETUDE:
 - NUNCA termine uma frase pela metade.
 - NUNCA encerre sua resposta com vírgula (,), dois-pontos (:) ou conectivo solto.
 - Toda frase DEVE ser completa, coerente e finalizada com ponto (. ! ?).
-
+${teachingCardInstruction}
 Responda SOMENTE com JSON válido neste formato:
 {"reply":"resposta principal completa","correction":null,"explanationPt":null,"followUp":"pergunta ou desafio curto","options":[{"textEn":"frase em inglês","textPt":"tradução em português"}]}
 
@@ -260,6 +305,26 @@ function normalizeOptions(rawOptions: unknown): ConversationOption[] | undefined
   return result.length > 0 ? result.slice(0, 4) : undefined;
 }
 
+function normalizeTeachingCard(raw: unknown): TeachingCard | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const tc = raw as Record<string, unknown>;
+  const intentPt = typeof tc.intentPt === "string" ? tc.intentPt.trim() : undefined;
+  const mainPhrase = typeof tc.mainPhrase === "string" ? tc.mainPhrase.trim() : undefined;
+  const phoneticPt = typeof tc.phoneticPt === "string" ? tc.phoneticPt.trim() : undefined;
+  const explanationPt = typeof tc.explanationPt === "string" ? tc.explanationPt.trim() : undefined;
+  if (!intentPt || !mainPhrase || !phoneticPt || !explanationPt) return undefined;
+  const rawAlts = Array.isArray(tc.alternatives) ? tc.alternatives : [];
+  const alternatives: TeachingCardAlternative[] = rawAlts
+    .filter((a): a is Record<string, unknown> => a && typeof a === "object")
+    .map((a) => ({
+      phraseEn: typeof a.phraseEn === "string" ? a.phraseEn.trim() : "",
+      contextPt: typeof a.contextPt === "string" ? a.contextPt.trim() : ""
+    }))
+    .filter((a) => a.phraseEn.length > 0)
+    .slice(0, 4);
+  return { intentPt, mainPhrase, phoneticPt, explanationPt, alternatives };
+}
+
 function extractJsonFields(raw: string): Partial<ConversationCoachReply> | null {
   const extract = (pattern: RegExp) => {
     const match = raw.match(pattern);
@@ -279,12 +344,24 @@ function extractJsonFields(raw: string): Partial<ConversationCoachReply> | null 
     }
   }
 
+  let teachingCard: TeachingCard | undefined;
+  // Try to extract teachingCard block — grab everything from "teachingCard": { to matching }
+  const tcMatch = raw.match(/"teachingCard"\s*:\s*(\{[\s\S]*?\}(?:\s*,|\s*\}))/);
+  if (tcMatch) {
+    try {
+      teachingCard = normalizeTeachingCard(JSON.parse(tcMatch[1]));
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     reply,
     correction: extract(/"correction"\s*:\s*"((?:[^"\\]|\\.)*)"/),
     explanationPt: extract(/"explanationPt"\s*:\s*"((?:[^"\\]|\\.)*)"/),
     followUp: extract(/"followUp"\s*:\s*"((?:[^"\\]|\\.)*)"/),
-    options
+    options,
+    teachingCard
   };
 }
 
@@ -296,13 +373,15 @@ function normalizeCoachReply(value: unknown, isBeginner = true): ConversationCoa
 
   const followUp = cleanField(candidate.followUp, 240, 25);
   const options = normalizeOptions(candidate.options) ?? generateContextualOptions(followUp, reply, isBeginner);
+  const teachingCard = normalizeTeachingCard(candidate.teachingCard);
 
   return {
     reply,
     correction: cleanField(candidate.correction, 240, 25),
     explanationPt: cleanField(candidate.explanationPt, 220, 25),
     followUp,
-    options
+    options,
+    ...(teachingCard ? { teachingCard } : {})
   };
 }
 
