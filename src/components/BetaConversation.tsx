@@ -5,26 +5,39 @@ import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   AudioLines,
   BadgeCheck,
+  Check,
+  ChevronDown,
+  ChevronUp,
   CircleAlert,
+  HelpCircle,
   LoaderCircle,
   Mic,
   RotateCcw,
   Send,
   Settings,
+  Sparkles,
   Square,
   Volume2
 } from "lucide-react";
+
+export type ConversationOption = {
+  textEn: string;
+  textPt?: string;
+};
 
 type ChatMessage = {
   id: string;
   role: "user" | "crazy";
   text: string;
-  source?: "voice" | "text";
+  source?: "voice" | "text" | "option";
   correction?: string;
   explanationPt?: string;
   followUp?: string;
+  options?: ConversationOption[];
+  isQuickOption?: boolean;
   createdAt?: string;
 };
 
@@ -33,6 +46,7 @@ type ConversationReplyPayload = {
   correction?: string;
   explanationPt?: string;
   followUp?: string;
+  options?: ConversationOption[];
   error?: string;
 };
 
@@ -65,12 +79,37 @@ function getHistoryText(message: ChatMessage) {
 }
 
 export function BetaConversation({ userName, learningLevel }: Readonly<{ userName: string; learningLevel?: string }>) {
+  const isAdvanced = Boolean(
+    learningLevel &&
+    (learningLevel.toLowerCase().includes("advanced") ||
+     learningLevel.toLowerCase().includes("avançad"))
+  );
+  const isBeginner = !isAdvanced;
+
+  const [showExplainer, setShowExplainer] = useState(isBeginner);
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: "welcome",
       role: "crazy",
-      text: `Olá, ${userName}. Vamos conversar de verdade. Escreva em inglês ou peça ajuda em português.`,
-      followUp: "Sobre o que você quer falar hoje?"
+      text: isBeginner
+        ? `Olá, ${userName}! Esta é a nossa Conversa Livre com o Mr. Crazy. Aqui você treina inglês da vida real sem medo de errar. Eu converso com você em inglês, mas explico tudo em português para você entender com clareza. E você pode responder direto tocando nas alternativas prontas abaixo!`
+        : `Welcome, ${userName}! This is our Free Conversation room. Here we dive straight into natural, real-world English with instant coaching on pronunciation, connected speech and idioms.`,
+      followUp: isBeginner
+        ? "Qual dessas situações práticas você quer treinar agora?"
+        : "Which real-world scenario would you like to explore today?",
+      options: isBeginner
+        ? [
+            { textEn: "I'd like to practice ordering at a restaurant.", textPt: "🍽️ Pedir comida e bebida em um restaurante" },
+            { textEn: "Let's practice a simple job introduction.", textPt: "💼 Apresentação rápida de trabalho / entrevista" },
+            { textEn: "I need English for traveling and airport.", textPt: "✈️ Situações de viagem, aeroporto e hotel" },
+            { textEn: "I want to chat about games, movies, and hobbies.", textPt: "🎮 Bate-papo casual sobre hobbies e jogos" }
+          ]
+        : [
+            { textEn: "Let's debate tech trends and future career plans.", textPt: "🚀 Debater tendências de tecnologia e carreira" },
+            { textEn: "I want to debate movies, series, or video games.", textPt: "🎬 Debater filmes, séries e entretenimento" },
+            { textEn: "Let's simulate a challenging professional interview.", textPt: "💼 Simulação de entrevista de emprego exigente" }
+          ]
     }
   ]);
   const [draft, setDraft] = useState("");
@@ -143,6 +182,7 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
           correction: payload.correction,
           explanationPt: payload.explanationPt,
           followUp: payload.followUp,
+          options: payload.options,
           createdAt: getMessageTime()
         }
       ]);
@@ -155,18 +195,30 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
     }
   };
 
-  const sendMessage = (rawMessage: string, source: "voice" | "text") => {
+  const sendMessage = (rawMessage: string, source: "voice" | "text" | "option" = "text") => {
     const message = rawMessage.trim();
     if (!message || isSendingRef.current) return;
 
     const history = messages.slice(-12).map((item) => ({ role: item.role, text: getHistoryText(item) }));
     setMessages((current) => [
       ...current,
-      { id: createMessageId(), role: "user", text: message, source, createdAt: getMessageTime() }
+      {
+        id: createMessageId(),
+        role: "user",
+        text: message,
+        source,
+        isQuickOption: source === "option",
+        createdAt: getMessageTime()
+      }
     ]);
     setDraft("");
     transcriptRef.current = "";
-    void requestReply(message, source, history);
+    void requestReply(message, source === "voice" ? "voice" : "text", history);
+  };
+
+  const handleSelectOption = (option: ConversationOption) => {
+    if (isSendingRef.current) return;
+    sendMessage(option.textEn, "option");
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -286,7 +338,8 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
       ? "Mr.Crazy está analisando sua mensagem."
       : "Texto ou voz: você conversa e recebe feedback objetivo.";
 
-  const showStarterPrompts = messages.every((message) => message.id === "welcome");
+  const lastCrazyIndex = messages.map((m) => m.role).lastIndexOf("crazy");
+  const showStarterPrompts = messages.length <= 1 && (!messages[0]?.options || messages[0].options.length === 0);
 
   return (
     <main className="beta-conversation-page">
@@ -320,9 +373,66 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
           <span>{noticeText}</span>
         </div>
 
+        <div className={`beta-explainer-banner ${showExplainer ? "is-expanded" : "is-collapsed"}`}>
+          <div className="beta-explainer-header">
+            <div className="beta-explainer-title">
+              <HelpCircle size={14} className="beta-explainer-icon" />
+              <span>{isBeginner ? "O que é a Conversa Beta e como funciona?" : "Como funciona a Conversa Beta"}</span>
+              {isBeginner ? <span className="beta-explainer-pill">Para iniciantes</span> : null}
+            </div>
+            <button
+              type="button"
+              className="beta-explainer-toggle"
+              onClick={() => setShowExplainer(!showExplainer)}
+              aria-expanded={showExplainer}
+              aria-label={showExplainer ? "Recolher explicação" : "Ver como funciona"}
+            >
+              {showExplainer ? (
+                <>
+                  Recolher <ChevronUp size={13} />
+                </>
+              ) : (
+                <>
+                  Como funciona? <ChevronDown size={13} />
+                </>
+              )}
+            </button>
+          </div>
+          {showExplainer && (
+            <div className="beta-explainer-content">
+              <p className="beta-explainer-lead">
+                Aqui você treina <strong>conversação da vida real</strong> com o Mr. Crazy sem medo de travar:
+              </p>
+              <div className="beta-explainer-grid">
+                <div className="beta-explainer-col">
+                  <div className="beta-col-icon">⚡</div>
+                  <div className="beta-col-text">
+                    <strong>Respostas com 1 Toque</strong>
+                    <p>Trava na hora de falar? Toque nas <em>alternativas prontas</em> para responder na hora sem digitar.</p>
+                  </div>
+                </div>
+                <div className="beta-explainer-col">
+                  <div className="beta-col-icon">🇧🇷</div>
+                  <div className="beta-col-text">
+                    <strong>Explicações em Português</strong>
+                    <p>Mr. Crazy traduz o sentido, explica por que errou e ensina a melhor forma de falar.</p>
+                  </div>
+                </div>
+                <div className="beta-explainer-col">
+                  <div className="beta-col-icon">🎙️</div>
+                  <div className="beta-col-text">
+                    <strong>Voz ou Teclado Livre</strong>
+                    <p>Quando se sentir seguro, fale pelo microfone ou digite livremente em inglês.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div ref={messagesRef} className="beta-conversation-messages" role="log" aria-live="polite" aria-label="Mensagens da conversa">
           <div className="beta-conversation-day">Sessão de prática</div>
-          {messages.map((message) => (
+          {messages.map((message, index) => (
             <article key={message.id} className={`beta-message beta-message-${message.role}`}>
               {message.role === "crazy" ? (
                 <Image
@@ -343,8 +453,46 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
                   </div>
                 ) : null}
                 {message.followUp ? <p className="beta-message-follow-up">{message.followUp}</p> : null}
+
+                {message.role === "crazy" && message.options && message.options.length > 0 && index === lastCrazyIndex && (
+                  <div className="beta-interactive-card" aria-label="Alternativas para responder">
+                    <div className="beta-interactive-header">
+                      <div className="beta-interactive-title">
+                        <Sparkles size={13} className="beta-sparkle-icon" />
+                        <span>Escolha uma resposta para enviar agora:</span>
+                      </div>
+                      <small className="beta-interactive-hint">Toque para responder na hora, sem digitar</small>
+                    </div>
+                    <div className="beta-interactive-options">
+                      {message.options.map((option, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="beta-interactive-option-btn"
+                          onClick={() => handleSelectOption(option)}
+                          disabled={isSending}
+                          title={`Responder: "${option.textEn}"`}
+                          aria-label={`Responder com alternativa: ${option.textEn}`}
+                        >
+                          <span className="beta-option-badge">{String.fromCharCode(65 + idx)}</span>
+                          <div className="beta-option-content">
+                            <strong className="beta-option-en" lang="en">{option.textEn}</strong>
+                            {option.textPt ? <span className="beta-option-pt">{option.textPt}</span> : null}
+                          </div>
+                          <span className="beta-option-send-tag">
+                            Enviar <ArrowRight size={13} />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <footer>
                   {message.source === "voice" ? <span><Mic size={11} /> Voz transcrita</span> : null}
+                  {message.isQuickOption || message.source === "option" ? (
+                    <span className="beta-chosen-badge"><Check size={11} /> Alternativa rápida</span>
+                  ) : null}
                   {message.createdAt ? <time>{message.createdAt}</time> : null}
                   {message.role === "crazy" ? (
                     <button type="button" onClick={() => void playReplyAudio(message)} aria-label={`${playingMessageId === message.id ? "Parar" : "Ouvir"} resposta`}>

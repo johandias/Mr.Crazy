@@ -129,3 +129,16 @@ Antes de qualquer push na `main`:
   2. **Modo Beta no Menu Inferior (MobileNav) & Desktop (AppShell)**: Eliminado o botao flutuante disperso no meio do palco. Criado botao com destaque escuro, borda roxa e pill 'BETA' agrupado com 'Praticar' na barra inferior para navegar a /conversation.
   3. **Polimento dos Cartoes e Enquadramento de Texto**: O badge de fase foi unificado em linha unica sem quebras deselegantes (concept-badge-header-row). O prompt do Gemini (/api/modules/lesson-target) e o limpador (lesson-target.ts) foram ajustados para entregar traducoes curtas e idiomaticas (2-6 palavras), eliminando explicacoes de dicionario como 'Usado para cumprimentar...'.
   4. **Todos os 42 testes passando com sucesso** (27 stage progression, 9 scoring, 6 realtime session).
+
+- **[Antigravity - 2026-09-29]**: Modo Conversa Beta: explicacao pedagogica em portugues para iniciantes e alternativas interativas de resposta:
+  1. **Explicacao Pedagogica em Portugues (Iniciante vs Avancado)**:
+     - Adicionado banner explicativo colapsavel (.beta-explainer-banner) explicando o funcionamento do modo livre, correcao instantanea e uso das alternativas rapidas.
+     - Para iniciantes, o banner inicia expandido com badge 'Para iniciantes' e o Mr. Crazy faz abertura acolhedora em portugues contextualizando as situacoes do dia a dia.
+     - Para alunos avancados ('advanced' / 'avancado'), o banner inicia recolhido e o Mr. Crazy mergulha diretamente no desafio em ingles com vocabulario rico ('caso o usuario seja avancado, pode seguir').
+     - O prompt do Gemini foi instruido a gerar explicacoes e contexto em portugues para iniciantes (explanationPt) e manter imersao em ingles para avancados.
+  2. **Alternativas Interativas de Resposta (Tocar e Responder sem Digitar)**:
+     - Cada pergunta do Mr. Crazy agora oferece 2 a 4 alternativas praticas de resposta (.beta-interactive-card e .beta-interactive-option-btn), contendo a frase em ingles (textEn) e a traducao em portugues (textPt).
+     - O aluno pode tocar na alternativa para enviar na hora (handleSelectOption), sem precisar abrir o teclado ou digitar no chat.
+     - A mensagem enviada recebe badge visual de 'Alternativa rapida' (.beta-chosen-badge).
+     - Fallback resiliente no backend (generateContextualOptions) garante que alternativas contextuais sempre estejam presentes para qualquer cenario (restaurante, trabalho, viagem, hobbies, rotina).
+  3. **43 testes unitarios passando** (28 stage progression, 9 scoring, 6 realtime session).

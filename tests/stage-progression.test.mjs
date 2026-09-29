@@ -487,6 +487,29 @@ test("character accompanies audio reactively and study guide teaches natural Eng
   assert.ok(fallback.some((target) => Boolean(target.variationPt)), "Alvos de aula devem incluir alternativas naturais");
 });
 
+test("beta conversation provides interactive selectable response options and explanations for beginners", async () => {
+  const fs = await import("node:fs");
+  const componentCode = fs.readFileSync("src/components/BetaConversation.tsx", "utf-8");
+  const globalCss = fs.readFileSync("src/app/globals.css", "utf-8");
+  const { getGeminiConversationReply } = await import("../src/lib/gemini-conversation.ts");
+
+  // Verifica que o backend de conversa fornece alternativas prontas para o aluno
+  const beginnerResult = await getGeminiConversationReply("I have 25 years old", [], undefined, { level: "basic" });
+  assert.ok(Array.isArray(beginnerResult.options) && beginnerResult.options.length >= 2, "Deve retornar alternativas de resposta");
+  assert.ok(beginnerResult.options.every((opt) => Boolean(opt.textEn && opt.textPt)), "Cada alternativa deve ter inglês e tradução em português");
+
+  // Verifica que o componente de chat renderiza o banner explicativo e o card de alternativas interativas
+  assert.ok(componentCode.includes("beta-explainer-banner"), "O chat deve renderizar o banner explicativo sobre como funciona");
+  assert.ok(componentCode.includes("beta-interactive-card"), "O chat deve renderizar o card de alternativas rápidas");
+  assert.ok(componentCode.includes("handleSelectOption"), "Deve permitir selecionar e responder diretamente sem ir para o input de texto");
+  assert.ok(componentCode.includes("beta-chosen-badge"), "Mensagem enviada por alternativa deve receber badge próprio");
+
+  // Verifica estilos CSS
+  assert.ok(globalCss.includes(".beta-interactive-card"), "globals.css deve conter estilos para o card interativo");
+  assert.ok(globalCss.includes(".beta-explainer-banner"), "globals.css deve conter estilos para o banner explicativo");
+});
+
+
 
 
 
