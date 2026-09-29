@@ -286,8 +286,8 @@ export function VoiceInputControl({
                isHolding ? "Ouvindo você..." :
                "Segure e fale a frase"}
             </span>
-        </div>
           </div>
+        </div>
 
         {error ? (
           <div className="avatar-mic-error-box" role="alert">
