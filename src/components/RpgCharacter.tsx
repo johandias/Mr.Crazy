@@ -175,6 +175,7 @@ export const RpgCharacter = memo(function RpgCharacter({
     onTap?.();
   };
 
+  const activity = voiceState === "speaking" ? "speaking" : voiceState === "listening" ? "listening" : "idle";
   const characterViewBox = (entranceStage === "hammock" || entranceStage === "alert") ? "0 0 160 160" : "14 18 132 130";
 
   return (
