@@ -30,6 +30,10 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
    - Botões, abas e badge otimizados sem perder ergonomia de toque.
    - Eliminado margin-bottom do avatar e adicionado translateY de elevação para exibir o corpo inteiro, cajado e botas sem colisão com o dock.
    - Todos os 40 testes passando e deploy efetuado.
+6. **Integridade de Persistência no Banco & Diagnóstico Oral na Prova**:
+   - Resiliência na rota /api/modules/lesson-target com fallback de memória para getAlreadyTrainedPhrases para que o Mr. Crazy nunca repita frases já dominadas.
+   - Prova oral (ExamModal.tsx) anuncia verdict via síntese de voz (TTS) com nota (0 a 10), status de aprovação/reprovação (nota de corte 6.0), pontos fortes e correções por pergunta.
+   - Persistência garantida nas tabelas mrcrazy_module_progress, mrcrazy_module_evaluations e mrcrazy_practice_sessions.
 
 ---
 
