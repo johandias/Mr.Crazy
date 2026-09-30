@@ -412,8 +412,8 @@ test("mobile practice keeps Mr.Crazy visible above the anchored voice dock", asy
   assert.match(voiceHubRule, /position:\s*absolute !important/, "O dock deve ficar fora do fluxo vertical mobile");
   assert.match(voiceHubRule, /inset:\s*auto auto 2px 50% !important/, "O dock deve ficar ancorado no rodape do palco");
   assert.doesNotMatch(voiceHubRule, /position:\s*relative/, "O dock relativo empurra o avatar para fora da viewport");
-  assert.match(responsiveCss, /width:\s*clamp\(168px, 28dvh, 220px\) !important/, "O avatar deve ocupar melhor o palco no celular");
-  assert.match(responsiveCss, /transform:\s*translateY\(clamp\(4px, 1dvh, 12px\)\)/, "O avatar deve ficar abaixo do centro visual, sem invadir o balão");
+  assert.match(responsiveCss, /width:\s*clamp\(220px, 37dvh, 320px\) !important/, "O avatar deve ocupar melhor o palco no celular");
+  assert.match(responsiveCss, /transform:\s*translateY\(clamp\(8px, 2dvh, 20px\)\)/, "O avatar deve ficar abaixo do centro visual, sem invadir o balão");
   assert.match(responsiveCss, /character-stage\.stage-hammock/, "O Mr.Crazy deitado deve subir acima do dock no mobile");
   assert.match(responsiveCss, /character-speech-bubble-container\.has-overflow\.is-scrolled/, "Texto longo deve receber fade durante a rolagem");
 });
@@ -519,7 +519,6 @@ test("beta conversation provides interactive selectable response options and exp
   assert.ok(globalCss.includes(".beta-interactive-card"), "globals.css deve conter estilos para o card interativo");
   assert.ok(globalCss.includes(".beta-explainer-banner"), "globals.css deve conter estilos para o banner explicativo");
 });
-
 
 
 
