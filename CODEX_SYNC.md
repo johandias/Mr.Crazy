@@ -6,7 +6,7 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
-- **Último Commit Estável**: `c6b8f1f`
+- **Último Commit Estável**: `7120667`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 87 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`)
 
