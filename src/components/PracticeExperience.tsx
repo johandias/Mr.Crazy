@@ -24,6 +24,8 @@ import {
   PictureInPicture2,
   ExternalLink,
   Keyboard,
+  Lightbulb,
+  Target,
   X
 } from "lucide-react";
 import { VoiceInputControl, type LiveAudioVisualizer } from "@/components/VoiceInputControl";
@@ -2349,6 +2351,31 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         )}
 
         <section className={`practice-stage clean-stage ${isHistoryExpanded ? "history-is-open" : "history-is-closed"}`}>
+          <aside className="desktop-support-rail desktop-support-left" aria-label="Contexto do treino">
+            <div className="desktop-support-card support-goal-card">
+              <div className="desktop-support-card-heading">
+                <Target size={15} aria-hidden="true" />
+                <span>Objetivo da rodada</span>
+              </div>
+              <strong>
+                {teachingTarget?.meaningPt || teachingConcepts[currentConceptIndex]?.objective || "Converse com clareza e confiança."}
+              </strong>
+              <p>
+                {teachingConcepts[currentConceptIndex]?.description || "Responda em voz alta. O Mr.Crazy ajusta o desafio a cada tentativa."}
+              </p>
+            </div>
+
+            <div className="desktop-support-card support-tip-card">
+              <div className="desktop-support-card-heading">
+                <Lightbulb size={15} aria-hidden="true" />
+                <span>Dica rápida</span>
+              </div>
+              <p>
+                {teachingTarget?.variationPt || "Fale devagar na primeira tentativa. Clareza vem antes de velocidade."}
+              </p>
+            </div>
+          </aside>
+
           <motion.div
             className="character-column"
             initial={{ opacity: 0, y: 16 }}
@@ -2573,6 +2600,39 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               </div>
             </div>
           </motion.div>
+
+          <aside className="desktop-support-rail desktop-support-right" aria-label="Resumo da rodada">
+            <div className="desktop-support-card support-target-card">
+              <div className="desktop-support-card-heading">
+                <span>Modelo da fase</span>
+                <span className="desktop-support-kicker">Fase {Math.min(currentConceptIndex + 1, Math.max(teachingConcepts.length, 1))}</span>
+              </div>
+              <strong className="desktop-support-phrase" lang="en">
+                {teachingTarget?.phraseEn || teachingConcepts[currentConceptIndex]?.targetPhrase || "Your turn."}
+              </strong>
+              <span className="desktop-support-meaning">
+                {teachingTarget?.phoneticPt || teachingConcepts[currentConceptIndex]?.phoneticPt || "Fale de forma natural."}
+              </span>
+            </div>
+
+            <div className="desktop-support-card support-status-card">
+              <div className="desktop-support-card-heading">
+                <span>Status do treino</span>
+                <span className={`desktop-support-status-dot is-${voiceState}`} aria-hidden="true" />
+              </div>
+              <div className="desktop-support-stat-row">
+                <span>Passo atual</span>
+                <strong>{currentLessonStepIndex + 1}/{LESSON_STEPS_PER_PHASE}</strong>
+              </div>
+              <div className="desktop-support-stat-row">
+                <span>Interações</span>
+                <strong>{allConversationItems.length}</strong>
+              </div>
+              <p className="desktop-support-feedback">
+                {analysis?.reaction || "O próximo feedback aparece assim que você responder."}
+              </p>
+            </div>
+          </aside>
 
           {/* Histórico da Conversa: renderizado quando expandido */}
           {isHistoryExpanded && (

@@ -8,13 +8,19 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Branch Principal**: `main`
 - **Último Commit Estável**: `7120667`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 87 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`)
+- **Suíte de Testes**: 92 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
 ## 🟡 Codex — 2026-09-29 — revisão profunda de UX/UI incremental
 - **Em andamento nesta sessão:** fallback de microfone com CTA explícito para responder digitando, estados de erro e carregamento contextuais em histórico/progresso/configurações, tabs de configurações com semântica acessível e CTA de salvar sensível a alterações.
 - **Também revisado:** copy principal da prática, Conversa Beta, histórico, progresso, configurações e login; camada visual mobile-first com skeletons, foco visível, touch targets e composer mais claro.
 - **Preservado:** APIs, autenticação, banco, rotas, WebRTC, estado inicial mutado, Chefão e nomenclatura `Tap to Talk`/`Hold to Talk`.
 - **Validação:** testes nativos passaram; `npm run typecheck`, `npm run lint` e `npm run build` ficaram indisponíveis porque `tsc`, `eslint` e `next` não existem no checkout atual.
+
+## 🟡 Codex — 2026-09-30 — composição desktop da prática
+- **Entregue nesta sessão:** palco desktop expandido para uma composição de três zonas, com contexto lateral, objetivo da rodada, dica rápida, modelo da fase e status da sessão.
+- **Refinado:** header em grade, largura útil controlada até 1480px, balão mais confortável, avatar ligeiramente maior e ações de Digitar/Histórico mais proporcionais.
+- **Preservado:** microfone limpo e flutuante sem card traseiro pesado; mobile/tablet continuam usando os breakpoints existentes, com rails desktop ocultos abaixo de 1200px.
+- **Validação:** 31 testes de progressão, 9 de scoring e 6 de Realtime passaram; suites de rota que importam `typescript` continuam bloqueadas pelo runtime ausente.
 
 ---
 
@@ -238,4 +244,22 @@ Antes de qualquer push na `main`:
   7. **Testes Unitários**:
      - Nova suíte `tests/security-resilience.test.mjs` com 9 testes automatizados cobrindo rate limit, headers, sanitização e vazamentos.
      - **Todos os 87 testes do projeto passando com sucesso (28 + 9 + 6 + 20 + 15 + 9).**
+
+- **[Antigravity — 2026-09-30]**: Landing Page de Alta Conversão com Áudio Oficial do Mr. Crazy & Avatar Realista:
+  1. **Áudio Oficial & Sincronização Web Audio API (`MrCrazyAudioShowcase.tsx`)**:
+     - Áudio oficial incorporado em `public/assets/audio/mrcrazy-landing-intro.mp3` (37s de fala natural).
+     - Integração com Web Audio API (`AudioContext`, `createAnalyser`) gerando métricas de amplitude e frequência em tempo real.
+     - O avatar `RpgCharacter` reage em sincronia com o áudio: movimentos de boca fonéticos procedurais, balanço suave de cabeça com graves, tracking de olhos e mudanças de postura conforme o discurso (thumbs up, dedo erguido, watergun).
+     - Equalizador visual sonoro com 24 barras reativas.
+     - Legendas dinâmicas estilo karaoke em 8 trechos com destaque luminoso e pulo com 1 clique.
+  2. **Arquitetura da Landing Page (`src/components/landing/LandingPage.tsx`)**:
+     - 10 seções estratégicas de conversão: Hero de impacto, 4 dores reais do estudante brasileiro, mecânica em 4 passos, bloco especial do Mr. Crazy com o áudio, comparativo Cursinho vs Mr. Crazy, demonstração interativa do app (`LandingInteractiveDemo.tsx`), quebra de objeções, banner de CTA principal, FAQ acessível (`LandingFaq.tsx`) e rodapé.
+     - Barra de conversão fixa inferior no mobile (`landing-sticky-bar`) para tráfego do WhatsApp.
+     - Design System Dark/Gold/Cyan em `src/app/landing.css`.
+  3. **Rotas e SEO**:
+     - Rota raiz `/` configurada para renderizar a Landing Page, com detecção inteligente de usuário logado (botão de acesso direto para `/practice`).
+     - Metadados de compartilhamento Open Graph e Twitter Cards atualizados em `src/app/layout.tsx` para exibição rica no WhatsApp, Telegram e redes sociais.
+  4. **Testes**:
+     - Nova suíte `tests/landing-page.test.mjs` com 5 testes automatizados.
+     - **Todos os 92 testes unitários passando com sucesso.**
 
