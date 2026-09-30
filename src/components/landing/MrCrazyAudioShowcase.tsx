@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, Volume2, VolumeX, RotateCcw, Sparkles, Flame, Mic } from "lucide-react";
+import { Volume2, VolumeX, RotateCcw, Flame, Sparkles, Pause, Play } from "lucide-react";
 import { RpgCharacter, type CharacterGesture } from "@/components/RpgCharacter";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
@@ -24,7 +24,7 @@ const SUBTITLES: SubtitleSegment[] = [
     text: "Fala aí! Eu sou o Mr. Crazy. E sim, suas aulas vão ser comigo.",
     gesture: "thumbsup",
     emotion: "calm",
-    crazyLevel: 15
+    crazyLevel: 25
   },
   {
     id: 2,
@@ -33,7 +33,7 @@ const SUBTITLES: SubtitleSegment[] = [
     text: "Aqui você não vai ficar só lendo regra e decorando palavra.",
     gesture: "finger",
     emotion: "annoyed",
-    crazyLevel: 45
+    crazyLevel: 55
   },
   {
     id: 3,
@@ -42,25 +42,25 @@ const SUBTITLES: SubtitleSegment[] = [
     text: "Eu vou conversar com você, fazer perguntas, corrigir suas respostas e te colocar pra falar inglês de verdade.",
     gesture: "idle",
     emotion: "calm",
-    crazyLevel: 25
+    crazyLevel: 30
   },
   {
     id: 4,
     start: 13.8,
     end: 20.8,
     text: "As aulas funcionam por etapas: eu explico, você responde com a sua voz, eu analiso o que você falou e a gente continua a conversa.",
-    gesture: "finger",
+    gesture: "thumbsup",
     emotion: "calm",
-    crazyLevel: 20
+    crazyLevel: 30
   },
   {
     id: 5,
     start: 20.8,
     end: 25.8,
     text: "E o que você tá vendo aqui agora já é um pouquinho de como tudo vai funcionar por dentro.",
-    gesture: "thumbsup",
+    gesture: "idle",
     emotion: "calm",
-    crazyLevel: 20
+    crazyLevel: 35
   },
   {
     id: 6,
@@ -69,7 +69,7 @@ const SUBTITLES: SubtitleSegment[] = [
     text: "Vai ter prática, desafios, progresso por fases e muita conversa.",
     gesture: "idle",
     emotion: "calm",
-    crazyLevel: 30
+    crazyLevel: 40
   },
   {
     id: 7,
@@ -78,7 +78,7 @@ const SUBTITLES: SubtitleSegment[] = [
     text: "A ideia é simples: você fala cada vez mais, trava cada vez menos e evolui comigo.",
     gesture: "thumbsup",
     emotion: "calm",
-    crazyLevel: 35
+    crazyLevel: 45
   },
   {
     id: 8,
@@ -87,16 +87,18 @@ const SUBTITLES: SubtitleSegment[] = [
     text: "Então, bora começar!",
     gesture: "watergun",
     emotion: "crazy",
-    crazyLevel: 85
+    crazyLevel: 95
   }
 ];
 
 export function MrCrazyAudioShowcase() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
+  const hasAutoStartedRef = useRef(false);
 
   // Audio metrics passed to RpgCharacter
   const audioMetricsRef = useRef<LiveAudioVisualizer>({
@@ -107,6 +109,7 @@ export function MrCrazyAudioShowcase() {
   });
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(37.5);
   const [isMuted, setIsMuted] = useState(false);
@@ -118,11 +121,11 @@ export function MrCrazyAudioShowcase() {
   ) || SUBTITLES[0];
 
   const currentEmotion: Emotion = isPlaying ? activeSegment.emotion : "calm";
-  const currentGesture: CharacterGesture = isPlaying ? activeSegment.gesture : "idle";
-  const currentCrazyLevel: number = isPlaying ? activeSegment.crazyLevel : 15;
+  const currentGesture: CharacterGesture = isPlaying ? activeSegment.gesture : "thumbsup";
+  const currentCrazyLevel: number = isPlaying ? activeSegment.crazyLevel : 20;
   const voiceState: VoiceState = isPlaying ? "speaking" : "idle";
 
-  // Setup Web Audio API on first play gesture
+  // Setup Web Audio API
   const initWebAudio = useCallback(() => {
     if (audioContextRef.current || !audioRef.current) return;
 
@@ -143,11 +146,77 @@ export function MrCrazyAudioShowcase() {
       analyserRef.current = analyser;
       sourceNodeRef.current = source;
     } catch {
-      // Browsers may block before interaction or already have element connected
+      // Ignored if already connected or unsupported
     }
   }, []);
 
-  // Animation frame loop for equalizer and mouth sync
+  // Safe playback start
+  const startPlayback = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    initWebAudio();
+    if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+      try {
+        await audioContextRef.current.resume();
+      } catch {
+        // Ignored
+      }
+    }
+
+    try {
+      await audio.play();
+      setIsPlaying(true);
+      setHasStarted(true);
+    } catch {
+      // Browsers blocking autoplay before any interaction:
+      // Hook one-shot document listener to start on the user's very next scroll/tap
+      const triggerOnGesture = async () => {
+        window.removeEventListener("scroll", triggerOnGesture);
+        window.removeEventListener("touchstart", triggerOnGesture);
+        window.removeEventListener("pointerdown", triggerOnGesture);
+        if (audioRef.current && !audioRef.current.ended) {
+          try {
+            initWebAudio();
+            if (audioContextRef.current?.state === "suspended") {
+              await audioContextRef.current.resume();
+            }
+            await audioRef.current.play();
+            setIsPlaying(true);
+            setHasStarted(true);
+          } catch {
+            // Ignored
+          }
+        }
+      };
+
+      window.addEventListener("scroll", triggerOnGesture, { once: true, passive: true });
+      window.addEventListener("touchstart", triggerOnGesture, { once: true, passive: true });
+      window.addEventListener("pointerdown", triggerOnGesture, { once: true, passive: true });
+    }
+  }, [initWebAudio]);
+
+  // Autoplay as soon as the user scrolls to the Mr. Crazy section!
+  useEffect(() => {
+    const target = containerRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasAutoStartedRef.current) {
+          hasAutoStartedRef.current = true;
+          startPlayback();
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [startPlayback]);
+
+  // Animation frame loop for equalizer and lip sync
   useEffect(() => {
     if (!isPlaying) {
       audioMetricsRef.current = { source: "none", level: 0, bass: 0, bands: [] };
@@ -173,7 +242,6 @@ export function MrCrazyAudioShowcase() {
           const val = dataArray[index] || 0;
           sum += val;
           if (i < 4) bassSum += val;
-          // Scale from min 4px to max 46px
           const barHeight = Math.max(4, Math.min(46, (val / 255) * 44 + 4));
           bars.push(barHeight);
         }
@@ -181,19 +249,16 @@ export function MrCrazyAudioShowcase() {
         const avg = sum / (24 * 255);
         const bassAvg = bassSum / (4 * 255);
 
-        // Normalize bands 0..1 for character lip sync
-        const normalizedBands = bars.map((b) => b / 46);
-
         audioMetricsRef.current = {
           source: "crazy",
           level: avg,
           bass: bassAvg,
-          bands: normalizedBands
+          bands: bars.map((b) => b / 46)
         };
 
         setWaveBars(bars);
       } else {
-        // Fallback procedural wave bars if Web Audio is suspended
+        // Fallback procedural wave bars
         const time = Date.now() / 150;
         const bars: number[] = [];
         for (let i = 0; i < 24; i++) {
@@ -202,8 +267,8 @@ export function MrCrazyAudioShowcase() {
         }
         audioMetricsRef.current = {
           source: "crazy",
-          level: 0.18,
-          bass: 0.22,
+          level: 0.2,
+          bass: 0.25,
           bands: bars.map((b) => b / 32)
         };
         setWaveBars(bars);
@@ -219,30 +284,15 @@ export function MrCrazyAudioShowcase() {
     };
   }, [isPlaying]);
 
-  // Audio Play / Pause toggle
-  const togglePlay = async () => {
+  const togglePause = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-
-    initWebAudio();
-    if (audioContextRef.current && audioContextRef.current.state === "suspended") {
-      try {
-        await audioContextRef.current.resume();
-      } catch {
-        // Ignored
-      }
-    }
 
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
     } else {
-      try {
-        await audio.play();
-        setIsPlaying(true);
-      } catch (err) {
-        console.warn("Audio play prevented:", err);
-      }
+      await startPlayback();
     }
   };
 
@@ -271,7 +321,7 @@ export function MrCrazyAudioShowcase() {
       audioRef.current.currentTime = startTime;
       setCurrentTime(startTime);
       if (!isPlaying) {
-        togglePlay();
+        startPlayback();
       }
     }
   };
@@ -280,9 +330,7 @@ export function MrCrazyAudioShowcase() {
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       setCurrentTime(0);
-      if (!isPlaying) {
-        togglePlay();
-      }
+      startPlayback();
     }
   };
 
@@ -300,30 +348,30 @@ export function MrCrazyAudioShowcase() {
   };
 
   return (
-    <div className="landing-showcase-container">
+    <div ref={containerRef} className="landing-showcase-container">
       {/* Hidden Audio Element */}
       <audio
         ref={audioRef}
         src="/assets/audio/mrcrazy-landing-intro.mp3"
-        preload="metadata"
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
       />
 
-      {/* Stage: Animated Mr. Crazy on Pedestal */}
+      {/* Stage: Animated Mr. Crazy on Pedestal with Live Facial & Hand Gestures */}
       <div className="landing-showcase-stage">
         <div className="landing-showcase-pedestal">
           <div className="landing-showcase-energy-badge">
             {isPlaying ? (
               <>
                 <Flame size={14} className="text-amber-400 animate-bounce" />
-                <span>Nível de Energia: {currentCrazyLevel}%</span>
+                <span>Falando Agora • Energia {currentCrazyLevel}%</span>
               </>
             ) : (
               <>
                 <Sparkles size={14} className="text-amber-400" />
-                <span>Toque no Play para ouvir o Mr. Crazy</span>
+                <span>Mr. Crazy • Tutor Oficial</span>
               </>
             )}
           </div>
@@ -341,65 +389,60 @@ export function MrCrazyAudioShowcase() {
         </div>
       </div>
 
-      {/* Interactive Audio Player & Dynamic Transcript */}
+      {/* Interactive Speech & Compact Realtime Equalizer (No Big Play Button) */}
       <div className="landing-showcase-player-box">
         <div className="landing-showcase-player-header">
           <div>
             <h3 className="landing-showcase-player-title">O Recado do Mr. Crazy</h3>
             <p className="landing-showcase-player-sub">
-              Ouça como o método funciona na voz original do professor
+              Ele fala com você em tempo real via WebRTC e voz neural Echo
             </p>
           </div>
-          <div className="landing-showcase-voice-badge">
-            <Mic size={13} />
-            <span>Voz Echo • Realtime</span>
+
+          {/* Compact Control Buttons (Pause / Mute / Restart) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <button
+              type="button"
+              className="landing-btn-secondary"
+              style={{ padding: "0.45rem", borderRadius: "0.5rem" }}
+              onClick={togglePause}
+              title={isPlaying ? "Pausar fala" : "Continuar fala"}
+              aria-label={isPlaying ? "Pausar fala" : "Continuar fala"}
+            >
+              {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+            </button>
+            <button
+              type="button"
+              className="landing-btn-secondary"
+              style={{ padding: "0.45rem", borderRadius: "0.5rem" }}
+              onClick={handleRestart}
+              title="Reiniciar fala do Mr. Crazy"
+              aria-label="Reiniciar fala do Mr. Crazy"
+            >
+              <RotateCcw size={15} />
+            </button>
+            <button
+              type="button"
+              className="landing-btn-secondary"
+              style={{ padding: "0.45rem", borderRadius: "0.5rem" }}
+              onClick={toggleMute}
+              title={isMuted ? "Ativar áudio" : "Mutar áudio"}
+              aria-label={isMuted ? "Ativar áudio" : "Mutar áudio"}
+            >
+              {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
           </div>
         </div>
 
-        {/* Big Play / Pause and Waveform Equalizer */}
-        <div className="landing-player-controls">
-          <button
-            type="button"
-            className={`landing-player-play-btn ${isPlaying ? "playing" : ""}`}
-            onClick={togglePlay}
-            aria-label={isPlaying ? "Pausar áudio do Mr. Crazy" : "Ouvir áudio do Mr. Crazy"}
-            title={isPlaying ? "Pausar" : "Dar Play"}
-          >
-            {isPlaying ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: 3 }} />}
-          </button>
-
-          <div className="landing-player-waveform" aria-hidden="true">
-            {waveBars.map((height, i) => (
-              <div
-                key={i}
-                className={`landing-wave-bar ${isPlaying ? "active" : ""}`}
-                style={{ height: `${height}px` }}
-              />
-            ))}
-          </div>
-
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              type="button"
-              className="landing-btn-secondary"
-              style={{ padding: "0.5rem", borderRadius: "0.5rem" }}
-              onClick={handleRestart}
-              title="Reiniciar áudio"
-              aria-label="Reiniciar áudio"
-            >
-              <RotateCcw size={16} />
-            </button>
-            <button
-              type="button"
-              className="landing-btn-secondary"
-              style={{ padding: "0.5rem", borderRadius: "0.5rem" }}
-              onClick={toggleMute}
-              title={isMuted ? "Ativar som" : "Mutar áudio"}
-              aria-label={isMuted ? "Ativar som" : "Mutar áudio"}
-            >
-              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
-          </div>
+        {/* Live Audio Waves (Equalizer) */}
+        <div className="landing-player-waveform" aria-hidden="true" style={{ height: "2.75rem" }}>
+          {waveBars.map((height, i) => (
+            <div
+              key={i}
+              className={`landing-wave-bar ${isPlaying ? "active" : ""}`}
+              style={{ height: `${height}px` }}
+            />
+          ))}
         </div>
 
         {/* Progress Bar & Scrubber */}
@@ -412,7 +455,7 @@ export function MrCrazyAudioShowcase() {
             value={currentTime}
             onChange={handleSeek}
             className="landing-player-slider"
-            aria-label="Progresso do áudio do Mr. Crazy"
+            aria-label="Progresso da fala do Mr. Crazy"
           />
           <div className="landing-player-time">
             <span>{formatTime(currentTime)}</span>
@@ -420,11 +463,16 @@ export function MrCrazyAudioShowcase() {
           </div>
         </div>
 
-        {/* Timed Subtitles (Karaoke-style synchronized transcript) */}
+        {/* Dynamic Timed Speech Balloon / Karaoke Subtitles */}
         <div className="landing-player-subtitles">
-          <span style={{ fontSize: "0.725rem", color: "#9ca3af", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Transcrição Sincronizada (clique para pular):
-          </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+            <span style={{ fontSize: "0.7rem", color: "#fbbf24", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              💬 Fala Sincronizada:
+            </span>
+            <span style={{ fontSize: "0.7rem", color: "#6b7280" }}>
+              Toque numa frase para pular
+            </span>
+          </div>
           {SUBTITLES.map((sub) => {
             const isActive = currentTime >= sub.start && currentTime < sub.end;
             return (

@@ -246,7 +246,7 @@ export function LandingPage({ user }: LandingPageProps) {
               O Recado do Mr. Crazy
             </h2>
             <p className="landing-section-desc">
-              Ele não tem paciência com moleza. Aperte o play e ouça a explicação direta dele:
+              Ele não tem paciência com enrolação. Conheça o professor e acompanhe o recado direto dele:
             </p>
           </div>
 

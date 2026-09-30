@@ -60,7 +60,7 @@ test("LandingPage component includes all 10 strategic conversion sections", () =
   assert.ok(landingCode.includes("/practice"), "Deve apontar para a sala de treino");
 });
 
-test("MrCrazyAudioShowcase component has synchronized karaoke subtitles and waveform visualizer", () => {
+test("MrCrazyAudioShowcase component has synchronized karaoke subtitles, autoplay on scroll entry, and no big play button", () => {
   const showcaseCode = fs.readFileSync("src/components/landing/MrCrazyAudioShowcase.tsx", "utf-8");
   
   assert.ok(showcaseCode.includes("/assets/audio/mrcrazy-landing-intro.mp3"), "Deve carregar o áudio real gravado");
@@ -69,6 +69,13 @@ test("MrCrazyAudioShowcase component has synchronized karaoke subtitles and wave
   assert.ok(showcaseCode.includes("Então, bora começar!"), "Deve conter a frase final transcrita");
   assert.ok(showcaseCode.includes("createAnalyser"), "Deve usar Web Audio API AnalyserNode para boca e ondas");
   assert.ok(showcaseCode.includes("landing-wave-bar"), "Deve renderizar barras do equalizador sonoro");
+  assert.ok(showcaseCode.includes("IntersectionObserver"), "Deve iniciar automaticamente ao rolar para o Mr. Crazy via IntersectionObserver");
+  assert.ok(!showcaseCode.includes("landing-player-play-btn"), "Não deve ter o botão grande de Play para iniciar");
+
+  const landingCss = fs.readFileSync("src/app/landing.css", "utf-8");
+  assert.ok(landingCss.includes("mr-crazy-hand-gesture"), "Deve conter animação de gesticulação de mãos do Mr. Crazy");
+  assert.ok(landingCss.includes("mr-crazy-thumb-talk"), "Deve conter animação para gesto de joinha falando");
+  assert.ok(landingCss.includes("mr-crazy-finger-talk"), "Deve conter animação para bronca falando");
 });
 
 test("layout metadata includes Open Graph and Twitter Card for WhatsApp sharing", () => {

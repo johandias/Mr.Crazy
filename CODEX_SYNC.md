@@ -6,9 +6,16 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
-- **Último Commit Estável**: `7120667`
+- **Último Commit Estável**: `b778552`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 92 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+
+## 🟡 Antigravity — 2026-09-30 — Landing Page: Autoplay no Scroll & Gesticulação Expressiva
+- **Entregue nesta sessão:**
+  1. **Remoção do Botão Play Principal**: O player de apresentação em `/convite` não possui botão invasivo de play.
+  2. **Autoplay no Scroll**: Ao rolar até a seção do Mr. Crazy, o `IntersectionObserver` aciona automaticamente o áudio e a animação do personagem. Fallback com listeners one-shot de `scroll`/`touchstart`/`pointerdown` contorna bloqueios de autoplay de navegadores móveis sem travar o usuário.
+  3. **Gesticulação Expressiva de Mãos e Corpo**: Adicionadas animações sincronizadas de braços, cajado, e mãos gesticulando (`mr-crazy-hand-gesture`, `mr-crazy-thumb-talk`, `mr-crazy-finger-talk`, `mr-crazy-watergun-talk`, `mr-crazy-body-talk`) que acompanham cada trecho dos 37s de fala e fonemas orais.
+  4. **Preservação de Invariantes**: Tela de login padrão mantida em `/` (mrcrazy.fun); landing page isolada em `/convite`; microfone padrão mantido mutado/vermelho na prática; 92 testes automatizados 100% aprovados.
 
 ## 🟡 Codex — 2026-09-29 — revisão profunda de UX/UI incremental
 - **Em andamento nesta sessão:** fallback de microfone com CTA explícito para responder digitando, estados de erro e carregamento contextuais em histórico/progresso/configurações, tabs de configurações com semântica acessível e CTA de salvar sensível a alterações.
