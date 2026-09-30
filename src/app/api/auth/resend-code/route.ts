@@ -1,16 +1,34 @@
 import { NextResponse } from "next/server";
 import { regenerateVerificationCode } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
+import { checkPublicRateLimit, getClientIp } from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = checkPublicRateLimit(clientIp, "resend_code_ip", 5, 60);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: `Muitas solicitações a partir deste IP. Aguarde ${ipLimit.retryAfterSeconds} segundos.` },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } }
+      );
+    }
+
     const body = (await request.json()) as Partial<{ email: string }>;
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 254) : "";
 
     if (!email || !email.includes("@")) {
       return NextResponse.json(
         { error: "Informe um e-mail válido para reenviar o código." },
         { status: 400 }
+      );
+    }
+
+    const emailLimit = checkPublicRateLimit(email, "resend_code_email", 2, 60);
+    if (!emailLimit.allowed) {
+      return NextResponse.json(
+        { error: `Aguarde ${emailLimit.retryAfterSeconds} segundos antes de solicitar um novo código por e-mail.` },
+        { status: 429, headers: { "Retry-After": String(emailLimit.retryAfterSeconds) } }
       );
     }
 

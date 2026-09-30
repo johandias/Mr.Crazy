@@ -12,10 +12,10 @@ export default async function SettingsPage() {
     <AppShell isAdmin={isAdmin}>
       <main className="secondary-main settings-main">
         <section className="secondary-hero">
-          <p className="eyebrow">Personalização do Aluno</p>
-          <h1>Calibre o Mr.Crazy para o seu jeito e ritmo.</h1>
+          <p className="eyebrow">Painel do aluno</p>
+          <h1>Deixe o treino com a sua cara.</h1>
           <p className="hero-subtext">
-            O professor usa seu apelido, ajusta os verbos para o seu sexo e foca exatamente nas suas dificuldades de pronúncia.
+            Ajuste voz, ritmo e personalidade. O Mr.Crazy usa essas escolhas para cobrar o que realmente importa para você.
           </p>
         </section>
 

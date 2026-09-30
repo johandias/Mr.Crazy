@@ -135,6 +135,7 @@ export function EvolutionDashboard() {
   const [summary, setSummary] = useState<ProgressSummaryResponse | null>(null);
   const [insights, setInsights] = useState<LearningInsightData | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
+  const [summaryError, setSummaryError] = useState("");
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [insightsError, setInsightsError] = useState("");
   const insightsRequest = useRef(false);
@@ -148,12 +149,14 @@ export function EvolutionDashboard() {
 
   const fetchSummary = useCallback(async () => {
     setLoadingSummary(true);
+    setSummaryError("");
     try {
       const res = await fetch("/api/progress/summary");
       const data = await res.json();
-      if (res.ok && data.ok) setSummary(data as ProgressSummaryResponse);
-    } catch {
-      // silencioso
+      if (!res.ok || !data.ok) throw new Error(data.error || "O painel não respondeu agora.");
+      setSummary(data as ProgressSummaryResponse);
+    } catch (error: unknown) {
+      setSummaryError(error instanceof Error ? error.message : "Não consegui carregar sua evolução.");
     } finally {
       setLoadingSummary(false);
     }
@@ -193,9 +196,30 @@ export function EvolutionDashboard() {
 
   if (loadingSummary) {
     return (
-      <div className="evolution-loading-container">
-        <div className="evolution-spinner" />
-        <p>Carregando seus dados de desenvolvimento...</p>
+      <div className="evolution-loading-container" role="status" aria-live="polite">
+        <div className="evolution-loading-heading">
+          <span className="evolution-skeleton eyebrow-skeleton" />
+          <span className="evolution-skeleton title-skeleton" />
+          <p>Mr.Crazy está organizando o que você já destravou...</p>
+        </div>
+        <div className="evolution-loading-metrics" aria-hidden="true">
+          {[1, 2, 3, 4].map((item) => <span key={item} className="evolution-skeleton metric-skeleton" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (summaryError && !summary) {
+    return (
+      <div className="evolution-error-state" role="alert">
+        <AlertCircle size={22} aria-hidden="true" />
+        <div>
+          <h2>Seu painel ficou sem sinal.</h2>
+          <p>{summaryError} Seus treinos não foram apagados.</p>
+        </div>
+        <button type="button" className="secondary-action-btn" onClick={() => void fetchSummary()}>
+          <RefreshCw size={15} /> Tentar de novo
+        </button>
       </div>
     );
   }

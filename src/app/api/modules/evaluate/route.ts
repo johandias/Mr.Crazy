@@ -10,6 +10,7 @@ import {
   type ModuleEvaluationRecord,
   type ModuleProgressRecord
 } from "@/app/api/modules/progress/route";
+import { checkRateLimit, acquireUserQueueSlot } from "@/lib/rate-limiter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,9 +84,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Acesso não autorizado." }, { status: 401 });
   }
 
+  const rateLimit = await checkRateLimit(session, "analyze");
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.error, code: rateLimit.code },
+      { status: rateLimit.status, headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 10) } }
+    );
+  }
+
   const userEmail = session.email.toLowerCase().trim();
+  let releaseSlot: (() => void) | null = null;
 
   try {
+    const userIdentifier = session.userId || session.email;
+    releaseSlot = await acquireUserQueueSlot(userIdentifier, "evaluate", 1, 10000);
+
     const body = (await request.json()) as EvaluateRequestBody;
     const moduleId = body.moduleId?.trim();
     if (!moduleId) {
@@ -452,7 +465,13 @@ Observação: O campo performance_level deve ser exatamente um destes valores: "
       context: currentModule.scenario
     });
   } catch (error) {
+    const isBusy = (error as { code?: string })?.code === "QUEUE_BUSY";
     console.error("[Module Evaluate POST] Error:", error);
-    return NextResponse.json({ error: "Erro ao gerar avaliação do módulo." }, { status: 500 });
+    return NextResponse.json(
+      { error: isBusy ? "Aguarde a avaliação anterior ser concluída." : "Erro ao gerar avaliação do módulo." },
+      { status: isBusy ? 429 : 500 }
+    );
+  } finally {
+    releaseSlot?.();
   }
 }

@@ -10,6 +10,7 @@ import {
   isMasterAdmin
 } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
+import { checkPublicRateLimit, getClientIp, resetPublicRateLimit } from "@/lib/rate-limiter";
 
 function getRequestOrigin(request: Request): string {
   let origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "";
@@ -23,14 +24,23 @@ function getRequestOrigin(request: Request): string {
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = checkPublicRateLimit(clientIp, "login_ip", 15, 60);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: `Muitas tentativas a partir deste IP. Aguarde ${ipLimit.retryAfterSeconds} segundos antes de tentar novamente.` },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } }
+      );
+    }
+
     const body = (await request.json()) as Partial<{
       email?: string;
       username?: string;
       password?: string;
     }>;
 
-    const emailOrUser = (body.email || body.username || "").trim().toLowerCase();
-    const password = typeof body.password === "string" ? body.password : "";
+    const emailOrUser = (body.email || body.username || "").trim().toLowerCase().slice(0, 254);
+    const password = typeof body.password === "string" ? body.password.slice(0, 128) : "";
 
     if (!emailOrUser || !password) {
       return NextResponse.json(
@@ -39,8 +49,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const emailLimit = checkPublicRateLimit(emailOrUser, "login_email", 6, 60);
+    if (!emailLimit.allowed) {
+      return NextResponse.json(
+        { error: `Muitas tentativas para esta conta. Aguarde ${emailLimit.retryAfterSeconds} segundos antes de tentar novamente.` },
+        { status: 429, headers: { "Retry-After": String(emailLimit.retryAfterSeconds) } }
+      );
+    }
+
     // 1. Verificação de credenciais de admin (suporta johandias083@gmail.com / 2020eumando e variáveis de ambiente)
     if (isMasterAdmin(emailOrUser, password)) {
+      resetPublicRateLimit(emailOrUser, "login_email");
+      resetPublicRateLimit(clientIp, "login_ip");
       const response = NextResponse.json({
         ok: true,
         role: "admin",
@@ -132,6 +152,8 @@ export async function POST(request: Request) {
     }
 
     // 5. Login aprovado
+    resetPublicRateLimit(emailOrUser, "login_email");
+    resetPublicRateLimit(clientIp, "login_ip");
     const defaultRedirect =
       user.onboarding_completed || user.role === "admin" ? "/practice" : "/onboarding";
     const response = NextResponse.json({

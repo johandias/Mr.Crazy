@@ -7,9 +7,19 @@ import {
   getSessionMaxAge
 } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
+import { checkPublicRateLimit, getClientIp } from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = checkPublicRateLimit(clientIp, "register_ip", 4, 300);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: `Muitas contas criadas a partir deste IP recentemente. Por segurança, aguarde ${ipLimit.retryAfterSeconds} segundos antes de tentar novamente.` },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } }
+      );
+    }
+
     const body = (await request.json()) as Partial<{
       email: string;
       password: string;
@@ -18,9 +28,9 @@ export async function POST(request: Request) {
       gender?: string;
     }>;
 
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    const password = typeof body.password === "string" ? body.password : "";
-    const nickname = typeof body.nickname === "string" ? body.nickname.trim() : undefined;
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 254) : "";
+    const password = typeof body.password === "string" ? body.password.slice(0, 128) : "";
+    const nickname = typeof body.nickname === "string" ? body.nickname.trim().slice(0, 50) : undefined;
     const parsedAge = body.age ? Number.parseInt(String(body.age), 10) : undefined;
     const age = parsedAge && !Number.isNaN(parsedAge) ? parsedAge : undefined;
     const rawGender = typeof body.gender === "string" ? body.gender.trim().toLowerCase() : "";

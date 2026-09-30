@@ -401,10 +401,10 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
   };
 
   const noticeText = isRecording
-    ? "Ouvindo em inglês. Toque no botão vermelho para enviar."
+    ? "Estou ouvindo. Toque no vermelho quando terminar."
     : isSending
-      ? "Mr.Crazy está analisando sua mensagem."
-      : "Texto ou voz: você conversa e recebe feedback objetivo.";
+      ? "Mr.Crazy está lapidando seu feedback."
+      : "Fale ou digite. Eu corrijo sem travar a conversa.";
 
   const lastCrazyIndex = messages.map((m) => m.role).lastIndexOf("crazy");
   const showStarterPrompts = messages.length <= 1 && (!messages[0]?.options || messages[0].options.length === 0);
@@ -469,7 +469,7 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
           {showExplainer && (
             <div className="beta-explainer-content">
               <p className="beta-explainer-lead">
-                Aqui você treina <strong>conversação da vida real</strong> com o Mr. Crazy sem medo de travar:
+                Aqui você treina <strong>conversação da vida real</strong> sem medo de travar:
               </p>
               <div className="beta-explainer-grid">
                 <div className="beta-explainer-col">
@@ -527,9 +527,9 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
                     <div className="beta-interactive-header">
                       <div className="beta-interactive-title">
                         <Sparkles size={13} className="beta-sparkle-icon" />
-                        <span>Escolha uma resposta para enviar agora:</span>
+                        <span>Travou? Escolha uma resposta e siga.</span>
                       </div>
-                      <small className="beta-interactive-hint">Toque para responder na hora, sem digitar</small>
+                      <small className="beta-interactive-hint">Uma opção rápida — você pode editar depois.</small>
                     </div>
                     <div className="beta-interactive-options">
                       {message.options.map((option, idx) => (
@@ -670,7 +670,7 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleComposerKeyDown}
-            placeholder={isRecording ? "Ouvindo sua mensagem..." : "Escreva ou fale em inglês..."}
+            placeholder={isRecording ? "Estou ouvindo..." : "Digite uma resposta ou toque no microfone"}
             disabled={isSending}
             maxLength={700}
             rows={1}

@@ -7,6 +7,7 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail
 } from "@/lib/email";
+import { checkPublicRateLimit, getClientIp } from "@/lib/rate-limiter";
 
 function getRequestOrigin(request: Request): string {
   let origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "";
@@ -20,13 +21,30 @@ function getRequestOrigin(request: Request): string {
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = checkPublicRateLimit(clientIp, "forgot_password_ip", 5, 300);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: `Muitas solicitações a partir deste IP. Aguarde ${ipLimit.retryAfterSeconds} segundos.` },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } }
+      );
+    }
+
     const body = (await request.json()) as Partial<{ email: string }>;
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 254) : "";
 
     if (!email || !email.includes("@")) {
       return NextResponse.json(
         { error: "Informe um e-mail válido para recuperar o acesso." },
         { status: 400 }
+      );
+    }
+
+    const emailLimit = checkPublicRateLimit(email, "forgot_password_email", 3, 300);
+    if (!emailLimit.allowed) {
+      return NextResponse.json(
+        { error: `Aguarde ${emailLimit.retryAfterSeconds} segundos antes de solicitar nova recuperação de senha para este e-mail.` },
+        { status: 429, headers: { "Retry-After": String(emailLimit.retryAfterSeconds) } }
       );
     }
 

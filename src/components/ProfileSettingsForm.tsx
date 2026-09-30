@@ -106,6 +106,29 @@ export function ProfileSettingsForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [initialSettingsSignature, setInitialSettingsSignature] = useState("");
+
+  const settingsSignature = JSON.stringify({
+    nickname,
+    gender,
+    selfAssessedLevel,
+    learningLevel,
+    learningStyle,
+    selectedDifficulties,
+    dailyGoalMins,
+    talkMode,
+    selectedDevice,
+    speechSpeed,
+    audioVolume,
+    vadSensitivity,
+    personalityMode,
+    correctionFocus,
+    showSubtitles,
+    autoStudyGuide,
+    hapticFeedback,
+    ecoMode
+  });
+  const hasUnsavedChanges = Boolean(initialSettingsSignature && settingsSignature !== initialSettingsSignature);
 
   // Carrega dados iniciais do backend e localStorage
   useEffect(() => {
@@ -198,6 +221,12 @@ export function ProfileSettingsForm() {
       stopTestMic();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isLoading && !initialSettingsSignature) {
+      setInitialSettingsSignature(settingsSignature);
+    }
+  }, [initialSettingsSignature, isLoading, settingsSignature]);
 
   function toggleDifficulty(diff: string) {
     setSelectedDifficulties((prev) =>
@@ -407,6 +436,7 @@ export function ProfileSettingsForm() {
       if (!res.ok) throw new Error(data.error || "Erro ao salvar preferências.");
 
       setProfile(data.profile);
+      setInitialSettingsSignature(settingsSignature);
       setFeedback({
         type: "success",
         text: "Configurações salvas e aplicadas! O áudio, microfone e personalização do Mr.Crazy estão 100% atualizados."
@@ -422,7 +452,13 @@ export function ProfileSettingsForm() {
   }
 
   if (isLoading) {
-    return <div className="settings-loading">Carregando painel de calibração...</div>;
+    return (
+      <div className="settings-loading" role="status" aria-live="polite">
+        <div className="settings-loading-skeleton" aria-hidden="true"><i /><i /><i /></div>
+        <strong>Mr.Crazy está calibrando seu painel...</strong>
+        <span>Buscando seu perfil, voz e preferências salvas.</span>
+      </div>
+    );
   }
 
   return (
@@ -473,6 +509,8 @@ export function ProfileSettingsForm() {
       <nav className="settings-tabs-bar" aria-label="Abas de configuração">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === "profile"}
           className={`settings-tab-btn ${activeTab === "profile" ? "is-active" : ""}`}
           onClick={() => setActiveTab("profile")}
         >
@@ -481,6 +519,8 @@ export function ProfileSettingsForm() {
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === "audio"}
           className={`settings-tab-btn ${activeTab === "audio" ? "is-active" : ""}`}
           onClick={() => setActiveTab("audio")}
         >
@@ -489,6 +529,8 @@ export function ProfileSettingsForm() {
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === "ai"}
           className={`settings-tab-btn ${activeTab === "ai" ? "is-active" : ""}`}
           onClick={() => setActiveTab("ai")}
         >
@@ -497,6 +539,8 @@ export function ProfileSettingsForm() {
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === "interface"}
           className={`settings-tab-btn ${activeTab === "interface" ? "is-active" : ""}`}
           onClick={() => setActiveTab("interface")}
         >
@@ -505,6 +549,8 @@ export function ProfileSettingsForm() {
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === "account"}
           className={`settings-tab-btn ${activeTab === "account" ? "is-active" : ""}`}
           onClick={() => setActiveTab("account")}
         >
@@ -1145,9 +1191,9 @@ export function ProfileSettingsForm() {
 
       {/* Botão de Salvar Global */}
       <div className="settings-submit-footer">
-        <button className="primary-link submit-settings-btn" disabled={isSaving} type="submit">
+        <button className="primary-link submit-settings-btn" disabled={isSaving || !hasUnsavedChanges} type="submit">
           <Check size={18} />
-          <span>{isSaving ? "Gravando preferências..." : "Salvar Configurações e Calibrar"}</span>
+          <span>{isSaving ? "Salvando ajustes..." : hasUnsavedChanges ? "Salvar ajustes" : "Tudo salvo"}</span>
         </button>
       </div>
     </form>

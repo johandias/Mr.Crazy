@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const updates: Partial<UserProfile> = {};
 
-    if (typeof body.nickname === "string") updates.nickname = body.nickname.trim();
+    if (typeof body.nickname === "string") updates.nickname = body.nickname.trim().slice(0, 50);
     if (
       body.gender === "masculino" ||
       body.gender === "feminino" ||
@@ -46,23 +46,25 @@ export async function POST(request: Request) {
       updates.learning_level = body.learning_level;
     }
     if (typeof body.self_assessed_level === "string") {
-      updates.self_assessed_level = body.self_assessed_level.trim();
+      updates.self_assessed_level = body.self_assessed_level.trim().slice(0, 50);
     }
     if (typeof body.learning_style === "string") {
-      updates.learning_style = body.learning_style.trim();
+      updates.learning_style = body.learning_style.trim().slice(0, 200);
     }
     if (typeof body.learning_goal === "string") {
-      updates.learning_goal = body.learning_goal.trim();
+      updates.learning_goal = body.learning_goal.trim().slice(0, 200);
     }
     if (Array.isArray(body.main_difficulties)) {
       updates.main_difficulties = body.main_difficulties
         .filter((d) => typeof d === "string" && d.trim().length > 0)
-        .map((d) => d.trim());
+        .slice(0, 10)
+        .map((d) => d.trim().slice(0, 50));
     }
 
-    // Telemetria incremental
+    // Telemetria incremental com limites defensivos
     if (typeof body.addPracticeSeconds === "number" && body.addPracticeSeconds > 0) {
-      updates.practice_time_seconds = (user.practice_time_seconds || 0) + Math.round(body.addPracticeSeconds);
+      const secondsToAdd = Math.min(7200, Math.max(0, Math.round(body.addPracticeSeconds)));
+      updates.practice_time_seconds = Math.min(100_000_000, (user.practice_time_seconds || 0) + secondsToAdd);
       
       // Lógica de Streak
       const today = new Date();
@@ -87,17 +89,18 @@ export async function POST(request: Request) {
         }
       }
     } else if (typeof body.practice_time_seconds === "number") {
-      updates.practice_time_seconds = Math.round(body.practice_time_seconds);
+      updates.practice_time_seconds = Math.min(100_000_000, Math.max(0, Math.round(body.practice_time_seconds)));
     }
 
     if (typeof body.addXp === "number" && body.addXp > 0) {
-      updates.xp = (user.xp || 0) + Math.round(body.addXp);
+      const xpToAdd = Math.min(1000, Math.max(0, Math.round(body.addXp)));
+      updates.xp = Math.min(10_000_000, (user.xp || 0) + xpToAdd);
     } else if (typeof body.xp === "number") {
-      updates.xp = Math.round(body.xp);
+      updates.xp = Math.min(10_000_000, Math.max(0, Math.round(body.xp)));
     }
 
     if (typeof body.evolution_score === "number") {
-      updates.evolution_score = Math.round(body.evolution_score);
+      updates.evolution_score = Math.min(100, Math.max(0, Math.round(body.evolution_score)));
     }
 
     const updated = await updateUserProfile(user.id, updates);

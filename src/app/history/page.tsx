@@ -10,10 +10,10 @@ export default async function HistoryPage() {
     <AppShell isAdmin={isAdmin}>
       <main className="secondary-main history-main-wrapper">
         <section className="secondary-hero">
-          <p className="eyebrow">Histórico de Aulas</p>
-          <h1>Erros recorrentes viram roteiro de treino.</h1>
+          <p className="eyebrow">Diário de treino</p>
+          <h1>Cada erro vira uma próxima missão.</h1>
           <p className="hero-subtext">
-            Cada sessão com o Mr.Crazy alimenta a IA com diagnósticos de som e gramática para você evoluir mais rápido.
+            Veja o que você falou, quanto treinou e onde o Mr.Crazy quer apertar o parafuso na próxima sessão.
           </p>
         </section>
 

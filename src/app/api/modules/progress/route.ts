@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "moduleId é obrigatório." }, { status: 400 });
     }
 
-    const turnsToAdd = typeof body.addTurns === "number" ? Math.max(0, Math.trunc(body.addTurns)) : 0;
+    const turnsToAdd = typeof body.addTurns === "number" ? Math.min(50, Math.max(0, Math.trunc(body.addTurns))) : 0;
     const currentModule = getModuleById(moduleId);
     const teachingPhases = currentModule.concepts.filter((concept) => !concept.isExam);
     const phaseIds = teachingPhases.map((phase) => phase.id);
@@ -161,8 +161,12 @@ export async function POST(request: Request) {
 
     const newTurns = currentTurns + turnsToAdd;
     let newMissions = [...currentMissions];
-    if (body.completedMission && !newMissions.includes(body.completedMission)) {
-      newMissions.push(body.completedMission);
+    const mission = typeof body.completedMission === "string" ? body.completedMission.trim().slice(0, 200) : "";
+    if (mission && !newMissions.includes(mission)) {
+      newMissions.push(mission);
+    }
+    if (newMissions.length > 120) {
+      newMissions = newMissions.slice(-120);
     }
 
     if (typeof body.phaseIndex === "number" && typeof body.stepIndex === "number") {

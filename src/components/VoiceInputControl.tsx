@@ -24,6 +24,7 @@ type Props = {
   onDeviceChange?: (id: string) => void;
   onToggle: () => void;
   onReconnect?: () => void;
+  onTextFallback?: () => void;
   isAwake?: boolean;
   talkMode?: "continuous" | "push-to-talk";
   onTalkModeChange?: (mode: "continuous" | "push-to-talk") => void;
@@ -31,6 +32,47 @@ type Props = {
   onHoldEnd?: () => void;
   onHoldCancel?: () => void;
 };
+
+function VoiceFallbackNotice({
+  error,
+  onReconnect,
+  onTextFallback
+}: {
+  error: string;
+  onReconnect?: () => void;
+  onTextFallback?: () => void;
+}) {
+  const isMicrophoneIssue = /(microfone|microphone|permiss|captur|dispositivo|áudio|audio)/iu.test(error);
+
+  return (
+    <div className="avatar-mic-error-box" role="alert">
+      <div className="avatar-mic-error-copy">
+        <MicOff size={18} aria-hidden="true" />
+        <div>
+          <strong>{isMicrophoneIssue ? "Não achei seu microfone." : "A conexão de voz deu uma travada."}</strong>
+          <p>
+            {isMicrophoneIssue
+              ? "Sem problema: reconecte o áudio ou continue treinando por texto."
+              : "Você pode reconectar o áudio ou continuar a aula digitando."}
+          </p>
+        </div>
+      </div>
+      <p className="avatar-mic-error-detail">{error}</p>
+      <div className="avatar-mic-error-actions">
+        {onTextFallback ? (
+          <button type="button" className="text-fallback-btn" onClick={onTextFallback}>
+            Responder digitando
+          </button>
+        ) : null}
+        {onReconnect ? (
+          <button type="button" className="retry-connection-btn" onClick={onReconnect}>
+            Reconectar microfone
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 /** Barras de onda inline que respondem em tempo real ao som, voz e graves */
 function InlineWaveBars({
@@ -148,6 +190,7 @@ export function VoiceInputControl({
   audioMetricsRef,
   error,
   onReconnect,
+  onTextFallback,
 }: Props) {
   const connecting = status === "connecting";
   const isConnected = status === "connected";
@@ -291,12 +334,7 @@ export function VoiceInputControl({
           </div>
         </div>
 
-        {error ? (
-          <div className="avatar-mic-error-box" role="alert">
-            <p className="avatar-mic-error">{error}</p>
-            {onReconnect ? <button type="button" className="retry-connection-btn" onClick={onReconnect}>Reconectar microfone</button> : null}
-          </div>
-        ) : null}
+        {error ? <VoiceFallbackNotice error={error} onReconnect={onReconnect} onTextFallback={onTextFallback} /> : null}
       </section>
     );
   }
@@ -396,12 +434,7 @@ export function VoiceInputControl({
         </span>
       </div>
 
-      {error ? (
-        <div className="avatar-mic-error-box" role="alert">
-          <p className="avatar-mic-error">{error}</p>
-          {onReconnect ? <button type="button" className="retry-connection-btn" onClick={onReconnect}>Reconectar microfone</button> : null}
-        </div>
-      ) : null}
+      {error ? <VoiceFallbackNotice error={error} onReconnect={onReconnect} onTextFallback={onTextFallback} /> : null}
     </section>
   );
 }

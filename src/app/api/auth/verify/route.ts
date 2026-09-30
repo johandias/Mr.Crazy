@@ -5,21 +5,39 @@ import {
   AUTH_COOKIE_NAME,
   getSessionMaxAge
 } from "@/lib/auth";
+import { checkPublicRateLimit, getClientIp, resetPublicRateLimit } from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = checkPublicRateLimit(clientIp, "verify_ip", 20, 300);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { error: `Muitas tentativas a partir deste IP. Aguarde ${ipLimit.retryAfterSeconds} segundos antes de tentar novamente.` },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } }
+      );
+    }
+
     const body = (await request.json()) as Partial<{
       email: string;
       code: string;
     }>;
 
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    const code = typeof body.code === "string" ? body.code.trim() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 254) : "";
+    const code = typeof body.code === "string" ? body.code.trim().slice(0, 10) : "";
 
     if (!email || !code) {
       return NextResponse.json(
         { error: "Por favor, informe seu e-mail e o código de 6 dígitos." },
         { status: 400 }
+      );
+    }
+
+    const codeLimit = checkPublicRateLimit(email, "verify_code", 6, 300);
+    if (!codeLimit.allowed) {
+      return NextResponse.json(
+        { error: `Muitas tentativas com código incorreto para este e-mail. Aguarde ${codeLimit.retryAfterSeconds} segundos antes de tentar novamente.` },
+        { status: 429, headers: { "Retry-After": String(codeLimit.retryAfterSeconds) } }
       );
     }
 
@@ -31,6 +49,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    resetPublicRateLimit(email, "verify_code");
 
     const user = result.user;
     const token = createAuthToken({
@@ -85,6 +105,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${base}/login?verifyError=missing`);
   }
 
+  const codeLimit = checkPublicRateLimit(email, "verify_code", 6, 300);
+  if (!codeLimit.allowed) {
+    return NextResponse.redirect(`${base}/login?verifyError=rate_limit&email=${encodeURIComponent(email)}`);
+  }
+
   try {
     const result = await verifyUserEmailCode(email, code);
 
@@ -93,6 +118,8 @@ export async function GET(request: Request) {
         `${base}/login?verifyError=invalid&email=${encodeURIComponent(email)}`
       );
     }
+
+    resetPublicRateLimit(email, "verify_code");
 
     const user = result.user;
     const token = createAuthToken({

@@ -12,26 +12,21 @@ export async function GET() {
   let dbError: unknown = null;
   let rowCount: number | null = null;
 
-  let usersData: unknown = null;
-
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabaseAdmin
+      const { count, error } = await supabaseAdmin
         .from("mrcrazy_users")
-        .select("id, email, role, status, created_at");
+        .select("id", { count: "exact", head: true });
 
       if (error) {
         dbStatus = "error";
         dbError = {
-          message: error.message,
           code: error.code,
-          details: error.details,
           hint: error.hint
         };
       } else {
         dbStatus = "connected";
-        rowCount = data?.length ?? 0;
-        usersData = data;
+        rowCount = count ?? 0;
       }
     } catch (err) {
       dbStatus = "exception";
@@ -44,14 +39,11 @@ export async function GET() {
     isSupabaseConfigured,
     supabase: {
       hasUrl: Boolean(url),
-      urlSnippet: url ? url.slice(0, 30) + "..." : null,
       hasAnonKey: Boolean(anonKey),
-      anonKeySnippet: anonKey ? anonKey.slice(0, 10) + "..." : null,
       hasServiceRoleKey: Boolean(serviceRoleKey),
       status: dbStatus,
       error: dbError,
-      usersCount: rowCount,
-      dbUsers: usersData
+      usersCount: rowCount
     }
   });
 }

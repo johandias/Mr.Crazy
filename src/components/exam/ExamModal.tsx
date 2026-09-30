@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -81,6 +81,7 @@ export function ExamModal({
   const [turnCount, setTurnCount] = useState(0);
   const [attemptNumber, setAttemptNumber] = useState(1);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isProcessingResponse, setIsProcessingResponse] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<{
     overall_score: number;
     score_10: number;
@@ -188,102 +189,107 @@ export function ExamModal({
   const handleProcessUserResponse = useCallback(
     async (userInput: string) => {
       const cleanInput = userInput.trim();
-      if (!cleanInput || isEvaluating) return;
-
-      // 1. Adiciona a fala do aluno ao diálogo
-      setDialogue((prev) => [
-        ...prev,
-        { role: "user", text: cleanInput, questionId: examQuestions[turnCount]?.id }
-      ]);
-      setTurnCount((prev) => prev + 1);
-      const answeredQuestions = turnCount + 1;
-      setTranscript("");
-      setManualText("");
-
-      // 2. Análise de Incompreensão / Português
-      const isPortugueseOrUnclear = containsPortuguese(cleanInput) || cleanInput.length < 3;
-
-      if (isPortugueseOrUnclear) {
-        // NPC FICA COM CARA DE QUEM NÃO ENTENDEU!
-        setNpcExpression("confused");
-        setConfusionCount((prev) => prev + 1);
-
-        const randomIndex = Math.floor(Math.random() * examNpc.confusionPhrases.length);
-        const confusionReply = examNpc.confusionPhrases[randomIndex];
-
-        setTimeout(() => {
-          setDialogue((prev) => [
-            ...prev,
-            { role: "npc", text: confusionReply, isConfusion: true }
-          ]);
-          speakNpc(confusionReply, "confused");
-        }, 500);
-        return;
-      }
-
-      // 3. Usuário falou em inglês: Obtém resposta dinâmica do examinador
-      setNpcExpression("listening");
+      if (!cleanInput || isEvaluating || isProcessingResponse) return;
+      setIsProcessingResponse(true);
 
       try {
-        const replyRes = await fetch("/api/exam/reply", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            moduleId,
-            userMessage: cleanInput,
-            dialogue: [...dialogue, { role: "user", text: cleanInput }],
-            confusionCount,
-            attemptNumber
-          })
-        });
-
-        if (replyRes.ok) {
-          const replyData = await replyRes.json();
-          if (replyData.ok && replyData.reply) {
-            const isConfused = Boolean(replyData.isConfusion);
-            if (isConfused) {
-              setNpcExpression("confused");
-              setConfusionCount((prev) => prev + 1);
-            } else {
-              setNpcExpression("pleased");
-            }
-            setDialogue((prev) => [
-              ...prev,
-              {
-                role: "npc",
-                text: replyData.reply,
-                isConfusion: isConfused,
-                speaker: "examiner",
-                questionId: replyData.nextQuestionId ?? examQuestions[answeredQuestions]?.id
-              }
-            ]);
-            speakNpc(replyData.reply, isConfused ? "confused" : "pleased");
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to get exam reply from API, using fallback:", err);
-      }
-
-      // Fallback determinístico caso a API falhe
-      setTimeout(() => {
-        const npcReply = answeredQuestions >= requiredQuestionCount
-          ? getExamCompletionReply(examNpc)
-          : getNextExamReply(moduleId, attemptNumber, answeredQuestions);
-
+        // 1. Adiciona a fala do aluno ao diálogo
         setDialogue((prev) => [
           ...prev,
-          {
-            role: "npc",
-            text: npcReply,
-            speaker: "examiner",
-            questionId: examQuestions[answeredQuestions]?.id
-          }
+          { role: "user", text: cleanInput, questionId: examQuestions[turnCount]?.id }
         ]);
-        speakNpc(npcReply, "pleased");
-      }, 700);
+        setTurnCount((prev) => prev + 1);
+        const answeredQuestions = turnCount + 1;
+        setTranscript("");
+        setManualText("");
+
+        // 2. Análise de Incompreensão / Português
+        const isPortugueseOrUnclear = containsPortuguese(cleanInput) || cleanInput.length < 3;
+
+        if (isPortugueseOrUnclear) {
+          // NPC FICA COM CARA DE QUEM NÃO ENTENDEU!
+          setNpcExpression("confused");
+          setConfusionCount((prev) => prev + 1);
+
+          const randomIndex = Math.floor(Math.random() * examNpc.confusionPhrases.length);
+          const confusionReply = examNpc.confusionPhrases[randomIndex];
+
+          setTimeout(() => {
+            setDialogue((prev) => [
+              ...prev,
+              { role: "npc", text: confusionReply, isConfusion: true }
+            ]);
+            speakNpc(confusionReply, "confused");
+          }, 500);
+          return;
+        }
+
+        // 3. Usuário falou em inglês: Obtém resposta dinâmica do examinador
+        setNpcExpression("listening");
+
+        try {
+          const replyRes = await fetch("/api/exam/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              moduleId,
+              userMessage: cleanInput,
+              dialogue: [...dialogue, { role: "user", text: cleanInput }],
+              confusionCount,
+              attemptNumber
+            })
+          });
+
+          if (replyRes.ok) {
+            const replyData = await replyRes.json();
+            if (replyData.ok && replyData.reply) {
+              const isConfused = Boolean(replyData.isConfusion);
+              if (isConfused) {
+                setNpcExpression("confused");
+                setConfusionCount((prev) => prev + 1);
+              } else {
+                setNpcExpression("pleased");
+              }
+              setDialogue((prev) => [
+                ...prev,
+                {
+                  role: "npc",
+                  text: replyData.reply,
+                  isConfusion: isConfused,
+                  speaker: "examiner",
+                  questionId: replyData.nextQuestionId ?? examQuestions[answeredQuestions]?.id
+                }
+              ]);
+              speakNpc(replyData.reply, isConfused ? "confused" : "pleased");
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to get exam reply from API, using fallback:", err);
+        }
+
+        // Fallback determinístico caso a API falhe
+        setTimeout(() => {
+          const npcReply = answeredQuestions >= requiredQuestionCount
+            ? getExamCompletionReply(examNpc)
+            : getNextExamReply(moduleId, attemptNumber, answeredQuestions);
+
+          setDialogue((prev) => [
+            ...prev,
+            {
+              role: "npc",
+              text: npcReply,
+              speaker: "examiner",
+              questionId: examQuestions[answeredQuestions]?.id
+            }
+          ]);
+          speakNpc(npcReply, "pleased");
+        }, 700);
+      } finally {
+        setIsProcessingResponse(false);
+      }
     },
-    [attemptNumber, confusionCount, dialogue, examNpc, examQuestions, isEvaluating, moduleId, requiredQuestionCount, speakNpc, turnCount]
+    [attemptNumber, confusionCount, dialogue, examNpc, examQuestions, isEvaluating, isProcessingResponse, moduleId, requiredQuestionCount, speakNpc, turnCount]
   );
 
   // Inicia / para gravação de voz
@@ -661,7 +667,7 @@ export function ExamModal({
                   className={`exam-mic-btn ${isListening ? "mic-recording" : ""}`}
                   onClick={toggleSpeechRecognition}
                   title={isListening ? "Parar de gravar" : "Falar em inglês"}
-                  disabled={isEvaluating}
+                  disabled={isEvaluating || isProcessingResponse}
                 >
                   {isListening ? <MicOff size={20} /> : <Mic size={20} />}
                   <span>{isListening ? "Ouvindo... (Toque p/ enviar)" : "Falar em Inglês"}</span>
@@ -672,7 +678,7 @@ export function ExamModal({
                   className="exam-text-form"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (manualText.trim()) {
+                    if (manualText.trim() && !isProcessingResponse) {
                       void handleProcessUserResponse(manualText.trim());
                     }
                   }}
@@ -683,12 +689,12 @@ export function ExamModal({
                     placeholder="Ou digite sua resposta em inglês..."
                     value={manualText}
                     onChange={(e) => setManualText(e.target.value)}
-                    disabled={isEvaluating}
+                    disabled={isEvaluating || isProcessingResponse}
                   />
                   <button
                     type="submit"
                     className="exam-send-btn"
-                    disabled={!manualText.trim() || isEvaluating}
+                    disabled={!manualText.trim() || isEvaluating || isProcessingResponse}
                     title="Enviar resposta"
                   >
                     <Send size={16} />
@@ -700,7 +706,7 @@ export function ExamModal({
                   type="button"
                   className="exam-finish-action-btn"
                   onClick={handleFinishExam}
-                  disabled={turnCount < requiredQuestionCount || isEvaluating}
+                  disabled={turnCount < requiredQuestionCount || isEvaluating || isProcessingResponse}
                   title="Concluir a prova e calcular sua nota final"
                 >
                   <Award size={16} />

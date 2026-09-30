@@ -6,9 +6,15 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
-- **Último Commit Estável**: `4ba571e`
+- **Último Commit Estável**: `c6b8f1f`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 72 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`)
+- **Suíte de Testes**: 87 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`)
+
+## 🟡 Codex — 2026-09-29 — revisão profunda de UX/UI incremental
+- **Em andamento nesta sessão:** fallback de microfone com CTA explícito para responder digitando, estados de erro e carregamento contextuais em histórico/progresso/configurações, tabs de configurações com semântica acessível e CTA de salvar sensível a alterações.
+- **Também revisado:** copy principal da prática, Conversa Beta, histórico, progresso, configurações e login; camada visual mobile-first com skeletons, foco visível, touch targets e composer mais claro.
+- **Preservado:** APIs, autenticação, banco, rotas, WebRTC, estado inicial mutado, Chefão e nomenclatura `Tap to Talk`/`Hold to Talk`.
+- **Validação:** testes nativos passaram; `npm run typecheck`, `npm run lint` e `npm run build` ficaram indisponíveis porque `tsc`, `eslint` e `next` não existem no checkout atual.
 
 ---
 
@@ -204,3 +210,32 @@ Antes de qualquer push na `main`:
   3. **Redefinição e alteração de senha**: criada tela `/reset-password` com token de uso único e opção “Alterar senha” em Configurações > Conta & Sessão, exigindo senha atual.
   4. **Segurança e banco**: tokens de reset são armazenados apenas como hash SHA-256, expiram em 1 hora e têm migration dedicada com índice parcial.
   5. **Testes**: `email-verification`, `stage-progression`, `scoring` e `realtime-session` passaram. `npm run typecheck` não executou porque `tsc` não está disponível neste checkout.
+
+- **[Antigravity — 2026-09-30]**: Blindagem Completa de Segurança, Resiliência, Rate Limiting e Proteção Contra Abuso:
+  1. **Rate Limiting Público por IP e Identificador (`src/lib/rate-limiter.ts`)**:
+     - Funções `checkPublicRateLimit`, `resetPublicRateLimit` e `getClientIp` com parsing seguro de `x-forwarded-for` e fallbacks.
+     - Proteção anti-bruteforce em `POST /api/auth/login` (15/min por IP, 6/min por conta).
+     - Proteção anti-spam em `POST /api/auth/register` (4 cadastros/5 min por IP).
+     - Proteção anti-bruteforce em `POST /api/auth/verify` e `GET /api/auth/verify` (6 tentativas de código/5 min por e-mail).
+     - Proteção anti-flooding em `POST /api/auth/resend-code` (2 requisições/min) e `POST /api/auth/forgot-password` (3/5 min).
+     - Proteção contra enumeração em `POST /api/auth/reset-password/confirm` e `POST /api/auth/change-password` (5/5 min).
+  2. **Proteção de IA & Voz (Timeouts, Cancelamento e Concorrência)**:
+     - `POST /api/speech`: `signal: AbortSignal.timeout(12000)` e controle de concorrência com `acquireUserQueueSlot`.
+     - `POST /api/exam/reply`: `checkRateLimit` + `acquireUserQueueSlot` com sanitização e corte estrito de histórico e fala.
+     - `POST /api/modules/evaluate`: `checkRateLimit` + `acquireUserQueueSlot` impedindo chamadas LLM duplicadas.
+  3. **Sanitização de Inputs & Defesa Contra Manipulação**:
+     - `POST /api/profile`: clamping defensivo de telemetria (`addPracticeSeconds` <= 7200s, `addXp` <= 1000, bounds em XP e tempo) e strings (`nickname`, `learning_style`, `learning_goal`).
+     - `POST /api/modules/progress`: clamping de `addTurns` (max 50 por chamada) e corte defensivo de `completed_missions`.
+  4. **Eliminação de Vazamento de Dados Confidenciais**:
+     - `GET /api/health`: removido vazamento de `dbUsers` (e-mails reais e IDs) e snippets de chaves; endpoint agora expõe apenas contagem anônima e status.
+     - `src/lib/auth.ts`: `listAllUsers` agora limpa obrigatoriamente `password_hash` e `password_reset_token_hash`.
+  5. **Headers HTTP de Segurança & Error Boundary Global**:
+     - `next.config.mjs`: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security: max-age=63072000`, e `Permissions-Policy: camera=(), microphone=(self), geolocation=()`.
+     - `src/app/global-error.tsx`: captura defensiva de erros fatais do root layout com tela segura e botão de recarga.
+  6. **Blindagem do Frontend Contra Duplo Clique**:
+     - `LoginForm.tsx`: guards de `if (isSubmitting) return;` e `if (isResending) return;` em todas as ações de formulário.
+     - `ExamModal.tsx`: flag `isProcessingResponse` bloqueando novos cliques e inputs enquanto o examinador processa.
+  7. **Testes Unitários**:
+     - Nova suíte `tests/security-resilience.test.mjs` com 9 testes automatizados cobrindo rate limit, headers, sanitização e vazamentos.
+     - **Todos os 87 testes do projeto passando com sucesso (28 + 9 + 6 + 20 + 15 + 9).**
+

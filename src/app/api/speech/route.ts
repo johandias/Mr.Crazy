@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/server-auth";
-import { checkRateLimit } from "@/lib/rate-limiter";
+import { checkRateLimit, acquireUserQueueSlot } from "@/lib/rate-limiter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +34,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Voz neural não configurada." }, { status: 503 });
   }
 
+  let releaseSlot: (() => void) | null = null;
   try {
+    const userIdentifier = session.userId || session.email;
+    releaseSlot = await acquireUserQueueSlot(userIdentifier, "speech", 2, 6000);
+
     const body = (await request.json()) as { text?: unknown };
     // Limita o texto para no máximo 500 caracteres (evita gastos acidentais de tokens de áudio)
     const text = typeof body.text === "string" ? body.text.trim().slice(0, 500) : "";
@@ -58,6 +62,7 @@ export async function POST(request: Request) {
         speed: 1,
         instructions: "Você é um professor brasileiro homem: voz encorpada, próxima, natural e realista. Fale português do Brasil com dicção nativa. Nos exemplos em inglês, use pronúncia americana clara, um pouco mais lenta, conectada e com a sílaba tônica evidente. Varie a entonação entre acolhimento, desafio, correção firme e elogio curto; faça pausas naturais antes da vez do aluno. Nunca acelere uma correção, nem soe como locutor ou leia cada sílaba mecanicamente. Não acrescente palavras ao texto recebido."
       }),
+      signal: AbortSignal.timeout(12000),
       cache: "no-store"
     });
 
@@ -75,7 +80,16 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
+    const isTimeout = (error instanceof DOMException && error.name === "TimeoutError") ||
+      (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError"));
+    const isBusy = (error as { code?: string })?.code === "QUEUE_BUSY";
+
     console.error("OpenAI speech route failed", error instanceof Error ? error.message : "unknown error");
-    return NextResponse.json({ error: "Falha ao preparar a voz." }, { status: 500 });
+    return NextResponse.json(
+      { error: isTimeout ? "Tempo limite ao gerar a voz." : isBusy ? "Voz sendo gerada em outra solicitação." : "Falha ao preparar a voz." },
+      { status: isTimeout ? 504 : isBusy ? 429 : 500 }
+    );
+  } finally {
+    releaseSlot?.();
   }
 }

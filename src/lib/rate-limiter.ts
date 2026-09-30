@@ -1,5 +1,5 @@
-import { supabaseAdmin, isSupabaseConfigured } from "./supabase";
-import type { SessionTokenPayload } from "./auth";
+import { supabaseAdmin, isSupabaseConfigured } from "./supabase.ts";
+import type { SessionTokenPayload } from "./auth.ts";
 
 export type RateLimitAction = "analyze" | "speech" | "realtime";
 
@@ -34,6 +34,9 @@ const ADMIN_LIMITS: Record<RateLimitAction, ActionLimits> = {
 // Armazenamento em memória de janelas deslizantes (por minuto)
 const minuteWindows = new Map<string, number[]>();
 
+// Armazenamento em memória para rate limit público (IP / chave com janela configurável)
+const publicRateLimitWindows = new Map<string, number[]>();
+
 // Armazenamento em memória de contagem diária (fallback e cache rápido)
 const dailyUsageCache = new Map<string, { date: string; count: number }>();
 
@@ -57,6 +60,16 @@ setInterval(() => {
       minuteWindows.delete(key);
     } else {
       minuteWindows.set(key, valid);
+    }
+  }
+
+  const publicCutoff = Date.now() - 3600_000; // 1 hora de retenção máxima
+  for (const [key, timestamps] of publicRateLimitWindows.entries()) {
+    const valid = timestamps.filter((t) => t > publicCutoff);
+    if (valid.length === 0) {
+      publicRateLimitWindows.delete(key);
+    } else {
+      publicRateLimitWindows.set(key, valid);
     }
   }
 
@@ -293,4 +306,82 @@ function createReleaseFunction(queueKey: string): () => void {
       userQueues.delete(queueKey);
     }
   };
+}
+
+// ----------------------------------------------------------------------
+// RATE LIMITING PÚBLICO E BASEADO EM IP (ANTI-BRUTEFORCE & ANTI-SPAM)
+// ----------------------------------------------------------------------
+
+export interface PublicRateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  limit: number;
+  retryAfterSeconds: number;
+}
+
+/**
+ * Extrai o IP real do cliente a partir dos cabeçalhos da requisição
+ */
+export function getClientIp(request: Request): string {
+  const xForwardedFor = request.headers.get("x-forwarded-for");
+  if (xForwardedFor) {
+    const firstIp = xForwardedFor.split(",")[0]?.trim();
+    if (firstIp) return firstIp;
+  }
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+
+  const cfIp = request.headers.get("cf-connecting-ip")?.trim();
+  if (cfIp) return cfIp;
+
+  return "127.0.0.1";
+}
+
+/**
+ * Verifica limites para endpoints públicos (login, registro, verificação de código, reset)
+ * @param identifier IP do cliente, e-mail ou combinação IP+ação
+ * @param action Nome da ação/endpoint
+ * @param maxAttempts Limite de tentativas na janela
+ * @param windowSeconds Janela de tempo em segundos
+ */
+export function checkPublicRateLimit(
+  identifier: string,
+  action: string,
+  maxAttempts: number,
+  windowSeconds: number
+): PublicRateLimitResult {
+  const now = Date.now();
+  const windowMs = windowSeconds * 1000;
+  const key = `pub:${action}:${identifier.trim().toLowerCase()}`;
+
+  const timestamps = (publicRateLimitWindows.get(key) ?? []).filter((t) => now - t < windowMs);
+
+  if (timestamps.length >= maxAttempts) {
+    const oldest = timestamps[0] ?? now;
+    const retryAfterSeconds = Math.max(1, Math.ceil((oldest + windowMs - now) / 1000));
+    return {
+      allowed: false,
+      remaining: 0,
+      limit: maxAttempts,
+      retryAfterSeconds
+    };
+  }
+
+  timestamps.push(now);
+  publicRateLimitWindows.set(key, timestamps);
+
+  return {
+    allowed: true,
+    remaining: Math.max(0, maxAttempts - timestamps.length),
+    limit: maxAttempts,
+    retryAfterSeconds: 0
+  };
+}
+
+/**
+ * Reseta o contador de tentativas públicas (ex: após login bem-sucedido)
+ */
+export function resetPublicRateLimit(identifier: string, action: string): void {
+  const key = `pub:${action}:${identifier.trim().toLowerCase()}`;
+  publicRateLimitWindows.delete(key);
 }

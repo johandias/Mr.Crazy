@@ -2505,7 +2505,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                     ref={mainInputRef}
                     value={manualText}
                     onChange={(e) => setManualText(e.target.value)}
-                    placeholder="Digite em inglês ou português..."
+                    placeholder="Digite sua resposta em inglês ou português..."
                     autoFocus
                     disabled={voiceState === "analyzing"}
                   />
@@ -2535,6 +2535,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 isAwake={isCharacterAwake}
                 onToggle={handleAvatarMicClick}
                 onReconnect={() => void connectSession()}
+                onTextFallback={() => {
+                  setIsQuickInputOpen(true);
+                  window.setTimeout(() => mainInputRef.current?.focus(), 0);
+                }}
                 onDeviceChange={(id) => {
                   inputDeviceRef.current = id;
                   setInputDeviceId(id);

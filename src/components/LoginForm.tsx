@@ -70,6 +70,7 @@ export function LoginForm() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage("");
     setSuccessMessage("");
     setResendStatus("");
@@ -114,6 +115,7 @@ export function LoginForm() {
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage("");
     setSuccessMessage("");
     setResendStatus("");
@@ -162,6 +164,7 @@ export function LoginForm() {
 
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage("");
     setSuccessMessage("");
     setResendStatus("");
@@ -212,6 +215,7 @@ export function LoginForm() {
   }
 
   async function handleResendCode() {
+    if (isResending || isSubmitting) return;
     const targetEmail = (verificationEmail || email).trim().toLowerCase();
     if (!targetEmail) {
       setErrorMessage("Informe seu e-mail para receber um novo código.");
@@ -245,6 +249,7 @@ export function LoginForm() {
 
   async function handleForgotPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     const targetEmail = (forgotEmail || email).trim().toLowerCase();
 
     if (!targetEmail) {

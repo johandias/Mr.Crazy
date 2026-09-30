@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/server-auth";
 import { getModuleById, type ExamNpcConfig } from "@/lib/modules";
 import { getExamCompletionReply, getExamQuestionPlan, getNextExamReply } from "@/lib/exam";
+import { checkRateLimit, acquireUserQueueSlot } from "@/lib/rate-limiter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -129,11 +130,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Acesso não autorizado." }, { status: 401 });
   }
 
+  const rateLimit = await checkRateLimit(session, "analyze");
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.error, code: rateLimit.code },
+      { status: rateLimit.status, headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 10) } }
+    );
+  }
+
+  let releaseSlot: (() => void) | null = null;
   try {
+    const userIdentifier = session.userId || session.email;
+    releaseSlot = await acquireUserQueueSlot(userIdentifier, "exam-reply", 1, 8000);
+
     const body = (await request.json()) as ExamReplyRequestBody;
     const moduleId = body.moduleId?.trim();
-    const userMessage = body.userMessage?.trim() || "";
-    const dialogue = Array.isArray(body.dialogue) ? body.dialogue : [];
+    const userMessage = (body.userMessage?.trim() || "").slice(0, 500);
+    const rawDialogue = Array.isArray(body.dialogue) ? body.dialogue : [];
+    const dialogue = rawDialogue.slice(-10).map((d) => ({
+      role: d.role === "npc" || d.role === "user" ? d.role : ("user" as const),
+      text: typeof d.text === "string" ? d.text.trim().slice(0, 300) : ""
+    }));
     const attemptNumber = Math.max(1, Math.min(2, Math.round(body.attemptNumber || 1)));
 
     if (!moduleId || !userMessage) {
@@ -259,7 +276,13 @@ INSTRUCTIONS:
       questionFocus: questionPlan[answeredQuestions]?.focus ?? null
     });
   } catch (error) {
+    const isBusy = (error as { code?: string })?.code === "QUEUE_BUSY";
     console.error("[Exam Reply API Error]:", error);
-    return NextResponse.json({ error: "Erro ao gerar resposta do examinador." }, { status: 500 });
+    return NextResponse.json(
+      { error: isBusy ? "Aguarde a resposta anterior do examinador antes de falar novamente." : "Erro ao gerar resposta do examinador." },
+      { status: isBusy ? 429 : 500 }
+    );
+  } finally {
+    releaseSlot?.();
   }
 }

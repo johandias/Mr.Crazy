@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, Clock, FileCheck2, MessageSquare, Target } from "lucide-react";
+import { AlertCircle, ArrowRight, Calendar, Clock, FileCheck2, MessageSquare, RotateCcw, Target } from "lucide-react";
 import type { ProgressSummaryResponse, RecentPracticeSession } from "@/lib/progress-types";
 
 function formatDate(value: string) {
@@ -35,22 +35,51 @@ function SessionCard({ session }: { session: RecentPracticeSession }) {
 
 export function SessionHistory() {
   const [sessions, setSessions] = useState<RecentPracticeSession[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoadError("");
     fetch("/api/progress/summary")
-      .then(async (response) => response.ok ? response.json() : null)
+      .then(async (response) => {
+        if (!response.ok) throw new Error("O histórico não respondeu agora.");
+        return response.json();
+      })
       .then((data: ProgressSummaryResponse | null) => {
         if (active) setSessions(data?.recentSessions ?? []);
       })
-      .catch(() => {
-        if (active) setSessions([]);
+      .catch((error: unknown) => {
+        if (active) {
+          setSessions(null);
+          setLoadError(error instanceof Error ? error.message : "Não consegui abrir seu histórico agora.");
+        }
       });
     return () => { active = false; };
-  }, []);
+  }, [reloadKey]);
 
   if (sessions === null) {
-    return <div className="history-loading" role="status">Carregando suas aulas…</div>;
+    if (loadError) {
+      return (
+        <section className="history-error-state" role="alert">
+          <AlertCircle size={22} aria-hidden="true" />
+          <div>
+            <h2>O histórico ficou preso no caminho.</h2>
+            <p>{loadError} Seus treinos continuam seguros.</p>
+          </div>
+          <button type="button" className="secondary-action-btn" onClick={() => setReloadKey((key) => key + 1)}>
+            <RotateCcw size={15} /> Tentar de novo
+          </button>
+        </section>
+      );
+    }
+    return (
+      <div className="history-loading" role="status" aria-live="polite">
+        <div className="history-loading-skeleton" aria-hidden="true"><i /><i /><i /></div>
+        <strong>Mr.Crazy está puxando seu histórico de treino...</strong>
+        <span>Erros, acertos e XP aparecem aqui depois de cada sessão.</span>
+      </div>
+    );
   }
 
   if (sessions.length === 0) {
@@ -59,9 +88,9 @@ export function SessionHistory() {
         <MessageSquare size={24} />
         <div>
           <h2>Sua primeira prática começa aqui.</h2>
-          <p>Quando você treinar, as sessões, turnos e XP reais aparecerão neste histórico.</p>
+          <p>Faça sua primeira prática e o Mr.Crazy começa a registrar seus erros, acertos e evolução.</p>
         </div>
-        <Link href="/practice" className="primary-link quick-practice-btn">Começar a praticar <ArrowRight size={16} /></Link>
+        <Link href="/practice" className="primary-link quick-practice-btn">Começar primeira prática <ArrowRight size={16} /></Link>
       </section>
     );
   }

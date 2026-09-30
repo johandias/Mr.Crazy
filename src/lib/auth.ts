@@ -689,7 +689,11 @@ export async function listAllUsers(): Promise<UserProfile[]> {
       if (error) {
         console.error("[Supabase listAllUsers error]:", error.message, error.details || "");
       } else if (data) {
-        return data as UserProfile[];
+        return (data as (UserProfile & { password_hash?: string; password_reset_token_hash?: string })[]).map((u) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { password_hash, password_reset_token_hash, ...safe } = u;
+          return safe as UserProfile;
+        });
       }
     } catch (err) {
       console.error("[Supabase listAllUsers exception]:", err);
@@ -698,8 +702,8 @@ export async function listAllUsers(): Promise<UserProfile[]> {
 
   return Array.from(memoryUsers.values()).map((u) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password_hash, ...rest } = u;
-    return rest;
+    const { password_hash, password_reset_token_hash, ...rest } = u;
+    return rest as UserProfile;
   });
 }
 

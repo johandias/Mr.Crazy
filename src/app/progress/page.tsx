@@ -12,7 +12,7 @@ export default async function ProgressPage() {
   return (
     <AppShell isAdmin={isAdmin}>
       <main className="secondary-main evolution-main-wrapper">
-        <Suspense fallback={<div className="settings-loading">Carregando painel de evolução...</div>}>
+          <Suspense fallback={<div className="settings-loading" role="status">Mr.Crazy está preparando seu painel de evolução...</div>}>
           <EvolutionDashboard />
         </Suspense>
       </main>
