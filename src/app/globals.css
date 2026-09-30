@@ -14049,7 +14049,7 @@ input[type="submit"] {
 .ambient-spark-3 { bottom: 42%; left: 26%; animation-delay: -2.8s; }
 .ambient-spark-4 { bottom: 34%; right: 29%; animation-delay: -5.6s; }
 
-.practice-stage.clean-stage > .character-column { position: relative; z-index: 1; }
+.practice-stage.clean-stage > .character-column { position: relative; z-index: 1; isolation: isolate; }
 
 @keyframes ambient-torch-glow {
   0% { opacity: 0.32; transform: translate(-50%, 4px) scale(0.88); }
