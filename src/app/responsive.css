@@ -1049,7 +1049,15 @@
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
-    max-height: 112px !important;
+    max-height: 84px !important;
+  }
+
+  .practice-main .character-speech-bubble {
+    padding-block: 6px !important;
+  }
+
+  .practice-main .speech-bubble-header {
+    min-height: 28px;
   }
 
   .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
@@ -1079,22 +1087,22 @@
   }
 
   .practice-main .mic-btn-row {
-    min-height: 48px;
+    min-height: 44px;
   }
 
   .practice-main .avatar-mic-halo-wrapper {
-    width: 52px !important;
-    height: 52px !important;
+    width: 46px !important;
+    height: 46px !important;
   }
 
   .practice-main .voice-input-control .avatar-mic-circle-btn {
-    width: 46px !important;
-    height: 46px !important;
-    min-width: 46px !important;
-    min-height: 46px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
 
   .practice-main .dock-action-pill-btn {
-    min-height: 38px !important;
+    min-height: 34px !important;
   }
 }
