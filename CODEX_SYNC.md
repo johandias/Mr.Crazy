@@ -257,8 +257,9 @@ Antes de qualquer push na `main`:
      - Barra de conversão fixa inferior no mobile (`landing-sticky-bar`) para tráfego do WhatsApp.
      - Design System Dark/Gold/Cyan em `src/app/landing.css`.
   3. **Rotas e SEO**:
-     - Rota raiz `/` configurada para renderizar a Landing Page, com detecção inteligente de usuário logado (botão de acesso direto para `/practice`).
-     - Metadados de compartilhamento Open Graph e Twitter Cards atualizados em `src/app/layout.tsx` para exibição rica no WhatsApp, Telegram e redes sociais.
+     - Rota raiz `/` (`mrcrazy.fun`) preservada com a tela de login padrão e portal de autenticação inalterado (`requireAuth("/")`).
+     - Nova rota dedicada de convite `/convite` (e alias `/invite`) criada para a Landing Page de alta conversão com detecção inteligente de usuário logado.
+     - Metadados de compartilhamento Open Graph e Twitter Cards configurados para exibição rica no WhatsApp, Telegram e redes sociais.
   4. **Testes**:
      - Nova suíte `tests/landing-page.test.mjs` com 5 testes automatizados.
      - **Todos os 92 testes unitários passando com sucesso.**

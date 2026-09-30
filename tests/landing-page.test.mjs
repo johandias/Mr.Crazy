@@ -9,11 +9,16 @@ test("landing intro audio file exists in public directory and has non-zero size"
   assert.ok(stat.size > 100_000, "O arquivo de áudio deve ter tamanho válido (> 100KB)");
 });
 
-test("root page renders LandingPage component with session user awareness", () => {
-  const pageCode = fs.readFileSync("src/app/page.tsx", "utf-8");
-  assert.ok(pageCode.includes("LandingPage"), "src/app/page.tsx deve renderizar o componente LandingPage");
-  assert.ok(pageCode.includes("getCurrentSession"), "src/app/page.tsx deve inspecionar a sessão ativa");
-  assert.ok(pageCode.includes("getCurrentUser"), "src/app/page.tsx deve carregar o usuário autenticado");
+test("root page preserves standard login/auth portal and convite route renders LandingPage", () => {
+  const rootPageCode = fs.readFileSync("src/app/page.tsx", "utf-8");
+  assert.ok(rootPageCode.includes('requireAuth("/")'), "src/app/page.tsx deve manter requireAuth(\"/\") direcionando visitantes para o login");
+
+  const convitePageCode = fs.readFileSync("src/app/convite/page.tsx", "utf-8");
+  assert.ok(convitePageCode.includes("LandingPage"), "src/app/convite/page.tsx deve renderizar o componente LandingPage");
+  assert.ok(convitePageCode.includes("getCurrentSession"), "src/app/convite/page.tsx deve inspecionar a sessão ativa");
+  assert.ok(convitePageCode.includes("getCurrentUser"), "src/app/convite/page.tsx deve carregar o usuário autenticado");
+
+  assert.ok(fs.existsSync("src/app/invite/page.tsx"), "src/app/invite/page.tsx deve existir como rota de convite");
 });
 
 test("LandingPage component includes all 10 strategic conversion sections", () => {

@@ -52,7 +52,7 @@ export function LandingPage({ user }: LandingPageProps) {
       <header className="landing-navbar">
         <div className="landing-container">
           <div className="landing-navbar-inner">
-            <Link href="/" className="landing-brand" aria-label="Mr.Crazy Início">
+            <Link href="/convite" className="landing-brand" aria-label="Mr.Crazy Convite">
               <div className="landing-brand-avatar">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
