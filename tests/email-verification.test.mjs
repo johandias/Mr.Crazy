@@ -8,7 +8,7 @@ import {
   updateUserApprovalStatus,
   findUserByEmail
 } from "../src/lib/auth.ts";
-import { sendVerificationEmail } from "../src/lib/email.ts";
+import { buildVerificationEmailContent, sendVerificationEmail } from "../src/lib/email.ts";
 
 test("registration generates 6-digit verification code and sets status pending", async () => {
   const testEmail = `student-${Date.now()}@test.com`;
@@ -37,6 +37,38 @@ test("sendVerificationEmail handles simulated mode and dispatches formatted emai
 
   assert.equal(emailRes.success, true);
   assert.ok(emailRes.messageId);
+});
+
+test("verification email template is dark, compact, and preserves dynamic activation data", () => {
+  const content = buildVerificationEmailContent({
+    email: "novo.aluno@example.com",
+    nickname: "Novo Aluno",
+    code: "654321",
+    verifyUrl: "https://www.mrcrazy.fun/verify?email=novo.aluno%40example.com&code=654321"
+  });
+
+  assert.match(content.subject, /\[654321\]/, "Subject must keep the verification code");
+  assert.match(content.html, /Fala aí, Novo Aluno!/, "Template must keep the dynamic student name");
+  assert.match(content.html, /6 5 4 3 2 1/, "Code must be visually spaced in the email");
+  assert.match(content.html, /https:\/\/www\.mrcrazy\.fun\/verify\?email=novo\.aluno%40example\.com&amp;code=654321/, "Activation URL must be preserved in the HTML");
+  assert.match(content.text, /https:\/\/www\.mrcrazy\.fun\/verify\?email=novo\.aluno%40example\.com&code=654321/, "Activation URL must be preserved in the text fallback");
+  assert.match(content.html, /#05080d/i, "Email must be born dark, not rely on client dark mode");
+  assert.match(content.html, /mrcrazy-fala-ai-email\.png/, "Email must use the selected Mr.Crazy hero art");
+  assert.match(content.html, /v:roundrect/, "CTA must include an Outlook-friendly VML fallback");
+  assert.match(content.html, /ATIVAR MINHA CONTA/, "CTA must stay obvious and direct");
+  assert.match(content.html, /word-break:break-all/, "Fallback URL must remain usable on mobile clients");
+  assert.match(content.html, /min-width: 0 !important/, "Mobile CTA must not force horizontal overflow at 320px");
+  assert.equal((content.html.match(/<img\b/g) || []).length, 1, "Template must not overload the email with images");
+  assert.ok(!content.html.includes("Prova Oral"), "Activation email must not show competing product CTAs");
+  assert.ok(!content.html.includes("Chega de travar"), "Tone must be provocative without sounding aggressive");
+});
+
+test("verification email hero asset exists and is optimized for transactional email", () => {
+  const assetPath = "public/assets/email/mrcrazy-fala-ai-email.png";
+  const stat = fs.statSync(assetPath);
+
+  assert.ok(stat.size > 0, "Hero image asset must exist");
+  assert.ok(stat.size < 260 * 1024, "Hero image should stay compact enough for email clients");
 });
 
 test("dual approval path 1: student approves account with 6-digit email code", async () => {
