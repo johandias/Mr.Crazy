@@ -13,7 +13,7 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ---
 
 ## 📌 Últimas Entregas Realizadas (Contexto Compartilhado)
- - **[Codex — 2026-09-30, em andamento]**: Refinamento responsivo do palco `/practice`: hierarquia compacta do topo/progresso, balão sem rolagem interna, avatar e cenário adaptados a altura curta, dock de voz sem instruções redundantes e verificação em múltiplas viewports. Arquivos de foco: `PracticeExperience.tsx`, `VoiceInputControl.tsx`, `responsive.css` e testes de regressão.
+ - **[Codex — 2026-09-30]**: Revisão mobile da prática concluída: topo hierárquico (módulo + menu), progresso em duas linhas compactas, balão sem rolagem interna com “Ver mais”, avatar/cenário adaptados a viewport baixa e dock de voz de largura útil com uma instrução principal. `Digitar` e `Histórico` preservam alvos de 44px; validação cobre regressões do palco.
 
  - **[Codex — 2026-09-30]**: Cenário dinâmico leve entregue na prática: salão mágico em CSS com tochas de múltiplas camadas, luz reativa sutil, arcos e quatro partículas escassas. Interface e microfone ficam acima da cena; `prefers-reduced-motion` interrompe movimento e remove partículas.
 

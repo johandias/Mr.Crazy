@@ -399,23 +399,37 @@ test("microphone starts in muted state (red) and mode is renamed to Hold to Talk
   assert.ok(voiceControlCode.includes("Hold to Talk"), "VoiceInputControl deve usar Hold to Talk");
 });
 
-test("mobile practice keeps Mr.Crazy visible above the anchored voice dock", async () => {
+test("mobile practice keeps Mr.Crazy visible above a compact, full-width voice dock", async () => {
   const fs = await import("node:fs");
   const responsiveCss = fs.readFileSync("src/app/responsive.css", "utf-8");
-  const voiceHubRule = responsiveCss.match(/\.practice-main \.practice-voice-hub\s*\{[\s\S]*?\}/)?.[0] ?? "";
+  const voiceHubRule = [...responsiveCss.matchAll(/\.practice-main \.practice-voice-hub\s*\{[\s\S]*?\}/g)]
+    .map((match) => match[0])
+    .find((rule) => rule.includes("inset: auto 0 0 0")) ?? "";
 
   assert.match(
     responsiveCss,
-    /padding:\s*0 0 clamp\(144px, 21dvh, 164px\) !important/,
-    "A coluna mobile deve reservar espaco para o dock sem esmagar o avatar"
+    /padding:\s*0 0 var\(--mobile-voice-hub-space, 148px\) !important/,
+    "A coluna mobile deve reservar apenas o espaço calculado do dock"
   );
-  assert.match(voiceHubRule, /position:\s*absolute !important/, "O dock deve ficar fora do fluxo vertical mobile");
-  assert.match(voiceHubRule, /inset:\s*auto auto 2px 50% !important/, "O dock deve ficar ancorado no rodape do palco");
+  assert.match(responsiveCss, /\.practice-main \.practice-voice-hub\s*\{[\s\S]*?position:\s*absolute !important/, "O dock deve ficar fora do fluxo vertical mobile");
+  assert.match(voiceHubRule, /inset:\s*auto 0 0 0 !important/, "O dock deve usar a largura útil e ficar ancorado no rodapé do palco");
+  assert.match(voiceHubRule, /transform:\s*none !important/, "O dock de largura total não deve manter a translação central antiga");
   assert.doesNotMatch(voiceHubRule, /position:\s*relative/, "O dock relativo empurra o avatar para fora da viewport");
-  assert.match(responsiveCss, /width:\s*clamp\(220px, 37dvh, 320px\) !important/, "O avatar deve ocupar melhor o palco no celular");
-  assert.match(responsiveCss, /transform:\s*translateY\(clamp\(8px, 2dvh, 20px\)\)/, "O avatar deve ficar abaixo do centro visual, sem invadir o balão");
+  assert.match(responsiveCss, /width:\s*clamp\(152px, 27dvh, 246px\) !important/, "O avatar deve adaptar seu tamanho à altura disponível");
+  assert.match(responsiveCss, /@media \(max-height: 700px\) and \(max-width: 768px\)/, "Telas baixas devem reduzir primeiro avatar e decoração");
   assert.match(responsiveCss, /character-stage\.stage-hammock/, "O Mr.Crazy deitado deve subir acima do dock no mobile");
-  assert.match(responsiveCss, /character-speech-bubble-container\.has-overflow\.is-scrolled/, "Texto longo deve receber fade durante a rolagem");
+  assert.match(responsiveCss, /speech-bubble-text\.is-collapsed/, "Texto longo deve ter expansão em vez de rolagem interna");
+  assert.match(responsiveCss, /min-height:\s*44px !important/, "Ações Digitar e Histórico devem manter área de toque confortável");
+});
+
+test("long Mr.Crazy messages expand without turning the bubble into a scroll area", async () => {
+  const fs = await import("node:fs");
+  const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
+  const responsiveCss = fs.readFileSync("src/app/responsive.css", "utf-8");
+
+  assert.match(practiceCode, /isSpeechBubbleExpanded/, "O balão deve controlar a expansão de textos longos");
+  assert.match(practiceCode, /Ver mais/, "O aluno deve poder expandir uma mensagem longa");
+  assert.match(responsiveCss, /overflow:\s*visible !important/, "O balão mobile não deve criar rolagem interna");
 });
 
 test("voice handshake stays discreet and the first tap remains actionable", async () => {
@@ -530,7 +544,3 @@ test("beta conversation provides interactive selectable response options and exp
   assert.ok(globalCss.includes(".beta-interactive-card"), "globals.css deve conter estilos para o card interativo");
   assert.ok(globalCss.includes(".beta-explainer-banner"), "globals.css deve conter estilos para o banner explicativo");
 });
-
-
-
-
