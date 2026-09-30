@@ -2344,6 +2344,26 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         )}
 
         <section className={`practice-stage clean-stage ${isHistoryExpanded ? "history-is-open" : "history-is-closed"}`}>
+          <div className="practice-ambient-scene" aria-hidden="true">
+            <span className="ambient-arch ambient-arch-left" />
+            <span className="ambient-arch ambient-arch-right" />
+            <span className="ambient-arch ambient-arch-center" />
+            <span className="ambient-floor-light" />
+            <span className="ambient-torch ambient-torch-left">
+              <span className="ambient-torch-glow" />
+              <span className="ambient-flame ambient-flame-outer" />
+              <span className="ambient-flame ambient-flame-core" />
+            </span>
+            <span className="ambient-torch ambient-torch-right">
+              <span className="ambient-torch-glow" />
+              <span className="ambient-flame ambient-flame-outer" />
+              <span className="ambient-flame ambient-flame-core" />
+            </span>
+            <span className="ambient-spark ambient-spark-1" />
+            <span className="ambient-spark ambient-spark-2" />
+            <span className="ambient-spark ambient-spark-3" />
+            <span className="ambient-spark ambient-spark-4" />
+          </div>
           <motion.div
             className="character-column"
             initial={{ opacity: 0, y: 16 }}

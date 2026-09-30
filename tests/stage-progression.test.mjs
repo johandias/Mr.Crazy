@@ -428,6 +428,17 @@ test("voice handshake stays discreet and the first tap remains actionable", asyn
   assert.match(practiceCode, /buildSilentWelcomeLine/, "O balão deve iniciar com uma orientação visual sem fala automática");
 });
 
+test("practice scene uses a light CSS ambience that respects reduced motion", async () => {
+  const fs = await import("node:fs");
+  const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
+  const globalCss = fs.readFileSync("src/app/globals.css", "utf-8");
+
+  assert.match(practiceCode, /practice-ambient-scene/, "A prática deve renderizar uma camada de cenário atrás do avatar");
+  assert.match(globalCss, /ambient-torch/, "O cenário deve ter tochas em camadas");
+  assert.match(globalCss, /ambient-spark-rise/, "O cenário deve usar poucas partículas de profundidade");
+  assert.match(globalCss, /prefers-reduced-motion: reduce/, "O cenário deve reduzir movimento quando solicitado pelo sistema");
+});
+
 test("Mr.Crazy animates body, gestures, and mouth while speaking", async () => {
   const fs = await import("node:fs");
   const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
@@ -519,7 +530,6 @@ test("beta conversation provides interactive selectable response options and exp
   assert.ok(globalCss.includes(".beta-interactive-card"), "globals.css deve conter estilos para o card interativo");
   assert.ok(globalCss.includes(".beta-explainer-banner"), "globals.css deve conter estilos para o banner explicativo");
 });
-
 
 
 
