@@ -10,12 +10,12 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 92 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
-## 🟡 Antigravity — 2026-09-30 — Landing Page: Autoplay no Scroll & Gesticulação Expressiva
+## 🟡 Antigravity — 2026-09-30 — Landing Page: Redesign Desktop & Console Unificado do Mr. Crazy
 - **Entregue nesta sessão:**
-  1. **Remoção do Botão Play Principal**: O player de apresentação em `/convite` não possui botão invasivo de play.
-  2. **Autoplay no Scroll**: Ao rolar até a seção do Mr. Crazy, o `IntersectionObserver` aciona automaticamente o áudio e a animação do personagem. Fallback com listeners one-shot de `scroll`/`touchstart`/`pointerdown` contorna bloqueios de autoplay de navegadores móveis sem travar o usuário.
-  3. **Gesticulação Expressiva de Mãos e Corpo**: Adicionadas animações sincronizadas de braços, cajado, e mãos gesticulando (`mr-crazy-hand-gesture`, `mr-crazy-thumb-talk`, `mr-crazy-finger-talk`, `mr-crazy-watergun-talk`, `mr-crazy-body-talk`) que acompanham cada trecho dos 37s de fala e fonemas orais.
-  4. **Preservação de Invariantes**: Tela de login padrão mantida em `/` (mrcrazy.fun); landing page isolada em `/convite`; microfone padrão mantido mutado/vermelho na prática; 92 testes automatizados 100% aprovados.
+  1. **Correção Crítica de Layout no Desktop**: Eliminada a explosão de 640px do avatar do Mr. Crazy (causada por `.character-stage` global). O avatar agora fica estritamente contido em 260px no desktop e 200px no mobile com `!important` e sem vazar para a seção vizinha.
+  2. **Console Unificado Master (`landing-showcase-console`)**: Substituídos os dois cards soltos e desproporcionais por um console gamer único e premium (`max-width: 1040px`). À esquerda, a câmara iluminada com o pedestal do Mr. Crazy e medidor de energia; à direita, o console interativo de fala e controles de voz.
+  3. **Balão de Fala Dinâmico & Chips de Salto Rápido**: O balão exibe em destaque a frase falada no momento em tipografia ampla, com barra de equalizador ativa, scrubber dourado e 4 chips de capítulos para navegação instantânea.
+  4. **Preservação de Invariantes**: Autoplay por `IntersectionObserver` e suporte mobile preservados, login em `/`, prática com microfone mutado/vermelho; 92 testes automatizados aprovados (exit code 0).
 
 ## 🟡 Codex — 2026-09-29 — revisão profunda de UX/UI incremental
 - **Em andamento nesta sessão:** fallback de microfone com CTA explícito para responder digitando, estados de erro e carregamento contextuais em histórico/progresso/configurações, tabs de configurações com semântica acessível e CTA de salvar sensível a alterações.

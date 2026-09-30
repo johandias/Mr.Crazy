@@ -939,250 +939,387 @@
 /* ==========================================================================
    5. SEÇÃO ESTRELA DO MR. CRAZY (ÁUDIO E AVATAR)
    ========================================================================== */
+/* ==========================================================================
+   5. SEÇÃO ESTRELA DO MR. CRAZY (CONSOLE UNIFICADO PREMIUM)
+   ========================================================================== */
 .landing-showcase-section {
-  padding: 3.5rem 0;
+  padding: 3rem 0 3.5rem;
   position: relative;
   background: 
-    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(230, 183, 68, 0.16), transparent),
-    radial-gradient(circle 500px at 20% 40%, rgba(56, 189, 248, 0.08), transparent),
-    linear-gradient(180deg, #070809 0%, #0d1016 50%, #070809 100%);
+    radial-gradient(ellipse 80% 50% at 50% 50%, rgba(230, 183, 68, 0.12), transparent 70%),
+    radial-gradient(circle 600px at 15% 30%, rgba(56, 189, 248, 0.07), transparent 60%),
+    linear-gradient(180deg, #070809 0%, #0c1017 50%, #070809 100%);
   border-top: 1px solid rgba(230, 183, 68, 0.25);
   border-bottom: 1px solid rgba(230, 183, 68, 0.25);
+  overflow: hidden;
 }
 
 @media (min-width: 960px) {
   .landing-showcase-section {
-    padding: 5rem 0;
+    padding: 4.5rem 0 5rem;
   }
 }
 
+/* Master Console Box (One cohesive, high-end Game Stage) */
+.landing-showcase-console,
 .landing-showcase-container {
+  max-width: 1040px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, rgba(18, 23, 32, 0.96) 0%, rgba(10, 13, 19, 0.98) 100%);
+  border: 1px solid rgba(230, 183, 68, 0.38);
+  border-radius: 1.5rem;
+  box-shadow: 
+    0 30px 70px -15px rgba(0, 0, 0, 0.9),
+    0 0 50px rgba(230, 183, 68, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.75rem;
-  align-items: center;
+  position: relative;
 }
 
 @media (min-width: 960px) {
+  .landing-showcase-console,
   .landing-showcase-container {
-    grid-template-columns: 0.95fr 1.05fr;
-    gap: 3.5rem;
+    grid-template-columns: 340px 1fr;
+    border-radius: 1.75rem;
   }
 }
 
+/* Coluna 1: O Palco do Mr. Crazy (Pedestal & Efeitos Mágicos) */
+.landing-showcase-stage-col,
 .landing-showcase-stage {
+  position: relative;
+  background: radial-gradient(circle at 50% 50%, rgba(230, 183, 68, 0.15) 0%, rgba(15, 23, 42, 0.6) 55%, rgba(10, 13, 19, 0.95) 100%);
+  border-bottom: 1px solid rgba(230, 183, 68, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
+  justify-content: space-between;
+  padding: 1.5rem 1.25rem 1.25rem;
+  min-height: 320px;
 }
 
-.landing-showcase-pedestal {
-  position: relative;
-  width: 100%;
-  max-width: 320px;
-  height: 250px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 1.5rem;
-  background: radial-gradient(circle at 50% 60%, rgba(230, 183, 68, 0.2), rgba(15, 23, 42, 0.75) 65%, transparent 80%);
-  box-shadow: 0 0 45px rgba(230, 183, 68, 0.2);
-  border: 1px solid rgba(230, 183, 68, 0.3);
-  overflow: visible;
-}
-
-@media (min-width: 640px) {
-  .landing-showcase-pedestal {
-    max-width: 380px;
-    height: 360px;
-    border-radius: 2rem;
-  }
-}
-
-.landing-showcase-stage-character {
-  width: 180px;
-  height: 180px;
-  position: relative;
-  z-index: 10;
-}
-
-@media (min-width: 640px) {
-  .landing-showcase-stage-character {
-    width: 240px;
-    height: 240px;
+@media (min-width: 960px) {
+  .landing-showcase-stage-col,
+  .landing-showcase-stage {
+    border-bottom: none;
+    border-right: 1px solid rgba(230, 183, 68, 0.2);
+    padding: 2rem 1.5rem 1.5rem;
+    min-height: 440px;
   }
 }
 
 .landing-showcase-energy-badge {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  z-index: 20;
   display: flex;
   align-items: center;
   gap: 0.4rem;
   background: rgba(15, 23, 42, 0.9);
   border: 1px solid rgba(230, 183, 68, 0.4);
-  padding: 0.25rem 0.6rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 9999px;
-  font-size: 0.7rem;
+  font-size: 0.725rem;
   font-weight: 700;
   color: #fbbf24;
   backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.landing-showcase-player-box {
-  background: rgba(14, 18, 25, 0.92);
-  border: 1px solid rgba(230, 183, 68, 0.38);
-  border-radius: 1.25rem;
-  padding: 1.35rem;
-  box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.85),
-    0 0 35px rgba(230, 183, 68, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+/* Container estrito do personagem (EVITA EXPLOSÃO DE 640px NO DESKTOP) */
+.landing-showcase-stage-character {
+  width: 200px;
+  height: 200px;
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  backdrop-filter: blur(16px);
+  align-items: center;
+  justify-content: center;
+  margin: auto 0;
+  overflow: visible;
 }
 
-@media (min-width: 640px) {
-  .landing-showcase-player-box {
-    border-radius: 1.5rem;
-    padding: 2rem;
-    gap: 1.5rem;
+@media (min-width: 960px) {
+  .landing-showcase-stage-character {
+    width: 260px;
+    height: 260px;
   }
 }
 
+/* Override absoluto das regras globais .character-stage para NUNCA vazar */
+.landing-showcase-stage-character .character-stage,
+.landing-showcase-stage-character .rpg-character-stage {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  aspect-ratio: 1 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+.landing-showcase-stage-character .character-stage::before {
+  inset: 72% 16% 8% !important;
+}
+
+.landing-showcase-stage-character svg.rpg-character {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: block !important;
+}
+
+/* Base mágica / Pedestal no chão sob os pés */
+.landing-showcase-pedestal-base {
+  width: 170px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(230, 183, 68, 0.45) 0%, rgba(230, 183, 68, 0.1) 60%, transparent 80%);
+  border: 1px solid rgba(230, 183, 68, 0.4);
+  box-shadow: 0 0 20px rgba(230, 183, 68, 0.35);
+  margin-top: -12px;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 960px) {
+  .landing-showcase-pedestal-base {
+    width: 210px;
+    height: 22px;
+  }
+}
+
+/* Indicador de energia do tutor */
+.landing-showcase-stage-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.landing-showcase-stage-footer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.landing-showcase-stage-footer-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.landing-showcase-stage-footer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e6b744, #ef4444);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Coluna 2: Console de Voz, Balão em Tempo Real & Equalizador */
+.landing-showcase-player-col,
+.landing-showcase-player-box {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+@media (min-width: 960px) {
+  .landing-showcase-player-col,
+  .landing-showcase-player-box {
+    padding: 2rem 2.25rem;
+    gap: 1.35rem;
+  }
+}
+
+/* Header da coluna direita */
 .landing-showcase-player-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
+}
+
+.landing-showcase-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.landing-showcase-voice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
 }
 
 .landing-showcase-player-title {
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-size: 1.25rem;
+  font-weight: 900;
   color: #ffffff;
-  margin: 0 0 0.2rem;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 960px) {
   .landing-showcase-player-title {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
   }
 }
 
 .landing-showcase-player-sub {
-  font-size: 0.8rem;
+  font-size: 0.825rem;
   color: #9ca3af;
-  margin: 0;
+  margin: 0.25rem 0 0;
 }
 
-.landing-showcase-voice-badge {
+/* Ações compactas no topo (Pausar/Retomar, Reiniciar, Mutar) */
+.landing-showcase-actions {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  color: #38bdf8;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
-  white-space: nowrap;
-}
-
-/* Audio Player Main Controls */
-.landing-player-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-}
-
-@media (min-width: 640px) {
-  .landing-player-controls {
-    gap: 1.25rem;
-  }
-}
-
-.landing-player-play-btn {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border: 2px solid rgba(254, 240, 138, 0.6);
-  color: #070809;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 0.4rem;
   flex-shrink: 0;
 }
 
-@media (min-width: 640px) {
-  .landing-player-play-btn {
-    width: 4rem;
-    height: 4rem;
+.landing-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d1d5db;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.landing-action-btn:hover {
+  background: rgba(230, 183, 68, 0.15);
+  border-color: rgba(230, 183, 68, 0.4);
+  color: #fbbf24;
+}
+
+.landing-action-btn.active {
+  background: rgba(230, 183, 68, 0.2);
+  border-color: rgba(230, 183, 68, 0.6);
+  color: #fbbf24;
+}
+
+/* O Balão de Fala Dinâmico (Destaque Principal) */
+.landing-showcase-active-balloon {
+  background: linear-gradient(180deg, rgba(23, 29, 41, 0.95) 0%, rgba(13, 17, 25, 0.98) 100%);
+  border: 1px solid rgba(230, 183, 68, 0.4);
+  border-radius: 1.15rem;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 
+    0 12px 30px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+@media (min-width: 960px) {
+  .landing-showcase-active-balloon {
+    padding: 1.35rem 1.5rem;
+    gap: 0.75rem;
   }
 }
 
-.landing-player-play-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 35px rgba(245, 158, 11, 0.6);
-}
-
-.landing-player-play-btn:active {
-  transform: scale(0.96);
-}
-
-.landing-player-play-btn.playing {
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  border-color: rgba(254, 202, 202, 0.6);
-  color: #ffffff;
-  box-shadow: 0 0 25px rgba(239, 68, 68, 0.45);
-}
-
-/* Waveform Visualizer */
-.landing-player-waveform {
-  flex: 1;
-  height: 3.25rem;
+.landing-showcase-balloon-tag {
   display: flex;
   align-items: center;
-  gap: 2px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.75rem;
-  padding: 0 0.65rem;
-  overflow: hidden;
+  justify-content: space-between;
+  font-size: 0.725rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fbbf24;
 }
 
-@media (min-width: 640px) {
-  .landing-player-waveform {
-    height: 3.5rem;
-    gap: 3px;
-    padding: 0 0.85rem;
+.landing-showcase-speaking-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse 1.5s infinite;
+}
+
+.landing-showcase-balloon-phrase {
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: #f8fafc;
+  font-weight: 700;
+  margin: 0;
+}
+
+@media (min-width: 960px) {
+  .landing-showcase-balloon-phrase {
+    font-size: 1.2rem;
+    line-height: 1.5;
   }
+}
+
+/* Equalizador e Ondas */
+.landing-player-waveform {
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 0 0.75rem;
+  overflow: hidden;
 }
 
 .landing-wave-bar {
   flex: 1;
-  height: 6px;
-  min-height: 4px;
-  background: rgba(230, 183, 68, 0.4);
+  height: 5px;
+  min-height: 3px;
+  background: rgba(230, 183, 68, 0.3);
   border-radius: 9999px;
-  transition: height 0.08s ease, background 0.2s ease;
+  transition: height 0.07s ease, background 0.15s ease;
 }
 
 .landing-wave-bar.active {
   background: linear-gradient(180deg, #fbbf24, #f59e0b);
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
 }
 
-/* Scrubber / Progress */
+/* Slider de Progresso e Marcação de Tempo */
 .landing-player-progress-row {
   display: flex;
   flex-direction: column;
@@ -1218,35 +1355,92 @@
   font-size: 0.725rem;
   color: #9ca3af;
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
-/* Timed Subtitles (Karaoke) */
-.landing-player-subtitles {
-  background: rgba(0, 0, 0, 0.45);
+/* 4 Chips de Tópicos Interativos (Saltos Rápidos na Fala) */
+.landing-showcase-chips {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .landing-showcase-chips {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.landing-topic-chip {
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.landing-topic-chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(230, 183, 68, 0.3);
+  transform: translateY(-1px);
+}
+
+.landing-topic-chip.active {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+.landing-topic-chip-time {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.landing-topic-chip-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Transcrição Completa recolhível / acessível */
+.landing-player-subtitles {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 0.85rem;
-  padding: 0.85rem 1rem;
-  max-height: 140px;
+  padding: 0.65rem 0.85rem;
+  max-height: 110px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
   scrollbar-width: thin;
+  scrollbar-color: rgba(230, 183, 68, 0.4) transparent;
 }
 
 .landing-subtitle-line {
-  font-size: 0.825rem;
+  font-size: 0.8rem;
   line-height: 1.4;
   color: #6b7280;
   transition: all 0.2s ease;
   cursor: pointer;
   padding: 0.3rem 0.5rem;
-  border-radius: 0.5rem;
+  border-radius: 0.4rem;
 }
 
 .landing-subtitle-line:hover {
   color: #d1d5db;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .landing-subtitle-line.active {
@@ -1254,6 +1448,21 @@
   font-weight: 700;
   background: rgba(245, 158, 11, 0.14);
   border-left: 3px solid #fbbf24;
+}
+
+/* Barra de Reasseguração no Rodapé do Console */
+.landing-showcase-console-footer {
+  grid-column: 1 / -1;
+  background: rgba(0, 0, 0, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: center;
 }
 
 /* ==========================================================================
