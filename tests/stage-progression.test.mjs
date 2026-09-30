@@ -417,6 +417,7 @@ test("mobile practice keeps Mr.Crazy visible above a compact, full-width voice d
   assert.doesNotMatch(voiceHubRule, /position:\s*relative/, "O dock relativo empurra o avatar para fora da viewport");
   assert.match(responsiveCss, /width:\s*clamp\(152px, 27dvh, 246px\) !important/, "O avatar deve adaptar seu tamanho à altura disponível");
   assert.match(responsiveCss, /@media \(max-height: 700px\) and \(max-width: 768px\)/, "Telas baixas devem reduzir primeiro avatar e decoração");
+  assert.match(responsiveCss, /@media \(orientation: landscape\) and \(max-width: 768px\) and \(max-height: 560px\)/, "Paisagem compacta deve usar o mesmo limite do layout mobile");
   assert.match(responsiveCss, /character-stage\.stage-hammock/, "O Mr.Crazy deitado deve subir acima do dock no mobile");
   assert.match(responsiveCss, /speech-bubble-text\.is-collapsed/, "Texto longo deve ter expansão em vez de rolagem interna");
   assert.match(responsiveCss, /min-height:\s*44px !important/, "Ações Digitar e Histórico devem manter área de toque confortável");

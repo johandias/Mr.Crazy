@@ -1008,7 +1008,7 @@
   .practice-main .ambient-flame-core { bottom: 61px; }
 }
 
-@media (orientation: landscape) and (max-width: 900px) and (max-height: 560px) {
+@media (orientation: landscape) and (max-width: 768px) and (max-height: 560px) {
   .practice-main.clean-layout {
     padding-top: 2px !important;
   }
