@@ -4152,6 +4152,24 @@ meter {
   color: #f87171;
 }
 
+.auth-inline-action {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #f59e0b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  justify-self: center;
+  padding: 2px 0;
+  text-decoration: underline;
+}
+
+.auth-inline-action:hover {
+  color: #fbbf24;
+}
+
 .auth-helper-text {
   font-size: 0.8rem;
   color: var(--muted);
@@ -5578,6 +5596,21 @@ meter {
   gap: 6px;
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.password-change-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 14px;
+  background: rgba(8, 13, 22, 0.72);
+}
+
+.password-change-card .mode-card-header strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .reset-cache-btn {

@@ -11,13 +11,14 @@ import {
   CheckCircle2,
   MailCheck,
   RefreshCw,
-  KeyRound
+  KeyRound,
+  HelpCircle
 } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<"login" | "register" | "verify">("login");
+  const [tab, setTab] = useState<"login" | "register" | "verify" | "forgot">("login");
 
   // Form states
   const [email, setEmail] = useState("");
@@ -27,6 +28,7 @@ export function LoginForm() {
   const [gender, setGender] = useState("masculino");
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationEmail, setVerificationEmail] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -39,6 +41,7 @@ export function LoginForm() {
     if (emailParam) {
       setEmail(emailParam);
       setVerificationEmail(emailParam);
+      setForgotEmail(emailParam);
     }
 
     if (searchParams.get("verify") === "1" || searchParams.get("pending") === "1") {
@@ -60,6 +63,8 @@ export function LoginForm() {
       setSuccessMessage("Sessão anterior finalizada. Digite as credenciais da sua outra conta para entrar.");
     } else if (searchParams.get("reset") === "1") {
       setSuccessMessage("Você saiu da sua conta com sucesso.");
+    } else if (searchParams.get("passwordReset") === "1") {
+      setSuccessMessage("Senha redefinida com sucesso. Entre com sua nova senha.");
     }
   }, [searchParams]);
 
@@ -90,7 +95,8 @@ export function LoginForm() {
           setVerificationEmail(targetEmail);
           setTab("verify");
           setSuccessMessage(
-            "Sua conta ainda não foi ativada. Digite o código de 6 dígitos enviado para seu e-mail para validar."
+            result.error ||
+              "Sua conta ainda não foi ativada. Enviamos um novo código e link para seu e-mail. Digite o código para validar."
           );
           return;
         }
@@ -237,6 +243,44 @@ export function LoginForm() {
     }
   }
 
+  async function handleForgotPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const targetEmail = (forgotEmail || email).trim().toLowerCase();
+
+    if (!targetEmail) {
+      setErrorMessage("Informe seu e-mail para recuperar a senha.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+    setResendStatus("");
+
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail })
+      });
+
+      const data = (await response.json()) as Partial<{ error: string; message: string }>;
+
+      if (!response.ok) {
+        throw new Error(data.error || "Não foi possível iniciar a recuperação de senha.");
+      }
+
+      setSuccessMessage(
+        data.message ||
+          "Se este e-mail existir no Mr.Crazy, enviaremos as instruções para recuperar o acesso."
+      );
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Erro ao recuperar senha.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <div className="auth-card-container">
       <div className="auth-tab-selector" role="tablist">
@@ -270,6 +314,12 @@ export function LoginForm() {
           <button className="auth-tab-btn active" type="button">
             <MailCheck size={16} />
             Validar E-mail
+          </button>
+        )}
+        {tab === "forgot" && (
+          <button className="auth-tab-btn active" type="button">
+            <HelpCircle size={16} />
+            Recuperar Senha
           </button>
         )}
       </div>
@@ -325,6 +375,56 @@ export function LoginForm() {
             <LockKeyhole size={18} />
             {isSubmitting ? "Autenticando..." : "Entrar no Mr.Crazy"}
             <ArrowRight size={18} />
+          </button>
+          <button
+            className="auth-inline-action"
+            type="button"
+            onClick={() => {
+              setForgotEmail(email);
+              setTab("forgot");
+              setErrorMessage("");
+              setSuccessMessage("");
+              setResendStatus("");
+            }}
+          >
+            Esqueci minha senha
+          </button>
+        </form>
+      )}
+
+      {tab === "forgot" && (
+        <form className="login-form" onSubmit={handleForgotPassword}>
+          <label>
+            E-mail da sua conta
+            <input
+              autoComplete="email"
+              autoFocus
+              inputMode="email"
+              onChange={(event) => setForgotEmail(event.target.value)}
+              placeholder="seu-email@exemplo.com"
+              required
+              type="email"
+              value={forgotEmail}
+            />
+          </label>
+          <p className="auth-helper-text">
+            Se a conta estiver ativa, enviaremos um link para trocar a senha. Se ainda não estiver confirmada, enviaremos um novo código de ativação.
+          </p>
+          <button className="primary-link" disabled={isSubmitting} type="submit">
+            <HelpCircle size={18} />
+            {isSubmitting ? "Enviando..." : "Enviar instruções por e-mail"}
+            <ArrowRight size={18} />
+          </button>
+          <button
+            className="auth-inline-action"
+            type="button"
+            onClick={() => {
+              setTab("login");
+              setErrorMessage("");
+              setSuccessMessage("");
+            }}
+          >
+            Voltar ao login
           </button>
         </form>
       )}

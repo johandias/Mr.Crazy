@@ -10,6 +10,12 @@ export interface SendVerificationEmailParams {
   verifyUrl: string;
 }
 
+export interface SendPasswordResetEmailParams {
+  email: string;
+  nickname?: string;
+  resetUrl: string;
+}
+
 export interface EmailResult {
   success: boolean;
   messageId?: string;
@@ -69,6 +75,71 @@ function getAppUrl(verifyUrl: string): string {
 
 function formatSpacedCode(code: string): string {
   return code.split("").join(" ");
+}
+
+async function sendTransactionalEmail({
+  email,
+  subject,
+  html,
+  text,
+  simulatedLog
+}: {
+  email: string;
+  subject: string;
+  html: string;
+  text: string;
+  simulatedLog: string;
+}): Promise<EmailResult> {
+  const apiKey = getResendApiKey();
+  const fromEmail = getResendFromEmail();
+
+  if (!apiKey) {
+    console.warn(simulatedLog);
+    return {
+      success: true,
+      simulated: true,
+      messageId: `simulated-${Date.now()}`
+    };
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [email],
+        subject,
+        html,
+        text
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const data = (await response.json()) as { id?: string; message?: string; name?: string };
+
+    if (!response.ok) {
+      console.error("[Resend API Error]:", response.status, data);
+      return {
+        success: false,
+        error: data.message || `Erro do Resend (status ${response.status})`
+      };
+    }
+
+    return {
+      success: true,
+      messageId: data.id
+    };
+  } catch (err) {
+    console.error("[Resend API Exception]:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha na conexão com Resend"
+    };
+  }
 }
 
 export function buildVerificationEmailContent({
@@ -253,6 +324,109 @@ Mr.Crazy • mrcrazy.fun
   return { subject, html, text };
 }
 
+export function buildPasswordResetEmailContent({
+  email,
+  nickname,
+  resetUrl
+}: SendPasswordResetEmailParams): VerificationEmailContent {
+  void email;
+  const displayName = nickname?.trim() || "Aluno";
+  const safeDisplayName = escapeHtml(displayName);
+  const safeResetUrl = escapeHtml(resetUrl);
+  const appUrl = getAppUrl(resetUrl);
+  const heroImageUrl = `${appUrl}/assets/email/mrcrazy-fala-ai-email.png`;
+  const subject = `Redefina sua senha do Mr.Crazy, ${displayName}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <title>${escapeHtml(subject)}</title>
+  <style>
+    @media only screen and (max-width: 480px) {
+      .email-shell { padding: 18px 10px !important; }
+      .email-card { width: 100% !important; border-radius: 18px !important; }
+      .mobile-pad { padding-left: 18px !important; padding-right: 18px !important; }
+      .hero-img { width: 154px !important; height: 154px !important; }
+      .headline { font-size: 24px !important; line-height: 1.16 !important; }
+      .cta-link { display: block !important; width: 100% !important; min-width: 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
+    }
+  </style>
+</head>
+<body bgcolor="#05080d" style="margin:0; padding:0; background-color:#05080d; color:#f8fafc; font-family:Arial, Helvetica, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#05080d" style="width:100%; background-color:#05080d;">
+    <tr>
+      <td align="center" class="email-shell" style="padding:30px 12px;">
+        <table role="presentation" width="620" cellspacing="0" cellpadding="0" border="0" bgcolor="#08101b" class="email-card" style="width:620px; max-width:620px; background-color:#08101b; border:1px solid #172235; border-radius:22px; overflow:hidden; box-shadow:0 22px 48px rgba(0,0,0,0.62);">
+          <tr>
+            <td class="mobile-pad" style="padding:22px 28px 14px 28px; border-bottom:1px solid #162235; background-color:#07101a;">
+              <div style="font-size:22px; line-height:1; font-weight:900; letter-spacing:1.8px; color:#ffffff;">MR.CRAZY</div>
+              <div style="padding-top:6px; font-size:12px; line-height:1.2; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#f6b83f;">Inglês sem frescura</div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" class="mobile-pad" style="padding:24px 42px 12px 42px;">
+              <img src="${heroImageUrl}" width="180" height="180" alt="Mr.Crazy" class="hero-img" style="display:block; width:180px; height:180px; max-width:100%; border:0; image-rendering:pixelated;">
+              <h1 class="headline" style="margin:12px 0 0 0; color:#ffffff; font-size:28px; line-height:1.14; font-weight:900; letter-spacing:0;">Bora recuperar sua senha, ${safeDisplayName}.</h1>
+              <p style="margin:12px 0 0 0; color:#c8d3e1; font-size:16px; line-height:1.55; font-weight:500;">
+                Toque no botão abaixo para criar uma nova senha. O link expira em 1 hora.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" class="mobile-pad" style="padding:8px 34px 18px 34px;">
+              <!--[if mso]>
+              <v:roundrect href="${safeResetUrl}" style="height:54px;v-text-anchor:middle;width:330px;" arcsize="18%" strokecolor="#f59e0b" fillcolor="#f59e0b">
+                <w:anchorlock/>
+                <center style="color:#07101a;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;">🔑 REDEFINIR SENHA</center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-- -->
+              <a href="${safeResetUrl}" target="_blank" class="cta-link" style="display:inline-block; min-width:300px; padding:18px 24px; border-radius:14px; background-color:#f59e0b; color:#07101a; font-size:16px; line-height:1; font-weight:900; letter-spacing:0.6px; text-align:center; text-decoration:none; text-transform:uppercase; box-shadow:0 10px 28px rgba(245,158,11,0.24);">🔑 REDEFINIR SENHA</a>
+              <!--<![endif]-->
+            </td>
+          </tr>
+          <tr>
+            <td class="mobile-pad" style="padding:8px 34px 24px 34px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#091320" style="width:100%; background-color:#091320; border:1px solid #172235; border-radius:14px;">
+                <tr>
+                  <td style="padding:15px 16px;">
+                    <p style="margin:0 0 8px 0; color:#c8d3e1; font-size:13px; line-height:1.45; font-weight:700;">Se o botão não funcionar, copie e cole este endereço no navegador:</p>
+                    <a href="${safeResetUrl}" target="_blank" style="color:#7dd3fc; font-size:12px; line-height:1.45; text-decoration:underline; word-break:break-all; overflow-wrap:anywhere;">${safeResetUrl}</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:14px 0 0 0; color:#8da0b8; font-size:12px; line-height:1.45; text-align:center;">
+                Se você não pediu isso, ignore este email. Sua senha atual continua valendo.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+MR.CRAZY - REDEFINIÇÃO DE SENHA
+
+Fala aí, ${displayName}!
+
+Use o link abaixo para criar uma nova senha. Ele expira em 1 hora:
+${resetUrl}
+
+Se você não pediu isso, ignore este email. Sua senha atual continua valendo.
+  `.trim();
+
+  return { subject, html, text };
+}
+
 /**
  * Envia o e-mail contendo o personagem Mr. Crazy, o código numérico de 6 dígitos
  * e o botão/link de 1 clique para ativação de conta.
@@ -263,58 +437,29 @@ export async function sendVerificationEmail({
   code,
   verifyUrl
 }: SendVerificationEmailParams): Promise<EmailResult> {
-  const apiKey = getResendApiKey();
-  const fromEmail = getResendFromEmail();
   const content = buildVerificationEmailContent({ email, nickname, code, verifyUrl });
 
-  // Se a chave não estiver configurada no ambiente, loga em modo simulado para não travar fluxos locais ou testes
-  if (!apiKey) {
-    console.warn(
-      `[Resend Dev/Simulated] RESEND_API_KEY não definida no ambiente. Código para ${email}: [${code}] | Link: ${verifyUrl}`
-    );
-    return {
-      success: true,
-      simulated: true,
-      messageId: `simulated-${Date.now()}`
-    };
-  }
+  return sendTransactionalEmail({
+    email,
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
+    simulatedLog: `[Resend Dev/Simulated] RESEND_API_KEY não definida no ambiente. Código para ${email}: [${code}] | Link: ${verifyUrl}`
+  });
+}
 
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [email],
-        subject: content.subject,
-        html: content.html,
-        text: content.text
-      }),
-      signal: AbortSignal.timeout(15000)
-    });
+export async function sendPasswordResetEmail({
+  email,
+  nickname,
+  resetUrl
+}: SendPasswordResetEmailParams): Promise<EmailResult> {
+  const content = buildPasswordResetEmailContent({ email, nickname, resetUrl });
 
-    const data = (await response.json()) as { id?: string; message?: string; name?: string };
-
-    if (!response.ok) {
-      console.error("[Resend API Error]:", response.status, data);
-      return {
-        success: false,
-        error: data.message || `Erro do Resend (status ${response.status})`
-      };
-    }
-
-    return {
-      success: true,
-      messageId: data.id
-    };
-  } catch (err) {
-    console.error("[Resend API Exception]:", err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Falha na conexão com Resend"
-    };
-  }
+  return sendTransactionalEmail({
+    email,
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
+    simulatedLog: `[Resend Dev/Simulated] RESEND_API_KEY não definida no ambiente. Reset para ${email}: ${resetUrl}`
+  });
 }

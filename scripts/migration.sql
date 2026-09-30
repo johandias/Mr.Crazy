@@ -35,6 +35,12 @@ ALTER TABLE IF EXISTS public.mrcrazy_users
 ALTER TABLE IF EXISTS public.mrcrazy_users
   ADD COLUMN IF NOT EXISTS streak_days INTEGER DEFAULT 1;
 
+ALTER TABLE IF EXISTS public.mrcrazy_users
+  ADD COLUMN IF NOT EXISTS password_reset_token_hash TEXT;
+
+ALTER TABLE IF EXISTS public.mrcrazy_users
+  ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ;
+
 -- ============================================================
 -- TABELA: mrcrazy_module_progress (já existe, garante colunas)
 -- ============================================================
@@ -114,6 +120,9 @@ GRANT ALL ON public.mrcrazy_practice_sessions TO service_role;
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.mrcrazy_users(email);
 CREATE INDEX IF NOT EXISTS idx_users_status ON public.mrcrazy_users(status);
 CREATE INDEX IF NOT EXISTS idx_users_learning_level ON public.mrcrazy_users(learning_level);
+CREATE INDEX IF NOT EXISTS idx_mrcrazy_users_password_reset_token_hash
+  ON public.mrcrazy_users(password_reset_token_hash)
+  WHERE password_reset_token_hash IS NOT NULL;
 
 -- ============================================================
 -- Confirma grants

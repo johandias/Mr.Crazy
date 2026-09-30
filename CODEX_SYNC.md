@@ -197,3 +197,10 @@ Antes de qualquer push na `main`:
      - Criada migration `supabase/migrations/202609290001_email_verification_codes.sql`.
      - Criada suíte dedicada de 9 testes em `tests/email-verification.test.mjs`.
      - **Todos os 52 testes da suíte completa passando sem falhas (28 + 9 + 6 + 9).**
+
+- **[Codex — 2026-09-30]**: Recuperação de senha, reenvio inteligente de validação e troca de senha dentro do app:
+  1. **Conta não confirmada tenta validar de novo automaticamente**: login com senha correta em conta `pending` agora gera novo código/link e reenvia o e-mail de confirmação, mantendo resposta clara para o aluno.
+  2. **Esqueci minha senha**: adicionada aba no login para solicitar recuperação. Conta ativa recebe link seguro de redefinição; conta pendente recebe novo e-mail de ativação.
+  3. **Redefinição e alteração de senha**: criada tela `/reset-password` com token de uso único e opção “Alterar senha” em Configurações > Conta & Sessão, exigindo senha atual.
+  4. **Segurança e banco**: tokens de reset são armazenados apenas como hash SHA-256, expiram em 1 hora e têm migration dedicada com índice parcial.
+  5. **Testes**: `email-verification`, `stage-progression`, `scoring` e `realtime-session` passaram. `npm run typecheck` não executou porque `tsc` não está disponível neste checkout.

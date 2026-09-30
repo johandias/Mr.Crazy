@@ -17,7 +17,14 @@ ADD COLUMN IF NOT EXISTS age INTEGER,
 ADD COLUMN IF NOT EXISTS learning_goal TEXT,
 ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN IF NOT EXISTS assessment_score INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS assessment_answers JSONB DEFAULT '[]'::jsonb;
+ADD COLUMN IF NOT EXISTS assessment_answers JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS password_reset_token_hash TEXT,
+ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_mrcrazy_users_password_reset_token_hash
+ON public.mrcrazy_users(password_reset_token_hash)
+WHERE password_reset_token_hash IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.mrcrazy_module_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.mrcrazy_users(id) ON DELETE CASCADE,

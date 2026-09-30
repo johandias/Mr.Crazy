@@ -6,9 +6,17 @@ import {
   verifyUserEmailCode,
   regenerateVerificationCode,
   updateUserApprovalStatus,
-  findUserByEmail
+  findUserByEmail,
+  createPasswordResetToken,
+  resetPasswordWithToken,
+  changeUserPassword,
+  verifyPassword
 } from "../src/lib/auth.ts";
-import { buildVerificationEmailContent, sendVerificationEmail } from "../src/lib/email.ts";
+import {
+  buildPasswordResetEmailContent,
+  buildVerificationEmailContent,
+  sendVerificationEmail
+} from "../src/lib/email.ts";
 
 test("registration generates 6-digit verification code and sets status pending", async () => {
   const testEmail = `student-${Date.now()}@test.com`;
@@ -69,6 +77,76 @@ test("verification email hero asset exists and is optimized for transactional em
 
   assert.ok(stat.size > 0, "Hero image asset must exist");
   assert.ok(stat.size < 260 * 1024, "Hero image should stay compact enough for email clients");
+});
+
+test("password reset email is dark, uses a reset URL, and avoids exposing raw tokens outside the link", () => {
+  const resetUrl = "https://www.mrcrazy.fun/reset-password?email=novo.aluno%40example.com&token=secret-token";
+  const content = buildPasswordResetEmailContent({
+    email: "novo.aluno@example.com",
+    nickname: "Novo Aluno",
+    resetUrl
+  });
+
+  assert.match(content.subject, /Redefina sua senha/, "Subject must describe password reset");
+  assert.match(content.html, /REDEFINIR SENHA/, "Reset CTA must be obvious");
+  assert.match(content.html, /reset-password\?email=novo\.aluno%40example\.com&amp;token=secret-token/, "Reset URL must be preserved in HTML");
+  assert.match(content.text, /reset-password\?email=novo\.aluno%40example\.com&token=secret-token/, "Reset URL must be preserved in text fallback");
+  assert.match(content.html, /#05080d/i, "Password reset email must keep the dark Mr.Crazy identity");
+});
+
+test("password reset token flow stores only token hash and consumes the link once", async () => {
+  const testEmail = `student-reset-${Date.now()}@test.com`;
+  const regResult = await registerNewUser(
+    testEmail,
+    "senhaAntiga99",
+    "Aluno Reset",
+    26,
+    "masculino"
+  );
+
+  assert.ok(regResult.verificationCode);
+  const approved = await verifyUserEmailCode(testEmail, regResult.verificationCode);
+  assert.equal(approved.success, true);
+
+  const reset = await createPasswordResetToken(testEmail);
+  assert.equal(reset.success, true);
+  assert.ok(reset.token);
+  assert.ok(reset.user?.password_reset_token_hash);
+  assert.notEqual(reset.user?.password_reset_token_hash, reset.token, "Raw reset token must never be stored");
+
+  const changed = await resetPasswordWithToken(testEmail, reset.token, "senhaNova99");
+  assert.equal(changed.success, true);
+
+  const updatedUser = await findUserByEmail(testEmail);
+  assert.ok(updatedUser?.password_hash);
+  assert.equal(verifyPassword("senhaNova99", updatedUser.password_hash), true);
+
+  const reuse = await resetPasswordWithToken(testEmail, reset.token, "outraSenha99");
+  assert.equal(reuse.success, false, "Reset link must be single-use");
+});
+
+test("authenticated password change requires current password", async () => {
+  const testEmail = `student-change-${Date.now()}@test.com`;
+  const regResult = await registerNewUser(
+    testEmail,
+    "senhaAtual99",
+    "Aluno Troca",
+    31,
+    "outro"
+  );
+
+  assert.ok(regResult.verificationCode);
+  await verifyUserEmailCode(testEmail, regResult.verificationCode);
+
+  const wrong = await changeUserPassword(regResult.user.id, "errada", "senhaNova88", testEmail);
+  assert.equal(wrong.success, false);
+
+  const ok = await changeUserPassword(regResult.user.id, "senhaAtual99", "senhaNova88", testEmail);
+  assert.equal(ok.success, true);
+
+  const updatedUser = await findUserByEmail(testEmail);
+  assert.ok(updatedUser?.password_hash);
+  assert.equal(verifyPassword("senhaNova88", updatedUser.password_hash), true);
 });
 
 test("dual approval path 1: student approves account with 6-digit email code", async () => {
@@ -168,6 +246,8 @@ test("login route code contract: prompts for email verification code instead of 
   const loginCode = fs.readFileSync("src/app/api/auth/login/route.ts", "utf-8");
 
   assert.ok(loginCode.includes("needsVerification: true"), "Must flag needsVerification on pending login");
+  assert.ok(loginCode.includes("regenerateVerificationCode"), "Pending login must refresh the verification code");
+  assert.ok(loginCode.includes("sendVerificationEmail"), "Pending login must resend the confirmation email");
   assert.ok(
     !loginCode.includes("aguardando liberação do administrador"),
     "Must not tell the student to wait for admin on login"
@@ -194,9 +274,29 @@ test("login form component contract: includes 6-digit code UI and resend code ac
   assert.ok(formCode.includes("auth-verify-form") || formCode.includes("tab === \"verify\""), "Must have verify UI");
   assert.ok(formCode.includes("/api/auth/verify"), "Must call verify API");
   assert.ok(formCode.includes("/api/auth/resend-code"), "Must allow resending code");
+  assert.ok(formCode.includes("/api/auth/forgot-password"), "Must allow requesting password recovery");
+  assert.ok(formCode.includes("Esqueci minha senha"), "Must expose forgot password option");
   assert.ok(formCode.includes("maxLength={6}"), "Must have 6-digit input");
   assert.ok(
     !formCode.includes("Esperando Liberação do Administrador"),
     "Must not show admin waiting banner to student"
   );
+});
+
+test("password reset route and settings contracts are wired", () => {
+  const forgotRoute = fs.readFileSync("src/app/api/auth/forgot-password/route.ts", "utf-8");
+  const confirmRoute = fs.readFileSync("src/app/api/auth/reset-password/confirm/route.ts", "utf-8");
+  const changeRoute = fs.readFileSync("src/app/api/auth/change-password/route.ts", "utf-8");
+  const resetPage = fs.readFileSync("src/components/ResetPasswordForm.tsx", "utf-8");
+  const settingsCode = fs.readFileSync("src/components/ProfileSettingsForm.tsx", "utf-8");
+  const migration = fs.readFileSync("supabase/migrations/202609300001_password_reset_tokens.sql", "utf-8");
+
+  assert.ok(forgotRoute.includes("createPasswordResetToken"), "Forgot route must create reset token");
+  assert.ok(forgotRoute.includes("sendPasswordResetEmail"), "Forgot route must send reset email");
+  assert.ok(confirmRoute.includes("resetPasswordWithToken"), "Reset route must consume reset token");
+  assert.ok(changeRoute.includes("changeUserPassword"), "Settings route must change authenticated password");
+  assert.ok(resetPage.includes("/api/auth/reset-password/confirm"), "Reset page must call reset confirmation API");
+  assert.ok(settingsCode.includes("/api/auth/change-password"), "Settings must expose password change inside app");
+  assert.ok(migration.includes("password_reset_token_hash"), "Migration must add token hash column");
+  assert.ok(migration.includes("WHERE password_reset_token_hash IS NOT NULL"), "Migration must use partial index for reset tokens");
 });

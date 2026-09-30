@@ -1,8 +1,9 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { supabaseAdmin, isSupabaseConfigured } from "./supabase.ts";
 
 export const AUTH_COOKIE_NAME = "mr_crazy_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 dias
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 export const ADMIN_EMAIL = "johandias083@gmail.com";
 export const MASTER_ADMIN_PASSWORD = "2020eumando";
@@ -34,6 +35,8 @@ export interface UserProfile {
   password_hash?: string;
   verification_code?: string;
   verification_expires_at?: string;
+  password_reset_token_hash?: string;
+  password_reset_expires_at?: string;
 
   // Enriched
   computedLevel?: string;
@@ -118,6 +121,10 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   } catch {
     return false;
   }
+}
+
+function hashResetToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export function createAuthToken(payload: Omit<SessionTokenPayload, "iat">): string {
@@ -481,6 +488,194 @@ export async function regenerateVerificationCode(
   user.verification_expires_at = expiresAt;
 
   return { success: true, code: newCode, user };
+}
+
+export async function createPasswordResetToken(
+  email: string
+): Promise<{ success: boolean; token?: string; error?: string; user?: UserProfile }> {
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await findUserByEmail(cleanEmail);
+
+  if (!user) {
+    return { success: false, error: "Nenhuma conta encontrada com este e-mail." };
+  }
+
+  if (user.status === "pending") {
+    return {
+      success: false,
+      error: "Esta conta ainda não foi ativada. Valide seu e-mail antes de redefinir a senha.",
+      user
+    };
+  }
+
+  if (user.status === "rejected") {
+    return { success: false, error: "Esta conta foi suspensa ou desativada." };
+  }
+
+  const token = randomBytes(32).toString("base64url");
+  const tokenHash = hashResetToken(token);
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS).toISOString();
+
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabaseAdmin
+        .from("mrcrazy_users")
+        .update({
+          password_reset_token_hash: tokenHash,
+          password_reset_expires_at: expiresAt,
+          updated_at: new Date().toISOString()
+        })
+        .eq("email", cleanEmail);
+
+      if (error) {
+        console.error("[Supabase createPasswordResetToken error]:", error.message, error.details || "");
+        return { success: false, error: "Não foi possível gerar o link de redefinição agora.", user };
+      }
+    } catch (err) {
+      console.error("[Supabase createPasswordResetToken error]:", err);
+      return { success: false, error: "Não foi possível gerar o link de redefinição agora.", user };
+    }
+  }
+
+  const memUser = memoryUsers.get(cleanEmail);
+  if (memUser) {
+    memUser.password_reset_token_hash = tokenHash;
+    memUser.password_reset_expires_at = expiresAt;
+  }
+
+  user.password_reset_token_hash = tokenHash;
+  user.password_reset_expires_at = expiresAt;
+
+  return { success: true, token, user };
+}
+
+export async function resetPasswordWithToken(
+  email: string,
+  token: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string; user?: UserProfile }> {
+  const cleanEmail = email.toLowerCase().trim();
+  const cleanToken = token.trim();
+
+  if (!cleanEmail || !cleanToken) {
+    return { success: false, error: "Link de redefinição incompleto." };
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    return { success: false, error: "A nova senha deve ter pelo menos 6 caracteres." };
+  }
+
+  const user = await findUserByEmail(cleanEmail);
+  if (!user) {
+    return { success: false, error: "Link de redefinição inválido ou expirado." };
+  }
+
+  if (user.status !== "approved") {
+    return { success: false, error: "Valide seu e-mail antes de redefinir a senha." };
+  }
+
+  const memUser = memoryUsers.get(cleanEmail);
+  const expectedHash = user.password_reset_token_hash || memUser?.password_reset_token_hash;
+  const expiresAt = user.password_reset_expires_at || memUser?.password_reset_expires_at;
+
+  if (!expectedHash || expectedHash !== hashResetToken(cleanToken)) {
+    return { success: false, error: "Link de redefinição inválido ou expirado." };
+  }
+
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+    return { success: false, error: "Este link expirou. Solicite um novo em 'Esqueci minha senha'." };
+  }
+
+  const newPasswordHash = hashPassword(newPassword);
+  const updatedAt = new Date().toISOString();
+
+  if (isSupabaseConfigured) {
+    try {
+      await supabaseAdmin
+        .from("mrcrazy_users")
+        .update({
+          password_hash: newPasswordHash,
+          password_reset_token_hash: null,
+          password_reset_expires_at: null,
+          updated_at: updatedAt
+        })
+        .eq("email", cleanEmail);
+    } catch (err) {
+      console.error("[Supabase resetPasswordWithToken error]:", err);
+      return { success: false, error: "Não foi possível atualizar a senha agora." };
+    }
+  }
+
+  if (memUser) {
+    memUser.password_hash = newPasswordHash;
+    memUser.password_reset_token_hash = undefined;
+    memUser.password_reset_expires_at = undefined;
+  }
+
+  user.password_hash = newPasswordHash;
+  user.password_reset_token_hash = undefined;
+  user.password_reset_expires_at = undefined;
+
+  return { success: true, user };
+}
+
+export async function changeUserPassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  email?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!currentPassword) {
+    return { success: false, error: "Informe sua senha atual." };
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    return { success: false, error: "A nova senha deve ter pelo menos 6 caracteres." };
+  }
+
+  const user = (await findUserById(userId)) || (email ? await findUserByEmail(email) : null);
+  if (!user || !user.password_hash) {
+    return { success: false, error: "Conta não encontrada." };
+  }
+
+  if (!verifyPassword(currentPassword, user.password_hash)) {
+    return { success: false, error: "Senha atual incorreta." };
+  }
+
+  const passwordHash = hashPassword(newPassword);
+  const updatedAt = new Date().toISOString();
+
+  if (isSupabaseConfigured && UUID_PATTERN.test(userId)) {
+    try {
+      const { error } = await supabaseAdmin
+        .from("mrcrazy_users")
+        .update({
+          password_hash: passwordHash,
+          password_reset_token_hash: null,
+          password_reset_expires_at: null,
+          updated_at: updatedAt
+        })
+        .eq("id", userId);
+
+      if (error) {
+        console.error("[Supabase changeUserPassword error]:", error.message, error.details || "");
+        return { success: false, error: "Não foi possível alterar a senha agora." };
+      }
+    } catch (err) {
+      console.error("[Supabase changeUserPassword exception]:", err);
+      return { success: false, error: "Não foi possível alterar a senha agora." };
+    }
+  }
+
+  for (const [emailKey, memUser] of memoryUsers.entries()) {
+    if (memUser.id === userId || memUser.email === user.email || emailKey === user.email) {
+      memUser.password_hash = passwordHash;
+      memUser.password_reset_token_hash = undefined;
+      memUser.password_reset_expires_at = undefined;
+    }
+  }
+
+  return { success: true };
 }
 
 export async function listAllUsers(): Promise<UserProfile[]> {

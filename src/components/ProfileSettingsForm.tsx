@@ -22,7 +22,8 @@ import {
   Activity,
   Flame,
   Shield,
-  Layers
+  Layers,
+  KeyRound
 } from "lucide-react";
 import type { UserProfile, UserGender } from "@/lib/auth";
 
@@ -100,6 +101,10 @@ export function ProfileSettingsForm() {
   // Estados de feedback & submissão
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Carrega dados iniciais do backend e localStorage
@@ -318,6 +323,47 @@ export function ProfileSettingsForm() {
       setTimeout(() => window.location.reload(), 1200);
     } catch {
       window.location.reload();
+    }
+  }
+
+  async function handleChangePassword() {
+    setFeedback(null);
+
+    if (newPassword.length < 6) {
+      setFeedback({ type: "error", text: "A nova senha deve ter pelo menos 6 caracteres." });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setFeedback({ type: "error", text: "A confirmação não confere com a nova senha." });
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = (await response.json()) as Partial<{ error: string; message: string }>;
+
+      if (!response.ok) {
+        throw new Error(data.error || "Não foi possível alterar a senha.");
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setFeedback({ type: "success", text: data.message || "Senha alterada com sucesso." });
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        text: err instanceof Error ? err.message : "Erro ao alterar senha."
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
   }
 
@@ -999,6 +1045,64 @@ export function ProfileSettingsForm() {
 
             <div className="account-actions-container">
               <h4 className="actions-header-title">Ações de Sessão e Acesso</h4>
+
+              <div className="password-change-card">
+                <div className="mode-card-header">
+                  <strong>
+                    <KeyRound size={16} /> Alterar senha
+                  </strong>
+                  <span className="mode-badge">Seguro</span>
+                </div>
+                <p className="section-desc">
+                  Troque sua senha sem sair do app. Por segurança, confirme sua senha atual.
+                </p>
+                <div className="auth-form-row">
+                  <label className="auth-half-field">
+                    Senha atual
+                    <input
+                      autoComplete="current-password"
+                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      placeholder="Senha atual"
+                      required
+                      type="password"
+                      value={currentPassword}
+                    />
+                  </label>
+                  <label className="auth-half-field">
+                    Nova senha
+                    <input
+                      autoComplete="new-password"
+                      minLength={6}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      placeholder="Nova senha"
+                      required
+                      type="password"
+                      value={newPassword}
+                    />
+                  </label>
+                </div>
+                <label className="field-block">
+                  <span className="field-title">Confirmar nova senha</span>
+                  <input
+                    autoComplete="new-password"
+                    minLength={6}
+                    onChange={(event) => setConfirmNewPassword(event.target.value)}
+                    placeholder="Repita a nova senha"
+                    required
+                    type="password"
+                    value={confirmNewPassword}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="account-action-btn switch-account-btn"
+                  disabled={isChangingPassword}
+                  onClick={handleChangePassword}
+                >
+                  <KeyRound size={16} />
+                  <span>{isChangingPassword ? "Alterando..." : "Alterar Senha"}</span>
+                </button>
+              </div>
 
               <div className="account-buttons-row">
                 <button

@@ -4,10 +4,22 @@ import {
   createAuthToken,
   getSessionMaxAge,
   findUserByEmail,
+  regenerateVerificationCode,
   verifyPassword,
   ADMIN_EMAIL,
   isMasterAdmin
 } from "@/lib/auth";
+import { sendVerificationEmail } from "@/lib/email";
+
+function getRequestOrigin(request: Request): string {
+  let origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "";
+  if (!origin) {
+    const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+    const proto = request.headers.get("x-forwarded-proto") || "https";
+    origin = host ? `${proto}://${host}` : "https://www.mrcrazy.fun";
+  }
+  return origin.replace(/\/$/, "");
+}
 
 export async function POST(request: Request) {
   try {
@@ -77,11 +89,32 @@ export async function POST(request: Request) {
 
     // 4. Checagem de ativação da conta
     if (user.status === "pending") {
+      let verificationEmailSent = false;
+      try {
+        const resend = await regenerateVerificationCode(user.email);
+        if (resend.success && resend.code && resend.user) {
+          const origin = getRequestOrigin(request);
+          const verifyUrl = `${origin}/verify?email=${encodeURIComponent(user.email)}&code=${encodeURIComponent(resend.code)}`;
+          const emailResult = await sendVerificationEmail({
+            email: user.email,
+            nickname: resend.user.nickname,
+            code: resend.code,
+            verifyUrl
+          });
+          verificationEmailSent = emailResult.success;
+        }
+      } catch (err) {
+        console.error("[POST /api/auth/login pending resend error]:", err);
+      }
+
       return NextResponse.json(
         {
-          error: "Sua conta ainda não foi ativada. Digite o código de 6 dígitos enviado para seu e-mail para validar seu acesso.",
+          error: verificationEmailSent
+            ? "Sua conta ainda não foi ativada. Enviamos um novo código de 6 dígitos e link para seu e-mail."
+            : "Sua conta ainda não foi ativada. Digite o código de 6 dígitos enviado para seu e-mail para validar seu acesso.",
           status: "pending",
           needsVerification: true,
+          verificationEmailSent,
           email: user.email
         },
         { status: 403 }
