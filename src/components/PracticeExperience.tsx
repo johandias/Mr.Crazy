@@ -722,6 +722,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [isStudyCardVisible, setIsStudyCardVisible] = useState(false);
   const [speechBubbleHasOverflow, setSpeechBubbleHasOverflow] = useState(false);
   const [speechBubbleIsScrolled, setSpeechBubbleIsScrolled] = useState(false);
+  const [isSpeechBubbleExpanded, setIsSpeechBubbleExpanded] = useState(false);
   const speechBubbleScrollRef = useRef<HTMLDivElement>(null);
   const currentConceptIndexRef = useRef(0);
   const currentLessonStepIndexRef = useRef(0);
@@ -1136,6 +1137,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       observer?.disconnect();
     };
   }, [latestCrazySpeech, shouldShowStudyGuide, teachingTarget]);
+
+  useEffect(() => {
+    setIsSpeechBubbleExpanded(false);
+  }, [latestCrazySpeech]);
 
   const latestUserSpeech = useMemo(() => {
     if (transcript.trim()) return transcript.trim();
@@ -2400,7 +2405,19 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   </button>
                 </div>
 
-                <p className="speech-bubble-text">{latestCrazySpeech}</p>
+                <p className={`speech-bubble-text ${isSpeechBubbleExpanded ? "is-expanded" : "is-collapsed"}`}>
+                  {latestCrazySpeech}
+                </p>
+                {latestCrazySpeech.length > 180 && (
+                  <button
+                    type="button"
+                    className="speech-bubble-expand-btn"
+                    onClick={() => setIsSpeechBubbleExpanded((expanded) => !expanded)}
+                    aria-expanded={isSpeechBubbleExpanded}
+                  >
+                    {isSpeechBubbleExpanded ? "Ver menos" : "Ver mais"}
+                  </button>
+                )}
 
                 {/* Guia Didático Integrado de Pronúncia da Fase Ativa */}
                 {shouldShowStudyGuide && teachingTarget && (

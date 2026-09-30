@@ -392,7 +392,7 @@ export function VoiceInputControl({
           {speaking ? "Mr. Crazy falando... aguarde" :
            active && !isAwake ? "Microfone aberto • Pode falar!" :
            active ? "Microfone aberto • Pode falar!" :
-           "Toque no microfone para falar"}
+           "Toque para falar"}
         </span>
       </div>
 
