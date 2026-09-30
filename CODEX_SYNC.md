@@ -6,13 +6,15 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
-- **Último Commit Estável**: `0188cec`
+- **Último Commit Estável**: `c9ab3d8`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 52 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/email-verification.test.mjs`)
+- **Suíte de Testes**: 72 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`)
 
 ---
 
 ## 📌 Últimas Entregas Realizadas (Contexto Compartilhado)
+ - **[Codex — 2026-09-30, em andamento]**: Refinamento responsivo do palco `/practice`: hierarquia compacta do topo/progresso, balão sem rolagem interna, avatar e cenário adaptados a altura curta, dock de voz sem instruções redundantes e verificação em múltiplas viewports. Arquivos de foco: `PracticeExperience.tsx`, `VoiceInputControl.tsx`, `responsive.css` e testes de regressão.
+
  - **[Codex — 2026-09-30]**: Cenário dinâmico leve entregue na prática: salão mágico em CSS com tochas de múltiplas camadas, luz reativa sutil, arcos e quatro partículas escassas. Interface e microfone ficam acima da cena; `prefers-reduced-motion` interrompe movimento e remove partículas.
 
  - **[Codex — 2026-09-29]**: Conexão de voz agora faz handshake discretamente: o microfone segue tocável e vermelho/mutado, sem spinner ou texto de carregamento, e ativa assim que a sessão estiver pronta. Erros redundantes recebidos após conexão viram diagnóstico técnico, não alerta ao aluno. O palco mobile recebeu personagem maior e mais baixo, balão maior e boas-vindas visuais rotativas sem fala automática.
@@ -179,8 +181,8 @@ Antes de qualquer push na `main`:
 
 - **[Antigravity — 2026-09-29]**: Verificação de Conta por E-mail via Resend e Aprovação Dupla:
   1. **Envio de Código e Link Transacional via Resend (`src/lib/email.ts`)**:
-     - Integração com a API REST do Resend (`https://api.resend.com/emails`) usando `RESEND_API_KEY` e `RESEND_FROM_EMAIL` (com fallback seguro e modo simulado para desenvolvimento local/testes).
-     - Template de e-mail de alta conversão com design escuro/ouro do Mr. Crazy, código de 6 dígitos em destaque e botão de ativação em 1 clique (`/verify?email=...&code=...`).
+     - Integração com a API REST do Resend (`https://api.resend.com/emails`) usando `RESEND_API_KEY` e `RESEND_FROM_EMAIL`.
+     - Template de e-mail no padrão estético completo do Mr. Crazy: imagem pixel-art do Mr. Crazy com cajado e livro, balão de fala cômico da persona, caixa do código de 6 dígitos com glow dourado, botão de 1 clique (`/verify?email=...&code=...`) e cards didáticos.
   2. **Mecanismo de Aprovação Dupla Preservado (`src/lib/auth.ts`)**:
      - O usuário pode ser ativado inserindo o código de 6 dígitos recebido por e-mail ou clicando no link direto.
      - O administrador continua podendo aprovar ou rejeitar qualquer conta pendente diretamente no painel `/admin` (ambas as vias ativam o status para `"approved"`).
