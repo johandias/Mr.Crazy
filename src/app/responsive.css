@@ -259,7 +259,7 @@
     width: min(96vw, 440px);
     margin-bottom: 2px;
     flex-shrink: 0;
-    max-height: clamp(100px, 18dvh, 138px) !important;
+    max-height: clamp(116px, 21dvh, 164px) !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -274,11 +274,11 @@
     mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 18px), transparent 100%);
   }
   .practice-main .character-speech-bubble {
-    padding: 8px 12px 16px !important;
+    padding: 11px 14px 18px !important;
   }
   .practice-main .speech-bubble-text {
-    font-size: 0.82rem !important;
-    line-height: 1.35 !important;
+    font-size: 0.88rem !important;
+    line-height: 1.42 !important;
     overflow-wrap: anywhere;
   }
   .practice-main .speech-bubble-didactic-footer {
@@ -321,20 +321,20 @@
   /* ——— CHARACTER AVATAR: tamanho proporcional e bonito no centro da tela ——— */
   .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
     flex: 1 1 auto;
-    min-height: clamp(132px, 20dvh, 164px) !important;
-    max-height: clamp(156px, 24dvh, 188px) !important;
+    min-height: clamp(154px, 24dvh, 190px) !important;
+    max-height: clamp(178px, 29dvh, 228px) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     width: 100%;
-    margin: -8px auto 0 !important;
+    margin: 2px auto 0 !important;
     overflow: visible !important;
     position: relative;
     z-index: 4 !important;
   }
   .practice-main .clean-stage.history-is-closed .character-stage {
-    width: clamp(148px, 24dvh, 184px) !important;
-    height: clamp(148px, 24dvh, 184px) !important;
+    width: clamp(168px, 28dvh, 220px) !important;
+    height: clamp(168px, 28dvh, 220px) !important;
     max-height: none !important;
     max-width: 62vw !important;
     margin: 0 auto !important;
@@ -342,7 +342,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transform: translateY(clamp(-14px, -2dvh, -6px));
+    transform: translateY(clamp(4px, 1dvh, 12px));
   }
   .practice-main .clean-stage.history-is-closed .rpg-character {
     width: 100% !important;
@@ -413,10 +413,10 @@
       display: none !important;
     }
     .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
-      max-height: clamp(92px, 17dvh, 126px) !important;
+      max-height: clamp(106px, 19dvh, 144px) !important;
     }
     .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
-      min-height: clamp(120px, 18dvh, 150px) !important;
+      min-height: clamp(138px, 21dvh, 170px) !important;
       margin-bottom: 0 !important;
     }
   }

@@ -13,6 +13,8 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ---
 
 ## 📌 Últimas Entregas Realizadas (Contexto Compartilhado)
+ - **[Codex — 2026-09-29]**: Conexão de voz agora faz handshake discretamente: o microfone segue tocável e vermelho/mutado, sem spinner ou texto de carregamento, e ativa assim que a sessão estiver pronta. Erros redundantes recebidos após conexão viram diagnóstico técnico, não alerta ao aluno. O palco mobile recebeu personagem maior e mais baixo, balão maior e boas-vindas visuais rotativas sem fala automática.
+
 1. **Microfone Inicia no Estado Vermelho / Mutado**:
    - `initialMicrophoneEnabled: false` configurado em `src/components/PracticeExperience.tsx`.
    - Botão central do microfone exibe ícone `MicOff` com borda e glow vermelho alerta.

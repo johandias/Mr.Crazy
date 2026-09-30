@@ -2,7 +2,7 @@
 
 import type { RefObject, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, Mic, MicOff, Radio } from "lucide-react";
+import { Mic, MicOff, Radio } from "lucide-react";
 import type { RealtimeConnectionStatus, VoiceDiagnostic } from "@/lib/realtime-client";
 
 export type LiveAudioVisualizer = {
@@ -167,7 +167,14 @@ export function VoiceInputControl({
   const active = (isPtt ? isHolding : enabled) && isConnected;
 
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
-    if (!isPtt || connecting || !isConnected) return;
+    if (!isPtt) return;
+    // A sessão começa em segundo plano. No modo de segurar, o primeiro toque
+    // não vira uma gravação incompleta: deixa o botão pronto para a próxima
+    // segurada assim que o WebRTC terminar o handshake.
+    if (connecting || !isConnected) {
+      onToggle();
+      return;
+    }
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     startXRef.current = e.clientX;
     setIsHolding(true);
@@ -248,10 +255,8 @@ export function VoiceInputControl({
           <button
             type="button"
             className={`ptt-dock-hold-btn ${
-              connecting ? "is-connecting" :
               isHolding ? (isCancelling ? "is-cancelling" : "is-recording") : "is-idle"
             }`}
-            disabled={connecting}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -259,16 +264,13 @@ export function VoiceInputControl({
             onContextMenu={e => e.preventDefault()}
             aria-label={isHolding ? "Gravando — solte para enviar" : "Hold to Talk"}
           >
-            {connecting ? (
-              <LoaderCircle size={20} className="connection-spinner" />
-            ) : isHolding ? (
+            {isHolding ? (
               <Radio size={20} />
             ) : (
               <Mic size={20} />
             )}
             <span className="ptt-dock-label">
-              {connecting ? "Conectando..." :
-               isHolding ? (isCancelling ? "Cancelar" : "Gravando...") :
+              {isHolding ? (isCancelling ? "Cancelar" : "Gravando...") :
                "Hold to Talk"}
             </span>
           </button>
@@ -340,7 +342,7 @@ export function VoiceInputControl({
         <div
           className={`avatar-mic-halo-wrapper ${active ? "is-active" : "is-inactive"} ${
             speaking ? "is-speaking" : ""
-          } ${connecting ? "is-connecting" : ""}`}
+          }`}
         >
           {active && (
             <>
@@ -352,18 +354,14 @@ export function VoiceInputControl({
           <button
             type="button"
             className={`avatar-mic-circle-btn ${active ? "is-active" : "is-inactive"} ${
-              connecting ? "is-connecting" : ""
-            } ${speaking ? "is-speaking" : ""}`}
-            disabled={connecting}
-            aria-busy={connecting}
+              speaking ? "is-speaking" : ""
+            }`}
             aria-pressed={active}
             onContextMenu={e => e.preventDefault()}
-            onClick={() => { if (!connecting) onToggle(); }}
-            aria-label={connecting ? "Conectando" : active ? "Mutar microfone" : "Ativar microfone"}
+            onClick={onToggle}
+            aria-label={active ? "Mutar microfone" : "Ativar microfone"}
           >
-            {connecting ? (
-              <LoaderCircle size={22} className="connection-spinner" />
-            ) : active ? (
+            {active ? (
               <Mic size={22} className="mic-icon-active" />
             ) : (
               <MicOff size={22} className="mic-icon-inactive" />
@@ -385,14 +383,13 @@ export function VoiceInputControl({
 
       {/* Instrução em destaque alto contraste para o usuário não ficar confuso */}
       <div
-        className={`voice-action-badge ${active ? "is-active" : ""} ${speaking ? "is-speaking" : ""} ${connecting ? "is-connecting" : ""}`}
+        className={`voice-action-badge ${active ? "is-active" : ""} ${speaking ? "is-speaking" : ""}`}
         role="status"
-        onClick={() => { if (!connecting && !active) onToggle(); }}
+        onClick={() => { if (!active) onToggle(); }}
       >
         <span className="voice-action-indicator-dot" />
         <span className="voice-action-text">
-          {connecting ? "Conectando à IA..." :
-           speaking ? "Mr. Crazy falando... aguarde" :
+          {speaking ? "Mr. Crazy falando... aguarde" :
            active && !isAwake ? "Microfone aberto • Pode falar!" :
            active ? "Microfone aberto • Pode falar!" :
            "Toque no microfone para falar"}

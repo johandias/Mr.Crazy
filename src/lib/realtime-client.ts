@@ -461,8 +461,20 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           if (event.error?.code === "response_cancel_not_active" || event.error?.code === "input_audio_buffer_commit_empty") break;
           if (event.error?.code === "response_cancel_not_active" || event.error?.code === "input_audio_buffer_commit_empty" || event.error?.code === "output_audio_buffer_clear_not_active") break;
           if (event.error?.code === "conversation_already_has_active_response") { responseActive = true; watchResponse(); break; }
-          report(new VoiceError("provider_event_error", "A API de voz recusou uma operação. Consulte o código no diagnóstico.", { providerCode: event.error?.code }), !connected);
-          if (connected) { responseActive = false; if (!playbackActive) clear("response"); syncCapture(); }
+          if (connected) {
+            // O canal pode rejeitar uma operação redundante depois do handshake
+            // (por exemplo, um clear/cancel já concluído). Preserve a evidência
+            // técnica sem transformar uma sessão funcional em erro para o aluno.
+            log("provider_event_non_fatal", "Operação redundante recusada após a conexão.", {
+              stage: "response",
+              providerCode: event.error?.code
+            });
+            responseActive = false;
+            if (!playbackActive) clear("response");
+            syncCapture();
+            break;
+          }
+          report(new VoiceError("provider_event_error", "A API de voz recusou uma operação. Consulte o código no diagnóstico.", { providerCode: event.error?.code }), true);
           break;
       }
     }) as EventListener);

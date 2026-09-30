@@ -174,6 +174,19 @@ const openingGreetings = [
   "Opa, bora praticar um pouco?"
 ];
 
+function buildSilentWelcomeLine(openingIndex: number, nickname?: string) {
+  const cleanNickname = nickname?.replace(/\s*\(admin\)/i, "").trim();
+  const namePart = cleanNickname ? `, ${cleanNickname}` : "";
+  const messages = [
+    `Opa${namePart}! Aperte no microfone e vamos treinar.`,
+    `Bora${namePart}? Toque no microfone e solte a voz.`,
+    `Cheguei${namePart}! Aperte o microfone para começar.`,
+    `Hoje é dia de inglês${namePart}. Toque no microfone e manda bala!`
+  ];
+
+  return messages[openingIndex % messages.length] ?? messages[0];
+}
+
 function getNextOpeningIndex() {
   if (typeof window === "undefined") {
     return 0;
@@ -322,10 +335,6 @@ function getCrazyBubbleText(
   realtimeReply: string,
   realtimeStatus: RealtimeConnectionStatus
 ) {
-  if (realtimeStatus === "connecting") {
-    return "Preparando a conversa ao vivo...";
-  }
-
   if (realtimeReply.trim()) {
     return realtimeReply;
   }
@@ -1091,8 +1100,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [conversationDisplayItems, liveUserItem, liveCrazyItem]);
 
   const latestCrazySpeech = useMemo(() => {
-    if (!isCharacterAwake && contextHistory.length === 0) {
-      return "Bora treinar? Toque no microfone e diga a frase abaixo.";
+    const initialBubbleText = buildSilentWelcomeLine(openingIndex, studentProfile?.nickname);
+    const hasAssistantReply = allConversationItems.some(
+      (item) => item.role === "crazy" && item.text.trim() && item.text.trim() !== openingLine.trim()
+    );
+    if (!hasAssistantReply && !realtimeReply.trim()) {
+      return initialBubbleText;
     }
     for (let i = allConversationItems.length - 1; i >= 0; i--) {
       const item = allConversationItems[i];
@@ -1100,8 +1113,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         return item.text.trim();
       }
     }
-    return openingLine || "Fala aí! Eu sou o Mr. Crazy! Pode falar no microfone para treinar inglês comigo!";
-  }, [allConversationItems, openingLine, isCharacterAwake, contextHistory.length]);
+    return openingLine || initialBubbleText;
+  }, [allConversationItems, openingIndex, openingLine, realtimeReply, studentProfile?.nickname]);
 
   const shouldShowStudyGuide = Boolean(
     teachingTarget && (isStudyCardVisible || (!isCharacterAwake && selectedMode === "module-practice"))
@@ -1571,6 +1584,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       onStatus: (status) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
           setRealtimeStatus(status);
+          if (status === "connected") setErrorMessage("");
           if (status === "failed") {
             realtimeRef.current = null;
             setMicrophoneEnabled(false);
@@ -1685,9 +1699,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       },
       onError: (err) => {
         if (connectAbortRef.current === abortController && !abortController.signal.aborted) {
+          const lower = String(err).toLowerCase();
+          if (realtimeRef.current && lower.includes("api de voz recusou uma operação")) {
+            console.warn("[Practice] Aviso não fatal do provedor após conexão:", err);
+            return;
+          }
           setErrorMessage(err);
           if (realtimeRef.current) return;
-          const lower = String(err).toLowerCase();
           if (
             lower.includes("active response") ||
             lower.includes("already active") ||
@@ -1711,6 +1729,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       }
       realtimeRef.current = controller;
       setRealtimeStatus("connected");
+      setErrorMessage("");
       const shouldEnable = pendingMicEnableRef.current && !isAutoConnect;
       pendingMicEnableRef.current = false;
       controller.setMicrophoneEnabled(shouldEnable);
