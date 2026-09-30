@@ -49,13 +49,33 @@
   }
 
   .app-shell .mobile-nav {
-    padding-top: 5px;
-    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-top: 2px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(7, 8, 9, 0.96);
+    box-shadow: 0 -2px 14px rgba(0, 0, 0, 0.45);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
 
-  .app-shell .mobile-nav :is(a, .mobile-nav-item) { min-height: 44px; }
+  .app-shell .mobile-nav :is(a, .mobile-nav-item) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 3px 2px 2px;
+    border-radius: 8px;
+  }
   .app-shell :is(.practice-main, .secondary-main) {
     padding-bottom: calc(var(--bottom-nav-space) + 12px) !important;
     min-width: 0;
@@ -85,8 +105,8 @@
     box-sizing: border-box;
   }
   .app-shell .practice-main.clean-layout {
-    height: calc(100dvh - var(--app-safe-top) - 48px - var(--bottom-nav-space)) !important;
-    max-height: calc(100dvh - var(--app-safe-top) - 48px - var(--bottom-nav-space)) !important;
+    height: calc(100dvh - var(--bottom-nav-space)) !important;
+    max-height: calc(100dvh - var(--bottom-nav-space)) !important;
     margin-bottom: var(--bottom-nav-space) !important;
     padding-top: 4px !important;
     padding-bottom: 4px !important;
@@ -1017,34 +1037,23 @@
     padding-block: 2px !important;
   }
 
+  .practice-main .active-module-pill-btn,
+  .practice-main .hamburger-btn {
+    min-height: 34px !important;
+    height: 34px !important;
+  }
+
   .practice-main .clean-stage.history-is-closed .character-column {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) clamp(112px, 20vw, 156px);
-    align-items: center;
-    gap: 8px !important;
-    padding-bottom: 132px !important;
+    display: block !important;
+    padding-bottom: 112px !important;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
-    grid-column: 1;
-    grid-row: 1;
+    max-height: 112px !important;
   }
 
   .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: stretch !important;
-  }
-
-  .practice-main .clean-stage.history-is-closed .character-stage {
-    width: min(100%, 128px) !important;
-    height: min(100%, 128px) !important;
-  }
-
-  .practice-main .user-live-transcript-badge {
-    grid-column: 1;
-    grid-row: 1;
-    align-self: end;
+    display: none !important;
   }
 
   .practice-main .speech-study-guide {
@@ -1061,7 +1070,7 @@
   }
 
   .practice-main .practice-voice-hub {
-    --mobile-voice-hub-space: 132px;
+    --mobile-voice-hub-space: 112px;
     padding-block: 3px 5px !important;
   }
 
