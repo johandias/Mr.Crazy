@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { 
   Sparkles, 
   ArrowRight, 
@@ -11,9 +10,6 @@ import {
   XCircle, 
   Flame, 
   Zap, 
-  ShieldCheck, 
-  Award, 
-  MessageSquare, 
   Trophy, 
   Compass, 
   Clock, 
@@ -56,10 +52,10 @@ export function LandingPage({ user }: LandingPageProps) {
               <div className="landing-brand-avatar">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src="/assets/character/mr_crazy_avatar_transparent.png" 
-                  alt="Mr.Crazy Avatar"
-                  width={40}
-                  height={40}
+                  src="/assets/email/mrcrazy-fala-ai-email.png" 
+                  alt="Mr.Crazy Logo"
+                  width={42}
+                  height={42}
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
@@ -71,8 +67,8 @@ export function LandingPage({ user }: LandingPageProps) {
             </Link>
 
             <nav className="landing-nav-links" aria-label="Navegação da landing page">
-              <a href="#como-funciona" className="landing-nav-link">Como Funciona</a>
               <a href="#o-mr-crazy" className="landing-nav-link">O Mr. Crazy</a>
+              <a href="#como-funciona" className="landing-nav-link">Como Funciona</a>
               <a href="#diferenciais" className="landing-nav-link">Diferenciais</a>
               <a href="#demonstracao" className="landing-nav-link">Por Dentro</a>
               <a href="#faq" className="landing-nav-link">Dúvidas</a>
@@ -101,7 +97,25 @@ export function LandingPage({ user }: LandingPageProps) {
       </header>
 
       {/* ================================================================= */}
-      {/* 2. HERO / PRIMEIRA DOBRA                                          */}
+      {/* 2. TOP LOGO BANNER DO MR. CRAZY (MEMORÁVEL NO TOPO)                */}
+      {/* ================================================================= */}
+      <div className="landing-top-logo-banner">
+        <div className="landing-logo-emblem">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/assets/email/mrcrazy-fala-ai-email.png" 
+            alt="Logo Oficial Mr. Crazy"
+            className="landing-top-logo-img"
+          />
+        </div>
+        <div className="landing-top-logo-text">
+          <div className="landing-top-logo-brand">MR.CRAZY</div>
+          <span className="landing-top-logo-slogan">INGLÊS SEM FRESCURA</span>
+        </div>
+      </div>
+
+      {/* ================================================================= */}
+      {/* 3. HERO / PRIMEIRA DOBRA (DIRETO AO PONTO)                        */}
       {/* ================================================================= */}
       <section className="landing-hero">
         <div className="landing-container">
@@ -109,7 +123,7 @@ export function LandingPage({ user }: LandingPageProps) {
             <div>
               <div className="landing-hero-badge">
                 <span className="landing-hero-badge-pulse" />
-                <span>Conversação Gamificada com IA Realtime • Sem Enrolação</span>
+                <span>Conversação Real com IA • Sem enrolação</span>
               </div>
 
               <h1 className="landing-hero-title">
@@ -118,9 +132,9 @@ export function LandingPage({ user }: LandingPageProps) {
               </h1>
 
               <p className="landing-hero-desc">
-                Pratique sua fala com o <strong>Mr. Crazy</strong> — o tutor impaciente, 
-                divertido e exigente que te ouve, corrige seus vícios de pronúncia na hora e te 
-                coloca para falar desde o primeiro minuto.
+                Converse com o <strong>Mr. Crazy</strong> — o tutor impaciente, divertido e 
+                exigente que te ouve pelo microfone, corrige sua pronúncia na hora e destrava sua 
+                fala desde a primeira aula.
               </p>
 
               <div className="landing-hero-actions">
@@ -135,22 +149,36 @@ export function LandingPage({ user }: LandingPageProps) {
                 </a>
               </div>
 
-              <div className="landing-hero-proof">
-                <div className="landing-hero-proof-avatars" aria-hidden="true">
-                  <div className="landing-hero-proof-avatar">BR</div>
-                  <div className="landing-hero-proof-avatar">US</div>
-                  <div className="landing-hero-proof-avatar">SP</div>
-                  <div className="landing-hero-proof-avatar">RJ</div>
+              {/* Pílulas Visuais Desenhadas (Mobile-first) */}
+              <div className="landing-mobile-feature-pills">
+                <div className="landing-feature-pill">
+                  <div className="landing-feature-pill-icon" style={{ background: "rgba(230, 183, 68, 0.15)", color: "#fbbf24" }}>
+                    <Mic size={15} />
+                  </div>
+                  <span className="landing-feature-pill-title">Fala Ativa</span>
+                  <span className="landing-feature-pill-sub">Você fala 80%</span>
                 </div>
-                <div className="landing-hero-proof-text">
-                  <strong>+100% focado em fala ativa.</strong><br />
-                  Destrave sua musculatura oral no seu próprio ritmo.
+
+                <div className="landing-feature-pill">
+                  <div className="landing-feature-pill-icon" style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8" }}>
+                    <Zap size={15} />
+                  </div>
+                  <span className="landing-feature-pill-title">Ajuste de Boca</span>
+                  <span className="landing-feature-pill-sub">Dica na hora</span>
+                </div>
+
+                <div className="landing-feature-pill">
+                  <div className="landing-feature-pill-icon" style={{ background: "rgba(34, 197, 94, 0.15)", color: "#22c55e" }}>
+                    <Trophy size={15} />
+                  </div>
+                  <span className="landing-feature-pill-title">O Chefão</span>
+                  <span className="landing-feature-pill-sub">Prova oral</span>
                 </div>
               </div>
             </div>
 
-            {/* Mockup Card do App Real */}
-            <div className="landing-hero-mockup">
+            {/* Mockup Card no Desktop */}
+            <div className="landing-hero-mockup desktop-only">
               <div className="landing-mockup-header">
                 <div className="landing-mockup-stage-pill">
                   <Flame size={14} className="text-amber-400" />
@@ -163,7 +191,6 @@ export function LandingPage({ user }: LandingPageProps) {
               </div>
 
               <div className="landing-mockup-stage-preview">
-                {/* Speech Bubble */}
                 <div className="landing-mockup-bubble">
                   <div className="landing-mockup-bubble-author">
                     <Sparkles size={13} />
@@ -178,18 +205,16 @@ export function LandingPage({ user }: LandingPageProps) {
                   </div>
                 </div>
 
-                {/* Character preview */}
                 <div className="landing-mockup-avatar-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/assets/character/mr_crazy_full_transparent.png"
                     alt="Mr. Crazy"
-                    style={{ width: "100%", height: "100%", objectFit: "contain", imageRendering: "pixelated" }}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
                   />
                 </div>
               </div>
 
-              {/* Voice dock */}
               <div className="landing-mockup-dock">
                 <div className="landing-mockup-mic-btn">
                   <Mic size={22} />
@@ -208,96 +233,48 @@ export function LandingPage({ user }: LandingPageProps) {
       </section>
 
       {/* ================================================================= */}
-      {/* 3. BENEFÍCIO CENTRAL / AS 4 DORES DO BRASILEIRO                   */}
+      {/* 4. SEÇÃO ESTRELA DO MR. CRAZY (ÁUDIO E AVATAR REALISTA)           */}
       {/* ================================================================= */}
-      <section className="landing-section" id="beneficio" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}>
+      <section className="landing-showcase-section" id="o-mr-crazy">
         <div className="landing-container">
           <div className="landing-section-header">
-            <span className="landing-section-eyebrow">A Verdade Sobre o Aprendizado</span>
+            <span className="landing-section-eyebrow">
+              <Flame size={15} className="text-amber-400" />
+              <span>Conheça Seu Novo Professor</span>
+            </span>
             <h2 className="landing-section-title">
-              Você não precisa de mais 5 anos de gramática. <br />
-              <span className="landing-title-highlight">Você precisa falar.</span>
+              O Recado do Mr. Crazy
             </h2>
             <p className="landing-section-desc">
-              Mais de 90% dos brasileiros entendem textos em inglês, mas travam na hora de 
-              abrir a boca. O Mr. Crazy foi desenhado exatamente para atacar essa barreira.
+              Ele não tem paciência com moleza. Aperte o play e ouça a explicação direta dele:
             </p>
           </div>
 
-          <div className="landing-pain-grid">
-            <div className="landing-pain-card">
-              <div className="landing-pain-icon">
-                <BrainCircuit size={22} />
-              </div>
-              <h3 className="landing-pain-title">O Bloqueio do Silêncio</h3>
-              <p className="landing-pain-problem">
-                Você sabe as palavras na cabeça, mas na hora de falar a voz emudece e você 
-                fica caçando regras de gramática.
-              </p>
-              <div className="landing-pain-solution">
-                <CheckCircle2 size={16} />
-                <span>Aqui você fala em voz alta desde a fase 1.</span>
-              </div>
-            </div>
+          {/* Player com Web Audio API, Ondas e Avatar Reativo */}
+          <MrCrazyAudioShowcase />
 
-            <div className="landing-pain-card">
-              <div className="landing-pain-icon">
-                <Clock size={22} />
-              </div>
-              <h3 className="landing-pain-title">Anos de Cursinho Chato</h3>
-              <p className="landing-pain-problem">
-                Aulas de 1 hora com turmas de 15 pessoas onde você só fala durante 2 minutos. 
-                Pura teoria passiva e enrolação.
-              </p>
-              <div className="landing-pain-solution">
-                <CheckCircle2 size={16} />
-                <span>Atenção 100% individual e treino focado.</span>
-              </div>
-            </div>
-
-            <div className="landing-pain-card">
-              <div className="landing-pain-icon">
-                <HeartHandshake size={22} />
-              </div>
-              <h3 className="landing-pain-title">Medo de Passar Vergonha</h3>
-              <p className="landing-pain-problem">
-                Medo do julgamento alheio ao errar a pronúncia na frente de colegas ou nativos.
-              </p>
-              <div className="landing-pain-solution">
-                <CheckCircle2 size={16} />
-                <span>Ambiente seguro e privado para errar e acertar.</span>
-              </div>
-            </div>
-
-            <div className="landing-pain-card">
-              <div className="landing-pain-icon">
-                <TrendingUp size={22} />
-              </div>
-              <h3 className="landing-pain-title">Sem Parceiro de Treino</h3>
-              <p className="landing-pain-problem">
-                Não tem com quem conversar no dia a dia para manter o ritmo e a memória muscular.
-              </p>
-              <div className="landing-pain-solution">
-                <CheckCircle2 size={16} />
-                <span>Disponível 24/7 no seu celular para treinar 15min.</span>
-              </div>
-            </div>
+          {/* CTA Rápido pós-áudio */}
+          <div style={{ textAlign: "center", marginTop: "2rem" }}>
+            <Link href="/login" className="landing-btn-primary" style={{ padding: "0.85rem 1.75rem", fontSize: "0.95rem" }}>
+              <span>Gostei! Quero Começar Grátis Agora</span>
+              <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ================================================================= */}
-      {/* 4. COMO FUNCIONA (4 PASSOS)                                       */}
+      {/* 5. COMO FUNCIONA (DESENHADO EM PASSOS OBJETIVOS)                  */}
       {/* ================================================================= */}
       <section className="landing-section" id="como-funciona" style={{ background: "rgba(10, 13, 18, 0.5)" }}>
         <div className="landing-container">
           <div className="landing-section-header">
-            <span className="landing-section-eyebrow">Método Direto e Eficaz</span>
+            <span className="landing-section-eyebrow">Sem Enrolação</span>
             <h2 className="landing-section-title">
               Como o Mr. Crazy destrava sua fala em 4 passos
             </h2>
             <p className="landing-section-desc">
-              Uma dinâmica rápida, viciante e sem rodeios. É entrar, ouvir, responder e evoluir.
+              Uma dinâmica viciante feita para você falar de 10 a 15 minutos por dia.
             </p>
           </div>
 
@@ -307,10 +284,9 @@ export function LandingPage({ user }: LandingPageProps) {
               <div className="landing-step-icon">
                 <Compass size={22} />
               </div>
-              <h3 className="landing-step-title">Escolha sua Trilha Real</h3>
+              <h3 className="landing-step-title">Escolha sua Situação Real</h3>
               <p className="landing-step-desc">
-                Viagens, reuniões de trabalho, entrevistas de emprego, restaurantes ou bate-papo casual. 
-                Nada de frases inúteis como &ldquo;o livro está sobre a mesa&rdquo;.
+                Restaurante, viagens, reuniões de trabalho ou bate-papo. Frases úteis que você usa na vida real.
               </p>
             </div>
 
@@ -319,10 +295,9 @@ export function LandingPage({ user }: LandingPageProps) {
               <div className="landing-step-icon">
                 <Volume2 size={22} />
               </div>
-              <h3 className="landing-step-title">O Mr. Crazy Apresenta o Desafio</h3>
+              <h3 className="landing-step-title">O Mr. Crazy Te Desafia</h3>
               <p className="landing-step-desc">
-                Em português direto (&lt; 25 palavras), ele contextualiza a situação e apresenta o 
-                modelo exato em inglês com o apoio fonético visual.
+                Ele explica a cena em português e dá o modelo em inglês com apoio fonético na tela.
               </p>
             </div>
 
@@ -333,8 +308,7 @@ export function LandingPage({ user }: LandingPageProps) {
               </div>
               <h3 className="landing-step-title">Você Aperta e Fala</h3>
               <p className="landing-step-desc">
-                Toque no microfone e solte a voz. Nosso motor WebRTC de baixíssima latência captura 
-                sua fala em tempo real com redução de ruídos.
+                Solte a voz pelo microfone. Sem medo de errar e sem plateia para te julgar.
               </p>
             </div>
 
@@ -343,10 +317,9 @@ export function LandingPage({ user }: LandingPageProps) {
               <div className="landing-step-icon">
                 <Zap size={22} />
               </div>
-              <h3 className="landing-step-title">Feedback & Ajuste Anatômico</h3>
+              <h3 className="landing-step-title">Ajuste de Boca & Próxima Fase</h3>
               <p className="landing-step-desc">
-                Errou? Ele explica onde posicionar a língua e os dentes. Falou cerca de 70% certo? 
-                Ele valida e avança para a próxima etapa da história!
+                Ele te ensina onde pôr a língua e os dentes. Falou cerca de 70% certo? Ele valida e avança!
               </p>
             </div>
           </div>
@@ -354,99 +327,65 @@ export function LandingPage({ user }: LandingPageProps) {
       </section>
 
       {/* ================================================================= */}
-      {/* 5. SEÇÃO ESTRELA: O MR. CRAZY FALANDO (ÁUDIO + AVATAR ANIMADO)    */}
-      {/* ================================================================= */}
-      <section className="landing-showcase-section" id="o-mr-crazy">
-        <div className="landing-container">
-          <div className="landing-section-header">
-            <span className="landing-section-eyebrow">
-              <Flame size={15} className="text-amber-400" />
-              <span>Conheça Seu Novo Professor</span>
-            </span>
-            <h2 className="landing-section-title">
-              O Recado do Mr. Crazy Para Você
-            </h2>
-            <p className="landing-section-desc">
-              Ele não tem paciência para enrolação, exige que você fale em voz alta e vibra 
-              com o seu progresso. Dê o play abaixo e ouça a explicação direta dele:
-            </p>
-          </div>
-
-          {/* Componente Interativo com Web Audio API, Ondas e Avatar */}
-          <MrCrazyAudioShowcase />
-        </div>
-      </section>
-
-      {/* ================================================================= */}
-      {/* 6. DIFERENCIAIS: COMPARATIVO LADO A LADO                          */}
+      {/* 6. DIFERENCIAIS: COMPARATIVO DESENHADO                            */}
       {/* ================================================================= */}
       <section className="landing-section" id="diferenciais">
         <div className="landing-container">
           <div className="landing-section-header">
-            <span className="landing-section-eyebrow">Por Que Somos Diferentes</span>
+            <span className="landing-section-eyebrow">Por Que É Diferente</span>
             <h2 className="landing-section-title">
               Cursinho Tradicional vs. Mr. Crazy
             </h2>
             <p className="landing-section-desc">
-              Veja por que o método do Mr. Crazy entrega mais resultados práticos em semanas do 
-              que anos de apostilas engessadas.
+              Menos teoria morta. Mais prática oral para ganhar confiança de verdade.
             </p>
           </div>
 
           <div className="landing-compare-box">
             <div className="landing-compare-header">
               <div className="landing-compare-col-title landing-compare-col-traditional">
-                <XCircle size={18} className="text-red-400" />
-                <span>Método Tradicional</span>
+                <XCircle size={17} className="text-red-400" />
+                <span>Cursinho Tradicional</span>
               </div>
               <div className="landing-compare-col-title landing-compare-col-mrcrazy">
-                <CheckCircle2 size={18} className="text-amber-400" />
+                <CheckCircle2 size={17} className="text-amber-400" />
                 <span>Com o Mr. Crazy</span>
               </div>
             </div>
 
             <div className="landing-compare-row">
               <div className="landing-compare-cell-left">
-                <span>❌ 80% do tempo preenchendo folhas de gramática e lendo textos passivos.</span>
+                <span>❌ 80% lendo regra gramatical e preenchendo papel.</span>
               </div>
               <div className="landing-compare-cell-right">
-                <span>⚡ 80% do tempo falando em voz alta e treinando a boca.</span>
+                <span>⚡ 80% do tempo falando em voz alta com o microfone.</span>
               </div>
             </div>
 
             <div className="landing-compare-row">
               <div className="landing-compare-cell-left">
-                <span>❌ Você fala 2 minutos por aula porque a turma tem 15 alunos.</span>
+                <span>❌ Você fala 2 minutos por aula porque a turma é cheia.</span>
               </div>
               <div className="landing-compare-cell-right">
-                <span>⚡ 100% de atenção em você. Você fala dezenas de vezes por sessão.</span>
+                <span>⚡ 100% de atenção em você. Você fala dezenas de vezes.</span>
               </div>
             </div>
 
             <div className="landing-compare-row">
               <div className="landing-compare-cell-left">
-                <span>❌ Explicações longas, chatas e cheias de termos técnicos difíceis.</span>
+                <span>❌ Não ensina a musculatura de sons como TH e R americano.</span>
               </div>
               <div className="landing-compare-cell-right">
-                <span>⚡ Orientações em português com menos de 25 palavras. Direto ao ponto.</span>
+                <span>⚡ Dicas anatômicas de onde pôr a língua, dentes e lábios.</span>
               </div>
             </div>
 
             <div className="landing-compare-row">
               <div className="landing-compare-cell-left">
-                <span>❌ Não ensina como colocar a língua nos sons como TH, R caipira e L final.</span>
+                <span>❌ Provas escritas que não testam se você fala de verdade.</span>
               </div>
               <div className="landing-compare-cell-right">
-                <span>⚡ Dicas anatômicas práticas de boca, dentes e respiração para destravar o som.</span>
-              </div>
-            </div>
-
-            <div className="landing-compare-row">
-              <div className="landing-compare-cell-left">
-                <span>❌ Provas escritas artificiais que não testam se você realmente fala.</span>
-              </div>
-              <div className="landing-compare-cell-right">
-                <span>⚡ O Chefão: Prova oral com perguntas surpresa e nota de 0 a 10 no microfone.</span>
+                <span>⚡ O Chefão: Prova oral com perguntas surpresa e nota de 0 a 10.</span>
               </div>
             </div>
           </div>
@@ -454,17 +393,93 @@ export function LandingPage({ user }: LandingPageProps) {
       </section>
 
       {/* ================================================================= */}
-      {/* 7. DEMONSTRAÇÃO DA EXPERIÊNCIA (POR DENTRO DO APP)                */}
+      {/* 7. BENEFÍCIO CENTRAL / AS DORES REAIS                             */}
+      {/* ================================================================= */}
+      <section className="landing-section" id="beneficio" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}>
+        <div className="landing-container">
+          <div className="landing-section-header">
+            <span className="landing-section-eyebrow">Você Não Precisa Mais Travar</span>
+            <h2 className="landing-section-title">
+              Você não precisa de mais 5 anos de gramática. <br />
+              <span className="landing-title-highlight">Você precisa falar.</span>
+            </h2>
+            <p className="landing-section-desc">
+              O Mr. Crazy foi desenhado para quem entende textos em inglês, mas trava na hora de abrir a boca.
+            </p>
+          </div>
+
+          <div className="landing-pain-grid">
+            <div className="landing-pain-card">
+              <div className="landing-pain-icon">
+                <BrainCircuit size={20} />
+              </div>
+              <h3 className="landing-pain-title">O Bloqueio do Silêncio</h3>
+              <p className="landing-pain-problem">
+                Você sabe as palavras na cabeça, mas na hora de falar a voz trava.
+              </p>
+              <div className="landing-pain-solution">
+                <CheckCircle2 size={15} />
+                <span>Aqui você fala em voz alta desde a fase 1.</span>
+              </div>
+            </div>
+
+            <div className="landing-pain-card">
+              <div className="landing-pain-icon">
+                <Clock size={20} />
+              </div>
+              <h3 className="landing-pain-title">Anos de Cursinho Chato</h3>
+              <p className="landing-pain-problem">
+                Horas decorando regras sem praticar conversa real.
+              </p>
+              <div className="landing-pain-solution">
+                <CheckCircle2 size={15} />
+                <span>Treino rápido de 10 a 15 min no celular.</span>
+              </div>
+            </div>
+
+            <div className="landing-pain-card">
+              <div className="landing-pain-icon">
+                <HeartHandshake size={20} />
+              </div>
+              <h3 className="landing-pain-title">Medo de Errar em Público</h3>
+              <p className="landing-pain-problem">
+                Vergonha do sotaque ou de errar na frente dos outros.
+              </p>
+              <div className="landing-pain-solution">
+                <CheckCircle2 size={15} />
+                <span>Treino 100% individual e seguro com a IA.</span>
+              </div>
+            </div>
+
+            <div className="landing-pain-card">
+              <div className="landing-pain-icon">
+                <TrendingUp size={20} />
+              </div>
+              <h3 className="landing-pain-title">Sem Parceiro de Treino</h3>
+              <p className="landing-pain-problem">
+                Falta de alguém com quem conversar no dia a dia.
+              </p>
+              <div className="landing-pain-solution">
+                <CheckCircle2 size={15} />
+                <span>Disponível 24h por dia na palma da mão.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================= */}
+      {/* 8. DEMONSTRAÇÃO INTERATIVA DO PRODUTO (POR DENTRO)                */}
       {/* ================================================================= */}
       <section className="landing-section" id="demonstracao" style={{ background: "rgba(10, 13, 18, 0.4)" }}>
         <div className="landing-container">
           <div className="landing-section-header">
-            <span className="landing-section-eyebrow">Produto Real e Vivo</span>
+            <span className="landing-section-eyebrow">Por Dentro do App</span>
             <h2 className="landing-section-title">
-              Veja a Experiência Por Dentro
+              Veja a Experiência Real
             </h2>
             <p className="landing-section-desc">
-              Alterne entre as telas abaixo para ver como você vai treinar no dia a dia.
+              Toque nas abas abaixo para ver como é simples e direto treinar.
             </p>
           </div>
 
@@ -473,65 +488,35 @@ export function LandingPage({ user }: LandingPageProps) {
       </section>
 
       {/* ================================================================= */}
-      {/* 8. QUEBRA DE OBJEÇÕES                                             */}
+      {/* 9. QUEBRA DE OBJEÇÕES RÁPIDA                                      */}
       {/* ================================================================= */}
       <section className="landing-section" id="objecoes">
         <div className="landing-container">
           <div className="landing-section-header">
-            <span className="landing-section-eyebrow">Feito Sob Medida</span>
+            <span className="landing-section-eyebrow">Dúvidas Comuns</span>
             <h2 className="landing-section-title">
               Será que o Mr. Crazy é para você?
             </h2>
-            <p className="landing-section-desc">
-              Projetado especificamente para a realidade e as dificuldades do estudante brasileiro.
-            </p>
           </div>
 
           <div className="landing-objections-grid">
             <div className="landing-objection-card">
               <h3 className="landing-objection-q">
-                <CheckCircle2 size={18} className="text-amber-400" />
-                <span>&ldquo;Eu sou iniciante do zero, vou conseguir acompanhar?&rdquo;</span>
+                <CheckCircle2 size={17} className="text-amber-400" />
+                <span>&ldquo;Eu sou iniciante do zero, vou conseguir?&rdquo;</span>
               </h3>
               <p className="landing-objection-a">
-                Com certeza! O Mr. Crazy começa com saudações e frases de 1 a 3 palavras. Toda a 
-                orientação é 100% em português e você conta com a fonética aportuguesada para saber 
-                exatamente o som de cada palavra antes de falar.
+                Sim! Ele começa com frases curtas de 1 a 3 palavras, orienta tudo em português e dá o apoio fonético visual.
               </p>
             </div>
 
             <div className="landing-objection-card">
               <h3 className="landing-objection-q">
-                <CheckCircle2 size={18} className="text-amber-400" />
-                <span>&ldquo;E se o meu sotaque for muito forte?&rdquo;</span>
+                <CheckCircle2 size={17} className="text-amber-400" />
+                <span>&ldquo;E se o meu sotaque for forte?&rdquo;</span>
               </h3>
               <p className="landing-objection-a">
-                Nossa IA adota a <strong>Regra dos 70%</strong>: ter sotaque brasileiro é normal e 
-                bonito! O Mr. Crazy só corrige quando o som quebra o sentido da frase. Se a mensagem 
-                chegou, ele valida e você segue em frente sem travar.
-              </p>
-            </div>
-
-            <div className="landing-objection-card">
-              <h3 className="landing-objection-q">
-                <CheckCircle2 size={18} className="text-amber-400" />
-                <span>&ldquo;Tenho vergonha de falar com outras pessoas&rdquo;</span>
-              </h3>
-              <p className="landing-objection-a">
-                Esse é o maior diferencial: você treina a sós com o Mr. Crazy. Sem julgamento, sem 
-                plateia e sem constrangimento. Você erra 20 vezes até acertar sem ninguém te olhando.
-              </p>
-            </div>
-
-            <div className="landing-objection-card">
-              <h3 className="landing-objection-q">
-                <CheckCircle2 size={18} className="text-amber-400" />
-                <span>&ldquo;Tenho pouco tempo livre no dia&rdquo;</span>
-              </h3>
-              <p className="landing-objection-a">
-                O aplicativo foi desenhado para <strong>sessões rápidas de 10 a 15 minutos</strong>. 
-                Abra no celular no intervalo do almoço, no transporte ou antes de dormir e treine 
-                duas fases.
+                Usamos a <strong>Regra dos 70%</strong>: se a mensagem foi compreensível, o Mr. Crazy valida e você segue em frente sem travar!
               </p>
             </div>
           </div>
@@ -539,14 +524,14 @@ export function LandingPage({ user }: LandingPageProps) {
       </section>
 
       {/* ================================================================= */}
-      {/* 9. CTA FORTE (MEIO / FINAL)                                       */}
+      {/* 10. CTA DE ALTA CONVERSÃO (MEIO/FINAL)                            */}
       {/* ================================================================= */}
-      <section className="landing-section" style={{ padding: "4rem 0" }}>
+      <section className="landing-section" style={{ padding: "3.5rem 0" }}>
         <div className="landing-container">
           <div className="landing-cta-banner">
             <span className="landing-hero-badge" style={{ marginBottom: "1rem" }}>
               <Zap size={14} className="text-amber-400" />
-              <span>Destrave Sua Fala Agora</span>
+              <span>Acesso Imediato</span>
             </span>
 
             <h2 className="landing-cta-title">
@@ -555,59 +540,34 @@ export function LandingPage({ user }: LandingPageProps) {
             </h2>
 
             <p className="landing-cta-desc">
-              Crie sua conta em menos de 1 minuto, faça seu teste de microfone e sinta a 
-              diferença de falar em inglês logo na sua primeira sessão com o Mr. Crazy.
+              Crie sua conta em 1 minuto. Sem cartão de crédito, sem burocracia e com a sua primeira aula pronta.
             </p>
 
-            <Link href="/login" className="landing-btn-primary" style={{ padding: "1rem 2.25rem", fontSize: "1.05rem" }}>
-              <span>Quero Começar Agora (Grátis)</span>
+            <Link href="/login" className="landing-btn-primary" style={{ padding: "0.95rem 2rem", fontSize: "1.05rem" }}>
+              <span>Destravar Meu Inglês Agora</span>
               <ArrowRight size={18} />
             </Link>
 
-            <div style={{ marginTop: "1.25rem", fontSize: "0.775rem", color: "#9ca3af" }}>
-              ✨ Acesso instantâneo • Não pede cartão de crédito • Roda direto no celular
+            <div style={{ marginTop: "1rem", fontSize: "0.775rem", color: "#9ca3af" }}>
+              ✨ 100% no navegador ou celular • Não precisa baixar app pesado
             </div>
           </div>
         </div>
       </section>
 
       {/* ================================================================= */}
-      {/* 10. FAQ (PERGUNTAS FREQUENTES)                                    */}
+      {/* 11. FAQ COMPACTO                                                  */}
       {/* ================================================================= */}
       <section className="landing-section" id="faq">
         <div className="landing-container">
           <div className="landing-section-header">
-            <span className="landing-section-eyebrow">Tire Suas Dúvidas</span>
+            <span className="landing-section-eyebrow">Perguntas Frequentes</span>
             <h2 className="landing-section-title">
-              Perguntas Frequentes
+              Tire Suas Dúvidas
             </h2>
-            <p className="landing-section-desc">
-              Tudo o que você precisa saber antes de iniciar sua jornada com o Mr. Crazy.
-            </p>
           </div>
 
           <LandingFaq />
-        </div>
-      </section>
-
-      {/* ================================================================= */}
-      {/* 11. CTA FINAL DE FECHAMENTO                                       */}
-      {/* ================================================================= */}
-      <section className="landing-section" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", textAlign: "center" }}>
-        <div className="landing-container">
-          <div style={{ maxWidth: "36rem", margin: "0 auto" }}>
-            <h2 style={{ fontSize: "2.25rem", fontWeight: 800, color: "#ffffff", marginBottom: "1rem", letterSpacing: "-0.03em" }}>
-              Pare de adiar seu inglês.
-            </h2>
-            <p style={{ color: "#9ca3af", fontSize: "1.05rem", lineHeight: 1.6, marginBottom: "2rem" }}>
-              Entre no Mr. Crazy hoje mesmo e experimente o jeito mais direto, divertido e 
-              gamificado de destravar a sua conversação.
-            </p>
-            <Link href="/login" className="landing-btn-primary" style={{ padding: "0.9rem 2rem", fontSize: "1rem" }}>
-              <span>Começar Minha Primeira Aula</span>
-              <Sparkles size={18} />
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -618,33 +578,32 @@ export function LandingPage({ user }: LandingPageProps) {
         <div className="landing-container">
           <div className="landing-footer-grid">
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem" }}>
-                <span style={{ fontWeight: 800, color: "#ffffff", fontSize: "1.1rem" }}>MR.CRAZY</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.4rem" }}>
+                <span style={{ fontWeight: 900, color: "#ffffff", fontSize: "1.1rem" }}>MR.CRAZY</span>
                 <span className="landing-brand-tag">Inglês sem frescura</span>
               </div>
               <p style={{ margin: 0, color: "#6b7280", fontSize: "0.8rem", maxWidth: "24rem" }}>
-                Plataforma de conversação oral em inglês com IA em tempo real para brasileiros.
+                Conversação oral em inglês com IA em tempo real para brasileiros.
               </p>
             </div>
 
             <div className="landing-footer-links">
-              <Link href="/practice" className="landing-footer-link">Treino</Link>
+              <Link href="/convite" className="landing-footer-link">Convite</Link>
               <Link href="/login" className="landing-footer-link">Entrar</Link>
+              <Link href="/practice" className="landing-footer-link">Treino</Link>
               <Link href="/history" className="landing-footer-link">Histórico</Link>
-              <Link href="/progress" className="landing-footer-link">Evolução</Link>
-              <Link href="/settings" className="landing-footer-link">Configurações</Link>
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "1.5rem", borderTop: "1px solid rgba(255, 255, 255, 0.05)", fontSize: "0.75rem", color: "#4b5563" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "1.25rem", borderTop: "1px solid rgba(255, 255, 255, 0.05)", fontSize: "0.75rem", color: "#4b5563" }}>
             <span>&copy; {new Date().getFullYear()} Mr.Crazy. Todos os direitos reservados.</span>
-            <span>mrcrazy.fun</span>
+            <span>mrcrazy.fun/convite</span>
           </div>
         </div>
       </footer>
 
       {/* ================================================================= */}
-      {/* 13. STICKY MOBILE BOTTOM BAR (ALTA CONVERSÃO EM WHATSAPP)         */}
+      {/* 13. STICKY MOBILE BOTTOM BAR (ALTA CONVERSÃO)                      */}
       {/* ================================================================= */}
       <aside className="landing-sticky-bar" aria-label="Ação rápida de cadastro">
         <div className="landing-sticky-text">
