@@ -9,6 +9,22 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 94 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
+## 🟢 Antigravity — 2026-10-01 — Auditoria Visual & Funcional de Frontend via Browser Automation
+- **Entregue nesta sessão:**
+  1. **Auditoria Automatizada Completa de Frontend & Browser (Headless Chrome)**:
+     - Viewport Mobile (`390x844`): validado **zero overflow horizontal** (`scrollWidth === window.innerWidth === 390px`).
+     - Demonstração Interativa (`LandingInteractiveDemo.tsx`): 4 abas testadas com clique automatizado (Treino Guiado, O Chefão, Conversa Livre e Mapa de Fases), verificando transições de estado limpas.
+     - FAQ Accordion (`LandingFaq.tsx`): 8 itens de perguntas testados com expansão/recolhimento e atributos `aria-expanded` corretos.
+     - Controles de Áudio Showcase (`MrCrazyAudioShowcase.tsx`): botões de pausar/continuar e mutar/desmutar testados sem erros.
+     - Barra de Conversão Fixa Inferior (`.landing-sticky-bar`): presença e alinhamento de 63.5px visível na base do mobile.
+     - Viewport Desktop (`1440x900`): grade de estúdio de 3 colunas validada com sidebars companheiras (Método Sem Frescura & Tecnologia e Fonética) e hero mockup widescreen.
+     - Portal de Autenticação (`/login`): formulários de login e criação de conta validados com inputs, alternância de abas e proteção anti-duplo clique.
+  2. **Unificação de Marca 3D do Mr. Crazy**:
+     - Atualizados navbar brand avatar e emblema superior da Landing Page para o novo busto 3D de alta definição (`mr_crazy_3d_headshot.png`), garantindo coerência visual absoluta com o personagem do palco.
+  3. **Qualidade & Zero Console Errors**:
+     - 0 erros críticos de console/JavaScript detectados.
+     - 100% da suíte de testes automatizados aprovada com exit code 0.
+
 ## 🟢 Antigravity — 2026-10-01 — Avatar 3D Vivo Estilo Jogo/NPC (Respiração, Gesticulação e Piscar de Olhos)
 - **Entregue nesta sessão atendendo ao novo mockup fornecido pelo usuário:**
   1. **Personagem 3D Estilo Jogo/NPC (Turnaround Sheet Idêntico ao Mockup do Usuário)**:
