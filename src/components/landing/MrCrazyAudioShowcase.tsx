@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Pause, Play } from "lucide-react";
 import { RpgCharacter, type CharacterGesture } from "@/components/RpgCharacter";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
@@ -289,6 +289,18 @@ export function MrCrazyAudioShowcase() {
     }
   };
 
+  const togglePause = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      await startPlayback();
+    }
+  };
+
   const toggleMute = () => {
     if (audioRef.current) {
       audioRef.current.muted = !isMuted;
@@ -325,6 +337,16 @@ export function MrCrazyAudioShowcase() {
                 />
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={togglePause}
+              className="mr-crazy-mute-toggle"
+              title={isPlaying ? "Pausar fala" : "Continuar fala"}
+              aria-label={isPlaying ? "Pausar fala" : "Continuar fala"}
+            >
+              {isPlaying ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 1 }} />}
+            </button>
 
             <button
               type="button"
