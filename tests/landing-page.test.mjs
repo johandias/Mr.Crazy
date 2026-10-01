@@ -86,3 +86,30 @@ test("layout metadata includes Open Graph and Twitter Card for WhatsApp sharing"
   assert.ok(layoutCode.includes("twitter"), "Layout deve ter twitter card");
   assert.ok(layoutCode.includes("mrcrazy-fala-ai-email.png"), "Deve ter imagem de prévia de alta qualidade");
 });
+
+test("desktop widescreen optimizations take advantage of larger displays while preserving mobile compactness", () => {
+  const landingCss = fs.readFileSync("src/app/landing.css", "utf-8");
+  
+  // 1. Studio layout 3-zone grid for Mr. Crazy
+  assert.ok(landingCss.includes(".mr-crazy-showcase-stage-grid"), "Deve conter grid para o palco de estúdio no desktop");
+  assert.ok(landingCss.includes(".mr-crazy-desktop-companion"), "Deve conter painéis companheiros para widescreen");
+  assert.ok(landingCss.includes("grid-template-columns: 290px 1fr 290px") || landingCss.includes("grid-template-columns: 310px 1fr 310px"), "Deve ter 3 colunas para o estúdio no desktop");
+  
+  // 2. Interactive Demo side-by-side split on desktop
+  assert.ok(landingCss.includes(".landing-demo-grid-split"), "Deve conter grid split para abas de demonstração");
+  assert.ok(landingCss.includes("1.15fr 0.85fr"), "Grid split deve ser balanceado em 2 colunas em telas maiores");
+  
+  // 3. Desktop expansion for container and demo window
+  assert.ok(landingCss.includes("max-width: 1060px") || landingCss.includes("max-width: 1160px"), "Janela de demonstração deve expandir em telas largas");
+  assert.ok(landingCss.includes("max-width: 1300px") || landingCss.includes("max-width: 1380px"), "Container da landing page deve aproveitar telas grandes");
+  
+  // 4. Interactive demo tabs component uses grid split
+  const demoCode = fs.readFileSync("src/components/landing/LandingInteractiveDemo.tsx", "utf-8");
+  assert.ok(demoCode.includes("landing-demo-grid-split"), "LandingInteractiveDemo deve utilizar landing-demo-grid-split");
+  
+  // 5. Showcase component includes desktop companion panels
+  const showcaseCode = fs.readFileSync("src/components/landing/MrCrazyAudioShowcase.tsx", "utf-8");
+  assert.ok(showcaseCode.includes("mr-crazy-showcase-stage-grid"), "Showcase deve embutir o palco de estúdio em grid");
+  assert.ok(showcaseCode.includes("mr-crazy-desktop-companion"), "Showcase deve ter painéis complementares");
+});
+

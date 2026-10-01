@@ -319,71 +319,139 @@ export function MrCrazyAudioShowcase() {
         onEnded={() => setIsPlaying(false)}
       />
 
-      {/* Balão de Fala do Mr. Crazy (com a explicação falada em tempo real) */}
-      <div className="mr-crazy-speech-bubble">
-        <div className="mr-crazy-speech-header">
-          <div className="mr-crazy-speaker-badge">
-            <span className={`mr-crazy-pulse-dot ${isPlaying ? "live" : ""}`} />
-            <span>MR. CRAZY</span>
+      {/* Grid de Palco Desktop com Cards Companheiros */}
+      <div className="mr-crazy-showcase-stage-grid">
+        {/* Painel Companheiro Esquerdo (Desktop Only) */}
+        <div className="mr-crazy-desktop-companion mr-crazy-companion-left desktop-only">
+          <div className="mr-crazy-companion-header">
+            <span className="mr-crazy-companion-tag">MÉTODO SEM FRESCURA</span>
+            <h4 className="mr-crazy-companion-title">Conversação Real</h4>
           </div>
+          <ul className="mr-crazy-companion-list">
+            <li>
+              <span className="mr-crazy-companion-bullet">🎙️</span>
+              <div>
+                <strong>Zero Delay de Resposta</strong>
+                <p>WebRTC de alta velocidade para interação fluida sem pausas constrangedoras.</p>
+              </div>
+            </li>
+            <li>
+              <span className="mr-crazy-companion-bullet">🗣️</span>
+              <div>
+                <strong>80% de Fala Ativa</strong>
+                <p>Você é quem fala a maior parte do tempo. Sem teoria morta e sem decoreba.</p>
+              </div>
+            </li>
+            <li>
+              <span className="mr-crazy-companion-bullet">🔒</span>
+              <div>
+                <strong>100% Privado e Seguro</strong>
+                <p>Treine em casa sem vergonha de errar e sem plateia para te julgar.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
 
-          <div className="mr-crazy-speech-controls">
-            <div className="landing-player-waveform" aria-hidden="true">
-              {waveBars.slice(0, 5).map((height, i) => (
-                <div
-                  key={i}
-                  className={`landing-wave-bar ${isPlaying ? "active" : ""}`}
-                  style={{ height: `${Math.max(4, height * 0.35)}px` }}
-                />
-              ))}
+        {/* Palco Central do Mr. Crazy (Balão + Avatar) */}
+        <div className="mr-crazy-stage-core">
+          {/* Balão de Fala do Mr. Crazy (com a explicação falada em tempo real) */}
+          <div className="mr-crazy-speech-bubble">
+            <div className="mr-crazy-speech-header">
+              <div className="mr-crazy-speaker-badge">
+                <span className={`mr-crazy-pulse-dot ${isPlaying ? "live" : ""}`} />
+                <span>MR. CRAZY</span>
+              </div>
+
+              <div className="mr-crazy-speech-controls">
+                <div className="landing-player-waveform" aria-hidden="true">
+                  {waveBars.slice(0, 5).map((height, i) => (
+                    <div
+                      key={i}
+                      className={`landing-wave-bar ${isPlaying ? "active" : ""}`}
+                      style={{ height: `${Math.max(4, height * 0.35)}px` }}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={togglePause}
+                  className="mr-crazy-mute-toggle"
+                  title={isPlaying ? "Pausar fala" : "Continuar fala"}
+                  aria-label={isPlaying ? "Pausar fala" : "Continuar fala"}
+                >
+                  {isPlaying ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 1 }} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className="mr-crazy-mute-toggle"
+                  title={isMuted ? "Ativar som" : "Mutar áudio"}
+                  aria-label={isMuted ? "Ativar som" : "Mutar áudio"}
+                >
+                  {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                </button>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={togglePause}
-              className="mr-crazy-mute-toggle"
-              title={isPlaying ? "Pausar fala" : "Continuar fala"}
-              aria-label={isPlaying ? "Pausar fala" : "Continuar fala"}
-            >
-              {isPlaying ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 1 }} />}
-            </button>
+            {/* Frase que o Mr. Crazy está explicando agora */}
+            <p className="mr-crazy-speech-text">
+              “{activeSegment.text}”
+            </p>
 
-            <button
-              type="button"
-              onClick={toggleMute}
-              className="mr-crazy-mute-toggle"
-              title={isMuted ? "Ativar som" : "Mutar áudio"}
-              aria-label={isMuted ? "Ativar som" : "Mutar áudio"}
-            >
-              {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-            </button>
+            {/* Ponta do balão apontando para o Mr. Crazy */}
+            <div className="mr-crazy-bubble-tail" aria-hidden="true" />
+          </div>
+
+          {/* Palco e Avatar do Mr. Crazy com expressões, boca e mãos animadas */}
+          <div className="mr-crazy-stage-wrapper">
+            <div className="mr-crazy-avatar-box">
+              <RpgCharacter
+                crazyLevel={currentCrazyLevel}
+                emotion={currentEmotion}
+                voiceState={voiceState}
+                gesture={currentGesture}
+                isAwake={true}
+                audioMetricsRef={audioMetricsRef}
+              />
+            </div>
+
+            {/* Brilho do pedestal sob os pés */}
+            <div className="mr-crazy-pedestal-glow" aria-hidden="true" />
           </div>
         </div>
 
-        {/* Frase que o Mr. Crazy está explicando agora */}
-        <p className="mr-crazy-speech-text">
-          “{activeSegment.text}”
-        </p>
-
-        {/* Ponta do balão apontando para o Mr. Crazy */}
-        <div className="mr-crazy-bubble-tail" aria-hidden="true" />
-      </div>
-
-      {/* Palco e Avatar do Mr. Crazy com expressões, boca e mãos animadas */}
-      <div className="mr-crazy-stage-wrapper">
-        <div className="mr-crazy-avatar-box">
-          <RpgCharacter
-            crazyLevel={currentCrazyLevel}
-            emotion={currentEmotion}
-            voiceState={voiceState}
-            gesture={currentGesture}
-            isAwake={true}
-            audioMetricsRef={audioMetricsRef}
-          />
+        {/* Painel Companheiro Direito (Desktop Only) */}
+        <div className="mr-crazy-desktop-companion mr-crazy-companion-right desktop-only">
+          <div className="mr-crazy-companion-header">
+            <span className="mr-crazy-companion-tag">TECNOLOGIA & FONÉTICA</span>
+            <h4 className="mr-crazy-companion-title">Ajuste Muscular</h4>
+          </div>
+          <ul className="mr-crazy-companion-list">
+            <li>
+              <span className="mr-crazy-companion-bullet">👄</span>
+              <div>
+                <strong>Posição de Língua & Dentes</strong>
+                <p>Dicas anatômicas diretas para os sons que mais travam os brasileiros.</p>
+              </div>
+            </li>
+            <li>
+              <span className="mr-crazy-companion-bullet">⚡</span>
+              <div>
+                <strong>A Regra dos 70%</strong>
+                <p>Se a mensagem foi transmitida com clareza, o Mr. Crazy valida e avança.</p>
+              </div>
+            </li>
+            <li>
+              <span className="mr-crazy-companion-bullet">🏆</span>
+              <div>
+                <strong>O Chefão do Módulo</strong>
+                <p>Prova oral com perguntas dinâmicas e nota de 0 a 10 no final de cada módulo.</p>
+              </div>
+            </li>
+          </ul>
         </div>
-
-        {/* Brilho do pedestal sob os pés */}
-        <div className="mr-crazy-pedestal-glow" aria-hidden="true" />
       </div>
     </div>
   );

@@ -6,9 +6,33 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
-- **Último Commit Estável**: `b778552`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 92 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+- **Suíte de Testes**: 93 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+
+## 🟡 Antigravity — 2026-09-30 — Landing Page: Aproveitamento Total de Telas Desktop / Widescreen
+- **Entregue nesta sessão:**
+  1. **Composição de Estúdio 3 Zonas para o Palco do Mr. Crazy**:
+     - Em telas widescreen (>= 960px, 1180px, 1360px), o palco do Mr. Crazy se expande em uma grade de 3 colunas (`mr-crazy-showcase-stage-grid`):
+       - Painel Esquerdo ("Método Sem Frescura: Zero Delay WebRTC, 80% Fala Ativa, 100% Sem Vergonha").
+       - Palco Central (Balão com fala ao vivo, avatar RPG animado maior de 290px a 340px, pedestal iluminado, controles de pausa/mute).
+       - Painel Direito ("Tecnologia & Fonética: Posição de Língua & Dentes, Regra dos 70%, O Chefão do Módulo").
+     - Totalmente oculto no mobile (`display: none`), preservando o visual compacto e minimalista aprovado pelo usuário.
+  2. **Demonstração Interativa em Grid Split (Desktop)**:
+     - As 4 abas interativas do produto foram elevadas com `.landing-demo-grid-split` em 2 colunas lado a lado (`1.15fr 0.85fr`) em telas >= 860px.
+     - Janela de demonstração expandida até `1160px` em monitores grandes, eliminando espaços vazios.
+     - Tab 1: Desafio fonético + Dock de gravação WebRTC ativo.
+     - Tab 2: Pergunta oral surpresa do Chefão + Rúbrica de aprovação/reprovação.
+     - Tab 3: Balões de conversa livre + HUD inteligente com vocabulário e latência < 400ms.
+     - Tab 4: Métricas de XP e ofensiva + Roadmap com progresso dos 12 módulos do arquipélago.
+  3. **Refinamento Widescreen de Seções (Linear/Stripe SaaS Tier)**:
+     - `.landing-compare-box`: expandido até 1140px com padding confortável e micro-interação ao passar o mouse.
+     - `.landing-pain-card` & `.landing-step-card`: padding aumentado, hover lift (`translateY(-4px)`), sombra de profundidade dourada.
+     - `.landing-cta-banner`: expandido até 1140px com tipografia de 2.75rem e espaçamento nobre.
+     - `.landing-hero-mockup`: ampliado com padding de 2.15rem e sombra cinematográfica.
+  4. **Preservação de Invariantes & Testes**:
+     - Layout mobile intacto e enxuto.
+     - Teste automatizado dedicado adicionado em `tests/landing-page.test.mjs`.
+     - 100% dos testes passando com exit code 0.
 
 ## 🟡 Antigravity — 2026-09-30 — Landing Page: Otimização Mobile, Grid Compacto 2 Colunas e Redução de Rolagem
 - **Entregue nesta sessão:**
