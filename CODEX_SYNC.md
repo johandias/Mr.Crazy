@@ -7,7 +7,26 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 93 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+- **Suíte de Testes**: 94 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+
+## 🟢 Antigravity — 2026-09-30 — Verificação Visual Mobile & Isolamento Estrito de Elementos Desktop
+- **Entregue nesta sessão:**
+  1. **Auditoria Visual & Responsiva via Browser Automation (Chrome DevTools MCP / Port 9222)**:
+     - Emulação de viewport mobile moderna (`390x844` @ 3x DPR, toque habilitado).
+     - Captura e inspeção de 5 screenshots cobrindo toda a experiência do convite:
+       - Topo/Hero com logo, headline afiada e pílulas de benefício.
+       - Palco do Mr. Crazy com balão de fala ao vivo sincronizado, avatar com lip-sync e controles ultra-compactos (28x28px).
+       - Seção "Como Funciona" em grid 2x2 com badges de valor.
+       - Seção "Dores Reais vs Solução" em grid 2x2 de alta legibilidade.
+       - Barra de conversão fixa inferior (`Sticky Bar`) sempre visível com CTA "Começar Grátis".
+  2. **Correção Cirúrgica de Isolamento Desktop/Mobile**:
+     - Identificado vazamento visual do card `.landing-hero-mockup` no mobile devido à precedência de cascata CSS sobre a classe utilitária `.desktop-only`.
+     - Ajustada a regra `.desktop-only` com `@media (max-width: 859px) { display: none !important; }` e `.landing-hero-mockup` configurado com `display: none` por padrão e `display: flex` em `>= 860px`.
+  3. **Validação da Proposta de Valor do Convite**:
+     - Confirmado 100% de alinhamento com a proposta: tom direto, gamificado, foco em fala oral ativa (80%), tolerância de sotaque (70%), e desafio do Chefão.
+  4. **Garantia de Testes**:
+     - Novo teste automatizado adicionado em `tests/landing-page.test.mjs` validando o isolamento estrito.
+     - Suíte completa de 94 testes passando com sucesso.
 
 ## 🟡 Antigravity — 2026-09-30 — Landing Page: Aproveitamento Total de Telas Desktop / Widescreen
 - **Entregue nesta sessão:**

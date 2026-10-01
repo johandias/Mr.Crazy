@@ -113,3 +113,16 @@ test("desktop widescreen optimizations take advantage of larger displays while p
   assert.ok(showcaseCode.includes("mr-crazy-desktop-companion"), "Showcase deve ter painéis complementares");
 });
 
+test("mobile isolation strictly hides desktop-only elements and hero mockup on smaller screens", () => {
+  const landingCss = fs.readFileSync("src/app/landing.css", "utf-8");
+  
+  // 1. desktop-only must have !important display: none below 860px
+  assert.ok(landingCss.includes("@media (max-width: 859px)"), "Deve ter media query limitando estilos mobile");
+  assert.ok(landingCss.includes("display: none !important"), "desktop-only deve usar display: none !important");
+  
+  // 2. hero mockup card defaults to display: none and only becomes flex on >= 860px
+  assert.ok(landingCss.includes(".landing-hero-mockup {\n  display: none;"), "landing-hero-mockup deve iniciar oculto");
+  assert.ok(landingCss.includes(".landing-hero-mockup {\n    display: flex;\n  }"), "landing-hero-mockup deve ativar display: flex somente em telas largas");
+});
+
+

@@ -47,20 +47,15 @@
 }
 
 /* Visibility helpers */
-.mobile-only {
-  display: block;
-}
-
-.desktop-only {
-  display: none;
+@media (max-width: 859px) {
+  .desktop-only {
+    display: none !important;
+  }
 }
 
 @media (min-width: 860px) {
   .mobile-only {
-    display: none;
-  }
-  .desktop-only {
-    display: block;
+    display: none !important;
   }
 }
 
@@ -563,6 +558,7 @@
    HERO MOCKUP CARD (DESKTOP)
    ========================================================================== */
 .landing-hero-mockup {
+  display: none;
   position: relative;
   border-radius: 1.25rem;
   background: linear-gradient(180deg, rgba(26, 30, 39, 0.9) 0%, rgba(13, 16, 21, 0.95) 100%);
@@ -572,10 +568,15 @@
     0 0 40px rgba(230, 183, 68, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   padding: 1.5rem;
-  display: flex;
   flex-direction: column;
   gap: 1.25rem;
   backdrop-filter: blur(12px);
+}
+
+@media (min-width: 860px) {
+  .landing-hero-mockup {
+    display: flex;
+  }
 }
 
 @media (min-width: 1024px) {
