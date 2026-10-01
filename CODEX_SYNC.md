@@ -7,7 +7,24 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 94 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+- **Suíte de Testes**: 97 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+
+## 🟢 Antigravity — 2026-10-01 — Retorno do Avatar 3D Animado em Programação (NPC Arredondado e Volumétrico)
+- **Entregue nesta sessão atendendo à diretriz estrita do usuário:**
+  1. **Substituição de Imagem Estática por Avatar Procedural 3D em Código**:
+     - Retornado e totalmente reconstruído o avatar procedural em `RpgCharacter.tsx` (eliminadas imagens estáticas achatadas que substituíam o personagem).
+     - Modelagem com geometria arredondada e volumétrica: 12 gradientes de oclusão e profundidade 3D (`npc-head-volume`, `npc-skin-3d`, `npc-hair-3d`, `npc-tunic-3d`, `npc-cape-3d`, etc.), curvas bezier suaves e contornos anatômicos arredondados mantendo a essência de NPC de jogo/RPG de alta qualidade.
+     - Detalhes de equipamento fiéis ao conceito: túnica azul-petróleo com 3 fivelas douradas biseladas, cinto de couro com fivela de ouro, capa carmesim em camadas e botas de aventureiro com dobras arredondadas.
+  2. **Animação Viva em Tempo Real**:
+     - **Ciclo de Respiração 3D**: Tórax e ombros respirando suavemente com elevação e expansão natural.
+     - **Visemas Fonéticos e Sincronia Labial**: Formas de boca arredondadas (A, E, O, M/P, repouso) conectadas dinamicamente à Web Audio API (`audioMetricsRef`).
+     - **Gesticulação Expressiva**: Braços e mãos articulados projetados para frente em perspectiva durante a fala, cajado místico e grimório de inglês ("EN").
+     - **Olhar Dinâmico & Piscar de Olhos**: Íris arredondadas com profundidade ciano, brilho especular e pálpebras com piscar procedural a cada 3-5.5s.
+  3. **Estilos e Integração CSS**:
+     - Atualizados `src/app/landing.css` e `src/app/globals.css` garantindo renderização limpa do SVG procedural (`shape-rendering: geometricPrecision`) e visibilidade total em todas as resoluções.
+  4. **Qualidade & Testes**:
+     - 100% dos 97 testes automatizados aprovados (exit code 0).
+
 
 ## 🟢 Antigravity — 2026-10-01 — Auditoria Visual & Funcional de Frontend via Browser Automation
 - **Entregue nesta sessão:**

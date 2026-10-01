@@ -1694,8 +1694,15 @@
   inset: 72% 16% 8% !important;
 }
 
-.mr-crazy-avatar-box svg.rpg-character,
-.mr-crazy-avatar-box svg.rpg-pixel-fallback,
+.mr-crazy-avatar-box svg.rpg-character {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+}
+
 svg.rpg-pixel-fallback {
   display: none !important;
   visibility: hidden !important;
