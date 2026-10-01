@@ -192,7 +192,18 @@ export const RpgCharacter = memo(function RpgCharacter({
       aria-label={`Mr.Crazy ${entranceStage === "hammock" ? "descansando na rede" : activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
       title={entranceStage === "standing" ? "Toque no Mr.Crazy para trocar de reação!" : "Mr.Crazy acordando para a aula!"}
     >
-      <svg className="rpg-character" viewBox={characterViewBox} shapeRendering="crispEdges" aria-hidden="true">
+      {/* Avatar Real em Alta Definição (3D Mascot Studio) */}
+      <div className="mr-crazy-real-avatar-display" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/assets/character/mr_crazy_full_transparent.png"
+          alt="Mr. Crazy - Tutor de Inglês"
+          className="mr-crazy-real-avatar-img"
+          draggable={false}
+        />
+      </div>
+
+      <svg className="rpg-character rpg-pixel-fallback" viewBox={characterViewBox} shapeRendering="crispEdges" aria-hidden="true">
         {/* ================================================================= */}
         {/* CENA 1: REDE DE DESCANSO BALANÇANDO (ENTRADA) */}
         {/* ================================================================= */}

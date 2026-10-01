@@ -9,6 +9,22 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 94 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
+## 🟢 Antigravity — 2026-10-01 — Avatar Real 3D do Mr. Crazy, Dock Mobile Limpo e Palco Desktop Expandido
+- **Entregue nesta sessão:**
+  1. **Substituição do Sprite Pixelado por Avatar Real 3D (Pixar/Dreamworks Studio)**:
+     - Gerado e otimizado novo render 3D de alta definição do Mr. Crazy: cabelo e barba ruivos vibrantes, olhar expressivo e carismático, postura de tutor apontando para o aluno ("Manda bala! Agora é você!"), sobretudo verde-azulado com detalhes dourados e capa carmesim.
+     - Substituição de todos os assets legados em `public/assets/character/` (`mr_crazy_full_transparent.png`, `mr_crazy_avatar_clean.png`, `mr_crazy_avatar.png`, `mr_crazy_full.png`, `mr_crazy_stage1_full.png`).
+     - Atualização do componente `RpgCharacter.tsx` para exibir o avatar 3D estático ("parado"), nítido e com iluminação de estúdio, ocultando o fallback pixelado sem quebrar os seletores semânticos dos testes.
+  2. **Dock de Microfone no Celular 100% Limpo e Transparente**:
+     - Removido o card escuro com borda pesada (`.practice-voice-hub`), fazendo o botão de microfone, ondas dinâmicas e ações flutuarem de forma limpa e transparente sem obstruir o Mr. Crazy.
+  3. **Aproveitamento Total e Enriquecimento da Tela de Computador (`/practice`)**:
+     - **Header Superior Congelado & Estilizado (Sticky HUD)** com glassmorphism, indicador de módulo, nível CEFR e métricas ao vivo.
+     - **Palco Central Expandido**: Mr. Crazy ampliado para 340px-440px, centralizado com fundo de estúdio com iluminação radial e pedestal iluminado.
+     - **Painel Lateral Esquerdo (Apoio Pedagógico & Vida Real)**: Missão do mundo real, laboratório fonético com pronúncia para brasileiros e dicas de conexão de sons de nativos.
+     - **Painel Lateral Direito (Gamificação & Chefão)**: Painel do Chefão com régua dos 70%, radar de fala ativa (meta de 80% aluno) e contador de interações.
+  4. **Preservação Integral de Invariantes & Testes**:
+     - 100% dos 94 testes unitários e de integração aprovados com exit code 0.
+
 ## 🟢 Antigravity — 2026-09-30 — Verificação Visual Mobile & Isolamento Estrito de Elementos Desktop
 - **Entregue nesta sessão:**
   1. **Auditoria Visual & Responsiva via Browser Automation (Chrome DevTools MCP / Port 9222)**:

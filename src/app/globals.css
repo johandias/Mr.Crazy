@@ -5803,6 +5803,42 @@ meter {
   animation: mentor-stomp 0.54s ease-in-out infinite alternate;
 }
 
+/* ==========================================================================
+   MR. CRAZY REAL 3D AVATAR (STILL & ULTRA-HIGH DEFINITION)
+   ========================================================================== */
+.mr-crazy-real-avatar-display {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.mr-crazy-real-avatar-img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.78)) drop-shadow(0 0 24px rgba(230, 183, 68, 0.22));
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.28s ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+.rpg-character-stage.speaking .mr-crazy-real-avatar-img {
+  filter: drop-shadow(0 20px 42px rgba(0, 0, 0, 0.88)) drop-shadow(0 0 38px rgba(230, 183, 68, 0.45));
+}
+
+.rpg-character.rpg-pixel-fallback {
+  display: none !important;
+}
+
+
 @keyframes mentor-shift {
   0% { transform: translateX(-1px) rotate(-0.7deg); }
   100% { transform: translateX(2px) rotate(0.9deg); }
@@ -13833,7 +13869,7 @@ meter {
   .clean-layout .clean-stage .character-avatar-wrapper .rpg-character { width:100%; height:100%; max-height:100%; display:block; overflow:visible; }
 
   /* — Dock de voz: mais padding, botão de mic maior — */
-  .clean-layout .practice-voice-hub { position:absolute; right:10px; bottom:6px; left:10px; z-index:6; gap:2px; margin:0; padding:4px 8px 5px; flex-shrink:0; border:1px solid rgba(94, 234, 212, 0.16); border-radius:16px; background:linear-gradient(180deg, rgba(13, 24, 34, 0.88), rgba(7, 13, 20, 0.94)); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:0 6px 18px rgba(0,0,0,.35); }
+  .clean-layout .practice-voice-hub { position:absolute; right:10px; bottom:6px; left:10px; z-index:6; gap:4px; margin:0; padding:0; flex-shrink:0; border:none !important; border-radius:0 !important; background:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; box-shadow:none !important; }
   .clean-layout .clean-voice-dock { margin:0; padding:0; transform:none; width:100%; }
 
   /* — Botão mic maior e mais ergonômico — */
@@ -15104,10 +15140,38 @@ textarea {
     min-width: 0;
     min-height: 0;
     padding: 24px 30px 28px;
-    border: 1px solid rgba(148, 163, 184, .16);
+    border: 1px solid rgba(230, 183, 68, .22);
     border-radius: 26px;
-    background: linear-gradient(180deg, rgba(13, 24, 34, .72), rgba(7, 13, 20, .78));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 18px 45px rgba(0, 0, 0, .2);
+    background: radial-gradient(circle at 50% 35%, rgba(22, 38, 58, .75) 0%, rgba(10, 17, 26, .88) 60%, rgba(6, 9, 14, .98) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 25px 60px -15px rgba(0, 0, 0, .85);
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-avatar-wrapper::after {
+    content: "";
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(85%, 280px);
+    height: 36px;
+    background: radial-gradient(ellipse at center, rgba(230, 183, 68, 0.35) 0%, rgba(56, 189, 248, 0.18) 50%, transparent 75%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    filter: blur(8px);
+  }
+
+  .practice-main.clean-layout .practice-header-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(8, 12, 18, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 8px 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
@@ -15199,6 +15263,72 @@ textarea {
   .desktop-support-stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #94a3b8; font-size: .74rem; }
   .desktop-support-stat-row strong { color: #e2e8f0; font-size: .8rem; }
   .desktop-support-feedback { padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, .13); }
+
+  .desktop-support-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(230, 183, 68, 0.12);
+    border: 1px solid rgba(230, 183, 68, 0.25);
+    color: #fde68a;
+    font-size: 0.68rem;
+    font-weight: 700;
+    width: fit-content;
+  }
+
+  .desktop-phonetic-hint {
+    margin: 0;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    line-height: 1.4;
+  }
+
+  .desktop-boss-progress-box {
+    display: grid;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(230, 183, 68, 0.08);
+    border: 1px solid rgba(230, 183, 68, 0.22);
+    border-radius: 12px;
+  }
+
+  .desktop-boss-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #fef3c7;
+  }
+
+  .desktop-boss-status-badge {
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(230, 183, 68, 0.2);
+    color: #fbbf24;
+    font-size: 0.65rem;
+    font-weight: 800;
+  }
+
+  .desktop-boss-rule {
+    margin: 0;
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    line-height: 1.4;
+  }
+
+  .support-boss-card {
+    border-color: rgba(230, 183, 68, 0.32);
+    background: linear-gradient(165deg, rgba(28, 22, 14, 0.85), rgba(14, 18, 26, 0.92));
+  }
+
+  .support-phonetic-card {
+    border-color: rgba(56, 189, 248, 0.28);
+  }
+
   .desktop-support-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; box-shadow: 0 0 0 4px rgba(100, 116, 139, .12); }
   .desktop-support-status-dot.is-listening { background: #34d399; box-shadow: 0 0 0 4px rgba(52, 211, 153, .14), 0 0 12px rgba(52, 211, 153, .42); }
   .desktop-support-status-dot.is-speaking { background: #fbbf24; box-shadow: 0 0 0 4px rgba(251, 191, 36, .14), 0 0 12px rgba(251, 191, 36, .42); }

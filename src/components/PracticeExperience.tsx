@@ -23,6 +23,7 @@ import {
   UserRound,
   PictureInPicture2,
   ExternalLink,
+  Flame,
   Keyboard,
   Lightbulb,
   Target,
@@ -2355,7 +2356,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             <div className="desktop-support-card support-goal-card">
               <div className="desktop-support-card-heading">
                 <Target size={15} aria-hidden="true" />
-                <span>Objetivo da rodada</span>
+                <span>Missão da Rodada</span>
               </div>
               <strong>
                 {teachingTarget?.meaningPt || teachingConcepts[currentConceptIndex]?.objective || "Converse com clareza e confiança."}
@@ -2363,16 +2364,38 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               <p>
                 {teachingConcepts[currentConceptIndex]?.description || "Responda em voz alta. O Mr.Crazy ajusta o desafio a cada tentativa."}
               </p>
+              <div className="desktop-support-tag-pill">
+                <span>🎯 Situação Real</span>
+              </div>
+            </div>
+
+            <div className="desktop-support-card support-phonetic-card">
+              <div className="desktop-support-card-heading">
+                <Volume2 size={15} aria-hidden="true" />
+                <span>Laboratório Fonético</span>
+              </div>
+              <strong className="desktop-support-phrase" lang="en">
+                {teachingTarget?.phraseEn || teachingConcepts[currentConceptIndex]?.targetPhrase || "Your turn."}
+              </strong>
+              <span className="desktop-support-meaning">
+                🗣️ {teachingTarget?.phoneticPt || teachingConcepts[currentConceptIndex]?.phoneticPt || "Fale de forma natural."}
+              </span>
+              <p className="desktop-phonetic-hint">
+                Una os sons sem pausas artificiais para soar natural.
+              </p>
             </div>
 
             <div className="desktop-support-card support-tip-card">
               <div className="desktop-support-card-heading">
                 <Lightbulb size={15} aria-hidden="true" />
-                <span>Dica rápida</span>
+                <span>Como Nativos Falam</span>
               </div>
               <p>
                 {teachingTarget?.variationPt || "Fale devagar na primeira tentativa. Clareza vem antes de velocidade."}
               </p>
+              <div className="desktop-support-tag-pill">
+                <span>⚡ Conexão de Sons</span>
+              </div>
             </div>
           </aside>
 
@@ -2602,6 +2625,24 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           </motion.div>
 
           <aside className="desktop-support-rail desktop-support-right" aria-label="Resumo da rodada">
+            <div className="desktop-support-card support-boss-card">
+              <div className="desktop-support-card-heading">
+                <Award size={15} aria-hidden="true" />
+                <span>O Chefão do Módulo</span>
+              </div>
+              <div className="desktop-boss-progress-box">
+                <div className="desktop-boss-header">
+                  <span>Examinador: {activeModule.examNpc.name}</span>
+                  <span className="desktop-boss-status-badge">
+                    {currentConceptIndex >= teachingConcepts.length - 1 ? "Pronto p/ Prova" : `Fase ${currentConceptIndex + 1}/${teachingConcepts.length}`}
+                  </span>
+                </div>
+                <p className="desktop-boss-rule">
+                  ⚡ <strong>Regra dos 70%:</strong> tire nota 7.0+ na prova oral para derrotar o Chefão e avançar.
+                </p>
+              </div>
+            </div>
+
             <div className="desktop-support-card support-target-card">
               <div className="desktop-support-card-heading">
                 <span>Modelo da fase</span>
@@ -2617,7 +2658,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
             <div className="desktop-support-card support-status-card">
               <div className="desktop-support-card-heading">
-                <span>Status do treino</span>
+                <Flame size={15} aria-hidden="true" />
+                <span>Radar de Fluência</span>
                 <span className={`desktop-support-status-dot is-${voiceState}`} aria-hidden="true" />
               </div>
               <div className="desktop-support-stat-row">
@@ -2625,8 +2667,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 <strong>{currentLessonStepIndex + 1}/{LESSON_STEPS_PER_PHASE}</strong>
               </div>
               <div className="desktop-support-stat-row">
-                <span>Interações</span>
+                <span>Interações na sessão</span>
                 <strong>{allConversationItems.length}</strong>
+              </div>
+              <div className="desktop-support-stat-row">
+                <span>Meta de fala ativa</span>
+                <strong style={{ color: "#34d399" }}>80% aluno</strong>
               </div>
               <p className="desktop-support-feedback">
                 {analysis?.reaction || "O próximo feedback aparece assim que você responder."}
