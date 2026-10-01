@@ -304,7 +304,7 @@ export const RpgCharacter = memo(function RpgCharacter({
         viewBox={characterViewBox}
         shapeRendering="crispEdges"
         aria-hidden="true"
-        style={{ display: "none" }}
+        style={{ display: "none", position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
       >
         {/* ================================================================= */}
         {/* CENA 1: REDE DE DESCANSO BALANÇANDO (ENTRADA) */}

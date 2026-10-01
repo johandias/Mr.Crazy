@@ -1694,12 +1694,16 @@
   inset: 72% 16% 8% !important;
 }
 
-.mr-crazy-avatar-box svg.rpg-character {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  display: block !important;
+.mr-crazy-avatar-box svg.rpg-character,
+.mr-crazy-avatar-box svg.rpg-pixel-fallback,
+svg.rpg-pixel-fallback {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Pedestal iluminado no chão */
