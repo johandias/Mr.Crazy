@@ -20,6 +20,8 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
   3. **Aproveitamento Total e Enriquecimento da Tela de Computador (`/practice`)**:
      - **Header Superior Congelado & Estilizado (Sticky HUD)** com glassmorphism, indicador de módulo, nível CEFR e métricas ao vivo.
      - **Palco Central Expandido**: Mr. Crazy ampliado para 340px-440px, centralizado com fundo de estúdio com iluminação radial e pedestal iluminado.
+      - **Remoção de Outline de Foco**: Eliminada a borda branca de foco (`outline: none !important`) ao redor do avatar no desktop.
+      - **Ocultação Absoluta do SVG Pixel**: Adicionado `style={{ display: "none" }}` inline no fallback SVG para garantir que o sprite legado nunca apareça por trás do render 3D em nenhum navegador.
      - **Painel Lateral Esquerdo (Apoio Pedagógico & Vida Real)**: Missão do mundo real, laboratório fonético com pronúncia para brasileiros e dicas de conexão de sons de nativos.
      - **Painel Lateral Direito (Gamificação & Chefão)**: Painel do Chefão com régua dos 70%, radar de fala ativa (meta de 80% aluno) e contador de interações.
   4. **Preservação Integral de Invariantes & Testes**:

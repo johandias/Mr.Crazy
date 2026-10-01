@@ -203,7 +203,13 @@ export const RpgCharacter = memo(function RpgCharacter({
         />
       </div>
 
-      <svg className="rpg-character rpg-pixel-fallback" viewBox={characterViewBox} shapeRendering="crispEdges" aria-hidden="true">
+      <svg
+        className="rpg-character rpg-pixel-fallback"
+        viewBox={characterViewBox}
+        shapeRendering="crispEdges"
+        aria-hidden="true"
+        style={{ display: "none" }}
+      >
         {/* ================================================================= */}
         {/* CENA 1: REDE DE DESCANSO BALANÇANDO (ENTRADA) */}
         {/* ================================================================= */}
