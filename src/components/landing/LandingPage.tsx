@@ -52,7 +52,7 @@ export function LandingPage({ user }: LandingPageProps) {
               <div className="landing-brand-avatar">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src="/assets/email/mrcrazy-fala-ai-email.png" 
+                  src="/assets/character/mr_crazy_3d_headshot.png" 
                   alt="Mr.Crazy Logo"
                   width={42}
                   height={42}
@@ -103,7 +103,7 @@ export function LandingPage({ user }: LandingPageProps) {
         <div className="landing-logo-emblem">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
-            src="/assets/email/mrcrazy-fala-ai-email.png" 
+            src="/assets/character/mr_crazy_3d_headshot.png" 
             alt="Logo Oficial Mr. Crazy"
             className="landing-top-logo-img"
           />
