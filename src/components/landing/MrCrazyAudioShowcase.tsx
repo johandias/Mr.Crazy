@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Volume2, VolumeX, RotateCcw, Flame, Sparkles, Pause, Play, Radio } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { RpgCharacter, type CharacterGesture } from "@/components/RpgCharacter";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
@@ -15,13 +15,6 @@ interface SubtitleSegment {
   emotion: Emotion;
   crazyLevel: number;
 }
-
-const CHAPTERS = [
-  { id: 1, start: 0, title: "1. Fala Aí!" },
-  { id: 2, start: 3.5, title: "2. Sem Regras" },
-  { id: 3, start: 13.8, title: "3. Por Etapas" },
-  { id: 4, start: 34.5, title: "4. Bora Começar!" },
-];
 
 const SUBTITLES: SubtitleSegment[] = [
   {
@@ -118,7 +111,6 @@ export function MrCrazyAudioShowcase() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(37.5);
   const [isMuted, setIsMuted] = useState(false);
   const [waveBars, setWaveBars] = useState<number[]>(new Array(24).fill(6));
 
@@ -291,53 +283,9 @@ export function MrCrazyAudioShowcase() {
     };
   }, [isPlaying]);
 
-  const togglePause = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      await startPlayback();
-    }
-  };
-
   const handleTimeUpdate = () => {
     if (audioRef.current) {
       setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current && Number.isFinite(audioRef.current.duration)) {
-      setDuration(audioRef.current.duration);
-    }
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const targetTime = parseFloat(e.target.value);
-    if (audioRef.current) {
-      audioRef.current.currentTime = targetTime;
-      setCurrentTime(targetTime);
-    }
-  };
-
-  const handleSegmentClick = (startTime: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = startTime;
-      setCurrentTime(startTime);
-      if (!isPlaying) {
-        startPlayback();
-      }
-    }
-  };
-
-  const handleRestart = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      setCurrentTime(0);
-      startPlayback();
     }
   };
 
@@ -348,14 +296,8 @@ export function MrCrazyAudioShowcase() {
     }
   };
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
-  };
-
   return (
-    <div ref={containerRef} className="landing-showcase-console">
+    <div ref={containerRef} className="mr-crazy-ambient-scene">
       {/* Hidden Audio Element */}
       <audio
         ref={audioRef}
@@ -366,23 +308,49 @@ export function MrCrazyAudioShowcase() {
         onEnded={() => setIsPlaying(false)}
       />
 
-      {/* Left Column: Animated Mr. Crazy on Pedestal Stage */}
-      <div className="landing-showcase-stage-col">
-        <div className="landing-showcase-energy-badge">
-          {isPlaying ? (
-            <>
-              <Flame size={14} className="text-amber-400 animate-bounce" />
-              <span>Falando Agora • Voz Echo</span>
-            </>
-          ) : (
-            <>
-              <Sparkles size={14} className="text-amber-400" />
-              <span>Mr. Crazy • Tutor Oficial</span>
-            </>
-          )}
+      {/* Balão de Fala do Mr. Crazy (com a explicação falada em tempo real) */}
+      <div className="mr-crazy-speech-bubble">
+        <div className="mr-crazy-speech-header">
+          <div className="mr-crazy-speaker-badge">
+            <span className={`mr-crazy-pulse-dot ${isPlaying ? "live" : ""}`} />
+            <span>MR. CRAZY</span>
+          </div>
+
+          <div className="mr-crazy-speech-controls">
+            <div className="landing-player-waveform" aria-hidden="true">
+              {waveBars.slice(0, 5).map((height, i) => (
+                <div
+                  key={i}
+                  className={`landing-wave-bar ${isPlaying ? "active" : ""}`}
+                  style={{ height: `${Math.max(4, height * 0.35)}px` }}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="mr-crazy-mute-toggle"
+              title={isMuted ? "Ativar som" : "Mutar áudio"}
+              aria-label={isMuted ? "Ativar som" : "Mutar áudio"}
+            >
+              {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
+          </div>
         </div>
 
-        <div className="landing-showcase-stage-character">
+        {/* Frase que o Mr. Crazy está explicando agora */}
+        <p className="mr-crazy-speech-text">
+          “{activeSegment.text}”
+        </p>
+
+        {/* Ponta do balão apontando para o Mr. Crazy */}
+        <div className="mr-crazy-bubble-tail" aria-hidden="true" />
+      </div>
+
+      {/* Palco e Avatar do Mr. Crazy com expressões, boca e mãos animadas */}
+      <div className="mr-crazy-stage-wrapper">
+        <div className="mr-crazy-avatar-box">
           <RpgCharacter
             crazyLevel={currentCrazyLevel}
             emotion={currentEmotion}
@@ -393,164 +361,8 @@ export function MrCrazyAudioShowcase() {
           />
         </div>
 
-        <div className="landing-showcase-pedestal-base" aria-hidden="true" />
-
-        <div className="landing-showcase-stage-footer">
-          <div className="landing-showcase-stage-footer-top">
-            <span>Nível de Energia</span>
-            <span style={{ color: "#fbbf24", fontWeight: 700 }}>{currentCrazyLevel}%</span>
-          </div>
-          <div className="landing-showcase-stage-footer-bar">
-            <div
-              className="landing-showcase-stage-footer-fill"
-              style={{ width: `${currentCrazyLevel}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Right Column: Interactive Speech Console */}
-      <div className="landing-showcase-player-col">
-        <div className="landing-showcase-player-header">
-          <div>
-            <div className="landing-showcase-badge-row">
-              <span className="landing-showcase-voice-badge">
-                <Radio size={12} className="animate-pulse" />
-                Voz Neural Echo • Realtime
-              </span>
-            </div>
-            <h3 className="landing-showcase-player-title">O Recado do Mr. Crazy</h3>
-            <p className="landing-showcase-player-sub">
-              Ele conversa com você com voz neural em tempo real, sem enrolação.
-            </p>
-          </div>
-
-          <div className="landing-showcase-actions">
-            <button
-              type="button"
-              className={`landing-action-btn ${isPlaying ? "active" : ""}`}
-              onClick={togglePause}
-              title={isPlaying ? "Pausar fala" : "Continuar fala"}
-              aria-label={isPlaying ? "Pausar fala" : "Continuar fala"}
-            >
-              {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-              <span>{isPlaying ? "Pausar" : "Ouvir"}</span>
-            </button>
-            <button
-              type="button"
-              className="landing-action-btn"
-              onClick={handleRestart}
-              title="Reiniciar fala"
-              aria-label="Reiniciar fala"
-            >
-              <RotateCcw size={14} />
-            </button>
-            <button
-              type="button"
-              className="landing-action-btn"
-              onClick={toggleMute}
-              title={isMuted ? "Ativar som" : "Mutar áudio"}
-              aria-label={isMuted ? "Ativar som" : "Mutar áudio"}
-            >
-              {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Dynamic Highlighted Speech Balloon */}
-        <div className="landing-showcase-active-balloon">
-          <div className="landing-showcase-balloon-tag">
-            <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <span className="landing-showcase-speaking-dot" />
-              Fala do Professor:
-            </span>
-            <span style={{ fontSize: "0.68rem", color: "#9ca3af", fontWeight: 600 }}>
-              {formatTime(activeSegment.start)} - {formatTime(activeSegment.end)}
-            </span>
-          </div>
-          <p className="landing-showcase-balloon-phrase">
-            “{activeSegment.text}”
-          </p>
-        </div>
-
-        {/* 4 Interactive Topic Chips */}
-        <div className="landing-showcase-chips">
-          {CHAPTERS.map((ch, idx) => {
-            const nextStart = CHAPTERS[idx + 1]?.start ?? 38.0;
-            const isChipActive = currentTime >= ch.start && currentTime < nextStart;
-            return (
-              <button
-                key={ch.id}
-                type="button"
-                className={`landing-topic-chip ${isChipActive ? "active" : ""}`}
-                onClick={() => handleSegmentClick(ch.start)}
-                title={`Pular para ${ch.title}`}
-              >
-                <span className="landing-topic-chip-time">{formatTime(ch.start)}</span>
-                <span className="landing-topic-chip-title">{ch.title}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Live Audio Waves (Equalizer) */}
-        <div className="landing-player-waveform" aria-hidden="true">
-          {waveBars.map((height, i) => (
-            <div
-              key={i}
-              className={`landing-wave-bar ${isPlaying ? "active" : ""}`}
-              style={{ height: `${height}px` }}
-            />
-          ))}
-        </div>
-
-        {/* Progress Bar & Scrubber */}
-        <div className="landing-player-progress-row">
-          <input
-            type="range"
-            min={0}
-            max={duration || 37.5}
-            step={0.1}
-            value={currentTime}
-            onChange={handleSeek}
-            className="landing-player-slider"
-            aria-label="Progresso da fala do Mr. Crazy"
-          />
-          <div className="landing-player-time">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </div>
-
-        {/* Complete Subtitle Transcripts (Interactive & Accessible) */}
-        <div className="landing-player-subtitles">
-          {SUBTITLES.map((sub) => {
-            const isActive = currentTime >= sub.start && currentTime < sub.end;
-            return (
-              <div
-                key={sub.id}
-                className={`landing-subtitle-line ${isActive ? "active" : ""}`}
-                onClick={() => handleSegmentClick(sub.start)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") handleSegmentClick(sub.start);
-                }}
-              >
-                <span style={{ color: isActive ? "#fbbf24" : "#64748b", fontWeight: 700, marginRight: "0.4rem", fontSize: "0.7rem" }}>
-                  [{formatTime(sub.start)}]
-                </span>
-                {sub.text}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Bottom Reassurance Banner */}
-      <div className="landing-showcase-console-footer">
-        <Sparkles size={14} className="text-amber-400" />
-        <span>100% no navegador • Sem cartão de crédito • Microfone mutado por padrão para sua privacidade</span>
+        {/* Brilho do pedestal sob os pés */}
+        <div className="mr-crazy-pedestal-glow" aria-hidden="true" />
       </div>
     </div>
   );

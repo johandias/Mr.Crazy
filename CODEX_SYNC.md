@@ -10,11 +10,11 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 92 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
-## 🟡 Antigravity — 2026-09-30 — Landing Page: Redesign Desktop & Console Unificado do Mr. Crazy
+## 🟡 Antigravity — 2026-09-30 — Landing Page: Palco Puro do Mr. Crazy Sem Minutagem
 - **Entregue nesta sessão:**
-  1. **Correção Crítica de Layout no Desktop**: Eliminada a explosão de 640px do avatar do Mr. Crazy (causada por `.character-stage` global). O avatar agora fica estritamente contido em 260px no desktop e 200px no mobile com `!important` e sem vazar para a seção vizinha.
-  2. **Console Unificado Master (`landing-showcase-console`)**: Substituídos os dois cards soltos e desproporcionais por um console gamer único e premium (`max-width: 1040px`). À esquerda, a câmara iluminada com o pedestal do Mr. Crazy e medidor de energia; à direita, o console interativo de fala e controles de voz.
-  3. **Balão de Fala Dinâmico & Chips de Salto Rápido**: O balão exibe em destaque a frase falada no momento em tipografia ampla, com barra de equalizador ativa, scrubber dourado e 4 chips de capítulos para navegação instantânea.
+  1. **Experiência Pura & Minimalista**: Removida qualquer minutagem, controles de áudio intrusivos, chips de capítulos e listas de transcrição.
+  2. **Cena Imersiva do Mr. Crazy**: Apenas o avatar do Mr. Crazy sobre seu pedestal iluminado no chão, com fundo mágico atmosférico e o balão de fala apontando diretamente para ele conforme explica o método em voz alta.
+  3. **Expressividade e Sincronia**: Boca (lip-sync), movimentos de cabeça e gesticulação de mãos sincronizados com o áudio oficial, sem nenhum elemento visual poluindo a tela.
   4. **Preservação de Invariantes**: Autoplay por `IntersectionObserver` e suporte mobile preservados, login em `/`, prática com microfone mutado/vermelho; 92 testes automatizados aprovados (exit code 0).
 
 ## 🟡 Codex — 2026-09-29 — revisão profunda de UX/UI incremental
