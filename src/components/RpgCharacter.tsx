@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect, useRef, useCallback, type CSSProperties, type RefObject } from "react";
+import { memo, useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type RefObject } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
 
