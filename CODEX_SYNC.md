@@ -10,12 +10,23 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 92 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
-## 🟡 Antigravity — 2026-09-30 — Landing Page: Palco Puro do Mr. Crazy Sem Minutagem
+## 🟡 Antigravity — 2026-09-30 — Landing Page: Otimização Mobile, Grid Compacto 2 Colunas e Redução de Rolagem
 - **Entregue nesta sessão:**
-  1. **Experiência Pura & Minimalista**: Removida qualquer minutagem, controles de áudio intrusivos, chips de capítulos e listas de transcrição.
-  2. **Cena Imersiva do Mr. Crazy**: Apenas o avatar do Mr. Crazy sobre seu pedestal iluminado no chão, com fundo mágico atmosférico e o balão de fala apontando diretamente para ele conforme explica o método em voz alta.
-  3. **Expressividade e Sincronia**: Boca (lip-sync), movimentos de cabeça e gesticulação de mãos sincronizados com o áudio oficial, sem nenhum elemento visual poluindo a tela.
-  4. **Preservação de Invariantes**: Autoplay por `IntersectionObserver` e suporte mobile preservados, login em `/`, prática com microfone mutado/vermelho; 92 testes automatizados aprovados (exit code 0).
+  1. **Redução Drástica da Rolagem Vertical (Mobile)**:
+     - Seções com padding vertical reduzido de 3rem para 1.75rem.
+     - Cabeçalhos de seção com margem inferior reduzida de 2.5rem para 1.25rem.
+     - Banner de logo superior compactado de 5.5rem para 4rem no mobile, economizando mais de 60px acima da dobra.
+     - Palco do Mr. Crazy com balão de fala e avatar proporcionalmente compactados (avatar de 220px para 175px no mobile, balão com padding 0.85rem), cabendo com folga na tela do celular sem forçar scroll.
+  2. **Grids 2 Colunas no Mobile (Menos Rolagem & Mais Organização)**:
+     - "Como Funciona (Passos)" convertido de pilha vertical (1 coluna de 4 cards longos) em grid compacto de 2 colunas com barra superior integrada (número + ícone) e badges contextuais (`🧭 Vida Real`, `🔊 Apoio Fonético`, `🎙️ Sem Julgamento`, `⚡ Regra dos 70%`).
+     - "Dores Reais / Benefício Central" convertido em grid de 2 colunas no mobile, com microcopy afiado e tags diretas, reduzindo mais de 60% da altura da seção.
+  3. **Ícones Mais Informativos & Desenhados**:
+     - Pílulas do Hero no mobile enriquecidas com badges de valor (`🎙️ Voz Real`, `⚡ Na Hora`, `🏆 Desafio`).
+     - Abas da Demonstração Interativa compactadas e centralizadas com touch targets amigáveis.
+     - Quebra de objeções, banner de CTA e FAQ otimizados para leitura dinâmica em smartphones.
+  4. **Preservação de Invariantes**:
+     - Layout desktop 100% preservado com espaçamentos nobres.
+     - Suíte completa de 92 testes automatizados aprovada com exit code 0.
 
 ## 🟡 Codex — 2026-09-29 — revisão profunda de UX/UI incremental
 - **Em andamento nesta sessão:** fallback de microfone com CTA explícito para responder digitando, estados de erro e carregamento contextuais em histórico/progresso/configurações, tabs de configurações com semântica acessível e CTA de salvar sensível a alterações.

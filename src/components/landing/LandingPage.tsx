@@ -157,6 +157,7 @@ export function LandingPage({ user }: LandingPageProps) {
                   </div>
                   <span className="landing-feature-pill-title">Fala Ativa</span>
                   <span className="landing-feature-pill-sub">Você fala 80%</span>
+                  <span className="landing-feature-pill-tag">🎙️ Voz Real</span>
                 </div>
 
                 <div className="landing-feature-pill">
@@ -164,7 +165,8 @@ export function LandingPage({ user }: LandingPageProps) {
                     <Zap size={15} />
                   </div>
                   <span className="landing-feature-pill-title">Ajuste de Boca</span>
-                  <span className="landing-feature-pill-sub">Dica na hora</span>
+                  <span className="landing-feature-pill-sub">Língua & sons</span>
+                  <span className="landing-feature-pill-tag">⚡ Na Hora</span>
                 </div>
 
                 <div className="landing-feature-pill">
@@ -172,7 +174,8 @@ export function LandingPage({ user }: LandingPageProps) {
                     <Trophy size={15} />
                   </div>
                   <span className="landing-feature-pill-title">O Chefão</span>
-                  <span className="landing-feature-pill-sub">Prova oral</span>
+                  <span className="landing-feature-pill-sub">Prova oral 0-10</span>
+                  <span className="landing-feature-pill-tag">🏆 Desafio</span>
                 </div>
               </div>
             </div>
@@ -280,47 +283,71 @@ export function LandingPage({ user }: LandingPageProps) {
 
           <div className="landing-steps-grid">
             <div className="landing-step-card">
-              <span className="landing-step-num">01</span>
-              <div className="landing-step-icon">
-                <Compass size={22} />
+              <div className="landing-step-top">
+                <span className="landing-step-num">01</span>
+                <div className="landing-step-icon">
+                  <Compass size={20} />
+                </div>
               </div>
-              <h3 className="landing-step-title">Escolha sua Situação Real</h3>
+              <h3 className="landing-step-title">Situação Real</h3>
               <p className="landing-step-desc">
-                Restaurante, viagens, reuniões de trabalho ou bate-papo. Frases úteis que você usa na vida real.
+                Restaurante, viagens, reuniões de trabalho e café. Frases práticas.
               </p>
+              <div className="landing-step-tag">
+                <Compass size={11} />
+                <span>Vida Real</span>
+              </div>
             </div>
 
             <div className="landing-step-card">
-              <span className="landing-step-num">02</span>
-              <div className="landing-step-icon">
-                <Volume2 size={22} />
+              <div className="landing-step-top">
+                <span className="landing-step-num">02</span>
+                <div className="landing-step-icon">
+                  <Volume2 size={20} />
+                </div>
               </div>
               <h3 className="landing-step-title">O Mr. Crazy Te Desafia</h3>
               <p className="landing-step-desc">
-                Ele explica a cena em português e dá o modelo em inglês com apoio fonético na tela.
+                Explica a cena em português e dá o modelo em inglês com apoio fonético.
               </p>
+              <div className="landing-step-tag">
+                <Volume2 size={11} />
+                <span>Apoio Fonético</span>
+              </div>
             </div>
 
             <div className="landing-step-card">
-              <span className="landing-step-num">03</span>
-              <div className="landing-step-icon">
-                <Mic size={22} />
+              <div className="landing-step-top">
+                <span className="landing-step-num">03</span>
+                <div className="landing-step-icon">
+                  <Mic size={20} />
+                </div>
               </div>
               <h3 className="landing-step-title">Você Aperta e Fala</h3>
               <p className="landing-step-desc">
-                Solte a voz pelo microfone. Sem medo de errar e sem plateia para te julgar.
+                Solte a voz pelo microfone. 100% individual, sem plateia e sem medo.
               </p>
+              <div className="landing-step-tag">
+                <Mic size={11} />
+                <span>Sem Julgamento</span>
+              </div>
             </div>
 
             <div className="landing-step-card">
-              <span className="landing-step-num">04</span>
-              <div className="landing-step-icon">
-                <Zap size={22} />
+              <div className="landing-step-top">
+                <span className="landing-step-num">04</span>
+                <div className="landing-step-icon">
+                  <Zap size={20} />
+                </div>
               </div>
-              <h3 className="landing-step-title">Ajuste de Boca & Próxima Fase</h3>
+              <h3 className="landing-step-title">Ajuste de Boca & XP</h3>
               <p className="landing-step-desc">
-                Ele te ensina onde pôr a língua e os dentes. Falou cerca de 70% certo? Ele valida e avança!
+                Ajusta língua e dentes. Falou cerca de 70% certo? Ele valida e avança!
               </p>
+              <div className="landing-step-tag">
+                <Zap size={11} />
+                <span>Regra dos 70%</span>
+              </div>
             </div>
           </div>
         </div>
@@ -411,57 +438,57 @@ export function LandingPage({ user }: LandingPageProps) {
           <div className="landing-pain-grid">
             <div className="landing-pain-card">
               <div className="landing-pain-icon">
-                <BrainCircuit size={20} />
+                <BrainCircuit size={18} />
               </div>
               <h3 className="landing-pain-title">O Bloqueio do Silêncio</h3>
               <p className="landing-pain-problem">
-                Você sabe as palavras na cabeça, mas na hora de falar a voz trava.
+                Sabe as palavras na cabeça, mas na hora de falar a voz trava.
               </p>
               <div className="landing-pain-solution">
-                <CheckCircle2 size={15} />
-                <span>Aqui você fala em voz alta desde a fase 1.</span>
+                <CheckCircle2 size={13} />
+                <span>Fala ativa na fase 1</span>
               </div>
             </div>
 
             <div className="landing-pain-card">
               <div className="landing-pain-icon">
-                <Clock size={20} />
+                <Clock size={18} />
               </div>
               <h3 className="landing-pain-title">Anos de Cursinho Chato</h3>
               <p className="landing-pain-problem">
-                Horas decorando regras sem praticar conversa real.
+                Horas decorando regras sem praticar conversa de verdade.
               </p>
               <div className="landing-pain-solution">
-                <CheckCircle2 size={15} />
-                <span>Treino rápido de 10 a 15 min no celular.</span>
+                <CheckCircle2 size={13} />
+                <span>10 a 15 min diários</span>
               </div>
             </div>
 
             <div className="landing-pain-card">
               <div className="landing-pain-icon">
-                <HeartHandshake size={20} />
+                <HeartHandshake size={18} />
               </div>
               <h3 className="landing-pain-title">Medo de Errar em Público</h3>
               <p className="landing-pain-problem">
-                Vergonha do sotaque ou de errar na frente dos outros.
+                Vergonha do sotaque ou de errar na frente de conhecidos.
               </p>
               <div className="landing-pain-solution">
-                <CheckCircle2 size={15} />
-                <span>Treino 100% individual e seguro com a IA.</span>
+                <CheckCircle2 size={13} />
+                <span>100% seguro com IA</span>
               </div>
             </div>
 
             <div className="landing-pain-card">
               <div className="landing-pain-icon">
-                <TrendingUp size={20} />
+                <TrendingUp size={18} />
               </div>
               <h3 className="landing-pain-title">Sem Parceiro de Treino</h3>
               <p className="landing-pain-problem">
-                Falta de alguém com quem conversar no dia a dia.
+                Falta de alguém nativo com quem conversar todo dia.
               </p>
               <div className="landing-pain-solution">
-                <CheckCircle2 size={15} />
-                <span>Disponível 24h por dia na palma da mão.</span>
+                <CheckCircle2 size={13} />
+                <span>24h no seu celular</span>
               </div>
             </div>
           </div>
