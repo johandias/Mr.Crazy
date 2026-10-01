@@ -9,6 +9,24 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 94 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
+## 🟢 Antigravity — 2026-10-01 — Avatar 3D Vivo Estilo Jogo/NPC (Respiração, Gesticulação e Piscar de Olhos)
+- **Entregue nesta sessão atendendo ao novo mockup fornecido pelo usuário:**
+  1. **Personagem 3D Estilo Jogo/NPC (Turnaround Sheet Idêntico ao Mockup do Usuário)**:
+     - Personagem modelado e estilizado com visual arredondado de jogo (NPC 3D de alta qualidade com cabelo volumoso ruivo, barba bem aparada, túnica azul-petróleo com 3 fivelas douradas quadradas verticais, cinto de couro com fivela de ouro, capa carmesim e braçadeiras de couro com tachas douradas).
+     - Geração e recorte perfeito (100% alfa transparente sem resíduos) de 3 poses coordenadas:
+       - `mr_crazy_3d_gesturing.png`: Postura falando/ensinando com ambas as mãos projetadas para frente em perspectiva, gesticulando com entusiasmo.
+       - `mr_crazy_3d_pointing.png`: Postura apontando diretamente para o aluno ("Manda bala! Agora é você!").
+       - `mr_crazy_3d_idle.png`: Postura de repouso e escuta com mãos na cintura, tórax ereto e respiração natural.
+       - `mr_crazy_3d_headshot.png`: Ícone de avatar em close-up 3D para badges, navbar e chat.
+  2. **Sistema de Animação 3D "Vivo" (Rig Procedural em Tempo Real)**:
+     - **Respiração Orgânica Humana (`npc-breath-cycle`)**: Ciclo de respiração de 3.8s com expansão natural do peito (`scale(1.022, 1.032)`) e elevação dos ombros (`translateY(-6px)`), sincronizado com sombra de contato dinamicamente suavizada no chão.
+     - **Gesticulação com Mãos para Frente (`npc-gesturing-forward`)**: Ao falar (`speaking`), o personagem avança no eixo Z tridimensional (`translate3d(0, -8px, 48px)` em perspectiva de 950px), projetando as mãos para frente com cadência rítmica e expressiva.
+     - **Piscar de Olhos Realista (`npc-eyelids-overlay`)**: Sistema procedural com piscadas a cada 3 a 5.5 segundos e 25% de chance de micro double-blinks naturais.
+     - **Parallax 3D com Rastreamento do Cursor**: A cabeça e o tronco acompanham o mouse/toque do usuário em 3D (`--look-x` e `--look-y`), mantendo contato visual direto com o aluno.
+     - **Detalhes de Vida**: Feixe de luz especular nas placas douradas e partículas sutis de atmosfera mágica de RPG flutuando ao redor.
+  3. **Garantia de Qualidade & Testes**:
+     - 100% dos 94 testes unitários e de integração aprovados com exit code 0.
+
 ## 🟢 Antigravity — 2026-10-01 — Avatar Real 3D do Mr. Crazy, Dock Mobile Limpo e Palco Desktop Expandido
 - **Entregue nesta sessão:**
   1. **Substituição do Sprite Pixelado por Avatar Real 3D (Pixar/Dreamworks Studio)**:

@@ -62,10 +62,16 @@ export const RpgCharacter = memo(function RpgCharacter({
       const dx = Math.max(-1, Math.min(1, (e.clientX - centerX) / (window.innerWidth * 0.35)));
       const dy = Math.max(-1, Math.min(1, (e.clientY - centerY) / (window.innerHeight * 0.35)));
       setLookOffset({ x: dx, y: dy });
+      containerRef.current.style.setProperty("--look-x", dx.toFixed(3));
+      containerRef.current.style.setProperty("--look-y", dy.toFixed(3));
 
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
         setLookOffset({ x: 0, y: 0 });
+        if (containerRef.current) {
+          containerRef.current.style.setProperty("--look-x", "0");
+          containerRef.current.style.setProperty("--look-y", "0");
+        }
       }, 2400);
     };
 
@@ -175,6 +181,46 @@ export const RpgCharacter = memo(function RpgCharacter({
     onTap?.();
   };
 
+  // Piscar de olhos procedural realista (intervalo de 3s a 5.5s com micro double-blinks)
+  const [isBlinking, setIsBlinking] = useState(false);
+  useEffect(() => {
+    let timeoutId: number;
+    let innerTimeout: number;
+    const scheduleNextBlink = () => {
+      const delay = 3000 + Math.random() * 2500;
+      timeoutId = window.setTimeout(() => {
+        setIsBlinking(true);
+        innerTimeout = window.setTimeout(() => {
+          setIsBlinking(false);
+          if (Math.random() < 0.25) {
+            window.setTimeout(() => {
+              setIsBlinking(true);
+              window.setTimeout(() => {
+                setIsBlinking(false);
+                scheduleNextBlink();
+              }, 110);
+            }, 80);
+          } else {
+            scheduleNextBlink();
+          }
+        }, 130);
+      }, delay);
+    };
+    scheduleNextBlink();
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(innerTimeout);
+    };
+  }, []);
+
+  // Postura e Gesto 3D adaptativo (Gesticulando c/ mãos projetadas p/ frente ao falar, Apontando no turno do aluno, Idle respirando)
+  const currentPose = useMemo<"idle" | "gesturing" | "pointing">(() => {
+    if (gesture === "finger" || gesture === "thumbsup") return "pointing";
+    if (voiceState === "speaking") return "gesturing";
+    if (voiceState === "listening") return "pointing";
+    return "idle";
+  }, [gesture, voiceState]);
+
   const activity = voiceState === "speaking" ? "speaking" : voiceState === "listening" ? "listening" : "idle";
   const characterViewBox = (entranceStage === "hammock" || entranceStage === "alert") ? "0 0 160 160" : "14 18 132 130";
 
@@ -182,25 +228,75 @@ export const RpgCharacter = memo(function RpgCharacter({
     <div
       ref={containerRef}
       className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage}`}
-      style={{ "--rpg-energy": `${Math.max(0.25, crazyLevel / 100)}` } as CSSProperties}
+      style={{
+        "--rpg-energy": `${Math.max(0.25, crazyLevel / 100)}`,
+        "--look-x": lookOffset.x,
+        "--look-y": lookOffset.y,
+      } as CSSProperties}
       role="button"
       tabIndex={0}
       onClick={handleStageClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") handleStageClick();
       }}
-      aria-label={`Mr.Crazy ${entranceStage === "hammock" ? "descansando na rede" : activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
+      aria-label={`Mr.Crazy 3D ${entranceStage === "hammock" ? "descansando na rede" : activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
       title={entranceStage === "standing" ? "Toque no Mr.Crazy para trocar de reação!" : "Mr.Crazy acordando para a aula!"}
     >
-      {/* Avatar Real em Alta Definição (3D Mascot Studio) */}
-      <div className="mr-crazy-real-avatar-display" aria-hidden="true">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/assets/character/mr_crazy_full_transparent.png"
-          alt="Mr. Crazy - Tutor de Inglês"
-          className="mr-crazy-real-avatar-img"
-          draggable={false}
-        />
+      {/* ================================================================= */}
+      {/* MR. CRAZY 3D NPC RIG: RESPIRAÇÃO, GESTICULAÇÃO E VIDA REALISTA     */}
+      {/* ================================================================= */}
+      <div
+        className={`mr-crazy-3d-npc-container pose-${currentPose} ${activity} gesture-${gesture} emotion-${emotion}`}
+        aria-hidden="true"
+      >
+        {/* Sombra de Contato com Chão/Pedestal que reage à respiração */}
+        <div className="npc-ground-shadow" />
+
+        {/* Rig 3D com Perspectiva, Parallax e Gesticulação para Frente */}
+        <div className="npc-body-3d-rig">
+          {/* Pose 1: Idle (Respiração natural, mãos na cintura/cinto) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/character/mr_crazy_3d_idle.png"
+            alt="Mr. Crazy 3D Idle"
+            className={`npc-pose-img pose-idle ${currentPose === "idle" ? "is-active" : ""}`}
+            draggable={false}
+          />
+
+          {/* Pose 2: Gesticulando (Mãos projetadas para frente explicando) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/character/mr_crazy_3d_gesturing.png"
+            alt="Mr. Crazy 3D Gesticulando"
+            className={`npc-pose-img pose-gesturing ${currentPose === "gesturing" ? "is-active" : ""}`}
+            draggable={false}
+          />
+
+          {/* Pose 3: Apontando para o aluno ("Manda bala! Agora é você!") */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/character/mr_crazy_3d_pointing.png"
+            alt="Mr. Crazy 3D Apontando"
+            className={`npc-pose-img pose-pointing ${currentPose === "pointing" ? "is-active" : ""}`}
+            draggable={false}
+          />
+
+          {/* Pálpebras com Piscar de Olhos Realista e Dinâmico */}
+          <div className={`npc-eyelids-overlay ${isBlinking ? "is-blinking" : ""}`}>
+            <span className="npc-eyelid eyelid-left" />
+            <span className="npc-eyelid eyelid-right" />
+          </div>
+
+          {/* Feixe Especular nas Fivelas Douradas */}
+          <div className="npc-lighting-sheen" />
+        </div>
+
+        {/* Partículas de Atmosfera Mágica / RPG */}
+        <div className="npc-ambient-magic">
+          <span className="npc-magic-orb orb-1" />
+          <span className="npc-magic-orb orb-2" />
+          <span className="npc-magic-orb orb-3" />
+        </div>
       </div>
 
       <svg
