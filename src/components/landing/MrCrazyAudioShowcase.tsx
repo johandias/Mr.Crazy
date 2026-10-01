@@ -304,7 +304,6 @@ export function MrCrazyAudioShowcase() {
         src="/assets/audio/mrcrazy-landing-intro.mp3"
         preload="auto"
         onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
       />
 
