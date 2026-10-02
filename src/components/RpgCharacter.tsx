@@ -62,8 +62,8 @@ export const RpgCharacter = memo(function RpgCharacter({
   // Ciclo procedural de fonemas labiais realistas durante a fala
   const [animatedPhoneme, setPhoneme] = useState(0);
   const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
-  // Animação de entrada: na rede descansando -> acorda quando o aluno falar -> pula pra posição de pé
-  const [entranceStage, setEntranceStage] = useState<EntranceStage>(() => isAwake ? "standing" : "hammock");
+  // Animação de entrada: inicia imediatamente de pé com o avatar 3D real ativo
+  const [entranceStage, setEntranceStage] = useState<EntranceStage>("standing");
   const wakingUpRef = useRef(false);
 
   // Piscar de olhos procedural realista (intervalo de 3s a 5.5s com micro double-blinks)

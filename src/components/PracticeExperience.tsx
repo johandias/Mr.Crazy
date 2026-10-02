@@ -920,7 +920,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       .catch((error) => {
         if (!isAbortError(error)) {
           console.warn("[Practice] Falha ao restaurar progresso:", error);
-          setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar seu progresso salvo.");
         }
       });
 
@@ -963,7 +962,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
         return true;
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Não foi possível registrar o avanço.");
+        console.warn("[Practice] Falha ao registrar avanço:", error);
         return false;
       }
     };

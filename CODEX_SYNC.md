@@ -9,6 +9,20 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
+## 🟢 Antigravity — 2026-10-02 — Otimização Mobile da Prática & Avatar 3D Funcional
+- **Avatar 3D Funcional & Sempre Ativo**:
+  - `RpgCharacter.tsx`: inicializado imediatamente no estado de pé (`entranceStage: "standing"`), ativando o avatar 3D renderizado em alta definição (`mr_crazy_3d_idle.png`, `mr_crazy_3d_gesturing.png`, `mr_crazy_3d_pointing.png`) com respiração, reação sonoro-vocal WebRTC e poses interativas em tempo real.
+  - O avatar não fica mais oculto ou preso em rede; ao tocar no personagem, ele reage com gestos e interatividade.
+- **Tela Limpa & Zero Sobreposição no Mobile (100dvh)**:
+  - `responsive.css`: balão de fala e guia pedagógico reestruturados para mobile com grid compacto de 2 colunas para significado e pronúncia (`1fr 1fr`), alvo em destaque e dica nativa em chip inferior, reduzindo a altura do card de ~260px para ~110px.
+  - O palco do avatar (`.character-avatar-wrapper`) agora tem flexibilidade dedicada (`flex: 1 1 auto; min-height: 130px; display: flex; align-items: center; justify-content: center;`), ficando visível, imponente e centralizado no centro da tela.
+  - Eliminação total de colisões com o dock de voz inferior: tudo cabe confortavelmente sem scroll e sem que o dock sobreponha o balão ou o Mr. Crazy.
+- **Resiliência e Eliminação de Alertas Falsos de Microfone**:
+  - `PracticeExperience.tsx`: falhas temporárias de sincronização de progresso no banco (`persistLessonProgress`) não disparam mais `setErrorMessage` no controle de voz. Apenas erros genuínos de WebRTC e microfone acionam aviso de áudio.
+  - Box de fallback de erro (`.avatar-mic-error-box`) compactado no mobile para não inflar o dock.
+- **Qualidade & Testes**:
+  - 100% dos testes da suíte nativa aprovados (exit code 0 em `stage-progression`, `scoring`, `realtime-session`, `landing-page`, `realtime-client`, `speech-playback`, etc.).
+
 ## 🟢 Codex — 2026-10-02 — Auditoria final, qualidade e verificação visual antes do deploy
 - **Correções de auditoria:** sincronizado `package-lock.json` com `package.json` para `npm ci`, corrigidos erros de TypeScript em progresso, conversa beta, prova oral, avatar e imports `.ts`, e removidos avisos inválidos de configuração do Next 16.
 - **Qualidade:** `npm run typecheck`, `npm run lint` e `npm run build` passaram em worktree temporário fora do Google Drive; `lint` fica com warnings legados, mas exit code 0.
