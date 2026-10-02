@@ -182,14 +182,15 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
         body: JSON.stringify({ message, history })
       });
       const payload = (await response.json()) as ConversationReplyPayload;
-      if (!response.ok || !payload.reply) throw new Error(payload.error || "Não consegui obter a resposta.");
+      const replyText = payload.reply;
+      if (!response.ok || !replyText) throw new Error(payload.error || "Não consegui obter a resposta.");
 
       setMessages((current) => [
         ...current,
         {
           id: createMessageId(),
           role: "crazy",
-          text: payload.reply,
+          text: replyText,
           correction: payload.correction,
           explanationPt: payload.explanationPt,
           followUp: payload.followUp,

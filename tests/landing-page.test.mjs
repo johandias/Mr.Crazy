@@ -114,7 +114,7 @@ test("desktop widescreen optimizations take advantage of larger displays while p
 });
 
 test("mobile isolation strictly hides desktop-only elements and hero mockup on smaller screens", () => {
-  const landingCss = fs.readFileSync("src/app/landing.css", "utf-8");
+  const landingCss = fs.readFileSync("src/app/landing.css", "utf-8").replace(/\r\n/g, "\n");
   
   // 1. desktop-only must have !important display: none below 860px
   assert.ok(landingCss.includes("@media (max-width: 859px)"), "Deve ter media query limitando estilos mobile");
@@ -124,5 +124,4 @@ test("mobile isolation strictly hides desktop-only elements and hero mockup on s
   assert.ok(landingCss.includes(".landing-hero-mockup {\n  display: none;"), "landing-hero-mockup deve iniciar oculto");
   assert.ok(landingCss.includes(".landing-hero-mockup {\n    display: flex;\n  }"), "landing-hero-mockup deve ativar display: flex somente em telas largas");
 });
-
 

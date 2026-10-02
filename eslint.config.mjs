@@ -6,6 +6,18 @@ const eslintConfig = [
   ...nextTypescript,
   {
     ignores: ["node_modules/**", ".next/**", "out/**", "dist/**", "build/**", "coverage/**"]
+  },
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off"
+    }
+  },
+  {
+    files: ["tests/**/*.mjs"],
+    rules: {
+      "@next/next/no-assign-module-variable": "off",
+      "@typescript-eslint/no-this-alias": "off"
+    }
   }
 ];
 

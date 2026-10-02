@@ -286,9 +286,9 @@ function enrichQuestion(question: ExamQuestion): ExamQuestion {
 }
 
 export function getExamQuestionPlan(moduleId: string, attempt: number, minQuestions?: number): ExamQuestion[] {
-  const module = getModuleById(moduleId);
-  const source = EXAM_QUESTION_BANKS[module.id] ?? GENERIC_QUESTIONS;
-  const required = Math.max(3, minQuestions ?? module.examNpc.minTurns);
+  const learningModule = getModuleById(moduleId);
+  const source = EXAM_QUESTION_BANKS[learningModule.id] ?? GENERIC_QUESTIONS;
+  const required = Math.max(3, minQuestions ?? learningModule.examNpc.minTurns);
   const rotated = rotateQuestions(source, attempt);
   return rotated.slice(0, Math.min(required, rotated.length)).map(enrichQuestion);
 }
@@ -320,9 +320,9 @@ export function getExamCompletionReply(examNpc: ExamNpcConfig): string {
 }
 
 export function getNextExamReply(moduleId: string, attempt: number, answeredQuestions: number): string {
-  const module = getModuleById(moduleId);
-  const plan = getExamQuestionPlan(moduleId, attempt, module.examNpc.minTurns);
-  return plan[answeredQuestions]?.question ?? getExamCompletionReply(module.examNpc);
+  const learningModule = getModuleById(moduleId);
+  const plan = getExamQuestionPlan(moduleId, attempt, learningModule.examNpc.minTurns);
+  return plan[answeredQuestions]?.question ?? getExamCompletionReply(learningModule.examNpc);
 }
 
 export function buildExamQuestionFeedback(question: ExamQuestion, answer: string): ExamQuestionFeedback {

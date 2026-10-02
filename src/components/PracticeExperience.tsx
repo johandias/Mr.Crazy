@@ -907,7 +907,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
         const completedMissions = Array.isArray(record.completed_missions) ? record.completed_missions : [];
         const resume = getLessonResumePosition(completedMissions, teachingConcepts.map((concept) => concept.id));
-        const completedModule = record.status === "completed" || record.progress_percent >= 100;
+        const completedModule = record.status === "completed" || (record.progress_percent ?? 0) >= 100;
 
         currentConceptIndexRef.current = resume.phaseIndex;
         currentLessonStepIndexRef.current = resume.stepIndex;
@@ -2519,7 +2519,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   {voiceState === "analyzing" ? "Você falou: " : "Ouvindo você: "}
                 </span>
                 <span className="user-live-transcript-text">
-                  "{transcript || latestUserSpeech}"
+                  &ldquo;{transcript || latestUserSpeech}&rdquo;
                 </span>
                 {voiceState === "analyzing" && (
                   <span className="user-live-analyzing-spinner">⚡ Analisando...</span>

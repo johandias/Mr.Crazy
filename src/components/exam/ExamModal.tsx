@@ -360,22 +360,23 @@ export function ExamModal({
       window.speechSynthesis.cancel();
     }
 
+    const examAnswers = dialogue
+      .filter((turn) => turn.role === "user")
+      .map((turn, index) => {
+        const question = examQuestions.find((item) => item.id === turn.questionId) ?? examQuestions[index];
+        return {
+          questionId: question?.id,
+          question: question?.question,
+          focus: question?.focus,
+          answer: turn.text
+        };
+      });
+
     try {
       const contextHistory = dialogue.map((t) => ({
         role: t.role === "npc" ? "crazy" : "user",
         text: t.text
       }));
-      const examAnswers = dialogue
-        .filter((turn) => turn.role === "user")
-        .map((turn, index) => {
-          const question = examQuestions.find((item) => item.id === turn.questionId) ?? examQuestions[index];
-          return {
-            questionId: question?.id,
-            question: question?.question,
-            focus: question?.focus,
-            answer: turn.text
-          };
-        });
 
       const res = await fetch("/api/modules/evaluate", {
         method: "POST",
@@ -656,7 +657,7 @@ export function ExamModal({
               {transcript && (
                 <div className="exam-transcript-preview">
                   <span className="transcript-label">Detectando fala:</span>
-                  <span className="transcript-text">"{transcript}"</span>
+                  <span className="transcript-text">&ldquo;{transcript}&rdquo;</span>
                 </div>
               )}
 

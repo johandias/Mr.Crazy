@@ -50,10 +50,6 @@ export const metadata: Metadata = {
       { url: "/app-icon-512.png", sizes: "512x512", type: "image/png" }
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
-  },
-  other: {
-    "mobile-web-app-capable": "yes",
-    "apple-touch-fullscreen": "yes"
   }
 };
 
@@ -70,11 +66,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-touch-fullscreen" content="yes" />
-      </head>
       <body>
         <PwaRegister />
         {children}

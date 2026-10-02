@@ -71,7 +71,7 @@ export async function GET() {
         evolution_score: user.evolution_score || 0,
         main_difficulties: Array.isArray(user.main_difficulties) ? user.main_difficulties : [],
         onboarding_completed: user.onboarding_completed || false,
-        learning_goal: (user as Record<string, unknown>).learning_goal as string | null ?? null
+        learning_goal: (user as unknown as Record<string, unknown>).learning_goal as string | null ?? null
       }
     : null;
 

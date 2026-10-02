@@ -235,6 +235,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   const activity = voiceState === "speaking" ? "speaking" : voiceState === "listening" ? "listening" : "idle";
   const characterViewBox = (entranceStage === "hammock" || entranceStage === "alert") ? "0 0 160 160" : "14 18 132 130";
   const shouldUseRealAvatar = entranceStage === "standing" || entranceStage === "jumping";
+  const legacyEntranceStage = entranceStage as EntranceStage;
   const realAvatarPose = getRealAvatarPose(voiceState, gesture);
 
   return (
@@ -263,7 +264,7 @@ export const RpgCharacter = memo(function RpgCharacter({
             fill
             className="mr-crazy-preview-img"
             sizes="(max-width: 768px) 72vw, (max-width: 1200px) 46vw, 560px"
-            priority={false}
+            priority
             draggable={false}
           />
         </div>
@@ -377,8 +378,8 @@ export const RpgCharacter = memo(function RpgCharacter({
         {/* ================================================================= */}
         {/* CENA 1: REDE DE DESCANSO BALANÇANDO (ENTRADA)                     */}
         {/* ================================================================= */}
-        {(entranceStage === "hammock" || entranceStage === "alert" || entranceStage === "jumping") && (
-          <g className={`rpg-hammock-scene ${entranceStage === "jumping" ? "hammock-dropping" : ""}`}>
+        {(legacyEntranceStage === "hammock" || legacyEntranceStage === "alert" || legacyEntranceStage === "jumping") && (
+          <g className={`rpg-hammock-scene ${legacyEntranceStage === "jumping" ? "hammock-dropping" : ""}`}>
             {/* Cordas de sustentação nas extremidades com curvas suaves */}
             <path className="hammock-rope" d="M 4 48 Q 40 92 80 102 Q 120 92 156 48" fill="none" stroke="#a07855" strokeWidth="2.5" strokeLinecap="round" />
             <path className="hammock-rope-shadow" d="M 4 50 Q 40 94 80 104 Q 120 94 156 50" fill="none" stroke="#684b32" strokeWidth="1.5" strokeLinecap="round" />
@@ -421,7 +422,7 @@ export const RpgCharacter = memo(function RpgCharacter({
                 <path d="M 34 70 C 32 66 40 64 54 68 C 50 74 38 78 34 70 Z" fill="url(#npc-hair-3d)" />
 
                 {/* Expressão: Dormindo (Zzz) vs Alerta (Olhos arregalados) */}
-                {entranceStage === "hammock" ? (
+                {legacyEntranceStage === "hammock" ? (
                   <>
                     <path d="M 44 80 Q 46.5 83 49 80" stroke="#4a1a12" strokeWidth="1.8" fill="none" strokeLinecap="round" />
                     <path d="M 51 80 Q 53.5 83 56 80" stroke="#4a1a12" strokeWidth="1.8" fill="none" strokeLinecap="round" />
@@ -453,8 +454,8 @@ export const RpgCharacter = memo(function RpgCharacter({
         {/* ================================================================= */}
         {/* CENA 2: MR.CRAZY DE PÉ — AVATAR 3D NPC ARREDONDADO & REALISTA      */}
         {/* ================================================================= */}
-        {(entranceStage === "jumping" || entranceStage === "standing") && (
-          <g className={`rpg-standing-group ${entranceStage === "jumping" ? "hero-landing-jump" : ""}`}>
+        {(legacyEntranceStage === "jumping" || legacyEntranceStage === "standing") && (
+          <g className={`rpg-standing-group ${legacyEntranceStage === "jumping" ? "hero-landing-jump" : ""}`}>
             {/* Partículas de energia e magia arredondadas */}
             <g className="rpg-sparks">
               {sparkParticles.map(([x, y, r], index) => (

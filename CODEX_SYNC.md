@@ -7,7 +7,14 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 97 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
+- **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
+
+## 🟢 Codex — 2026-10-02 — Auditoria final, qualidade e verificação visual antes do deploy
+- **Correções de auditoria:** sincronizado `package-lock.json` com `package.json` para `npm ci`, corrigidos erros de TypeScript em progresso, conversa beta, prova oral, avatar e imports `.ts`, e removidos avisos inválidos de configuração do Next 16.
+- **Qualidade:** `npm run typecheck`, `npm run lint` e `npm run build` passaram em worktree temporário fora do Google Drive; `lint` fica com warnings legados, mas exit code 0.
+- **Testes:** 122 testes nativos passaram (`stage-progression`, `scoring`, `realtime-session`, `email-verification`, `landing-page`, `security-resilience`, `realtime-client`, `generated-speech-playback`, `speech-playback`, `realtime-provider-error`, `realtime-route`, `realtime-client-secret-route`).
+- **Browser audit:** Chrome headless/CDP validou `/login`, `/convite` mobile `390x844`, `/practice` protegido e `/practice` autenticado via conta local simulada; sem console errors, sem overflow horizontal, avatar real ativo em `/practice` com `mr_crazy_3d_idle.png` e SVG antigo oculto.
+- **Observação de ambiente:** `node_modules` no checkout do Google Drive continua inadequado para install completo; validação completa foi feita em worktree temporário fora do Drive para evitar erros de escrita/EBADF.
 
 ## 🟡 Codex — 2026-10-01 — Avatar FBX real do Mr.Crazy integrado ao palco
 - **Entregue nesta sessão:** copiado o novo asset rigado para `public/assets/character/mrcrazy-3d/` e conectado ao `RpgCharacter.tsx` via Three/Fiber + `FBXLoader`.

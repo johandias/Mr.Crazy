@@ -116,7 +116,7 @@ export function ModuleEvaluationModal({
           <div className="eval-bubble-title">
             <Sparkles size={14} /> Recado do Mr. Crazy:
           </div>
-          <p className="eval-bubble-text">"{evaluation.summary_feedback}"</p>
+          <p className="eval-bubble-text">&ldquo;{evaluation.summary_feedback}&rdquo;</p>
         </div>
 
         {/* Pontos Fortes e Oportunidades */}
