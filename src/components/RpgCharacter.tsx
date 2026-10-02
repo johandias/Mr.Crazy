@@ -1,6 +1,10 @@
 "use client";
 
-import { memo, useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type RefObject } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import Image from "next/image";
+import { memo, useState, useEffect, useRef, useCallback, type CSSProperties, type RefObject } from "react";
+import * as THREE from "three";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
 
@@ -17,6 +21,176 @@ const sparkParticles = [
   [132, 110, 5],
   [80, 16, 5]
 ] as const;
+
+const REAL_AVATAR_MODEL_PATH = "/assets/character/mrcrazy-3d/mr-crazy-rigged.fbx";
+const REAL_AVATAR_TEXTURES = {
+  diffuse: "/assets/character/mrcrazy-3d/texture_diffuse.png",
+  normal: "/assets/character/mrcrazy-3d/texture_normal.png",
+  roughness: "/assets/character/mrcrazy-3d/texture_roughness.png",
+  metallic: "/assets/character/mrcrazy-3d/texture_metallic.png"
+} as const;
+const REAL_AVATAR_PREVIEW_PATH = "/assets/character/mr_crazy_3d_idle.png";
+
+type LookOffset = {
+  x: number;
+  y: number;
+};
+
+type AvatarTextureSet = {
+  diffuse: THREE.Texture;
+  normal: THREE.Texture;
+  roughness: THREE.Texture;
+  metallic: THREE.Texture;
+};
+
+function prepareAvatarTexture(texture: THREE.Texture, isColorTexture = false) {
+  texture.flipY = false;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 8;
+  if (isColorTexture) {
+    texture.colorSpace = THREE.SRGBColorSpace;
+  }
+  return texture;
+}
+
+function createAvatarMaterial(source: THREE.Material | undefined, textures: AvatarTextureSet) {
+  const sourceMaterial = source as THREE.MeshStandardMaterial | undefined;
+  const color = sourceMaterial?.color instanceof THREE.Color ? sourceMaterial.color.clone() : new THREE.Color("#ffffff");
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    map: sourceMaterial?.map ?? textures.diffuse,
+    normalMap: sourceMaterial?.normalMap ?? textures.normal,
+    roughnessMap: sourceMaterial?.roughnessMap ?? textures.roughness,
+    metalnessMap: sourceMaterial?.metalnessMap ?? textures.metallic,
+    roughness: sourceMaterial?.roughness ?? 0.78,
+    metalness: Math.min(sourceMaterial?.metalness ?? 0.12, 0.35),
+    transparent: sourceMaterial?.transparent ?? false,
+    opacity: sourceMaterial?.opacity ?? 1,
+    side: THREE.FrontSide
+  });
+  material.name = `mr-crazy-real-${sourceMaterial?.name || "material"}`;
+  return material;
+}
+
+function fitAvatarToStage(object: THREE.Object3D) {
+  const originalBox = new THREE.Box3().setFromObject(object);
+  const originalSize = originalBox.getSize(new THREE.Vector3());
+  const originalCenter = originalBox.getCenter(new THREE.Vector3());
+  const maxAxis = Math.max(originalSize.x, originalSize.y, originalSize.z, 1);
+  const scale = 2.42 / maxAxis;
+
+  object.scale.setScalar(scale);
+  object.position.set(
+    -originalCenter.x * scale,
+    -originalBox.min.y * scale - 1.18,
+    -originalCenter.z * scale
+  );
+  object.rotation.set(0, 0, 0);
+}
+
+function RealMrCrazyModel({
+  crazyLevel,
+  voiceState,
+  gesture,
+  emotion,
+  lookOffset,
+  audioMetricsRef,
+  onReady
+}: Readonly<{
+  crazyLevel: number;
+  voiceState: VoiceState;
+  gesture: CharacterGesture;
+  emotion: Emotion;
+  lookOffset: LookOffset;
+  audioMetricsRef?: RefObject<LiveAudioVisualizer>;
+  onReady: () => void;
+}>) {
+  const groupRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const [model, setModel] = useState<THREE.Group | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const textureLoader = new THREE.TextureLoader();
+    const textures: AvatarTextureSet = {
+      diffuse: prepareAvatarTexture(textureLoader.load(REAL_AVATAR_TEXTURES.diffuse), true),
+      normal: prepareAvatarTexture(textureLoader.load(REAL_AVATAR_TEXTURES.normal)),
+      roughness: prepareAvatarTexture(textureLoader.load(REAL_AVATAR_TEXTURES.roughness)),
+      metallic: prepareAvatarTexture(textureLoader.load(REAL_AVATAR_TEXTURES.metallic))
+    };
+
+    const loader = new FBXLoader();
+    loader.load(
+      REAL_AVATAR_MODEL_PATH,
+      (object) => {
+        if (!isMounted) return;
+
+        object.traverse((child) => {
+          const mesh = child as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          mesh.frustumCulled = false;
+          mesh.material = Array.isArray(mesh.material)
+            ? mesh.material.map((material) => createAvatarMaterial(material, textures))
+            : createAvatarMaterial(mesh.material, textures);
+        });
+
+        fitAvatarToStage(object);
+        mixerRef.current = object.animations.length > 0 ? new THREE.AnimationMixer(object) : null;
+        if (mixerRef.current) {
+          const primaryClip = object.animations[0];
+          const action = mixerRef.current.clipAction(primaryClip);
+          action.play();
+        }
+
+        setModel(object);
+        onReady();
+      },
+      undefined,
+      (error) => {
+        console.warn("Nao foi possivel carregar o avatar FBX do Mr.Crazy.", error);
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      mixerRef.current?.stopAllAction();
+      mixerRef.current = null;
+    };
+  }, [onReady]);
+
+  useFrame((state, delta) => {
+    const group = groupRef.current;
+    if (!group) return;
+
+    mixerRef.current?.update(delta * (voiceState === "speaking" ? 1.2 : 0.72));
+
+    const elapsed = state.clock.elapsedTime;
+    const metrics = audioMetricsRef?.current;
+    const liveLevel = metrics?.source === "crazy" ? metrics.level : 0;
+    const stress = Math.min(1, Math.max(0.2, crazyLevel / 100));
+    const speakingLift = voiceState === "speaking" ? 0.055 + liveLevel * 0.08 : 0;
+    const listeningTilt = voiceState === "listening" ? -0.08 : 0;
+    const gesturePush = gesture === "finger" || gesture === "thumbsup" || gesture === "watergun" ? 0.08 : 0;
+    const emotionPulse = emotion === "crazy" ? 0.018 : emotion === "irritated" ? 0.012 : 0.006;
+
+    group.position.y = Math.sin(elapsed * 2.1) * 0.018 + speakingLift;
+    group.position.z = gesturePush;
+    group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, lookOffset.x * 0.18 + listeningTilt, 0.08);
+    group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, -lookOffset.y * 0.08, 0.08);
+    group.rotation.z = Math.sin(elapsed * (voiceState === "speaking" ? 3.8 : 1.45)) * emotionPulse * stress;
+    const scale = 1 + Math.sin(elapsed * 1.6) * 0.01 + liveLevel * 0.025;
+    group.scale.setScalar(scale);
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 0, 0]} rotation={[0, 0, 0]}>
+      {model ? <primitive object={model} /> : null}
+    </group>
+  );
+}
 
 export const RpgCharacter = memo(function RpgCharacter({
   crazyLevel,
@@ -45,7 +219,11 @@ export const RpgCharacter = memo(function RpgCharacter({
   const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
   // Animação de entrada: na rede descansando -> acorda quando o aluno falar -> pula pra posição de pé
   const [entranceStage, setEntranceStage] = useState<EntranceStage>(() => isAwake ? "standing" : "hammock");
+  const [isRealAvatarReady, setIsRealAvatarReady] = useState(false);
   const wakingUpRef = useRef(false);
+  const handleRealAvatarReady = useCallback(() => {
+    setIsRealAvatarReady(true);
+  }, []);
 
   // Piscar de olhos procedural realista (intervalo de 3s a 5.5s com micro double-blinks)
   const [isBlinking, setIsBlinking] = useState(false);
@@ -215,11 +393,12 @@ export const RpgCharacter = memo(function RpgCharacter({
 
   const activity = voiceState === "speaking" ? "speaking" : voiceState === "listening" ? "listening" : "idle";
   const characterViewBox = (entranceStage === "hammock" || entranceStage === "alert") ? "0 0 160 160" : "14 18 132 130";
+  const shouldUseRealAvatar = entranceStage === "standing" || entranceStage === "jumping";
 
   return (
     <div
       ref={containerRef}
-      className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage}`}
+      className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage} ${shouldUseRealAvatar ? "has-real-avatar" : ""} ${isRealAvatarReady ? "real-avatar-loaded" : ""}`}
       style={{
         "--rpg-energy": `${Math.max(0.25, crazyLevel / 100)}`,
         "--look-x": lookOffset.x,
@@ -234,6 +413,52 @@ export const RpgCharacter = memo(function RpgCharacter({
       aria-label={`Mr.Crazy 3D NPC ${entranceStage === "hammock" ? "descansando na rede" : activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
       title={entranceStage === "standing" ? "Toque no Mr.Crazy para interagir!" : "Mr.Crazy acordando para a aula!"}
     >
+      {shouldUseRealAvatar && (
+        <>
+        <div className={`mr-crazy-preview-layer ${isRealAvatarReady ? "is-covered" : ""}`} aria-hidden="true">
+          <Image
+            src={REAL_AVATAR_PREVIEW_PATH}
+            alt=""
+            fill
+            className="mr-crazy-preview-img"
+            sizes="(max-width: 768px) 58vw, (max-width: 1200px) 38vw, 430px"
+            priority={false}
+            draggable={false}
+          />
+        </div>
+        <div className={`mr-crazy-fbx-layer ${isRealAvatarReady ? "is-ready" : ""}`} aria-hidden="true">
+          <Canvas
+            className="mr-crazy-fbx-canvas"
+            camera={{ position: [0, 0.28, 4.85], fov: 32, near: 0.1, far: 100 }}
+            dpr={[1, 1.75]}
+            gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
+            shadows
+          >
+            <ambientLight intensity={0.78} />
+            <hemisphereLight args={["#e0f2fe", "#2a1408", 1.35]} />
+            <directionalLight
+              position={[2.6, 4.2, 3.4]}
+              intensity={2.25}
+              castShadow
+              shadow-mapSize-width={1024}
+              shadow-mapSize-height={1024}
+            />
+            <pointLight position={[-2.2, 1.4, 2.8]} intensity={0.9} color="#fb923c" />
+            <pointLight position={[1.4, 2.1, 2.2]} intensity={0.62} color="#38bdf8" />
+            <RealMrCrazyModel
+              crazyLevel={crazyLevel}
+              voiceState={voiceState}
+              gesture={gesture}
+              emotion={emotion}
+              lookOffset={lookOffset}
+              audioMetricsRef={audioMetricsRef}
+              onReady={handleRealAvatarReady}
+            />
+          </Canvas>
+        </div>
+        </>
+      )}
+      {!shouldUseRealAvatar && (
       <svg
         className="rpg-character"
         viewBox={characterViewBox}
@@ -920,6 +1145,7 @@ export const RpgCharacter = memo(function RpgCharacter({
           </g>
         )}
       </svg>
+      )}
       <div className="character-glow" aria-hidden="true" />
     </div>
   );

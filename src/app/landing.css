@@ -1703,6 +1703,23 @@
   overflow: visible !important;
 }
 
+.mr-crazy-avatar-box .character-stage.has-real-avatar svg.rpg-character {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+.mr-crazy-avatar-box .mr-crazy-preview-layer {
+  opacity: 1 !important;
+}
+
+.mr-crazy-avatar-box .mr-crazy-preview-layer.is-covered {
+  opacity: 0 !important;
+}
+
+.mr-crazy-avatar-box .mr-crazy-fbx-layer.is-ready {
+  opacity: 1 !important;
+}
+
 svg.rpg-pixel-fallback {
   display: none !important;
   visibility: hidden !important;
@@ -2335,4 +2352,3 @@ svg.rpg-pixel-fallback {
   transform-origin: 106px 90px;
   animation: mr-crazy-watergun-talk 0.8s ease-in-out infinite alternate !important;
 }
-

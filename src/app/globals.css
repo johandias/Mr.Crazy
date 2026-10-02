@@ -483,6 +483,61 @@ a {
   filter: drop-shadow(0 18px 24px rgb(0 0 0 / 55%));
 }
 
+.mr-crazy-preview-layer {
+  position: absolute;
+  inset: 1% 6% 2%;
+  z-index: 4;
+  opacity: 1;
+  pointer-events: none;
+  transform: translateY(2px) scale(1);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  filter: drop-shadow(0 22px 34px rgb(0 0 0 / 72%)) drop-shadow(0 0 22px rgb(245 158 11 / 18%));
+}
+
+.mr-crazy-preview-layer.is-covered {
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+}
+
+.mr-crazy-preview-img {
+  object-fit: contain;
+  object-position: center bottom;
+  user-select: none;
+}
+
+.mr-crazy-fbx-layer {
+  position: absolute;
+  inset: -2% -3% 0;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px) scale(0.985);
+  transition: opacity 0.28s ease, transform 0.28s ease, filter 0.28s ease;
+  filter: drop-shadow(0 22px 34px rgb(0 0 0 / 72%));
+}
+
+.mr-crazy-fbx-layer.is-ready {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.mr-crazy-fbx-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  overflow: visible;
+}
+
+.rpg-character-stage.has-real-avatar .rpg-character {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.rpg-character-stage.has-real-avatar .character-glow {
+  z-index: 3;
+  opacity: 0.34;
+}
+
 .rpg-hero {
   transform-origin: 80px 142px;
   animation: realistic-breathe 3s cubic-bezier(0.45, 0, 0.55, 1) infinite;

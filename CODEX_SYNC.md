@@ -9,6 +9,13 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 97 testes passando (`tests/stage-progression.test.mjs`, `tests/scoring.test.mjs`, `tests/realtime-session.test.mjs`, `tests/realtime-client.test.mjs`, `tests/email-verification.test.mjs`, `tests/security-resilience.test.mjs`, `tests/landing-page.test.mjs`)
 
+## 🟡 Codex — 2026-10-01 — Avatar FBX real do Mr.Crazy integrado ao palco
+- **Entregue nesta sessão:** copiado o novo asset rigado para `public/assets/character/mrcrazy-3d/` e conectado ao `RpgCharacter.tsx` via Three/Fiber + `FBXLoader`.
+- **Corrigido após captura do usuário:** o SVG procedural antigo não aparece mais quando o avatar está em pé; enquanto o FBX carrega, a tela usa o PNG 3D novo como fallback imediato.
+- **Preservado:** o fluxo de microfone, WebRTC, persona, gestos e layout mobile não foram alterados.
+- **Visual/runtime:** o modelo real recebe texturas diffuse/normal/roughness/metallic do pacote e reage a fala, escuta, gesto, stress e parallax do cursor no mesmo palco existente.
+- **Validação:** `git diff --check` passou; testes obrigatórios de progressão, scoring e Realtime passaram; `npm run typecheck` segue bloqueado porque `node_modules/.bin/tsc` não existe neste workspace.
+
 ## 🟢 Antigravity — 2026-10-01 — Retorno do Avatar 3D Animado em Programação (NPC Arredondado e Volumétrico)
 - **Entregue nesta sessão atendendo à diretriz estrita do usuário:**
   1. **Substituição de Imagem Estática por Avatar Procedural 3D em Código**:
@@ -393,4 +400,3 @@ Antes de qualquer push na `main`:
   4. **Testes**:
      - Nova suíte `tests/landing-page.test.mjs` com 5 testes automatizados.
      - **Todos os 92 testes unitários passando com sucesso.**
-
