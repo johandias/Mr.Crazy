@@ -726,6 +726,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [speechBubbleHasOverflow, setSpeechBubbleHasOverflow] = useState(false);
   const [speechBubbleIsScrolled, setSpeechBubbleIsScrolled] = useState(false);
   const [isSpeechBubbleExpanded, setIsSpeechBubbleExpanded] = useState(false);
+  const [isStudyDetailsOpen, setIsStudyDetailsOpen] = useState(false);
   const speechBubbleScrollRef = useRef<HTMLDivElement>(null);
   const currentConceptIndexRef = useRef(0);
   const currentLessonStepIndexRef = useRef(0);
@@ -1142,7 +1143,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     setIsSpeechBubbleExpanded(false);
-  }, [latestCrazySpeech]);
+    setIsStudyDetailsOpen(false);
+  }, [latestCrazySpeech, teachingTarget?.phraseEn]);
 
   const latestUserSpeech = useMemo(() => {
     if (transcript.trim()) return transcript.trim();
@@ -2471,38 +2473,61 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 {/* Guia Didático Integrado de Pronúncia da Fase Ativa */}
                 {shouldShowStudyGuide && teachingTarget && (
                   <div className="speech-bubble-didactic-footer">
-                    <dl className="speech-study-guide">
+                    <dl className={`speech-study-guide ${isStudyDetailsOpen ? "is-expanded" : "is-collapsed"}`}>
                       <div className="speech-study-target">
-                        <dt>Fale em inglês</dt>
-                        <dd lang="en">{teachingTarget.phraseEn}</dd>
+                        <div className="speech-study-target-text">
+                          <dt>Fale em inglês</dt>
+                          <dd lang="en">{teachingTarget.phraseEn}</dd>
+                        </div>
+                        {teachingTarget.phraseEn && (
+                          <button
+                            type="button"
+                            className="speech-target-audio-btn"
+                            onClick={() => {
+                              const phrase = teachingTarget.phraseEn;
+                              if (phrase) speak(phrase, "idle", "en-US");
+                            }}
+                            title="Ouvir pronúncia exata em inglês"
+                          >
+                            <Volume2 size={12} />
+                            <span>Ouvir Frase</span>
+                          </button>
+                        )}
                       </div>
-                      <div>
+                      <div className={`speech-study-detail-item ${isStudyDetailsOpen ? "is-open" : "is-hidden"}`}>
                         <dt>Significado</dt>
                         <dd>{teachingTarget.meaningPt}</dd>
                       </div>
-                      <div>
+                      <div className={`speech-study-detail-item ${isStudyDetailsOpen ? "is-open" : "is-hidden"}`}>
                         <dt>Pronúncia aproximada</dt>
                         <dd>{teachingTarget.phoneticPt}</dd>
                       </div>
                       {teachingTarget.variationPt && (
-                        <div className="speech-study-variation">
+                        <div className={`speech-study-variation speech-study-detail-item ${isStudyDetailsOpen ? "is-open" : "is-hidden"}`}>
                           <dt>Como nativos falam</dt>
                           <dd>{teachingTarget.variationPt}</dd>
                         </div>
                       )}
                     </dl>
-                    {teachingTarget.phraseEn && (
+
+                    {(teachingTarget.meaningPt || teachingTarget.phoneticPt || teachingTarget.variationPt) && (
                       <button
                         type="button"
-                        className="speech-target-audio-btn"
-                        onClick={() => {
-                          const phrase = teachingTarget.phraseEn;
-                          if (phrase) speak(phrase, "idle", "en-US");
-                        }}
-                        title="Ouvir pronúncia exata em inglês"
+                        className="speech-study-toggle-btn"
+                        onClick={() => setIsStudyDetailsOpen((open) => !open)}
+                        aria-expanded={isStudyDetailsOpen}
                       >
-                        <Volume2 size={12} />
-                        <span>Ouvir Frase</span>
+                        {isStudyDetailsOpen ? (
+                          <>
+                            <ChevronUp size={12} />
+                            <span>Ocultar detalhes</span>
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={12} />
+                            <span>Ver pronúncia e significado</span>
+                          </>
+                        )}
                       </button>
                     )}
                   </div>

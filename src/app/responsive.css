@@ -742,8 +742,12 @@
   .practice-main .active-module-pill-btn {
     width: 100%;
     min-width: 0;
-    min-height: 40px !important;
-    padding-inline: 10px !important;
+    min-height: 36px !important;
+    padding: 2px 10px !important;
+    background: rgba(15, 23, 42, 0.68) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
   }
 
   .practice-main .active-module-pill-btn .module-pill-title {
@@ -763,9 +767,13 @@
   }
 
   .practice-main .hamburger-btn {
-    width: 40px !important;
-    min-width: 40px !important;
-    height: 40px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    background: rgba(15, 23, 42, 0.68) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
   }
 
   .practice-main .teaching-concept-wrapper {
@@ -775,9 +783,13 @@
   }
 
   .practice-main .teaching-concept-pill-bar {
-    gap: 3px !important;
-    padding: 4px 8px 3px !important;
+    gap: 2px !important;
+    padding: 3px 8px 2px !important;
     border-radius: 10px !important;
+    background: rgba(13, 20, 32, 0.62) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
   }
 
   .practice-main .concept-badge-header-row {
@@ -835,11 +847,13 @@
   }
 
   .practice-main .character-speech-bubble {
-    padding: 8px 12px 9px !important;
+    padding: 8px 12px 8px !important;
     border-radius: 14px !important;
-    background: linear-gradient(180deg, rgba(16, 23, 36, 0.96), rgba(10, 14, 22, 0.98)) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
+    background: linear-gradient(180deg, rgba(16, 23, 36, 0.76), rgba(10, 14, 22, 0.88)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35) !important;
   }
 
   .practice-main .speech-bubble-header {
@@ -895,53 +909,66 @@
   }
 
   .practice-main .speech-study-guide {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 3px 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
     width: 100% !important;
     margin: 0 !important;
   }
 
   .practice-main .speech-study-target {
-    grid-column: 1 / -1 !important;
+    width: 100% !important;
     display: flex !important;
-    align-items: baseline !important;
+    align-items: center !important;
     justify-content: space-between !important;
-    gap: 6px !important;
+    gap: 8px !important;
     background: rgba(14, 165, 233, 0.12) !important;
-    border: 1px solid rgba(56, 189, 248, 0.25) !important;
-    padding: 3px 8px !important;
+    border: 1px solid rgba(56, 189, 248, 0.28) !important;
+    padding: 4px 10px !important;
     border-radius: 8px !important;
   }
 
+  .practice-main .speech-study-target-text {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
   .practice-main .speech-study-target dt {
-    font-size: 0.62rem !important;
+    font-size: 0.58rem !important;
     color: #f59e0b !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
+    letter-spacing: 0.04em !important;
     white-space: nowrap !important;
   }
 
   .practice-main .speech-study-target dd {
-    font-size: 0.92rem !important;
+    font-size: 0.94rem !important;
     font-weight: 800 !important;
     color: #38bdf8 !important;
     margin: 0 !important;
+    overflow-wrap: anywhere !important;
   }
 
-  .practice-main .speech-study-guide > div:not(.speech-study-target) {
+  .practice-main .speech-study-detail-item.is-hidden {
+    display: none !important;
+  }
+
+  .practice-main .speech-study-detail-item.is-open {
     display: flex !important;
     flex-direction: column !important;
     gap: 1px !important;
-    background: rgba(15, 23, 42, 0.55) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    padding: 3px 6px !important;
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    padding: 3px 8px !important;
     border-radius: 6px !important;
   }
 
   .practice-main .speech-study-guide dt {
-    font-size: 0.58rem !important;
+    font-size: 0.56rem !important;
     color: #94a3b8 !important;
     text-transform: uppercase !important;
     font-weight: 600 !important;
@@ -955,22 +982,16 @@
     line-height: 1.25 !important;
   }
 
-  .practice-main .speech-study-variation {
-    grid-column: 1 / -1 !important;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: baseline !important;
-    gap: 5px !important;
+  .practice-main .speech-study-variation.is-open {
     background: rgba(245, 158, 11, 0.08) !important;
     border: 1px solid rgba(245, 158, 11, 0.18) !important;
-    padding: 2px 7px !important;
+    padding: 3px 8px !important;
     border-radius: 6px !important;
   }
 
   .practice-main .speech-study-variation dt {
-    white-space: nowrap !important;
     color: #fbbf24 !important;
-    font-size: 0.58rem !important;
+    font-size: 0.56rem !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
   }
@@ -981,16 +1002,53 @@
     margin: 0 !important;
   }
 
-  .practice-main .speech-target-audio-btn {
-    align-self: flex-end !important;
+  .practice-main .speech-study-toggle-btn {
+    align-self: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 2px 10px !important;
+    margin-top: 2px !important;
     min-height: 24px !important;
+    border-radius: 9999px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: #94a3b8 !important;
+    font-size: 0.64rem !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .practice-main .speech-study-toggle-btn:hover,
+  .practice-main .speech-study-toggle-btn:active {
+    background: rgba(56, 189, 248, 0.12) !important;
+    border-color: rgba(56, 189, 248, 0.28) !important;
+    color: #38bdf8 !important;
+  }
+
+  .practice-main .speech-target-audio-btn {
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    min-height: 26px !important;
     padding: 2px 8px !important;
-    font-size: 0.66rem !important;
+    font-size: 0.64rem !important;
+    border-radius: 6px !important;
+    background: rgba(56, 189, 248, 0.15) !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    color: #38bdf8 !important;
+    font-weight: 600 !important;
+  }
+
+  .practice-main .speech-target-audio-btn span {
+    display: inline !important;
   }
 
   .practice-main .clean-stage.history-is-closed .character-avatar-wrapper {
     margin: 0 auto !important;
-    min-height: 130px !important;
+    min-height: 140px !important;
     flex: 1 1 auto !important;
     display: flex !important;
     align-items: center !important;
@@ -999,6 +1057,21 @@
     position: relative !important;
     z-index: 4 !important;
     overflow: visible !important;
+  }
+
+  .practice-main .clean-stage.history-is-closed .character-avatar-wrapper::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: clamp(180px, 32dvh, 260px);
+    height: clamp(180px, 32dvh, 260px);
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, rgba(245, 158, 11, 0.08) 45%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(14px);
   }
 
   .practice-main .clean-stage.history-is-closed .character-stage {
@@ -1014,13 +1087,17 @@
   }
 
   .practice-main .avatar-mic-error-box {
-    padding: 5px 8px !important;
+    padding: 3px 8px !important;
     gap: 3px !important;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     margin: 2px auto 0 !important;
-    background: rgba(45, 10, 15, 0.95) !important;
-    border: 1px solid rgba(248, 113, 113, 0.4) !important;
-    max-height: 110px !important;
+    background: rgba(38, 12, 18, 0.88) !important;
+    border: 1px solid rgba(248, 113, 113, 0.35) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    max-height: 48px !important;
+    width: 100% !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
   }
 
   .practice-main .avatar-mic-error-copy {
@@ -1030,15 +1107,16 @@
   }
 
   .practice-main .avatar-mic-error-copy svg {
-    width: 14px !important;
-    height: 14px !important;
+    width: 12px !important;
+    height: 12px !important;
     flex-shrink: 0 !important;
     color: #f87171 !important;
   }
 
   .practice-main .avatar-mic-error-copy strong {
-    font-size: 0.72rem !important;
+    font-size: 0.68rem !important;
     color: #fee2e2 !important;
+    white-space: nowrap !important;
   }
 
   .practice-main .avatar-mic-error-copy p {
@@ -1051,27 +1129,39 @@
 
   .practice-main .avatar-mic-error-actions {
     display: flex !important;
-    gap: 6px !important;
-    margin-top: 2px !important;
+    gap: 4px !important;
+    margin-top: 1px !important;
   }
 
   .practice-main .avatar-mic-error-actions button {
-    min-height: 28px !important;
-    padding: 2px 8px !important;
-    font-size: 0.68rem !important;
+    min-height: 22px !important;
+    padding: 1px 6px !important;
+    font-size: 0.62rem !important;
     flex: 1 !important;
-    border-radius: 6px !important;
+    border-radius: 5px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
   }
 
   .practice-main .practice-voice-hub {
+    position: absolute !important;
     --mobile-voice-hub-space: 148px;
     inset: auto 0 0 0 !important;
     transform: none !important;
     width: 100% !important;
     max-width: none !important;
-    padding: 6px 8px 8px !important;
+    padding: 6px 12px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
     gap: 4px !important;
-    border-radius: 16px !important;
+    border-radius: 18px 18px 0 0 !important;
+    background: linear-gradient(180deg, rgba(13, 24, 34, 0.78), rgba(7, 13, 20, 0.92)) !important;
+    border: 1px solid rgba(56, 189, 248, 0.16) !important;
+    border-bottom: none !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35) !important;
+    z-index: 10 !important;
   }
 
   .practice-main .voice-input-control {

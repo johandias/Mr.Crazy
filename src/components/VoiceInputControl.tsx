@@ -2,7 +2,7 @@
 
 import type { RefObject, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Radio } from "lucide-react";
+import { Mic, MicOff, Radio, Keyboard, RefreshCw } from "lucide-react";
 import type { RealtimeConnectionStatus, VoiceDiagnostic } from "@/lib/realtime-client";
 
 export type LiveAudioVisualizer = {
@@ -47,26 +47,28 @@ function VoiceFallbackNotice({
   return (
     <div className="avatar-mic-error-box" role="alert">
       <div className="avatar-mic-error-copy">
-        <MicOff size={18} aria-hidden="true" />
-        <div>
-          <strong>{isMicrophoneIssue ? "Não achei seu microfone." : "A conexão de voz deu uma travada."}</strong>
+        <MicOff size={14} aria-hidden="true" />
+        <div className="avatar-mic-error-text-col">
+          <strong>{isMicrophoneIssue ? "Microfone não detectado" : "Conexão de voz pausada"}</strong>
           <p>
             {isMicrophoneIssue
-              ? "Sem problema: reconecte o áudio ou continue treinando por texto."
-              : "Você pode reconectar o áudio ou continuar a aula digitando."}
+              ? "Reconecte o áudio ou continue por digitação."
+              : "Reconecte ou continue a aula digitando."}
           </p>
         </div>
       </div>
       <p className="avatar-mic-error-detail">{error}</p>
       <div className="avatar-mic-error-actions">
         {onTextFallback ? (
-          <button type="button" className="text-fallback-btn" onClick={onTextFallback}>
-            Responder digitando
+          <button type="button" className="text-fallback-btn" onClick={onTextFallback} title="Responder digitando">
+            <Keyboard size={12} />
+            <span>Digitar</span>
           </button>
         ) : null}
         {onReconnect ? (
-          <button type="button" className="retry-connection-btn" onClick={onReconnect}>
-            Reconectar microfone
+          <button type="button" className="retry-connection-btn" onClick={onReconnect} title="Reconectar microfone">
+            <RefreshCw size={12} />
+            <span>Reconectar</span>
           </button>
         ) : null}
       </div>

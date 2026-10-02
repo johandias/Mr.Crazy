@@ -9,19 +9,22 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
-## 🟢 Antigravity — 2026-10-02 — Otimização Mobile da Prática & Avatar 3D Funcional
-- **Avatar 3D Funcional & Sempre Ativo**:
-  - `RpgCharacter.tsx`: inicializado imediatamente no estado de pé (`entranceStage: "standing"`), ativando o avatar 3D renderizado em alta definição (`mr_crazy_3d_idle.png`, `mr_crazy_3d_gesturing.png`, `mr_crazy_3d_pointing.png`) com respiração, reação sonoro-vocal WebRTC e poses interativas em tempo real.
-  - O avatar não fica mais oculto ou preso em rede; ao tocar no personagem, ele reage com gestos e interatividade.
-- **Tela Limpa & Zero Sobreposição no Mobile (100dvh)**:
-  - `responsive.css`: balão de fala e guia pedagógico reestruturados para mobile com grid compacto de 2 colunas para significado e pronúncia (`1fr 1fr`), alvo em destaque e dica nativa em chip inferior, reduzindo a altura do card de ~260px para ~110px.
-  - O palco do avatar (`.character-avatar-wrapper`) agora tem flexibilidade dedicada (`flex: 1 1 auto; min-height: 130px; display: flex; align-items: center; justify-content: center;`), ficando visível, imponente e centralizado no centro da tela.
-  - Eliminação total de colisões com o dock de voz inferior: tudo cabe confortavelmente sem scroll e sem que o dock sobreponha o balão ou o Mr. Crazy.
-- **Resiliência e Eliminação de Alertas Falsos de Microfone**:
-  - `PracticeExperience.tsx`: falhas temporárias de sincronização de progresso no banco (`persistLessonProgress`) não disparam mais `setErrorMessage` no controle de voz. Apenas erros genuínos de WebRTC e microfone acionam aviso de áudio.
-  - Box de fallback de erro (`.avatar-mic-error-box`) compactado no mobile para não inflar o dock.
-- **Qualidade & Testes**:
-  - 100% dos testes da suíte nativa aprovados (exit code 0 em `stage-progression`, `scoring`, `realtime-session`, `landing-page`, `realtime-client`, `speech-playback`, etc.).
+## 🟢 Antigravity — 2026-10-02 — Redesign Mobile da Prática: Mr. Crazy Hero 3D, Cenário Visível e Guia Didático Colapsável
+- **Hero Mr. Crazy 3D com Presença & Aura de Jogo**:
+  - `PracticeExperience.tsx` & `responsive.css`: palco do avatar 3D (`.character-avatar-wrapper`) ampliado e centralizado como elemento de maior destaque da tela (`flex: 1 1 auto; min-height: 140px; clamp(180px, 32dvh, 260px)`).
+  - Adicionado halo de iluminação mágica RPG (`radial-gradient` ciano/ouro) destacando o Mr. Crazy 3D vivo de pé (`mr_crazy_3d_idle.png`, `mr_crazy_3d_gesturing.png`, `mr_crazy_3d_pointing.png`), com reação tátil a toque e respiração.
+- **Cenário de Fundo Desbloqueado e Aparente**:
+  - Removidas as caixas pretas opacas que cobriam a tela: balão e dock agora utilizam glassmorphism translúcido (`backdrop-filter: blur(14px)`, `rgba(16, 23, 36, 0.76)`).
+  - Tochas místicas (`.ambient-torch`), arcos de pedra e partículas de brasa (`.ambient-spark`) do `.practice-ambient-scene` agora são visíveis e imersivos em mobile.
+- **Guia Didático Colapsável (Economia de 120px no Mobile)**:
+  - `PracticeExperience.tsx`: implementado estado `isStudyDetailsOpen` com botão interativo `[Ver pronúncia e significado ▾]`.
+  - A frase alvo em inglês e o botão de áudio de pronúncia ficam sempre visíveis em destaque. Significado, pronúncia aproximada e variações nativas ficam recolhidos por padrão no mobile, eliminando a poluição visual e liberando a viewport.
+- **Alertas de Erro Slim & Não-Invasivos**:
+  - `VoiceInputControl.tsx` & `responsive.css`: o card de erro de áudio foi transformado em banner slim de 48px com ícone `MicOff` compacto e botões pill `[Digitar]` e `[Reconectar]`. Não deforma mais a tela nem cobre o avatar ou microfone.
+- **Dock de Microfone Ergonômico & Limpo**:
+  - Transparência glassmórfica elegante, microfone central de 54px com anel pulsante, ondas sonoras dinâmicas e status claro ("Mr. Crazy falando...", "Toque para falar", "Microfone aberto").
+- **Validação & Testes**:
+  - 100% dos testes aprovados (31 `stage-progression`, 9 `scoring`, 6 `realtime-session`, 7 `landing-page`, 20 `realtime-client`, 6 `speech-playback`, 3 `generated-speech-playback`, 6 `realtime-provider-error`).
 
 ## 🟢 Codex — 2026-10-02 — Auditoria final, qualidade e verificação visual antes do deploy
 - **Correções de auditoria:** sincronizado `package-lock.json` com `package.json` para `npm ci`, corrigidos erros de TypeScript em progresso, conversa beta, prova oral, avatar e imports `.ts`, e removidos avisos inválidos de configuração do Next 16.
