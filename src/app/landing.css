@@ -1709,14 +1709,8 @@
 }
 
 .mr-crazy-avatar-box .mr-crazy-preview-layer {
-  opacity: 1 !important;
-}
-
-.mr-crazy-avatar-box .mr-crazy-preview-layer.is-covered {
-  opacity: 0 !important;
-}
-
-.mr-crazy-avatar-box .mr-crazy-fbx-layer.is-ready {
+  --real-avatar-scale: 1.02;
+  inset: -4% -10% -9% !important;
   opacity: 1 !important;
 }
 

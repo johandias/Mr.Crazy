@@ -12,8 +12,9 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟡 Codex — 2026-10-01 — Avatar FBX real do Mr.Crazy integrado ao palco
 - **Entregue nesta sessão:** copiado o novo asset rigado para `public/assets/character/mrcrazy-3d/` e conectado ao `RpgCharacter.tsx` via Three/Fiber + `FBXLoader`.
 - **Corrigido após captura do usuário:** o SVG procedural antigo não aparece mais quando o avatar está em pé; enquanto o FBX carrega, a tela usa o PNG 3D novo como fallback imediato.
+- **Corrigido após captura de proporção/bug de fala:** a camada FBX foi removida do runtime por deformar o personagem ao falar; o avatar funcional agora usa poses PNG 3D novas (`idle`, `gesturing`, `pointing`) e escala desktop maior para reduzir o vazio do palco.
 - **Preservado:** o fluxo de microfone, WebRTC, persona, gestos e layout mobile não foram alterados.
-- **Visual/runtime:** o modelo real recebe texturas diffuse/normal/roughness/metallic do pacote e reage a fala, escuta, gesto, stress e parallax do cursor no mesmo palco existente.
+- **Visual/runtime:** o runtime ativo usa PNGs 3D novos por pose e animação CSS leve; o FBX/texturas ficam preservados em assets para futura normalização sem entrar no palco quebrado.
 - **Validação:** `git diff --check` passou; testes obrigatórios de progressão, scoring e Realtime passaram; `npm run typecheck` segue bloqueado porque `node_modules/.bin/tsc` não existe neste workspace.
 
 ## 🟢 Antigravity — 2026-10-01 — Retorno do Avatar 3D Animado em Programação (NPC Arredondado e Volumétrico)
