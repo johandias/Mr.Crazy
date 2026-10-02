@@ -9,22 +9,22 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
-## 🟢 Antigravity — 2026-10-02 — Redesign Mobile da Prática: Mr. Crazy Hero 3D, Cenário Visível e Guia Didático Colapsável
-- **Hero Mr. Crazy 3D com Presença & Aura de Jogo**:
-  - `PracticeExperience.tsx` & `responsive.css`: palco do avatar 3D (`.character-avatar-wrapper`) ampliado e centralizado como elemento de maior destaque da tela (`flex: 1 1 auto; min-height: 140px; clamp(180px, 32dvh, 260px)`).
-  - Adicionado halo de iluminação mágica RPG (`radial-gradient` ciano/ouro) destacando o Mr. Crazy 3D vivo de pé (`mr_crazy_3d_idle.png`, `mr_crazy_3d_gesturing.png`, `mr_crazy_3d_pointing.png`), com reação tátil a toque e respiração.
-- **Cenário de Fundo Desbloqueado e Aparente**:
-  - Removidas as caixas pretas opacas que cobriam a tela: balão e dock agora utilizam glassmorphism translúcido (`backdrop-filter: blur(14px)`, `rgba(16, 23, 36, 0.76)`).
-  - Tochas místicas (`.ambient-torch`), arcos de pedra e partículas de brasa (`.ambient-spark`) do `.practice-ambient-scene` agora são visíveis e imersivos em mobile.
-- **Guia Didático Colapsável (Economia de 120px no Mobile)**:
-  - `PracticeExperience.tsx`: implementado estado `isStudyDetailsOpen` com botão interativo `[Ver pronúncia e significado ▾]`.
-  - A frase alvo em inglês e o botão de áudio de pronúncia ficam sempre visíveis em destaque. Significado, pronúncia aproximada e variações nativas ficam recolhidos por padrão no mobile, eliminando a poluição visual e liberando a viewport.
-- **Alertas de Erro Slim & Não-Invasivos**:
-  - `VoiceInputControl.tsx` & `responsive.css`: o card de erro de áudio foi transformado em banner slim de 48px com ícone `MicOff` compacto e botões pill `[Digitar]` e `[Reconectar]`. Não deforma mais a tela nem cobre o avatar ou microfone.
-- **Dock de Microfone Ergonômico & Limpo**:
-  - Transparência glassmórfica elegante, microfone central de 54px com anel pulsante, ondas sonoras dinâmicas e status claro ("Mr. Crazy falando...", "Toque para falar", "Microfone aberto").
+## 🟢 Antigravity — 2026-10-02 — Avatar 3D Vivo, Parallax Pointer Tracking, Reação Sonoro-Vocal & Interatividade Tátil
+- **Avatar 3D Vivo com Parallax & Reação Sonoro-Vocal**:
+  - `RpgCharacter.tsx` & `globals.css`: conectado o modelo 3D real (`.mr-crazy-preview-layer`) diretamente aos seletores dinâmicos de parallax tridimensional (`--look-x`, `--look-y`) e de áudio WebRTC (`--live-head-bob`, `--live-level`).
+  - O Mr. Crazy agora acompanha o movimento dos olhos/cabeça com o cursor ou toque do aluno em tempo real, além de modular sua respiração e gesticulação sincronicamente ao som.
+- **Interatividade Tátil com Reação Flutuante**:
+  - Ao clicar ou tocar no Mr. Crazy, o personagem reage imediatamente com gestos (`finger`, `thumbsup`, `watergun`, `heart`) e emite balões visuais motivacionais de tutor (`character-tap-reaction-bubble`: *"⚡ Manda bala!"*, *"🔥 Bora!"*, *"🎯 Pronúncia é treino!"*, etc.), tornando a aula viva e dinâmica.
+- **Iluminação & Reação Emocional Dinâmica**:
+  - Implementado tratamento de iluminação reativa para os estados emocionais: quando o aluno erra repetidamente (`irritated`/`crazy`), o glow ganha intensidade carmesim e fogo; quando em análise de resposta (`analyzing`), ganha aura ciano focada; quando em aprovação (`heart`/`thumbsup`), projeta energia dourada.
+- **Hero Mr. Crazy 3D, Cenário Visível e Guia Didático Colapsável**:
+  - Palco do avatar ampliado e centralizado em 100dvh sem rolagem vertical no mobile.
+  - Balão de fala e dock com glassmorphism translúcido (`backdrop-filter: blur(14px)`), revelando as tochas e arcos do `.practice-ambient-scene`.
+  - Guia didático colapsável (`isStudyDetailsOpen`) economizando 120px no celular.
+  - Alerta de erro de microfone slim e elegante de 48px com botões pill `[Digitar]` e `[Reconectar]`.
 - **Validação & Testes**:
   - 100% dos testes aprovados (31 `stage-progression`, 9 `scoring`, 6 `realtime-session`, 7 `landing-page`, 20 `realtime-client`, 6 `speech-playback`, 3 `generated-speech-playback`, 6 `realtime-provider-error`).
+  - Auditoria browser headless validada em `/login` e `/convite` mobile (390x844).
 
 ## 🟢 Codex — 2026-10-02 — Auditoria final, qualidade e verificação visual antes do deploy
 - **Correções de auditoria:** sincronizado `package-lock.json` com `package.json` para `npm ci`, corrigidos erros de TypeScript em progresso, conversa beta, prova oral, avatar e imports `.ts`, e removidos avisos inválidos de configuração do Next 16.

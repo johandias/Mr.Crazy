@@ -30,7 +30,7 @@ function getRealAvatarPose(voiceState: VoiceState, gesture: CharacterGesture) {
     return { name: "pointing", src: REAL_AVATAR_POSE_PATHS.pointing };
   }
 
-  if (voiceState === "speaking") {
+  if (voiceState === "speaking" || gesture === "heart") {
     return { name: "speaking", src: REAL_AVATAR_POSE_PATHS.speaking };
   }
 
@@ -59,6 +59,9 @@ export const RpgCharacter = memo(function RpgCharacter({
   const containerRef = useRef<HTMLDivElement>(null);
   // Parallax Pointer Tracking (olhos e cabeça seguem o cursor do usuário)
   const [lookOffset, setLookOffset] = useState({ x: 0, y: 0 });
+  // Interatividade: balãozinho de fala ao tocar no Mr. Crazy
+  const [tapReaction, setTapReaction] = useState<string | null>(null);
+  const [tapReactionKey, setTapReactionKey] = useState(0);
   // Ciclo procedural de fonemas labiais realistas durante a fala
   const [animatedPhoneme, setPhoneme] = useState(0);
   const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
@@ -229,6 +232,18 @@ export const RpgCharacter = memo(function RpgCharacter({
       onAwaken?.();
       return;
     }
+    const phrases = [
+      "⚡ Manda bala!",
+      "🔥 Bora!",
+      "👂 Tô ouvindo!",
+      "🎯 Pronúncia é treino!",
+      "💪 Não trava não!",
+      "🚀 Let's speak!"
+    ];
+    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    setTapReaction(phrase);
+    setTapReactionKey(Date.now());
+    window.setTimeout(() => setTapReaction(null), 1800);
     onTap?.();
   };
 
@@ -256,6 +271,11 @@ export const RpgCharacter = memo(function RpgCharacter({
       aria-label={`Mr.Crazy 3D NPC ${entranceStage === "hammock" ? "descansando na rede" : activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
       title={entranceStage === "standing" ? "Toque no Mr.Crazy para interagir!" : "Mr.Crazy acordando para a aula!"}
     >
+      {tapReaction && (
+        <div className="character-tap-reaction-bubble" key={tapReactionKey} aria-hidden="true">
+          <span>{tapReaction}</span>
+        </div>
+      )}
       {shouldUseRealAvatar && (
         <div className="mr-crazy-preview-layer" aria-hidden="true">
           <Image
