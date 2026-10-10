@@ -483,11 +483,14 @@ test("practice no longer waits for the broken 3d avatar", async () => {
 
 test("pixel avatar has an explicit practice-intro box", async () => {
   const fs = await import("node:fs");
+  const startScreenCode = fs.readFileSync("src/components/PracticeStartScreen.tsx", "utf-8");
   const globalCss = fs.readFileSync("src/app/globals.css", "utf-8");
 
+  assert.match(startScreenCode, /PixelMrCrazy/);
+  assert.match(startScreenCode, /practice-start-pixel-avatar/);
   assert.match(globalCss, /practice-start-character-panel \.rpg-character-stage[\s\S]*?min-height: 260px/);
-  assert.match(globalCss, /practice-start-character-panel \.pixel-mr-crazy-art[\s\S]*?position: absolute/);
-  assert.match(globalCss, /practice-start-character-panel \.pixel-mr-crazy-art[\s\S]*?min-height: 100%/);
+  assert.match(globalCss, /practice-start-pixel-avatar[\s\S]*?position: absolute/);
+  assert.match(globalCss, /practice-start-pixel-avatar \.pixel-mr-crazy-art[\s\S]*?height: 100%/);
 });
 
 test("beta conversation fallback provides correction, explanation, and continuity", async () => {

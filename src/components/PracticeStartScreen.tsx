@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Map, Play, Sparkles, Target } from "lucide-react";
-import { RpgCharacter } from "@/components/RpgCharacter";
+import { PixelMrCrazy } from "@/components/PixelMrCrazy";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
 type PracticeStartScreenProps = {
@@ -84,13 +84,18 @@ export function PracticeStartScreen({
         >
           <div className="practice-start-character-aura" aria-hidden="true" />
           <span className="practice-start-character-label">Seu professor de inglês</span>
-          <RpgCharacter
-            crazyLevel={crazyLevel}
-            emotion={emotion}
-            voiceState={voiceState}
-            gesture="idle"
-            isAwake
-          />
+          <div className="practice-start-pixel-avatar">
+            <PixelMrCrazy
+              crazyLevel={crazyLevel}
+              emotion={emotion}
+              voiceState={voiceState}
+              gesture="idle"
+              lookX={0}
+              lookY={0}
+              phoneme={0}
+              isBlinking={false}
+            />
+          </div>
           <span className="practice-start-character-name">Mr.Crazy</span>
         </motion.div>
       </section>
