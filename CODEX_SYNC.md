@@ -9,6 +9,12 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
+## 🟢 Codex — 2026-10-10 — Redesign do personagem com movimento, impacto e lip-sync
+- **Entregue:** personagem SVG vetorial desenhado do zero, com direção visual baseada na referência: cabelo ruivo volumoso, óculos, túnica teal, capa carmesim, cinto dourado e botas de RPG.
+- **Escopo atômico:** `PixelMrCrazy.tsx`, `RpgCharacter.tsx` e regras de personagem em `globals.css`; fluxo WebRTC, microfone mutado no início e progressão de fases permaneceram intactos.
+- **Comportamento:** respiração, deslocamento de peso, gestos e brilho reativo; explosões curtas nos estados de reação/irritação; boca alternando visemas pela métrica real `level/bass/bands` do áudio do Mr.Crazy; aro de energia quando o aluno acorda o palco.
+- **Validação:** 33 testes de progressão, 9 de scoring e 6 de Realtime passaram; esbuild validou os dois TSX alterados; `git diff --check` limpo. Typecheck completo bloqueado apenas pela ausência de `node_modules` neste checkout.
+
 ## 🟡 Codex — 2026-10-10 — Avatar visível na tela inicial da prática
 - **Em andamento:** a tela inicial agora monta `PixelMrCrazy` diretamente em um contêiner próprio, sem passar pelo orquestrador de voz; o contêiner tem caixa explícita e o SVG ocupa essa caixa com posicionamento absoluto.
 - **Regressão:** teste dedicado garante a montagem direta e as dimensões do avatar na tela inicial; suítes obrigatórias passaram (33 + 9 + 6).

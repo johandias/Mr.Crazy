@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useId, type CSSProperties } from "react";
 import type { CharacterGesture } from "@/components/RpgCharacter";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
@@ -11,9 +11,15 @@ type PixelMrCrazyProps = Readonly<{
   lookY: number;
   phoneme: number;
   isBlinking: boolean;
+  burstKey?: number;
+  isAwake?: boolean;
 }>;
 
-/** Mr. Crazy em pixel art vetorial: cada detalhe é desenhado em código e permanece animável. */
+/**
+ * Mr. Crazy is intentionally drawn in code instead of being a flat bitmap.
+ * The SVG keeps the RPG silhouette from the reference while leaving every
+ * important part animatable: eyes, mouth, shoulders, cape, hands and impact FX.
+ */
 export function PixelMrCrazy({
   voiceState,
   gesture,
@@ -22,106 +28,205 @@ export function PixelMrCrazy({
   lookX,
   lookY,
   phoneme,
-  isBlinking
+  isBlinking,
+  burstKey = 0,
+  isAwake = false
 }: PixelMrCrazyProps) {
+  const instanceId = useId().replace(/:/gu, "");
   const activity = voiceState === "speaking" ? "speaking" : voiceState === "listening" ? "listening" : "idle";
-  const faceX = Math.round(lookX * 2);
-  const faceY = Math.round(lookY * 1.5);
-  const mouth = voiceState === "speaking" ? phoneme : 0;
+  const faceX = Math.round(lookX * 3);
+  const faceY = Math.round(lookY * 2);
+  const mouth = voiceState === "speaking" ? phoneme : 4;
+  const energy = Math.max(0.25, crazyLevel / 100);
+  const bodyLift = activity === "speaking" ? -4 : activity === "listening" ? 1 : 0;
+  const mouthLabel = ["aberta", "esticada", "redonda", "fechando", "repouso"][mouth] ?? "repouso";
+
+  const ids = {
+    skin: `${instanceId}-skin`,
+    skinShadow: `${instanceId}-skin-shadow`,
+    hair: `${instanceId}-hair`,
+    capeShadow: `${instanceId}-cape-shadow`,
+    coat: `${instanceId}-coat`,
+    coatShadow: `${instanceId}-coat-shadow`,
+    gold: `${instanceId}-gold`,
+    leather: `${instanceId}-leather`,
+    glass: `${instanceId}-glass`,
+    aura: `${instanceId}-aura`,
+    shadow: `${instanceId}-shadow`,
+    glow: `${instanceId}-glow`
+  };
 
   return (
     <svg
-      className={`pixel-mr-crazy-art pixel-${activity} pixel-emotion-${emotion} pixel-gesture-${gesture} ${isBlinking ? "pixel-blinking" : ""}`}
-      viewBox="0 0 192 240"
+      className={`pixel-mr-crazy-art pixel-${activity} pixel-emotion-${emotion} pixel-gesture-${gesture} ${isBlinking ? "pixel-blinking" : ""} ${isAwake ? "pixel-awake" : ""}`}
+      viewBox="0 0 320 420"
       role="img"
-      aria-label="Mr. Crazy, personagem pixel-art de RPG"
+      aria-label={`Mr. Crazy, personagem RPG ${activity === "speaking" ? `falando com boca ${mouthLabel}` : "pronto"}`}
       shapeRendering="crispEdges"
-      style={{ "--pixel-energy": Math.max(0.25, crazyLevel / 100) } as CSSProperties}
+      data-phoneme={mouth}
+      style={{ "--pixel-energy": energy } as CSSProperties}
     >
-      <ellipse className="pixel-ground-shadow" cx="96" cy="226" rx="55" ry="7" fill="#070b12" opacity=".8" />
+      <defs>
+        <radialGradient id={ids.aura} cx="50%" cy="42%" r="58%">
+          <stop offset="0%" stopColor="#5eead4" stopOpacity=".28" />
+          <stop offset="48%" stopColor="#38bdf8" stopOpacity=".1" />
+          <stop offset="100%" stopColor="#0b1220" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={ids.shadow} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#020617" stopOpacity=".8" />
+          <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={ids.skin} x1="20%" y1="10%" x2="80%" y2="100%">
+          <stop offset="0%" stopColor="#fff1e7" />
+          <stop offset="42%" stopColor="#f6b59d" />
+          <stop offset="100%" stopColor="#b85d51" />
+        </linearGradient>
+        <linearGradient id={ids.skinShadow} x1="10%" y1="0%" x2="90%" y2="100%">
+          <stop offset="0%" stopColor="#f6b59d" />
+          <stop offset="100%" stopColor="#8e3f3e" />
+        </linearGradient>
+        <linearGradient id={ids.hair} x1="15%" y1="0%" x2="85%" y2="100%">
+          <stop offset="0%" stopColor="#ffd08a" />
+          <stop offset="28%" stopColor="#f97316" />
+          <stop offset="72%" stopColor="#bd3d1f" />
+          <stop offset="100%" stopColor="#5e1f25" />
+        </linearGradient>
+        <linearGradient id={ids.capeShadow} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#7b2144" />
+          <stop offset="100%" stopColor="#1c122d" />
+        </linearGradient>
+        <linearGradient id={ids.coat} x1="15%" y1="0%" x2="85%" y2="100%">
+          <stop offset="0%" stopColor="#58d0c5" />
+          <stop offset="38%" stopColor="#137f87" />
+          <stop offset="100%" stopColor="#0b354d" />
+        </linearGradient>
+        <linearGradient id={ids.coatShadow} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#1a6070" />
+          <stop offset="100%" stopColor="#061c32" />
+        </linearGradient>
+        <linearGradient id={ids.gold} x1="5%" y1="0%" x2="95%" y2="100%">
+          <stop offset="0%" stopColor="#fff2a6" />
+          <stop offset="32%" stopColor="#f8c34c" />
+          <stop offset="75%" stopColor="#b86b1d" />
+          <stop offset="100%" stopColor="#673318" />
+        </linearGradient>
+        <linearGradient id={ids.leather} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#c8784e" />
+          <stop offset="55%" stopColor="#793b30" />
+          <stop offset="100%" stopColor="#321a25" />
+        </linearGradient>
+        <linearGradient id={ids.glass} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#c9faff" stopOpacity=".75" />
+          <stop offset="100%" stopColor="#5c94bf" stopOpacity=".15" />
+        </linearGradient>
+        <filter id={ids.glow} x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
 
-      <g className="pixel-cape">
-        <path fill="#351522" d="M55 112H43v8H34v14H27v54h8v18h15v11h22v-8h9v-77H55zM137 112h12v8h9v14h7v54h-8v18h-15v11h-22v-8h-9v-77h24z" />
-        <path fill="#74263b" d="M53 116H43v12h-8v49h8v18h14v11h18v-70H53zM139 116h10v12h8v49h-8v18h-14v11h-18v-70h22z" />
-        <path fill="#aa3d4b" d="M45 124h7v12h6v54h-9v-11h-6v-43h2zM147 124h-7v12h-6v54h9v-11h6v-43h-2z" />
-        <path fill="#e26558" d="M39 132h5v30h-4v-7h-4v-18h3zM153 132h-5v30h4v-7h4v-18h-3z" />
-        <path fill="#531c2b" d="M57 118h10v8H57zM135 118h-10v8h10z" />
-      </g>
+      <ellipse className="pixel-aura" cx="160" cy="190" rx="142" ry="178" fill={`url(#${ids.aura})`} />
+      <ellipse className="pixel-ground-shadow" cx="160" cy="397" rx="105" ry="15" fill={`url(#${ids.shadow})`} />
 
-      <g className="pixel-legs">
-        <path fill="#20233e" d="M66 169h27v35h-6v15H67v-7H56v-14h10zM99 169h27v29h10v14h-11v7h-20v-15h-6z" />
-        <path fill="#353861" d="M70 173h20v28h-5v13H70v-7h-8v-9h8zM103 173h20v25h8v9h-8v7h-15v-14h-5z" />
-        <path fill="#572e25" d="M59 202h34v22h-7v7H48v-17h11zM101 202h33v12h11v17h-38v-7h-6z" />
-        <path fill="#8e4b36" d="M62 205h26v12H57v-7h5zM105 205h25v12h6v5h-31z" />
-        <path fill="#d17a52" d="M63 207h15v4H63zM107 207h15v4h-15z" />
-        <path fill="#26151b" d="M48 224h46v7H48zM98 224h47v7H98z" />
-      </g>
-
-      <g className="pixel-body">
-        <path fill="#092f3b" d="M65 106h62v7h10v12h7v42h-7v13H55v-13h-7v-42h7v-12h10z" />
-        <path fill="#155d68" d="M67 109h58v8h8v12h6v37h-9v11H62v-11h-9v-37h6v-12h8z" />
-        <path fill="#23868b" d="M69 112h22v57H60v-30h5v-17h4zM101 112h22v10h6v47h-28z" />
-        <path fill="#52b4aa" d="M70 117h9v42h-7v-10h-5v-23h3zM105 116h10v8h5v31h-6v-22h-9z" />
-        <path fill="#0b3a49" d="M91 108h10v62H91zM59 160h74v9H59z" />
-        <path fill="#f5c348" d="M91 114h10v11H91zM91 137h10v11H91zM91 159h10v10H91z" />
-        <path fill="#8b5918" d="M94 116h4v6h-4zM94 139h4v6h-4zM94 161h4v6h-4z" />
-        <path fill="#ffe291" d="M94 115h3v4h-3zM94 138h3v4h-3z" />
-        <path fill="#f2b544" d="M58 162h76v6H58z" />
-        <path fill="#f9d779" d="M63 163h20v2H63zM109 163h20v2h-20z" />
-      </g>
-
-      <g className="pixel-arms pixel-arm-left">
-        <path fill="#092f3b" d="M58 115H45v7h-8v12h-7v27h8v12h18v-7h9v-37h-7z" />
-        <path fill="#155d68" d="M54 118H45v8h-7v10h-5v21h8v10h12v-7h7v-31h-6z" />
-        <path fill="#4aa69f" d="M43 123h7v24h-6v-10h-5v-8h4z" />
-        <path fill="#f5c348" d="M45 117h12v7H45z" />
-        <path fill="#ffd6b9" d="M31 153h13v8h7v9h-7v6H33v-5h-6v-12h4z" />
-        <path fill="#c46d58" d="M29 160h8v10h-8zM40 170h8v5h-8z" />
-        <rect fill="#ffe8ce" x="35" y="155" width="6" height="4" />
-      </g>
-      <g className="pixel-arms pixel-arm-right">
-        <path fill="#092f3b" d="M134 115h13v7h8v12h7v27h-8v12h-18v-7h-9v-37h7z" />
-        <path fill="#155d68" d="M138 118h9v8h7v10h5v21h-8v10h-12v-7h-7v-31h6z" />
-        <path fill="#4aa69f" d="M149 123h-7v24h6v-10h5v-8h-4z" />
-        <path fill="#f5c348" d="M135 117h12v7h-12z" />
-        <path fill="#ffd6b9" d="M161 153h-13v8h-7v9h7v6h11v-5h6v-12h-4z" />
-        <path fill="#c46d58" d="M163 160h-8v10h8zM152 170h-8v5h8z" />
-        <rect fill="#ffe8ce" x="151" y="155" width="6" height="4" />
-      </g>
-
-      <g className="pixel-head" transform={`translate(${faceX} ${faceY})`}>
-        <path fill="#a55745" d="M57 42h7V31h9v-8h10v-6h27v6h10v8h9v11h7v39h-7v14h-9v10H72v-10h-9V81h-6z" />
-        <path fill="#ffd6b9" d="M63 45h7v-9h10v-6h22v6h10v9h8v33h-7v14h-10v9H80v-9H70V78h-7z" />
-        <path fill="#f47b24" d="M56 48V35h8v-12h9v-9h10v8h8V9h10v8h12v8h10v9h8v14h-8v-7h-8v-8h-43v8h-9v7z" />
-        <path fill="#c44419" d="M60 37h8V24h8v-6h7v11h-6v11h-9v9h-8zM101 15h10v9h10v10h8v8h-9v-5h-9v-9h-10z" />
-        <path fill="#ffb45b" d="M72 24h8v-7h6v8h-5v8h-9zM94 13h7v9h-7zM113 25h8v8h-8z" />
-        <path fill="#8f3d32" d="M63 68h14v5H63zM111 68h14v5h-14z" />
-        <path fill="#3b2028" d="M70 61h17v5H70zM106 61h17v5h-17z" />
-        <path fill="#fff0dc" d="M73 62h11v7H73zM109 62h11v7h-11z" />
-        <g className="pixel-eye pixel-eye-left"><rect fill="#26151c" x="77" y="63" width="7" height="6" /><rect fill="#ffffff" x="78" y="63" width="2" height="2" /></g>
-        <g className="pixel-eye pixel-eye-right"><rect fill="#26151c" x="109" y="63" width="7" height="6" /><rect fill="#ffffff" x="110" y="63" width="2" height="2" /></g>
-        <path fill="#b5654d" d="M92 67h8v9h-4v5h-6v-5h2z" />
-        <path fill="#e99979" d="M67 77h8v4h-8zM116 77h8v4h-8z" />
-        <g className="pixel-mouth">
-          {mouth === 2 ? <path fill="#48131c" d="M90 85h13v12H90z" /> : mouth === 1 ? <path fill="#48131c" d="M81 86h31v7H81z" /> : mouth === 3 ? <path fill="#48131c" d="M90 88h14v4H90z" /> : <path fill="#48131c" d="M84 86h25v6h-6v5H91v-5h-7z" />}
-          {voiceState === "speaking" && mouth !== 2 && <rect fill="#fff4df" x="91" y="87" width="7" height="3" />}
+      {burstKey > 0 && (
+        <g key={burstKey} className="pixel-explosion-burst" aria-hidden="true">
+          <circle className="pixel-explosion-ring" cx="160" cy="205" r="62" fill="none" />
+          <path className="pixel-explosion-star" d="M160 105l12 67 42-38-32 51 64 8-65 10 39 47-50-34 1 67-13-65-45 37 34-52-65-6 64-12-36-48 48 35z" fill="#fbbf24" opacity=".9" />
+          <path className="pixel-explosion-core" d="M160 157l10 35 37 10-37 10-10 36-10-36-37-10 37-10z" fill="#fff7c2" filter={`url(#${ids.glow})`} />
+          <circle className="pixel-explosion-spark spark-one" cx="73" cy="163" r="6" fill="#67e8f9" />
+          <circle className="pixel-explosion-spark spark-two" cx="246" cy="155" r="5" fill="#fb7185" />
+          <circle className="pixel-explosion-spark spark-three" cx="82" cy="278" r="4" fill="#fbbf24" />
+          <circle className="pixel-explosion-spark spark-four" cx="238" cy="285" r="6" fill="#f97316" />
         </g>
-        <path fill="#7d352e" d="M81 98h28v5h-7v5H88v-5h-7z" />
-        <path fill="#d9775b" d="M88 101h15v4H88z" />
-      </g>
+      )}
 
-      <g className="pixel-gesture-layer" aria-hidden="true">
-        <g className="pixel-gesture-finger"><path fill="#ffd6b9" d="M151 142h8v-31h7v38h-7v9h-8z" /><path fill="#c46d58" d="M159 111h7v9h-7z" /></g>
-        <g className="pixel-gesture-thumbsup"><path fill="#ffd6b9" d="M150 151h10v-22h8v31h-6v9h-12z" /><path fill="#c46d58" d="M160 129h8v9h-8z" /></g>
-        <g className="pixel-gesture-heart"><path fill="#f04a65" d="M77 144h8v-7h9v7h4v-7h9v7h8v11h-8v8h-7v7h-6v-7h-7v-8h-10z" /><path fill="#ff9ba7" d="M86 143h7v6h-7zM101 143h7v6h-7z" /></g>
-        <g className="pixel-gesture-watergun"><path fill="#ffd6b9" d="M148 148h15v-9h11v8h-6v9h-20z" /><path fill="#f5c348" d="M172 139h10v7h-10z" /><path fill="#7dd3fc" d="M182 140h9v4h-9z" /></g>
+      <g className="pixel-rig" transform={`translate(0 ${bodyLift})`}>
+        <g className="pixel-cape pixel-cape-back">
+          <path d="M94 177c-34 14-58 51-67 111-4 30 1 66 10 89 26 10 48 12 72 7l10-167z" fill={`url(#${ids.capeShadow})`} stroke="#26142d" strokeWidth="6" />
+          <path d="M226 177c34 14 58 51 67 111 4 30-1 66-10 89-26 10-48 12-72 7l-10-167z" fill={`url(#${ids.capeShadow})`} stroke="#26142d" strokeWidth="6" />
+          <path d="M89 190c-25 26-37 76-34 151 14 9 29 12 45 12" fill="none" stroke="#f26b70" strokeOpacity=".5" strokeWidth="5" />
+          <path d="M231 190c25 26 37 76 34 151-14 9-29 12-45 12" fill="none" stroke="#f26b70" strokeOpacity=".5" strokeWidth="5" />
+        </g>
+
+        <g className="pixel-legs">
+          <path d="M120 292h48l-2 78-12 25h-49l8-33z" fill="#222b4c" stroke="#10162d" strokeWidth="6" />
+          <path d="M152 292h48l7 70 8 33h-50l-12-25z" fill="#293458" stroke="#10162d" strokeWidth="6" />
+          <path d="M108 358h51v39H92c-9 0-14-10-8-18l15-13z" fill={`url(#${ids.leather})`} stroke="#2f1b25" strokeWidth="6" />
+          <path d="M161 358h51l17 18c6 8 1 18-8 18h-67z" fill={`url(#${ids.leather})`} stroke="#2f1b25" strokeWidth="6" />
+          <path d="M107 364h45M173 364h46" stroke="#e09b60" strokeOpacity=".7" strokeWidth="5" />
+          <rect x="129" y="369" width="14" height="11" rx="2" fill={`url(#${ids.gold})`} />
+          <rect x="188" y="369" width="14" height="11" rx="2" fill={`url(#${ids.gold})`} />
+        </g>
+
+        <g className="pixel-body">
+          <path d="M106 166c20-18 88-18 108 0l25 124c-18 18-43 28-79 28s-61-10-79-28z" fill={`url(#${ids.coatShadow})`} stroke="#07172b" strokeWidth="7" />
+          <path d="M116 171c18-12 70-12 88 0l19 112c-18 12-39 18-63 18s-45-6-63-18z" fill={`url(#${ids.coat})`} />
+          <path d="M160 171v127" stroke="#9de5dc" strokeOpacity=".4" strokeWidth="4" />
+          <path d="M121 205h25M121 232h25M174 205h25M174 232h25" stroke="#82dfd3" strokeOpacity=".36" strokeWidth="5" strokeLinecap="round" />
+          <path d="M106 277c32 10 76 10 108 0" stroke={`url(#${ids.gold})`} strokeWidth="10" />
+          <rect x="142" y="265" width="36" height="31" rx="7" fill={`url(#${ids.gold})`} stroke="#75421d" strokeWidth="4" />
+          <rect x="150" y="272" width="20" height="17" rx="3" fill="#321b2b" />
+          <path d="M145 169l15 17 15-17" fill="#fff9ed" stroke="#d9d9d0" strokeWidth="3" />
+          <path d="M150 170l10 25 10-25" fill="#1e2440" opacity=".92" />
+          <circle cx="111" cy="194" r="12" fill={`url(#${ids.gold})`} stroke="#75421d" strokeWidth="4" />
+          <circle cx="209" cy="194" r="12" fill={`url(#${ids.gold})`} stroke="#75421d" strokeWidth="4" />
+        </g>
+
+        <g className="pixel-arms pixel-arm-left">
+          <path d="M111 178c-21 9-35 37-38 70l28 9 28-66z" fill={`url(#${ids.coatShadow})`} stroke="#07172b" strokeWidth="7" />
+          <path d="M80 235c-5 11-4 27 4 37l22-8-7-31z" fill={`url(#${ids.leather})`} stroke="#321c27" strokeWidth="5" />
+          <path d="M80 270c-3 13 6 25 21 27l16-15-11-17z" fill={`url(#${ids.skin})`} stroke="#6d3033" strokeWidth="5" />
+        </g>
+        <g className="pixel-arms pixel-arm-right">
+          <path d="M209 178c21 9 35 37 38 70l-28 9-28-66z" fill={`url(#${ids.coatShadow})`} stroke="#07172b" strokeWidth="7" />
+          <path d="M240 235c5 11 4 27-4 37l-22-8 7-31z" fill={`url(#${ids.leather})`} stroke="#321c27" strokeWidth="5" />
+          <path d="M240 270c3 13-6 25-21 27l-16-15 11-17z" fill={`url(#${ids.skin})`} stroke="#6d3033" strokeWidth="5" />
+        </g>
+
+        <g className="pixel-head" transform={`translate(${faceX} ${faceY})`}>
+          <path d="M103 95c0-37 22-62 57-62s57 25 57 62v54c0 27-23 48-57 48s-57-21-57-48z" fill={`url(#${ids.skin})`} stroke="#642f36" strokeWidth="7" />
+          <path d="M107 102c-13-22-9-56 9-74l13-15 17 12 17-22 18 22 22-13 10 24c17 23 15 54 5 72l-15-17-11-29-21 9-22-18-25 26-20 8z" fill={`url(#${ids.hair})`} stroke="#5d2330" strokeWidth="7" strokeLinejoin="round" />
+          <path d="M122 66c15-27 34-29 52-17M184 50c13 3 24 13 28 26M137 40l-10 31M171 35l-7 27M203 49l-6 22" fill="none" stroke="#ffd18a" strokeOpacity=".6" strokeWidth="7" strokeLinecap="round" />
+          <path d="M109 124c-10 0-16 8-13 20 3 12 12 19 21 17M211 124c10 0 16 8 13 20-3 12-12 19-21 17" fill={`url(#${ids.skinShadow})`} stroke="#71353b" strokeWidth="5" />
+          <g className="pixel-glasses" transform="translate(0 2)">
+            <rect x="117" y="103" width="38" height="25" rx="8" fill={`url(#${ids.glass})`} stroke="#161b2d" strokeWidth="6" />
+            <rect x="165" y="103" width="38" height="25" rx="8" fill={`url(#${ids.glass})`} stroke="#161b2d" strokeWidth="6" />
+            <path d="M155 111h10" stroke="#161b2d" strokeWidth="6" />
+            <path d="M120 108h20M168 108h20" stroke="#fff" strokeOpacity=".45" strokeWidth="3" />
+          </g>
+          <g className="pixel-eye pixel-eye-left">
+            <ellipse cx="137" cy="115" rx="6" ry="7" fill="#13213b" />
+            <circle cx={137 + faceX / 2} cy={113 + faceY / 2} r="2.5" fill="#fff" />
+          </g>
+          <g className="pixel-eye pixel-eye-right">
+            <ellipse cx="183" cy="115" rx="6" ry="7" fill="#13213b" />
+            <circle cx={183 + faceX / 2} cy={113 + faceY / 2} r="2.5" fill="#fff" />
+          </g>
+          <path d="M143 96c7-6 15-7 22-2M174 94c8-5 16-4 22 2" stroke="#6f2831" strokeWidth="7" strokeLinecap="round" />
+          <path d="M157 118l-4 23 11 3" fill="none" stroke="#bc6c5c" strokeWidth="4" strokeLinecap="round" />
+          <g className="pixel-mouth" data-phoneme={mouth} aria-label={`Boca ${mouthLabel}`}>
+            {mouth === 0 && <ellipse className="mouth-viseme mouth-viseme-open" cx="160" cy="158" rx="19" ry="14" fill="#4a1626" stroke="#8f3940" strokeWidth="4" />}
+            {mouth === 1 && <path className="mouth-viseme mouth-viseme-wide" d="M136 157c14 11 34 11 48 0-5 22-43 22-48 0z" fill="#4a1626" stroke="#8f3940" strokeWidth="4" />}
+            {mouth === 2 && <ellipse className="mouth-viseme mouth-viseme-round" cx="160" cy="158" rx="11" ry="15" fill="#351224" stroke="#8f3940" strokeWidth="4" />}
+            {mouth === 3 && <path className="mouth-viseme mouth-viseme-close" d="M145 158h30" stroke="#7b303b" strokeWidth="6" strokeLinecap="round" />}
+            {mouth === 4 && <path className="mouth-viseme mouth-viseme-rest phoneme-rest-live" d="M146 158c9 5 19 5 28 0" fill="none" stroke="#9a4d4a" strokeWidth="4" strokeLinecap="round" />}
+            {activity === "speaking" && mouth !== 3 && mouth !== 4 && <path d="M150 157h20" stroke="#fff2de" strokeOpacity=".8" strokeWidth="3" strokeLinecap="round" />}
+          </g>
+          <path d="M138 176c13 9 31 9 44 0" fill="none" stroke="#ca6e5e" strokeWidth="4" strokeLinecap="round" />
+        </g>
+
+        {gesture === "finger" && <g className="pixel-gesture-layer pixel-gesture-finger"><path d="M229 252h14v-56h12v65h-8v14h-18z" fill={`url(#${ids.skin})`} stroke="#6d3033" strokeWidth="5" /><path d="M242 196h13v14h-13z" fill="#bd6556" /></g>}
+        {gesture === "thumbsup" && <g className="pixel-gesture-layer pixel-gesture-thumbsup"><path d="M226 274h15v-42h13v53h-8v13h-20z" fill={`url(#${ids.skin})`} stroke="#6d3033" strokeWidth="5" /><path d="M241 232h13v15h-13z" fill="#bd6556" /></g>}
+        {gesture === "heart" && <g className="pixel-gesture-layer pixel-gesture-heart"><path d="M135 250c-17-20-43 5-23 24l48 43 48-43c20-19-6-44-23-24l-25 24z" fill="#f24e73" stroke="#7e2148" strokeWidth="6" /><path d="M125 259l9-8M191 259l-9-8" stroke="#ffb0ba" strokeWidth="5" strokeLinecap="round" /></g>}
+        {gesture === "watergun" && <g className="pixel-gesture-layer pixel-gesture-watergun"><path d="M226 274h29v-17h20v14h-11v13h-38z" fill={`url(#${ids.skin})`} stroke="#6d3033" strokeWidth="5" /><path d="M275 257h18v12h-18z" fill={`url(#${ids.gold})`} /><path d="M293 259h23v7h-23z" fill="#67e8f9" filter={`url(#${ids.glow})`} /></g>}
       </g>
 
       <g className="pixel-sparkles" aria-hidden="true">
-        <rect fill="#f5c348" x="31" y="71" width="5" height="5" /><rect fill="#ffe291" x="37" y="65" width="3" height="3" />
-        <rect fill="#7dd3fc" x="153" y="83" width="5" height="5" /><rect fill="#f5c348" x="162" y="76" width="3" height="3" />
-        <rect fill="#ffcf63" x="50" y="100" width="3" height="3" /><rect fill="#69d9d1" x="143" y="105" width="3" height="3" />
+        <path d="M39 142h7v25h-7zM30 151h25v7H30z" fill="#f9d86b" />
+        <path d="M270 98h6v21h-6zM262 105h22v6h-22z" fill="#67e8f9" />
+        <circle cx="63" cy="283" r="5" fill="#fb7185" /><circle cx="262" cy="318" r="5" fill="#fbbf24" />
       </g>
+      {isAwake && <g className="pixel-input-ring" aria-hidden="true"><circle cx="160" cy="205" r="148" fill="none" /><circle cx="160" cy="205" r="132" fill="none" /></g>}
     </svg>
   );
 }

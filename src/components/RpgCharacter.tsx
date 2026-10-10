@@ -44,12 +44,28 @@ export const RpgCharacter = memo(function RpgCharacter({
   // Interatividade: balãozinho de fala ao tocar no Mr. Crazy
   const [tapReaction, setTapReaction] = useState<string | null>(null);
   const [tapReactionKey, setTapReactionKey] = useState(0);
+  const [burstKey, setBurstKey] = useState(0);
+  const previousEmotionRef = useRef<Emotion | null>(null);
   // Ciclo procedural de fonemas labiais realistas durante a fala
   const [animatedPhoneme, setPhoneme] = useState(0);
   const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
   // Animação de entrada: começa de pé e sem depender de carregamento externo.
   const [entranceStage, setEntranceStage] = useState<EntranceStage>("standing");
   const wakingUpRef = useRef(false);
+
+  // Impact visual: a short, readable burst only when the tutor escalates.
+  // It is deliberately event-based so the scene does not become noisy.
+  useEffect(() => {
+    const previousEmotion = previousEmotionRef.current;
+    previousEmotionRef.current = emotion;
+    if (previousEmotion && previousEmotion !== emotion && emotion !== "calm") {
+      setBurstKey(Date.now());
+    }
+  }, [emotion]);
+
+  useEffect(() => {
+    if (voiceState === "reacting") setBurstKey(Date.now());
+  }, [voiceState]);
 
   // Piscar de olhos procedural realista (intervalo de 3s a 5.5s com micro double-blinks)
   const [isBlinking, setIsBlinking] = useState(false);
@@ -265,6 +281,8 @@ export const RpgCharacter = memo(function RpgCharacter({
         lookY={lookOffset.y}
         phoneme={phoneme}
         isBlinking={isBlinking}
+        burstKey={burstKey}
+        isAwake={isAwake}
       />
       {false && (
       <svg

@@ -16136,3 +16136,223 @@ textarea {
     inset: 4% -10% -8%;
   }
 }
+
+/* ========================================================================
+   Mr. Crazy — character direction pass
+   The drawing is SVG, but the motion language is closer to a game NPC:
+   center-of-mass shifts, layered breathing, readable gestures and impact FX.
+   ======================================================================== */
+.pixel-mr-crazy-art {
+  image-rendering: auto;
+  shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 24px 30px rgb(0 0 0 / 58%)) drop-shadow(0 0 24px rgb(56 189 248 / 12%));
+  transform: translate3d(calc(var(--look-x, 0) * 8px), calc(var(--look-y, 0) * 5px - var(--live-head-bob, 0px)), 0);
+  transform-origin: 50% 92%;
+  transition: filter 180ms ease, transform 160ms ease-out;
+}
+
+.pixel-rig {
+  transform-box: fill-box;
+  transform-origin: 50% 95%;
+  animation: mr-crazy-idle-float 3.7s ease-in-out infinite;
+}
+
+.pixel-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: mr-crazy-breathe 3.7s ease-in-out infinite;
+}
+
+.pixel-cape-back {
+  transform-box: fill-box;
+  transform-origin: 50% 16%;
+  animation: mr-crazy-cape 4.8s ease-in-out infinite;
+}
+
+.pixel-head {
+  transform-box: fill-box;
+  transform-origin: 50% 78%;
+  transition: transform 100ms ease-out;
+}
+
+.pixel-eye {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 80ms linear;
+}
+
+.pixel-blinking .pixel-eye {
+  transform: scaleY(.12);
+}
+
+.pixel-mouth {
+  transition: opacity 75ms linear;
+}
+
+.pixel-speaking .pixel-rig {
+  animation: mr-crazy-speaking 780ms cubic-bezier(.35, 0, .2, 1) infinite alternate;
+}
+
+.pixel-speaking .pixel-arm-left {
+  transform-box: fill-box;
+  transform-origin: 85% 20%;
+  animation: mr-crazy-teach-left 1.15s ease-in-out infinite alternate;
+}
+
+.pixel-speaking .pixel-arm-right {
+  transform-box: fill-box;
+  transform-origin: 15% 20%;
+  animation: mr-crazy-teach-right .92s ease-in-out infinite alternate;
+}
+
+.pixel-speaking .pixel-cape-back {
+  animation-duration: 1.6s;
+}
+
+.pixel-listening .pixel-head {
+  animation: mr-crazy-listen 2.2s ease-in-out infinite;
+}
+
+.pixel-awake .pixel-input-ring {
+  animation: mr-crazy-input-ring 1.8s ease-out infinite;
+}
+
+.pixel-mr-crazy-art.pixel-emotion-irritated,
+.pixel-mr-crazy-art.pixel-emotion-crazy {
+  filter: drop-shadow(0 24px 30px rgb(0 0 0 / 62%)) drop-shadow(0 0 28px rgb(244 63 94 / 28%));
+}
+
+.pixel-gesture-layer > .pixel-gesture-finger,
+.pixel-gesture-layer > .pixel-gesture-thumbsup,
+.pixel-gesture-layer > .pixel-gesture-heart,
+.pixel-gesture-layer > .pixel-gesture-watergun {
+  opacity: 1;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: pixel-gesture-pop .28s ease-out both;
+}
+
+.pixel-explosion-burst {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  animation: mr-crazy-impact .72s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.pixel-explosion-ring {
+  stroke: #fbbf24;
+  stroke-width: 6;
+  stroke-dasharray: 18 9;
+  opacity: .9;
+}
+
+.pixel-explosion-star {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: mr-crazy-starburst .72s ease-out both;
+}
+
+.pixel-explosion-core {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.pixel-explosion-spark {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: mr-crazy-spark .64s ease-out both;
+}
+
+.pixel-explosion-spark.spark-two { animation-delay: 35ms; }
+.pixel-explosion-spark.spark-three { animation-delay: 70ms; }
+.pixel-explosion-spark.spark-four { animation-delay: 105ms; }
+
+.pixel-input-ring circle {
+  stroke: #67e8f9;
+  stroke-width: 2;
+  stroke-dasharray: 4 18;
+  opacity: .34;
+}
+
+.pixel-input-ring circle + circle {
+  stroke: #fbbf24;
+  stroke-dasharray: 2 28;
+  opacity: .24;
+  animation-delay: -900ms;
+}
+
+@keyframes mr-crazy-idle-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(.35deg); }
+}
+
+@keyframes mr-crazy-breathe {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-2px) scale(1.012, 1.018); }
+}
+
+@keyframes mr-crazy-speaking {
+  0% { transform: translateY(1px) rotate(-.45deg); }
+  100% { transform: translateY(-4px) rotate(.6deg); }
+}
+
+@keyframes mr-crazy-cape {
+  0%, 100% { transform: skewX(0deg) scaleX(1); }
+  50% { transform: skewX(-1.2deg) scaleX(1.015); }
+}
+
+@keyframes mr-crazy-teach-left {
+  from { transform: rotate(2deg) translateY(0); }
+  to { transform: rotate(-5deg) translateY(-3px); }
+}
+
+@keyframes mr-crazy-teach-right {
+  from { transform: rotate(-2deg) translateY(0); }
+  to { transform: rotate(6deg) translateY(-4px); }
+}
+
+@keyframes mr-crazy-listen {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  42% { transform: rotate(-2deg) translateY(-1px); }
+  74% { transform: rotate(1deg) translateY(0); }
+}
+
+@keyframes mr-crazy-impact {
+  0% { opacity: 0; transform: scale(.35); }
+  18% { opacity: 1; transform: scale(1.08); }
+  64% { opacity: .9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.28); }
+}
+
+@keyframes mr-crazy-starburst {
+  0% { opacity: 0; transform: rotate(-18deg) scale(.3); }
+  22% { opacity: 1; transform: rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: rotate(18deg) scale(1.28); }
+}
+
+@keyframes mr-crazy-spark {
+  0% { opacity: 0; transform: scale(.2); }
+  25% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(.35) translateY(-22px); }
+}
+
+@keyframes mr-crazy-input-ring {
+  from { opacity: .1; transform: rotate(0deg) scale(.96); }
+  to { opacity: 1; transform: rotate(360deg) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-rig,
+  .pixel-body,
+  .pixel-cape-back,
+  .pixel-speaking .pixel-rig,
+  .pixel-speaking .pixel-arm-left,
+  .pixel-speaking .pixel-arm-right,
+  .pixel-listening .pixel-head,
+  .pixel-explosion-burst,
+  .pixel-explosion-star,
+  .pixel-explosion-spark,
+  .pixel-input-ring {
+    animation: none !important;
+  }
+}
