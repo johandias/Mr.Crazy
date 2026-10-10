@@ -7,8 +7,7 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { CharacterGesture } from "@/components/RpgCharacter";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
-
-const MODEL_PATH = "/assets/character/mrcrazy-3d/mr-crazy-rigged.fbx";
+import { MR_CRAZY_MODEL_PATH } from "@/lib/character-assets";
 
 type RiggedModelProps = {
   voiceState: VoiceState;
@@ -61,7 +60,7 @@ function RiggedModel({
   lookY,
   audioMetricsRef
 }: RiggedModelProps) {
-  const model = useLoader(FBXLoader, MODEL_PATH);
+  const model = useLoader(FBXLoader, MR_CRAZY_MODEL_PATH);
   const modelRootRef = useRef<THREE.Group>(null);
   const previousOffsets = useRef(new Map<THREE.Object3D, THREE.Euler>());
   const bones = useMemo(() => findBones(model), [model]);

@@ -473,13 +473,20 @@ test("rigged FBX avatar is wired to realtime skeleton motion", async () => {
   const fs = await import("node:fs");
   const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
   const riggedCode = fs.readFileSync("src/components/RiggedMrCrazy.tsx", "utf-8");
+  const loadingCode = fs.readFileSync("src/components/CharacterLoadingScreen.tsx", "utf-8");
+  const clientCode = fs.readFileSync("src/components/PracticeExperienceClient.tsx", "utf-8");
 
   assert.match(characterCode, /RiggedMrCrazy/);
-  assert.match(riggedCode, /mr-crazy-rigged\.fbx/);
+  assert.match(riggedCode, /MR_CRAZY_MODEL_PATH/);
   assert.match(riggedCode, /FBXLoader/);
   assert.match(riggedCode, /AnimationMixer/);
   assert.match(riggedCode, /leftForeArm/);
   assert.match(riggedCode, /rightForeArm/);
+  assert.match(loadingCode, /Acordando o Mr\. Crazy/);
+  assert.match(loadingCode, /Mr\. Crazy está escovando os dentes/);
+  assert.match(loadingCode, /localStorage/);
+  assert.match(loadingCode, /FBXLoader/);
+  assert.match(clientCode, /CharacterLoadingScreen/);
 });
 
 test("beta conversation fallback provides correction, explanation, and continuity", async () => {

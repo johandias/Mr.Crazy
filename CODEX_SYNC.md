@@ -9,6 +9,11 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
+## 🟢 Codex — 2026-10-10 — Tela de carregamento do avatar
+- Entregue nesta sessão: pré-carregamento real do FBX antes de montar a prática, com cache local para não repetir a tela após o personagem estar pronto.
+- Tela estilo jogo com foto do Mr. Crazy, barra de progresso e frases rotativas enquanto as pré-definições carregam.
+- Validação: sintaxe TSX, `git diff --check` e as três suítes obrigatórias passaram.
+
 ## 🟢 Codex — 2026-10-10 — Cartão de pronúncia compacto
 - Entregue nesta sessão: substituído o painel didático poluído por uma dica curta, sincronizada com a frase da etapa ativa.
 - Removidos significado, variações e acordeão do balão; mantidos apenas frase-alvo, reprodução opcional, dica articulatória e som aproximado.
