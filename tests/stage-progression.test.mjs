@@ -469,6 +469,19 @@ test("Mr.Crazy animates body, gestures, and mouth while speaking", async () => {
   assert.ok(globalCss.includes("mouth-articulation"), "A animação da boca deve ter articulação própria");
 });
 
+test("rigged FBX avatar is wired to realtime skeleton motion", async () => {
+  const fs = await import("node:fs");
+  const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
+  const riggedCode = fs.readFileSync("src/components/RiggedMrCrazy.tsx", "utf-8");
+
+  assert.match(characterCode, /RiggedMrCrazy/);
+  assert.match(riggedCode, /mr-crazy-rigged\.fbx/);
+  assert.match(riggedCode, /FBXLoader/);
+  assert.match(riggedCode, /AnimationMixer/);
+  assert.match(riggedCode, /leftForeArm/);
+  assert.match(riggedCode, /rightForeArm/);
+});
+
 test("beta conversation fallback provides correction, explanation, and continuity", async () => {
   const { getGeminiConversationReply } = await import("../src/lib/gemini-conversation.ts");
   const result = await getGeminiConversationReply("I have 30 years old.", [], undefined);
@@ -507,7 +520,7 @@ test("character accompanies audio reactively and study guide teaches natural Eng
   const fs = await import("node:fs");
   const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
   const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
-  const { getNaturalVariation, getFallbackPhaseTargets } = await import("../src/lib/lesson-target.ts");
+  const { getNaturalVariation, getFallbackPhaseTargets, getPronunciationTip } = await import("../src/lib/lesson-target.ts");
   const { getModuleById } = await import("../src/lib/modules.ts");
 
   // RpgCharacter accepts audioMetricsRef and has pause rest phoneme
@@ -515,6 +528,8 @@ test("character accompanies audio reactively and study guide teaches natural Eng
   assert.ok(characterCode.includes("phoneme-rest-live"), "RpgCharacter deve conter fonema de repouso natural entre palavras");
   assert.ok(practiceCode.includes("<RpgCharacter"), "PracticeExperience deve renderizar RpgCharacter");
   assert.ok(practiceCode.includes("audioMetricsRef={audioMetricsRef}"), "PracticeExperience deve passar audioMetricsRef para o personagem");
+  assert.ok(practiceCode.includes("speech-pronunciation-card"), "A aula deve renderizar o cartão compacto de pronúncia");
+  assert.doesNotMatch(practiceCode, /speech-study-toggle-btn|Ver pronúncia e significado/u, "O cartão não deve reabrir o painel poluído de detalhes");
 
   // Teaching targets include natural spoken variations
   const variation = getNaturalVariation("How are you doing?");
@@ -522,6 +537,7 @@ test("character accompanies audio reactively and study guide teaches natural Eng
   const module = getModuleById("greetings");
   const fallback = getFallbackPhaseTargets(module, 0);
   assert.ok(fallback.some((target) => Boolean(target.variationPt)), "Alvos de aula devem incluir alternativas naturais");
+  assert.match(getPronunciationTip("How are you?"), /língua|lábios|ritmo|sílaba/u, "A dica deve ser local e articulatória");
 });
 
 test("beta conversation provides interactive selectable response options and explanations for beginners", async () => {

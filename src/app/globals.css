@@ -507,6 +507,11 @@ a {
   filter: drop-shadow(0 22px 34px rgb(0 0 0 / 72%)) drop-shadow(0 0 24px rgb(56 189 248 / 24%));
 }
 
+.rpg-character-stage.is-still .mr-crazy-preview-layer {
+  transform: translate3d(0, 0, 0) scale(var(--real-avatar-scale, 1.12));
+  animation: none;
+}
+
 .rpg-character-stage.analyzing .mr-crazy-preview-layer {
   transform: translate3d(0, -2px, 0) scale(calc(var(--real-avatar-scale, 1.12) + 0.04));
   filter: drop-shadow(0 24px 38px rgb(0 0 0 / 78%)) drop-shadow(0 0 28px rgb(56 189 248 / 38%));
@@ -566,6 +571,33 @@ a {
 }
 
 .mr-crazy-preview-img {
+  object-fit: contain;
+  object-position: center bottom;
+  user-select: none;
+}
+
+.mr-crazy-rigged-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.mr-crazy-rigged-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+.mr-crazy-rigged-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   object-position: center bottom;
   user-select: none;
@@ -3112,6 +3144,26 @@ meter {
 
 .voice-action-badge.is-active .voice-action-text {
   color: #34d399;
+}
+
+.voice-action-badge.is-ready {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(8, 47, 73, 0.88);
+  animation: voice-ready-pulse 2.4s ease-in-out infinite;
+}
+
+.voice-action-badge.is-ready .voice-action-indicator-dot {
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.85);
+}
+
+.voice-action-badge.is-ready .voice-action-text {
+  color: #bae6fd;
+}
+
+@keyframes voice-ready-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 2px 16px rgba(56, 189, 248, 0.22); }
 }
 
 .voice-action-badge.is-speaking .voice-action-indicator-dot {
@@ -13174,6 +13226,62 @@ meter {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.speech-pronunciation-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 9px;
+  background: rgba(6, 182, 212, 0.07);
+}
+
+.speech-pronunciation-target {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.speech-pronunciation-kicker {
+  color: #67e8f9;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.speech-pronunciation-target strong {
+  overflow-wrap: anywhere;
+  color: #bae6fd;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.speech-pronunciation-tip,
+.speech-pronunciation-phonetic {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.speech-pronunciation-tip {
+  color: #fef3c7;
+}
+
+.speech-pronunciation-phonetic {
+  color: #a5f3fc;
+}
+
+.speech-pronunciation-phonetic span {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
 .speech-phonetic-chip {
   display: inline-flex;
   align-items: center;
@@ -15751,4 +15859,28 @@ textarea {
 @media (min-width: 992px) and (max-width: 1199px) {
   .practice-main.clean-layout { max-width: calc(100vw - 32px); padding-inline: 16px; }
   .practice-main.clean-layout .clean-stage.history-is-closed { max-width: 1040px; }
+}
+
+/* Ajuste fino do palco desktop: o avatar fica abaixo do balão, acima do dock,
+   sem deixar a cabeça escondida pela faixa de fala. Mobile mantém seu contrato
+   próprio em responsive.css. */
+@media (min-width: 1200px) {
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
+    margin-bottom: 26px;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-avatar-wrapper {
+    padding-top: 18px;
+    padding-bottom: 4px;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-stage {
+    --real-avatar-scale: 1;
+    width: clamp(312px, 22.4vw, 432px);
+    height: clamp(312px, 22.4vw, 432px);
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .mr-crazy-preview-layer {
+    inset: 4% -10% -8%;
+  }
 }

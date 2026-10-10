@@ -9,8 +9,6 @@ import {
   Award,
   BookOpen,
   BriefcaseBusiness,
-  ChevronDown,
-  ChevronUp,
   Menu,
   MessagesSquare,
   Plane,
@@ -51,6 +49,7 @@ import {
 } from "@/lib/lesson-progress";
 import {
   getFallbackPhaseTargets,
+  getPronunciationTip,
   getTeachingTargetForStep,
   normalizePhaseTargets,
   type TeachingTarget
@@ -181,10 +180,10 @@ function buildSilentWelcomeLine(openingIndex: number, nickname?: string) {
   const cleanNickname = nickname?.replace(/\s*\(admin\)/i, "").trim();
   const namePart = cleanNickname ? `, ${cleanNickname}` : "";
   const messages = [
-    `Opa${namePart}! Aperte no microfone e vamos treinar.`,
-    `Bora${namePart}? Toque no microfone e solte a voz.`,
-    `Cheguei${namePart}! Aperte o microfone para começar.`,
-    `Hoje é dia de inglês${namePart}. Toque no microfone e manda bala!`
+    `Estou carregando o microfone${namePart}. Fico quieto por enquanto.`,
+    `Preparando seu áudio${namePart}. Quando estiver pronto, eu aviso.`,
+    `Só um instante${namePart}: o microfone está carregando.`,
+    `O palco está pronto${namePart}; falta liberar o microfone.`
   ];
 
   return messages[openingIndex % messages.length] ?? messages[0];
@@ -726,7 +725,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const [speechBubbleHasOverflow, setSpeechBubbleHasOverflow] = useState(false);
   const [speechBubbleIsScrolled, setSpeechBubbleIsScrolled] = useState(false);
   const [isSpeechBubbleExpanded, setIsSpeechBubbleExpanded] = useState(false);
-  const [isStudyDetailsOpen, setIsStudyDetailsOpen] = useState(false);
   const speechBubbleScrollRef = useRef<HTMLDivElement>(null);
   const currentConceptIndexRef = useRef(0);
   const currentLessonStepIndexRef = useRef(0);
@@ -1003,13 +1001,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const persistLessonProgressRef = useRef(persistLessonProgress);
   const completeCurrentLessonStepRef = useRef(completeCurrentLessonStep);
   const teachingTargetRef = useRef(teachingTarget);
-  const openingLineRef = useRef(openingLine);
 
   useEffect(() => {
     persistLessonProgressRef.current = persistLessonProgress;
     completeCurrentLessonStepRef.current = completeCurrentLessonStep;
     teachingTargetRef.current = teachingTarget;
-    openingLineRef.current = openingLine;
   }, [completeCurrentLessonStep, openingLine, persistLessonProgress, teachingTarget]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1041,10 +1037,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       {
         key: "opening-greeting",
         role: "crazy" as const,
-        text: openingLine
+        text: buildSilentWelcomeLine(openingIndex, studentProfile?.nickname)
       }
     ];
-  }, [contextHistory, openingLine]);
+  }, [contextHistory, openingIndex, openingLine, studentProfile?.nickname]);
 
   const liveUserItem = useMemo(() => {
     const clean = transcript.trim();
@@ -1121,7 +1117,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [allConversationItems, openingIndex, openingLine, realtimeReply, studentProfile?.nickname]);
 
   const shouldShowStudyGuide = Boolean(
-    teachingTarget && (isStudyCardVisible || (!isCharacterAwake && selectedMode === "module-practice"))
+    teachingTarget && isStudyCardVisible
   );
 
   useEffect(() => {
@@ -1143,7 +1139,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
   useEffect(() => {
     setIsSpeechBubbleExpanded(false);
-    setIsStudyDetailsOpen(false);
   }, [latestCrazySpeech, teachingTarget?.phraseEn]);
 
   const latestUserSpeech = useMemo(() => {
@@ -1514,11 +1509,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     setTranscript("");
     setRealtimeReply("");
     setRealtimeStatus("connecting");
-    if (!isAutoConnect) setIsCharacterAwake(true);
+    // O tutor permanece parado e silencioso durante o handshake. Ele só acorda
+    // quando o aluno libera o microfone ou quando uma fala realmente começa.
+    setIsCharacterAwake(false);
     setMicrophoneEnabled(false);
     setVoiceDiagnostics([]);
     setErrorMessage("");
-    setVoiceState("preparing_speech");
+    setVoiceState("idle");
     setAnalysisSource("manual");
 
     const level = scoringContextRef.current.selectedLevel;
@@ -1586,7 +1583,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
       },
       getRecentContext: () =>
-        (scoringContextRef.current.contextHistory.length ? scoringContextRef.current.contextHistory : [{ role: "crazy", text: openingLineRef.current }]).slice(-6).map((turn) => ({
+        scoringContextRef.current.contextHistory.slice(-6).map((turn) => ({
           role: turn.role,
           text: turn.text
         })),
@@ -1632,13 +1629,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           void persistLessonProgressRef.current({ addTurns: 1 });
 
           setContextHistory((current) => {
-            const base =
-              current.length === 0 && openingLineRef.current.trim()
-                ? [{ role: "crazy" as const, text: openingLineRef.current.trim() }]
-                : current;
-            const last = base[base.length - 1];
-            if (last && last.role === "user" && last.text === clean) return base;
-            return [...base.slice(-49), { role: "user", text: clean }];
+            const last = current[current.length - 1];
+            if (last && last.role === "user" && last.text === clean) return current;
+            return [...current.slice(-49), { role: "user", text: clean }];
           });
           setTranscript("");
         }
@@ -1650,7 +1643,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         const lowerText = text.toLowerCase();
         const targetPhraseClean = (teachingTargetRef.current?.phraseEn || "").toLowerCase().trim();
         const isTeachingOrAskingToPractice =
-          /(vamos treinar|fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora treinar essa|bora praticar essa|pronúncia aportuguesada|fase [1-9]|pra dizer)/i.test(lowerText) ||
+          /(fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora praticar essa|pronúncia aportuguesada|fase [1-9]|pra dizer)/i.test(lowerText) ||
           (targetPhraseClean.length >= 4 && lowerText.includes(targetPhraseClean));
 
         if (isTeachingOrAskingToPractice) {
@@ -1665,13 +1658,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         const clean = text.trim();
         if (clean) {
           setContextHistory((current) => {
-            const base =
-              current.length === 0 && openingLineRef.current.trim()
-                ? [{ role: "crazy" as const, text: openingLineRef.current.trim() }]
-                : current;
-            const last = base[base.length - 1];
-            if (last && last.role === "crazy" && last.text === clean) return base;
-            return [...base.slice(-49), { role: "crazy", text: clean }];
+            const last = current[current.length - 1];
+            if (last && last.role === "crazy" && last.text === clean) return current;
+            return [...current.slice(-49), { role: "crazy", text: clean }];
           });
           setRealtimeReply("");
 
@@ -1744,9 +1733,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       controller.setMicrophoneEnabled(shouldEnable);
       setMicrophoneEnabled(shouldEnable);
       setVoiceState(shouldEnable ? "listening" : "idle");
-      if (shouldEnable) {
-        setIsCharacterAwake(true);
-      }
+      setIsCharacterAwake(shouldEnable);
 
       return controller;
     }).catch((err) => {
@@ -2473,63 +2460,30 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 {/* Guia Didático Integrado de Pronúncia da Fase Ativa */}
                 {shouldShowStudyGuide && teachingTarget && (
                   <div className="speech-bubble-didactic-footer">
-                    <dl className={`speech-study-guide ${isStudyDetailsOpen ? "is-expanded" : "is-collapsed"}`}>
-                      <div className="speech-study-target">
-                        <div className="speech-study-target-text">
-                          <dt>Fale em inglês</dt>
-                          <dd lang="en">{teachingTarget.phraseEn}</dd>
-                        </div>
-                        {teachingTarget.phraseEn && (
-                          <button
-                            type="button"
-                            className="speech-target-audio-btn"
-                            onClick={() => {
-                              const phrase = teachingTarget.phraseEn;
-                              if (phrase) speak(phrase, "idle", "en-US");
-                            }}
-                            title="Ouvir pronúncia exata em inglês"
-                          >
-                            <Volume2 size={12} />
-                            <span>Ouvir Frase</span>
-                          </button>
-                        )}
+                    <div className="speech-pronunciation-card" aria-label="Dica de pronúncia">
+                      <div className="speech-pronunciation-target">
+                        <span className="speech-pronunciation-kicker">Fale assim</span>
+                        <strong lang="en">{teachingTarget.phraseEn}</strong>
                       </div>
-                      <div className={`speech-study-detail-item ${isStudyDetailsOpen ? "is-open" : "is-hidden"}`}>
-                        <dt>Significado</dt>
-                        <dd>{teachingTarget.meaningPt}</dd>
-                      </div>
-                      <div className={`speech-study-detail-item ${isStudyDetailsOpen ? "is-open" : "is-hidden"}`}>
-                        <dt>Pronúncia aproximada</dt>
-                        <dd>{teachingTarget.phoneticPt}</dd>
-                      </div>
-                      {teachingTarget.variationPt && (
-                        <div className={`speech-study-variation speech-study-detail-item ${isStudyDetailsOpen ? "is-open" : "is-hidden"}`}>
-                          <dt>Como nativos falam</dt>
-                          <dd>{teachingTarget.variationPt}</dd>
-                        </div>
+                      {teachingTarget.phraseEn && (
+                        <button
+                          type="button"
+                          className="speech-target-audio-btn"
+                          onClick={() => speak(teachingTarget.phraseEn, "idle", "en-US")}
+                          title="Ouvir pronúncia exata em inglês"
+                        >
+                          <Volume2 size={12} />
+                          <span>Ouvir</span>
+                        </button>
                       )}
-                    </dl>
-
-                    {(teachingTarget.meaningPt || teachingTarget.phoneticPt || teachingTarget.variationPt) && (
-                      <button
-                        type="button"
-                        className="speech-study-toggle-btn"
-                        onClick={() => setIsStudyDetailsOpen((open) => !open)}
-                        aria-expanded={isStudyDetailsOpen}
-                      >
-                        {isStudyDetailsOpen ? (
-                          <>
-                            <ChevronUp size={12} />
-                            <span>Ocultar detalhes</span>
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown size={12} />
-                            <span>Ver pronúncia e significado</span>
-                          </>
-                        )}
-                      </button>
-                    )}
+                      <p className="speech-pronunciation-tip">
+                        <span aria-hidden="true">👅</span>
+                        <span><strong>Dica:</strong> {getPronunciationTip(teachingTarget.phraseEn)}</span>
+                      </p>
+                      <p className="speech-pronunciation-phonetic">
+                        <span>Som:</span> {teachingTarget.phoneticPt}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

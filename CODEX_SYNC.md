@@ -9,6 +9,19 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
+## 🟢 Codex — 2026-10-10 — Cartão de pronúncia compacto
+- Entregue nesta sessão: substituído o painel didático poluído por uma dica curta, sincronizada com a frase da etapa ativa.
+- Removidos significado, variações e acordeão do balão; mantidos apenas frase-alvo, reprodução opcional, dica articulatória e som aproximado.
+- A dica é gerada localmente por `getPronunciationTip`, sem API ou TTS automático adicional, para não atrasar a fala do Mr. Crazy.
+
+## 🟡 Codex — 2026-10-10 — Avatar FBX rigado e abertura silenciosa
+- **Em andamento nesta sessão:** integração do arquivo `public/assets/character/mrcrazy-3d/mr-crazy-rigged.fbx` com Three/Fiber, incluindo mixer de animação e movimento procedural dos ossos do Mixamo para fala, escuta e gestos.
+- **Abertura da aula:** o handshake permanece silencioso e parado; após a conexão, a interface informa que o microfone está pronto para ser desbloqueado. A primeira saudação contextualiza a etapa; um pedido explícito para começar inicia o treino.
+
+## 🟡 Codex — 2026-10-10 — Composição desktop sem sobreposição
+- **Em andamento nesta sessão:** reduzido o avatar desktop em aproximadamente 20%, reposicionado acima do dock de microfone e criada uma margem adicional entre o balão de fala e a cabeça do personagem.
+- **Preservado:** regras mobile continuam em `src/app/responsive.css`; o ajuste fica restrito a telas a partir de 1200px.
+
 ## 🟡 Codex — 2026-10-10 — Correção mobile e aula de voz adaptativa
 - **Em andamento nesta sessão:** consolidada a última camada de responsividade da prática mobile em `src/app/responsive.css`, mantendo o desktop isolado; o balão não usa mais `line-clamp` que escondia o fim das respostas.
 - **Tutor de voz:** `src/lib/realtime-session.ts` agora aceita paráfrases, frases criadas pelo aluno e variações no mesmo cenário; limita tentativas guiadas e evita pedir a mesma frase após uma resposta compreensível.

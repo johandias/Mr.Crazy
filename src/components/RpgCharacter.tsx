@@ -1,9 +1,14 @@
 "use client";
 
-import Image from "next/image";
+import dynamic from "next/dynamic";
 import { memo, useState, useEffect, useRef, type CSSProperties, type RefObject } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
+
+const RiggedMrCrazy = dynamic(
+  () => import("@/components/RiggedMrCrazy").then((module) => module.RiggedMrCrazy),
+  { ssr: false }
+);
 
 export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup" | "watergun";
 
@@ -256,7 +261,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   return (
     <div
       ref={containerRef}
-      className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage} ${shouldUseRealAvatar ? "has-real-avatar" : ""} pose-${realAvatarPose.name}`}
+      className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage} ${isAwake ? "is-awake" : "is-still"} ${shouldUseRealAvatar ? "has-real-avatar" : ""} pose-${realAvatarPose.name}`}
       style={{
         "--rpg-energy": `${Math.max(0.25, crazyLevel / 100)}`,
         "--look-x": lookOffset.x,
@@ -278,14 +283,16 @@ export const RpgCharacter = memo(function RpgCharacter({
       )}
       {shouldUseRealAvatar && (
         <div className="mr-crazy-preview-layer" aria-hidden="true">
-          <Image
-            src={realAvatarPose.src}
-            alt=""
-            fill
-            className="mr-crazy-preview-img"
-            sizes="(max-width: 768px) 72vw, (max-width: 1200px) 46vw, 560px"
-            priority
-            draggable={false}
+          <RiggedMrCrazy
+            fallbackSrc={realAvatarPose.src}
+            voiceState={voiceState}
+            gesture={gesture}
+            emotion={emotion}
+            crazyLevel={crazyLevel}
+            isAwake={isAwake}
+            lookX={lookOffset.x}
+            lookY={lookOffset.y}
+            audioMetricsRef={audioMetricsRef}
           />
         </div>
       )}

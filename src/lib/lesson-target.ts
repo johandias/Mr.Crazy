@@ -35,6 +35,28 @@ export function getNaturalVariation(phraseEn: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Retorna uma orientação curta e local para a frase atual.
+ * Não faz chamada de rede para não disputar tempo com a fala do tutor.
+ */
+export function getPronunciationTip(phraseEn: string): string {
+  const phrase = phraseEn.toLocaleLowerCase("en-US");
+
+  if (/th/.test(phrase)) {
+    return "No TH, coloque a língua entre os dentes e solte o ar suavemente.";
+  }
+  if (/\b(w|what|where|would|we|with)\b/.test(phrase)) {
+    return "No W, arredonde bem os lábios; não transforme o som em V.";
+  }
+  if (/ing\b/.test(phrase)) {
+    return "No final -ing, deixe o som nasal e não force um G forte.";
+  }
+  if (/r/.test(phrase)) {
+    return "No R, curve a língua para trás sem encostar no céu da boca.";
+  }
+  return "Junte as palavras, marque a sílaba forte e copie o ritmo do modelo.";
+}
+
 function getTeachingConcept(module: LearningModule, phaseIndex: number): ModuleConcept | undefined {
   const phases = module.concepts.filter((concept) => !concept.isExam);
   return phases[Math.min(Math.max(0, phaseIndex), Math.max(0, phases.length - 1))];

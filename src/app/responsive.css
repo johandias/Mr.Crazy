@@ -1481,4 +1481,23 @@
     min-width: 0 !important;
     overflow: visible !important;
   }
+
+  .practice-main.clean-layout .speech-pronunciation-card {
+    gap: 3px 6px;
+    padding: 5px 8px;
+  }
+
+  .practice-main.clean-layout .speech-pronunciation-kicker {
+    font-size: 0.55rem;
+  }
+
+  .practice-main.clean-layout .speech-pronunciation-target strong {
+    font-size: 0.84rem;
+  }
+
+  .practice-main.clean-layout .speech-pronunciation-tip,
+  .practice-main.clean-layout .speech-pronunciation-phonetic {
+    font-size: 0.67rem;
+    line-height: 1.2;
+  }
 }

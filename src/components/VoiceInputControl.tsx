@@ -210,6 +210,7 @@ export function VoiceInputControl({
   }, [isHolding]);
 
   const active = (isPtt ? isHolding : enabled) && isConnected;
+  const readyToTalk = isConnected && !active && !speaking;
 
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     if (!isPtt) return;
@@ -423,7 +424,7 @@ export function VoiceInputControl({
 
       {/* Instrução em destaque alto contraste para o usuário não ficar confuso */}
       <div
-        className={`voice-action-badge ${active ? "is-active" : ""} ${speaking ? "is-speaking" : ""}`}
+        className={`voice-action-badge ${active ? "is-active" : ""} ${readyToTalk ? "is-ready" : ""} ${speaking ? "is-speaking" : ""}`}
         role="status"
         onClick={() => { if (!active) onToggle(); }}
       >
@@ -432,6 +433,8 @@ export function VoiceInputControl({
           {speaking ? "Mr. Crazy falando... aguarde" :
            active && !isAwake ? "Microfone aberto • Pode falar!" :
            active ? "Microfone aberto • Pode falar!" :
+           readyToTalk ? "Microfone pronto • toque para desbloquear e falar" :
+           connecting ? "Preparando o microfone..." :
            "Toque para falar"}
         </span>
       </div>
