@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, type RefObject } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
@@ -21,6 +21,7 @@ type RiggedModelProps = {
   lookX: number;
   lookY: number;
   audioMetricsRef?: RefObject<LiveAudioVisualizer>;
+  onReady?: () => void;
 };
 
 type BoneMap = Partial<Record<
@@ -61,7 +62,8 @@ function RiggedModel({
   isAwake,
   lookX,
   lookY,
-  audioMetricsRef
+  audioMetricsRef,
+  onReady
 }: RiggedModelProps) {
   const model = useLoader(FBXLoader, MR_CRAZY_MODEL_PATH);
   const [diffuseMap, metallicMap, normalMap, roughnessMap] = useLoader(
@@ -99,15 +101,16 @@ function RiggedModel({
     });
 
     const clip = model.animations[0];
-    if (!clip) return;
-    const action = mixer.clipAction(clip);
-    action.reset().setLoop(THREE.LoopRepeat, Infinity).fadeIn(0.35).play();
+    const action = clip
+      ? mixer.clipAction(clip).reset().setLoop(THREE.LoopRepeat, Infinity).fadeIn(0.35).play()
+      : null;
+    onReady?.();
     return () => {
-      action.fadeOut(0.2);
+      action?.fadeOut(0.2);
       mixer.stopAllAction();
-      mixer.uncacheAction(clip, model);
+      if (clip) mixer.uncacheAction(clip, model);
     };
-  }, [diffuseMap, metallicMap, model, mixer, normalMap, roughnessMap]);
+  }, [diffuseMap, metallicMap, model, mixer, normalMap, onReady, roughnessMap]);
 
   useEffect(() => {
     const box = new THREE.Box3().setFromObject(model);
@@ -181,9 +184,14 @@ export function RiggedMrCrazy({
   fallbackSrc,
   ...props
 }: RiggedModelProps & { fallbackSrc: string }) {
+  const [isModelReady, setIsModelReady] = useState(false);
+  const handleModelReady = useCallback(() => setIsModelReady(true), []);
+
   return (
     <div className="mr-crazy-rigged-canvas" aria-hidden="true">
-      <img src={fallbackSrc} alt="" className="mr-crazy-rigged-fallback" draggable={false} />
+      {!isModelReady && (
+        <img src={fallbackSrc} alt="" className="mr-crazy-rigged-fallback" draggable={false} />
+      )}
       <Canvas
         orthographic
         dpr={[1, 1.75]}
@@ -195,7 +203,7 @@ export function RiggedMrCrazy({
         <directionalLight position={[2.5, 4, 3]} intensity={3.2} color="#fff7ed" castShadow />
         <directionalLight position={[-3, 2, 1]} intensity={1.4} color="#7dd3fc" />
         <Suspense fallback={null}>
-          <RiggedModel {...props} />
+          <RiggedModel {...props} onReady={handleModelReady} />
         </Suspense>
       </Canvas>
     </div>
