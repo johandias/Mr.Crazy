@@ -507,7 +507,7 @@ a {
 .pixel-eye { transform-box: fill-box; transform-origin: center; transition: transform 0.08s linear; }
 .pixel-blinking .pixel-eye { transform: scaleY(0.14); }
 .pixel-gesture-layer > g { opacity: 0; transform-box: fill-box; transform-origin: center; }
-.pixel-gesture-idle { opacity: 0 !important; }
+.pixel-gesture-layer .pixel-gesture-idle { opacity: 0 !important; }
 .pixel-gesture-finger .pixel-gesture-finger,
 .pixel-gesture-thumbsup .pixel-gesture-thumbsup,
 .pixel-gesture-heart .pixel-gesture-heart,
