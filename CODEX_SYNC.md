@@ -9,9 +9,9 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
-## 🟢 Codex — 2026-10-10 — Avatar visível na tela inicial da prática
-- **Entregue:** corrigido o dimensionamento do palco do SVG pixel-art em `PracticeStartScreen`; a regra mobile estava deixando a altura automática e o SVG com altura percentual colapsava para zero.
-- **Validação:** sintaxe TSX e suíte de progressão passaram; `/practice` público redireciona corretamente para login e `/convite#o-mr-crazy` confirma o avatar pixelado renderizado em produção.
+## 🟡 Codex — 2026-10-10 — Avatar visível na tela inicial da prática
+- **Em andamento:** corrigido de forma mais robusta o palco do SVG pixel-art em `PracticeStartScreen`; agora o contêiner tem caixa explícita, altura mínima e o SVG ocupa essa caixa com posicionamento absoluto.
+- **Regressão:** teste dedicado garante dimensões explícitas do avatar na tela inicial; suítes obrigatórias passaram (33 + 9 + 6).
 
 ## 🟢 Codex — 2026-10-10 — Avatar pixel-art RPG
 - **Entregue nesta sessão:** substituição definitiva do FBX/Canvas e das imagens 3D por um SVG pixel-art nativo do Mr. Crazy.
