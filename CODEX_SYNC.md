@@ -9,6 +9,11 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
+## 🟢 Codex — 2026-10-10 — Correção de textura e pose do avatar
+- Entregue nesta sessão: mapas diffuse/metallic/normal/roughness aplicados manualmente ao FBX, com pré-carregamento junto do modelo.
+- O mixer de animação agora avança desde o primeiro frame, evitando a pose T de bind com braços abertos.
+- Validação local: sintaxe TSX, `git diff --check` e suítes obrigatórias passaram (32 + 9 + 6).
+
 ## 🟢 Codex — 2026-10-10 — Tela de carregamento do avatar
 - Entregue nesta sessão: pré-carregamento real do FBX antes de montar a prática, com cache local para não repetir a tela após o personagem estar pronto.
 - Tela estilo jogo com foto do Mr. Crazy, barra de progresso e frases rotativas enquanto as pré-definições carregam.

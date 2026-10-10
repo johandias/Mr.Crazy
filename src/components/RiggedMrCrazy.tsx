@@ -7,7 +7,10 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { CharacterGesture } from "@/components/RpgCharacter";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
-import { MR_CRAZY_MODEL_PATH } from "@/lib/character-assets";
+import {
+  MR_CRAZY_MODEL_PATH,
+  MR_CRAZY_TEXTURE_PATHS
+} from "@/lib/character-assets";
 
 type RiggedModelProps = {
   voiceState: VoiceState;
@@ -61,20 +64,38 @@ function RiggedModel({
   audioMetricsRef
 }: RiggedModelProps) {
   const model = useLoader(FBXLoader, MR_CRAZY_MODEL_PATH);
+  const [diffuseMap, metallicMap, normalMap, roughnessMap] = useLoader(
+    THREE.TextureLoader,
+    [...MR_CRAZY_TEXTURE_PATHS]
+  );
   const modelRootRef = useRef<THREE.Group>(null);
   const previousOffsets = useRef(new Map<THREE.Object3D, THREE.Euler>());
   const bones = useMemo(() => findBones(model), [model]);
   const mixer = useMemo(() => new THREE.AnimationMixer(model), [model]);
 
   useEffect(() => {
+    [diffuseMap, metallicMap, normalMap, roughnessMap].forEach((texture, index) => {
+      texture.flipY = false;
+      texture.needsUpdate = true;
+      if (index === 0) texture.colorSpace = THREE.SRGBColorSpace;
+    });
+
     model.traverse((object) => {
       const mesh = object as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-      if (mesh.material && !Array.isArray(mesh.material)) {
-        mesh.material.needsUpdate = true;
-      }
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      materials.forEach((entry) => {
+        const material = entry as THREE.MeshStandardMaterial;
+        material.map = diffuseMap;
+        material.metalnessMap = metallicMap;
+        material.normalMap = normalMap;
+        material.roughnessMap = roughnessMap;
+        material.metalness = 0.28;
+        material.roughness = 0.68;
+        material.needsUpdate = true;
+      });
     });
 
     const clip = model.animations[0];
@@ -86,7 +107,7 @@ function RiggedModel({
       mixer.stopAllAction();
       mixer.uncacheAction(clip, model);
     };
-  }, [mixer, model]);
+  }, [diffuseMap, metallicMap, model, mixer, normalMap, roughnessMap]);
 
   useEffect(() => {
     const box = new THREE.Box3().setFromObject(model);
@@ -100,8 +121,9 @@ function RiggedModel({
   useFrame((_, delta) => {
     const speaking = voiceState === "speaking";
     const listening = voiceState === "listening";
-    const activeMotion = isAwake || speaking || listening;
-    if (activeMotion) mixer.update(Math.min(delta, 0.05));
+    // O clip do FBX precisa avançar desde o primeiro frame; bloquear o mixer
+    // no estado idle deixava o personagem preso na pose T de bind.
+    mixer.update(Math.min(delta, 0.05));
 
     const metrics = audioMetricsRef?.current;
     const audioLevel = metrics?.source === "crazy" ? metrics.level : 0;

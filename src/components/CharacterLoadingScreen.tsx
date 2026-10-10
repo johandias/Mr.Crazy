@@ -5,7 +5,8 @@ import * as THREE from "three";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import {
   MR_CRAZY_MODEL_CACHE_KEY,
-  MR_CRAZY_MODEL_PATH
+  MR_CRAZY_MODEL_PATH,
+  MR_CRAZY_TEXTURE_PATHS
 } from "@/lib/character-assets";
 
 const LOADING_LINES = [
@@ -66,9 +67,14 @@ export function CharacterLoadingScreen({ onReady }: CharacterLoadingScreenProps)
       }, remaining);
     };
 
+    const textureLoader = new THREE.TextureLoader();
+    const texturePromises = MR_CRAZY_TEXTURE_PATHS.map((path) => new Promise<void>((resolve, reject) => {
+      textureLoader.load(path, () => resolve(), undefined, reject);
+    }));
+
     modelLoader.load(
       MR_CRAZY_MODEL_PATH,
-      complete,
+      () => Promise.all(texturePromises).then(complete).catch(() => complete()),
       (event) => {
         if (cancelled) return;
         if (event.lengthComputable && event.total > 0) {
