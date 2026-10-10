@@ -13,6 +13,10 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Em andamento:** a tela inicial agora monta `PixelMrCrazy` diretamente em um contêiner próprio, sem passar pelo orquestrador de voz; o contêiner tem caixa explícita e o SVG ocupa essa caixa com posicionamento absoluto.
 - **Regressão:** teste dedicado garante a montagem direta e as dimensões do avatar na tela inicial; suítes obrigatórias passaram (33 + 9 + 6).
 
+## 🟡 Codex — 2026-10-10 — Redesign visual do personagem pixel-art
+- **Em andamento:** redesenhado `PixelMrCrazy.tsx` com proporções mais heroicas, rosto expressivo, cabelo volumoso, capa em camadas, ombreiras, cinto, botas, luzes e detalhes de acabamento; continua 100% em SVG/código e mantém estados de fala, piscada e gestos.
+- **Validação local:** sintaxe TSX, `git diff --check` e suítes obrigatórias passaram (33 + 9 + 6).
+
 ## 🟢 Codex — 2026-10-10 — Avatar pixel-art RPG
 - **Entregue nesta sessão:** substituição definitiva do FBX/Canvas e das imagens 3D por um SVG pixel-art nativo do Mr. Crazy.
 - **Escopo:** pixels pequenos em silhueta escalonada para volume, roupa/capa de RPG, olhos, boca articulada, respiração, balanço de capa, movimento de braços e gestos de dedo, positivo, coração e pistola d'água.
