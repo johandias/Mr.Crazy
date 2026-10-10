@@ -15,6 +15,10 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - Validação local: sintaxe TSX, `git diff --check` e suítes obrigatórias passaram (32 + 9 + 6).
 - Validação no navegador: produção conferida em `/convite#o-mr-crazy`; avatar texturizado e com pose/gesto normais. Console sem erros, apenas aviso não bloqueante de pesos FBX acima de quatro influências.
 
+## 🟢 Codex — 2026-10-10 — Enquadramento real do FBX
+- Entregue nesta sessão: corrigido o eixo vertical do modelo; o centro do FBX agora coincide com o alvo da câmera (`y = 1.28`).
+- O navegador confirmou que o Canvas estava carregado, mas o avatar ficava fora do enquadramento; a imagem de fallback foi removida após o modelo real ficar pronto.
+
 ## 🟢 Codex — 2026-10-10 — Tela de carregamento do avatar
 - Entregue nesta sessão: pré-carregamento real do FBX antes de montar a prática, com cache local para não repetir a tela após o personagem estar pronto.
 - Tela estilo jogo com foto do Mr. Crazy, barra de progresso e frases rotativas enquanto as pré-definições carregam.

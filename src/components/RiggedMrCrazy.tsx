@@ -118,7 +118,9 @@ function RiggedModel({
     const center = box.getCenter(new THREE.Vector3());
     const scale = size.y > 0 ? 2.95 / size.y : 0.01;
     model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale - 1.18, -center.z * scale);
+    // O centro do modelo precisa coincidir com o alvo da câmera ortográfica.
+    // O valor anterior (-1.18) jogava o FBX inteiro para baixo do enquadramento.
+    model.position.set(-center.x * scale, -center.y * scale + 1.28, -center.z * scale);
   }, [model]);
 
   useFrame((_, delta) => {

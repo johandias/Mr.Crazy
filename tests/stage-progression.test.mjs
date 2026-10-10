@@ -484,6 +484,7 @@ test("rigged FBX avatar is wired to realtime skeleton motion", async () => {
   assert.match(riggedCode, /rightForeArm/);
   assert.match(riggedCode, /!isModelReady/);
   assert.match(riggedCode, /onReady/);
+  assert.match(riggedCode, /-center\.y \* scale \+ 1\.28/);
   assert.match(loadingCode, /Acordando o Mr\. Crazy/);
   assert.match(loadingCode, /Mr\. Crazy está escovando os dentes/);
   assert.match(loadingCode, /localStorage/);
