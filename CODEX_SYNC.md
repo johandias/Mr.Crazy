@@ -13,6 +13,7 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - Entregue nesta sessão: mapas diffuse/metallic/normal/roughness aplicados manualmente ao FBX, com pré-carregamento junto do modelo.
 - O mixer de animação agora avança desde o primeiro frame, evitando a pose T de bind com braços abertos.
 - Validação local: sintaxe TSX, `git diff --check` e suítes obrigatórias passaram (32 + 9 + 6).
+- Validação no navegador: produção conferida em `/convite#o-mr-crazy`; avatar texturizado e com pose/gesto normais. Console sem erros, apenas aviso não bloqueante de pesos FBX acima de quatro influências.
 
 ## 🟢 Codex — 2026-10-10 — Tela de carregamento do avatar
 - Entregue nesta sessão: pré-carregamento real do FBX antes de montar a prática, com cache local para não repetir a tela após o personagem estar pronto.
