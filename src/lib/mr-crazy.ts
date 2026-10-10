@@ -813,7 +813,7 @@ export function analyzeEnglishSentence(
   if (!correct && consecutiveRepeat) {
     const directFix = mistake_word && correct_word ? `O ponto é "${mistake_word}" -> "${correct_word}".` : "É o mesmo tipo de erro de novo.";
     reaction = getRepeatedWrongReaction(directFix);
-    follow_up = `${getAlternativeExpression(mistake_type, corrected_sentence)} Depois repete: "${removeFinalPunctuation(corrected_sentence)}".`;
+    follow_up = `${getAlternativeExpression(mistake_type, corrected_sentence)} Agora aplica essa ideia numa frase curta da mesma situação.`;
   }
   const metrics = calibrateAttemptMetrics({
     correct,

@@ -9,6 +9,13 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
+## 🟡 Codex — 2026-10-10 — Correção mobile e aula de voz adaptativa
+- **Em andamento nesta sessão:** consolidada a última camada de responsividade da prática mobile em `src/app/responsive.css`, mantendo o desktop isolado; o balão não usa mais `line-clamp` que escondia o fim das respostas.
+- **Tutor de voz:** `src/lib/realtime-session.ts` agora aceita paráfrases, frases criadas pelo aluno e variações no mesmo cenário; limita tentativas guiadas e evita pedir a mesma frase após uma resposta compreensível.
+- **Reconhecimento:** silêncio do Server VAD ampliado de 450ms para 700ms para não cortar pausas naturais em celulares.
+- **Fallback local:** erros repetidos deixam de mandar repetir literalmente a frase corrigida e passam para uma aplicação contextual.
+- **Validação:** `git diff --check` passou. As três suítes obrigatórias passaram via Node 22 temporário: progressão 31/31, scoring 9/9 e Realtime 6/6. A execução completa alcançou 88/92; quatro testes de rotas/autenticação ficaram bloqueados por dependências ausentes (`@supabase/supabase-js` e `typescript`) neste checkout. O Node padrão local é v18.19.1 e não suporta `--experimental-strip-types`.
+
 ## 🟢 Antigravity — 2026-10-02 — Avatar 3D Vivo, Parallax Pointer Tracking, Reação Sonoro-Vocal & Interatividade Tátil
 - **Avatar 3D Vivo com Parallax & Reação Sonoro-Vocal**:
   - `RpgCharacter.tsx` & `globals.css`: conectado o modelo 3D real (`.mr-crazy-preview-layer`) diretamente aos seletores dinâmicos de parallax tridimensional (`--look-x`, `--look-y`) e de áudio WebRTC (`--live-head-bob`, `--live-level`).
