@@ -18,6 +18,7 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Codex — 2026-10-10 — Enquadramento real do FBX
 - Entregue nesta sessão: corrigido o eixo vertical do modelo; o centro do FBX agora coincide com o alvo da câmera (`y = 1.28`).
 - O navegador confirmou que o Canvas estava carregado, mas o avatar ficava fora do enquadramento; a imagem de fallback foi removida após o modelo real ficar pronto.
+- Validação final no navegador: Canvas presente, fallback oculto e zero erros de console em `/convite?avatar=919639c#o-mr-crazy`.
 
 ## 🟢 Codex — 2026-10-10 — Tela de carregamento do avatar
 - Entregue nesta sessão: pré-carregamento real do FBX antes de montar a prática, com cache local para não repetir a tela após o personagem estar pronto.
