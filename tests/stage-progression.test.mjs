@@ -457,39 +457,28 @@ test("practice scene uses a light CSS ambience that respects reduced motion", as
 test("Mr.Crazy animates body, gestures, and mouth while speaking", async () => {
   const fs = await import("node:fs");
   const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
+  const pixelCode = fs.readFileSync("src/components/PixelMrCrazy.tsx", "utf-8");
   const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
   const globalCss = fs.readFileSync("src/app/globals.css", "utf-8");
 
-  assert.ok(characterCode.includes("rpg-phonemes-active"), "A boca deve alternar visemas durante a fala");
-  assert.ok(characterCode.includes("arm-speaking-support"), "O braço do livro deve acompanhar a explicação");
-  assert.ok(characterCode.includes("rpg-staff-speaking"), "O cajado deve participar dos gestos do professor");
+  assert.ok(characterCode.includes("PixelMrCrazy"), "A cena deve usar o avatar pixel-art nativo");
+  assert.ok(pixelCode.includes("shapeRendering=\"crispEdges\""), "O avatar deve preservar pixels nítidos");
+  assert.ok(pixelCode.includes("pixel-mouth"), "A boca deve alternar visemas durante a fala");
+  assert.ok(pixelCode.includes("pixel-gesture-thumbsup"), "O avatar deve ter gesto de aprovação");
+  assert.ok(pixelCode.includes("pixel-gesture-heart"), "O avatar deve ter gesto de incentivo");
+  assert.ok(pixelCode.includes("pixel-gesture-watergun"), "O avatar deve ter gesto energético");
   assert.ok(practiceCode.includes("thumbsup"), "A coreografia deve incluir gesto de aprovação");
   assert.ok(practiceCode.includes("heart"), "A coreografia deve incluir gesto de incentivo");
-  assert.ok(globalCss.includes("speech-chest"), "O corpo deve respirar e se mover durante a fala");
-  assert.ok(globalCss.includes("mouth-articulation"), "A animação da boca deve ter articulação própria");
+  assert.ok(globalCss.includes("pixel-speaking-body"), "O corpo deve respirar e se mover durante a fala");
+  assert.ok(globalCss.includes("pixel-talk-left"), "As mãos devem acompanhar a explicação");
 });
 
-test("rigged FBX avatar is wired to realtime skeleton motion", async () => {
+test("practice no longer waits for the broken 3d avatar", async () => {
   const fs = await import("node:fs");
-  const characterCode = fs.readFileSync("src/components/RpgCharacter.tsx", "utf-8");
-  const riggedCode = fs.readFileSync("src/components/RiggedMrCrazy.tsx", "utf-8");
-  const loadingCode = fs.readFileSync("src/components/CharacterLoadingScreen.tsx", "utf-8");
   const clientCode = fs.readFileSync("src/components/PracticeExperienceClient.tsx", "utf-8");
 
-  assert.match(characterCode, /RiggedMrCrazy/);
-  assert.match(riggedCode, /MR_CRAZY_MODEL_PATH/);
-  assert.match(riggedCode, /FBXLoader/);
-  assert.match(riggedCode, /AnimationMixer/);
-  assert.match(riggedCode, /leftForeArm/);
-  assert.match(riggedCode, /rightForeArm/);
-  assert.match(riggedCode, /!isModelReady/);
-  assert.match(riggedCode, /onReady/);
-  assert.match(riggedCode, /-center\.y \* scale \+ 1\.28/);
-  assert.match(loadingCode, /Acordando o Mr\. Crazy/);
-  assert.match(loadingCode, /Mr\. Crazy está escovando os dentes/);
-  assert.match(loadingCode, /localStorage/);
-  assert.match(loadingCode, /FBXLoader/);
-  assert.match(clientCode, /CharacterLoadingScreen/);
+  assert.doesNotMatch(clientCode, /CharacterLoadingScreen|MR_CRAZY_MODEL_CACHE_KEY|avatarReady/);
+  assert.match(clientCode, /<PracticeExperience isAdmin=\{isAdmin\} \/>/);
 });
 
 test("beta conversation fallback provides correction, explanation, and continuity", async () => {

@@ -1,14 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { memo, useState, useEffect, useRef, type CSSProperties, type RefObject } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
-
-const RiggedMrCrazy = dynamic(
-  () => import("@/components/RiggedMrCrazy").then((module) => module.RiggedMrCrazy),
-  { ssr: false }
-);
+import { PixelMrCrazy } from "@/components/PixelMrCrazy";
 
 export type CharacterGesture = "idle" | "finger" | "smoke" | "heart" | "thumbsup" | "watergun";
 
@@ -23,24 +18,6 @@ const sparkParticles = [
   [132, 110, 5],
   [80, 16, 5]
 ] as const;
-
-const REAL_AVATAR_POSE_PATHS = {
-  idle: "/assets/character/mr_crazy_3d_idle.png",
-  speaking: "/assets/character/mr_crazy_3d_gesturing.png",
-  pointing: "/assets/character/mr_crazy_3d_pointing.png"
-} as const;
-
-function getRealAvatarPose(voiceState: VoiceState, gesture: CharacterGesture) {
-  if (gesture === "finger" || gesture === "thumbsup" || gesture === "watergun") {
-    return { name: "pointing", src: REAL_AVATAR_POSE_PATHS.pointing };
-  }
-
-  if (voiceState === "speaking" || gesture === "heart") {
-    return { name: "speaking", src: REAL_AVATAR_POSE_PATHS.speaking };
-  }
-
-  return { name: "idle", src: REAL_AVATAR_POSE_PATHS.idle };
-}
 
 export const RpgCharacter = memo(function RpgCharacter({
   crazyLevel,
@@ -70,7 +47,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   // Ciclo procedural de fonemas labiais realistas durante a fala
   const [animatedPhoneme, setPhoneme] = useState(0);
   const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
-  // Animação de entrada: inicia imediatamente de pé com o avatar 3D real ativo
+  // Animação de entrada: começa de pé e sem depender de carregamento externo.
   const [entranceStage, setEntranceStage] = useState<EntranceStage>("standing");
   const wakingUpRef = useRef(false);
 
@@ -254,14 +231,12 @@ export const RpgCharacter = memo(function RpgCharacter({
 
   const activity = voiceState === "speaking" ? "speaking" : voiceState === "listening" ? "listening" : "idle";
   const characterViewBox = (entranceStage === "hammock" || entranceStage === "alert") ? "0 0 160 160" : "14 18 132 130";
-  const shouldUseRealAvatar = entranceStage === "standing" || entranceStage === "jumping";
   const legacyEntranceStage = entranceStage as EntranceStage;
-  const realAvatarPose = getRealAvatarPose(voiceState, gesture);
 
   return (
     <div
       ref={containerRef}
-      className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage} ${isAwake ? "is-awake" : "is-still"} ${shouldUseRealAvatar ? "has-real-avatar" : ""} pose-${realAvatarPose.name}`}
+      className={`character-stage rpg-character-stage ${emotion} ${activity} gesture-${gesture} stage-${entranceStage} ${isAwake ? "is-awake" : "is-still"}`}
       style={{
         "--rpg-energy": `${Math.max(0.25, crazyLevel / 100)}`,
         "--look-x": lookOffset.x,
@@ -273,7 +248,7 @@ export const RpgCharacter = memo(function RpgCharacter({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") handleStageClick();
       }}
-      aria-label={`Mr.Crazy 3D NPC ${entranceStage === "hammock" ? "descansando na rede" : activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
+      aria-label={`Mr.Crazy pixel-art ${activity === "speaking" ? "falando" : "pronto"} - Gesto: ${gesture}. Toque para interagir.`}
       title={entranceStage === "standing" ? "Toque no Mr.Crazy para interagir!" : "Mr.Crazy acordando para a aula!"}
     >
       {tapReaction && (
@@ -281,22 +256,17 @@ export const RpgCharacter = memo(function RpgCharacter({
           <span>{tapReaction}</span>
         </div>
       )}
-      {shouldUseRealAvatar && (
-        <div className="mr-crazy-preview-layer" aria-hidden="true">
-          <RiggedMrCrazy
-            fallbackSrc={realAvatarPose.src}
-            voiceState={voiceState}
-            gesture={gesture}
-            emotion={emotion}
-            crazyLevel={crazyLevel}
-            isAwake={isAwake}
-            lookX={lookOffset.x}
-            lookY={lookOffset.y}
-            audioMetricsRef={audioMetricsRef}
-          />
-        </div>
-      )}
-      {!shouldUseRealAvatar && (
+      <PixelMrCrazy
+        voiceState={voiceState}
+        gesture={gesture}
+        emotion={emotion}
+        crazyLevel={crazyLevel}
+        lookX={lookOffset.x}
+        lookY={lookOffset.y}
+        phoneme={phoneme}
+        isBlinking={isBlinking}
+      />
+      {false && (
       <svg
         className="rpg-character"
         viewBox={characterViewBox}

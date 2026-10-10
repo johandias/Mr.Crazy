@@ -9,6 +9,12 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
 
+## 🟡 Codex — 2026-10-10 — Avatar pixel-art RPG
+- **Em andamento nesta sessão:** substituição definitiva do FBX/Canvas e das imagens 3D por um SVG pixel-art nativo do Mr. Crazy.
+- **Escopo:** pixels pequenos em silhueta escalonada para volume, roupa/capa de RPG, olhos, boca articulada, respiração, balanço de capa, movimento de braços e gestos de dedo, positivo, coração e pistola d'água.
+- **Runtime:** removido o bloqueio de pré-carregamento do modelo; a prática monta diretamente o personagem e preserva voz, parallax e estados de fala/escuta.
+- **Validação parcial:** sintaxe TSX, `git diff --check` e suítes nativas obrigatórias passaram; `typecheck` local está bloqueado porque este checkout não possui `tsc` em `node_modules`.
+
 ## 🟢 Codex — 2026-10-10 — Correção de textura e pose do avatar
 - Entregue nesta sessão: mapas diffuse/metallic/normal/roughness aplicados manualmente ao FBX, com pré-carregamento junto do modelo.
 - O mixer de animação agora avança desde o primeiro frame, evitando a pose T de bind com braços abertos.
