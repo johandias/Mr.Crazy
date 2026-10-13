@@ -7,7 +7,18 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 122 testes passando nas suítes nativas + `typecheck`, `lint`, `build` e auditoria browser headless validados em worktree temporário limpo.
+- **Suíte de Testes**: 124 testes passando nas suítes nativas + `tsc --noEmit` 0 erros.
+
+## 🟢 Antigravity — 2026-10-13 — Redesign Moderno & Cômico do Avatar + Autonomia ChatGPT Realtime & Fim de Cortes de Voz
+- **Entregue:**
+  1. **Redesign do Avatar (`PixelMrCrazy.tsx` & `globals.css`)**: Avatar modernizado para estilo cartoon/comic expressivo e cômico, preservando 100% da identidade (cabelo ruivo flamejante, óculos com reflexo, casaco de professor teal, capa carmesim). Adicionados visemas labiais expressivos com dentes e língua, olhos grandes cel-shaded com rastreamento de olhar (`lookX/lookY`), sobrancelhas dinâmicas, veia de raiva pulsante anime (💢), vapor saindo dos ouvidos (💨), gota de suor cômica (💧) e brilho estrela nos óculos (✨).
+  2. **Voz sem Cortes e sem Delay (`realtime-client.ts`)**:
+     - Eliminada interrupção indevida do Mr. Crazy por VAD fantasma/ruído ou Whisper hallucinations durante a resposta.
+     - Drenagem suave do áudio WebRTC (`playback_drain`): a resposta não corta mais abruptamente no fim de tokens.
+     - Otimização do tempo de conexão ICE (resolução antecipada quando candidatos já estão presentes no SDP).
+  3. **Autonomia do ChatGPT Realtime (`PracticeExperience.tsx`)**:
+     - O modelo Realtime (`gpt-realtime-2.1-mini`) agora raciocina de forma autônoma e fala diretamente via WebRTC na voz nativa (`echo`), decidindo suas próprias palavras pelo prompt em português com frase-modelo em inglês nas transições de fases e provas práticas (`requestAssistantResponse`), eliminando TTS secundário (`/api/speech`) com strings estáticas robotizadas.
+- **Validação:** 124 testes passando (0 erros), TypeScript `tsc --noEmit` validado com sucesso.
 
 ## 🟢 Codex — 2026-10-10 — Redesign do personagem com movimento, impacto e lip-sync
 - **Entregue:** personagem SVG vetorial desenhado do zero, com direção visual baseada na referência: cabelo ruivo volumoso, óculos, túnica teal, capa carmesim, cinto dourado e botas de RPG.

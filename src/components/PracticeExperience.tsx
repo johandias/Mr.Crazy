@@ -1376,11 +1376,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     handleSelectModule(target.nextModule.id);
 
     const phraseToRepeat = target.targetConcept?.phrase || target.nextModule.initialGreeting.en;
-    const speechAnnouncement = `Boa! Agora fala: ${phraseToRepeat}. Sua vez!`;
-
-    setTimeout(() => {
-      speak(speechAnnouncement, "waiting_for_repeat", "pt-BR");
-    }, 400);
+    if (realtimeRef.current) {
+      realtimeRef.current.requestAssistantResponse(
+        `O aluno concluiu a etapa anterior e avançou para a nova fase do módulo "${target.nextModule.cleanTitle || target.nextModule.title}". O foco agora é praticar a frase em inglês: "${phraseToRepeat}". Apresente a nova fase de forma curta, enérgica e bem-humorada em português (máximo 20 palavras), fale a frase em inglês e chame o aluno para praticar!`
+      );
+    } else {
+      const speechAnnouncement = `Boa! Agora fala: ${phraseToRepeat}. Sua vez!`;
+      setTimeout(() => {
+        speak(speechAnnouncement, "waiting_for_repeat", "pt-BR");
+      }, 400);
+    }
   }, [stageTransition, handleSelectModule, speak]);
 
   useEffect(() => {
@@ -1424,9 +1429,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           const score = typeof evalItem.overall_score === "number" ? evalItem.overall_score : 70;
 
           triggerGesture(score >= 70 ? "heart" : "watergun");
-          speak(
-            `Você concluiu a avaliação do módulo ${activeModule.cleanTitle || activeModule.title} com nota ${score}! ${evalItem.summary_feedback}`
-          );
+          if (realtimeRef.current) {
+            realtimeRef.current.requestAssistantResponse(
+              `O aluno concluiu a avaliação do módulo "${activeModule.cleanTitle || activeModule.title}" com nota ${score} de 100. Resumo pedagógico: ${evalItem.summary_feedback}. Dê seu feedback expressivo em português no estilo Mr. Crazy!`
+            );
+          } else {
+            speak(
+              `Você concluiu a avaliação do módulo ${activeModule.cleanTitle || activeModule.title} com nota ${score}! ${evalItem.summary_feedback}`
+            );
+          }
         }
       }
     } catch (err) {
@@ -1443,9 +1454,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       setMicrophoneEnabled(false);
       realtimeRef.current?.setMicrophoneEnabled(false);
       triggerGesture("thumbsup");
-      speak(
-        "Você concluiu as fases. Agora é a prova prática: converse em inglês e use o que aprendeu. A correção vem no final."
-      );
+      if (realtimeRef.current) {
+        realtimeRef.current.requestAssistantResponse(
+          `O aluno concluiu todas as etapas de treino do módulo "${activeModule.cleanTitle || activeModule.title}". Anuncie com animação e energia que agora é a prova prática com o Chefão!`
+        );
+      } else {
+        speak(
+          "Você concluiu as fases. Agora é a prova prática: converse em inglês e use o que aprendeu. A correção vem no final."
+        );
+      }
     }
   }, [isLessonCompleted, isModuleCompleted, currentEvaluation, isExamModalOpen, activeModule, triggerGesture, speak]);
 
@@ -3008,7 +3025,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             handleSelectModule(nextModId);
             const nextMod = getModuleById(nextModId);
             triggerGesture("thumbsup");
-            speak(`Você passou na prova prática e avançou para a etapa ${nextMod.cleanTitle || nextMod.title}!`);
+            if (realtimeRef.current) {
+              realtimeRef.current.requestAssistantResponse(
+                `O aluno foi aprovado na prova prática do módulo e avançou para a etapa "${nextMod.cleanTitle || nextMod.title}". Comemore no seu estilo Mr. Crazy e dê as boas-vindas à nova etapa!`
+              );
+            } else {
+              speak(`Você passou na prova prática e avançou para a etapa ${nextMod.cleanTitle || nextMod.title}!`);
+            }
           }}
           onRedoModule={() => {
             setIsExamModalOpen(false);

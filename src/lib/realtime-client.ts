@@ -14,6 +14,7 @@ export type RealtimeController = {
   commitTurn: () => void;
   cancelTurn: () => void;
   sendText: (text: string) => boolean;
+  requestAssistantResponse: (instructions?: string) => boolean;
   setMicrophoneEnabled: (enabled: boolean) => void;
   interrupt: () => void;
   updateInstructions: (instructions: string) => boolean;
@@ -284,6 +285,13 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
             return Math.min(1, avg * 1.5);
           });
 
+          if ((level > 0.015 || bass > 0.02) && responseActive && !playbackActive) {
+            playbackActive = true;
+            stage = "playback";
+            options.onVoiceState("speaking");
+            syncCapture();
+          }
+
           options.onOutputMetrics?.({ level, bass, mid, high, bands });
         }, 50);
         void remoteAudioCtx.resume().catch(() => {});
@@ -356,23 +364,22 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           userSpeaking = true;
           clear("turn");
           options.onUserSpeechStarted?.();
-          // A captura é desativada durante a fala do tutor; portanto, este evento
-          // representa uma nova intervenção do aluno e precisa interromper a resposta.
-          if (playbackActive || responseActive) {
+          // Barge-in: se o aluno interromper com o microfone ligado (não sob guarda de eco):
+          if ((playbackActive || responseActive) && microphoneEnabled && !echoGuardActive) {
             send({ type: "response.cancel" });
             send({ type: "output_audio_buffer.clear" });
             audio?.pause();
             playbackActive = false;
             responseActive = false;
           }
-          responseActive = false;
-          playbackActive = false;
-          assistantText = "";
-          assistantCommitted = false;
-          clear("response");
-          clear("echo");
-          stage = "listening";
-          options.onVoiceState("listening");
+          if (!playbackActive && !responseActive) {
+            assistantText = "";
+            assistantCommitted = false;
+            clear("response");
+            clear("echo");
+            stage = "listening";
+            options.onVoiceState("listening");
+          }
           log("speech_started", "Voz do aluno detectada.");
           break;
         case "input_audio_buffer.speech_stopped":
@@ -397,16 +404,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
 
           if (isNoiseOrHallucination(rawTranscript)) {
             log("noise_cancelled", `Ruído ou alucinação descartada: "${rawTranscript}".`);
-            // Se a resposta ainda não começou a falar e apenas estava sendo gerada, cancela.
-            // Mas se o professor já estiver falando (playbackActive), NUNCA corta o áudio no meio da frase!
-            if (responseActive && !playbackActive) {
-              send({ type: "response.cancel" });
-              send({ type: "output_audio_buffer.clear" });
-              responseActive = false;
-              clear("response");
-              clear("echo");
-              syncCapture();
-            }
+            // Ruído ambiente ou hallucination não deve cancelar uma resposta em curso
             options.onUserTranscript("", true);
             break;
           }
@@ -423,6 +421,12 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         case "response.audio_transcript.delta":
         case "response.output_text.delta":
         case "response.text.delta":
+          if (!playbackActive) {
+            playbackActive = true;
+            stage = "playback";
+            options.onVoiceState("speaking");
+            syncCapture();
+          }
           assistantText += event.delta ?? ""; options.onAssistantTranscript(assistantText, false); break;
         case "response.output_audio_transcript.done":
         case "response.audio_transcript.done":
@@ -449,11 +453,26 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           responseActive = false;
           const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
           commitAssistant(text || assistantText);
-          if (event.response?.status !== "cancelled") {
-            const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
-            commitAssistant(text || assistantText);
+          pendingTurn = false;
+          clear("turn");
+          if (!playbackActive) {
+            clear("response");
+            syncCapture();
+          } else {
+            // Garante que o áudio termine naturalmente sem corte abrupto
+            later("playback_drain", 1200, () => {
+              if (playbackActive && !responseActive) {
+                playbackActive = false;
+                echoGuardActive = true;
+                clear("response");
+                syncCapture();
+                later("echo", 350, () => {
+                  echoGuardActive = false;
+                  syncCapture();
+                });
+              }
+            });
           }
-          pendingTurn = false; clear("turn"); if (!playbackActive) { clear("response"); syncCapture(); }
           if (event.response?.status === "failed") report(new VoiceError("response_failed", "A API não conseguiu gerar a resposta.", { providerCode: event.response.status_details?.error?.code }));
           break;
         }
@@ -486,10 +505,18 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         // primeiro candidato (ou em 150 ms) gera ofertas incompletas em redes
         // móveis/Vercel e deixa o botão preso em "Conectando".
         await waitFor(new Promise<void>(resolve => {
+          let fastTimer: ReturnType<typeof setTimeout> | undefined;
           const checkComplete = () => {
-            if (peer?.iceGatheringState === "complete") resolve();
+            if (peer?.iceGatheringState === "complete") {
+              if (fastTimer) clearTimeout(fastTimer);
+              resolve();
+            }
           };
           listen(peer!, "icegatheringstatechange", checkComplete);
+          fastTimer = setTimeout(() => {
+            const availableSdp = peer?.localDescription?.sdp ?? "";
+            if (availableSdp.includes("a=candidate:")) resolve();
+          }, 350);
           checkComplete();
         }), lifetime.signal, 1800, "ice_gather_timeout");
       } catch (error) {
@@ -618,6 +645,19 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         options.onUserTranscript(text.trim(), true);
         responseActive = send({ type: "response.create" });
         syncCapture(); watchResponse(); return responseActive;
+      },
+      requestAssistantResponse(instructions?: string) {
+        if (closed) return false;
+        responseActive = true;
+        playbackActive = false;
+        stage = "response";
+        syncCapture();
+        watchResponse();
+        const payload: { type: string; response?: { instructions?: string } } = { type: "response.create" };
+        if (instructions && instructions.trim()) {
+          payload.response = { instructions: instructions.trim() };
+        }
+        return send(payload);
       },
       finishTurn() {
         if (!microphoneEnabled || !userSpeaking) return;

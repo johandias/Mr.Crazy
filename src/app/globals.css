@@ -530,6 +530,19 @@ a {
 @keyframes pixel-gesture-pop { from { opacity: 0; transform: scale(0.72); } to { opacity: 1; transform: scale(1); } }
 @keyframes pixel-sparkle-pop { from { opacity: 0.45; transform: translateY(1px); } to { opacity: 1; transform: translateY(-3px); } }
 
+/* Efeitos cômicos animados do Mr. Crazy */
+.mr-crazy-vein { transform-origin: center; animation: mr-crazy-vein-throb 0.48s cubic-bezier(0.3, 0, 0.2, 1) infinite alternate; }
+.mr-crazy-steam-left { transform-origin: 96px 122px; animation: mr-crazy-steam-left-drift 1.2s ease-in-out infinite alternate; }
+.mr-crazy-steam-right { transform-origin: 224px 122px; animation: mr-crazy-steam-right-drift 1.2s ease-in-out infinite alternate; }
+.mr-crazy-sweat { transform-origin: 100px 92px; animation: mr-crazy-sweat-wobble 1.4s ease-in-out infinite; }
+.mr-crazy-happy-glint { transform-origin: 198px 94px; animation: mr-crazy-glint-twinkle 0.75s ease-in-out infinite alternate; }
+
+@keyframes mr-crazy-vein-throb { from { transform: translate(224px, 68px) scale(0.85); opacity: 0.75; } to { transform: translate(224px, 68px) scale(1.22); opacity: 1; } }
+@keyframes mr-crazy-steam-left-drift { 0% { transform: translate(0, 0) scale(0.8); opacity: 0.4; } 100% { transform: translate(-6px, -10px) scale(1.15); opacity: 0.95; } }
+@keyframes mr-crazy-steam-right-drift { 0% { transform: translate(0, 0) scale(0.8); opacity: 0.4; } 100% { transform: translate(6px, -10px) scale(1.15); opacity: 0.95; } }
+@keyframes mr-crazy-sweat-wobble { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(3px) scaleY(1.08); } }
+@keyframes mr-crazy-glint-twinkle { 0% { transform: scale(0.6) rotate(-15deg); opacity: 0.4; } 100% { transform: scale(1.2) rotate(20deg); opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .pixel-body, .pixel-cape, .pixel-speaking .pixel-arm-left, .pixel-speaking .pixel-arm-right,
   .pixel-listening .pixel-head, .pixel-sparkles { animation: none !important; }
