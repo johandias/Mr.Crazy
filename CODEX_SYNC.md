@@ -9,17 +9,35 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 124 testes passando nas suítes nativas + `tsc --noEmit` 0 erros.
 
-## 🟢 Antigravity — 2026-10-14 — Avatar 100% Vetorial Nativo (HTML, CSS, SVG e JSON) com Lip-Sync Realtime
+## 🟢 Antigravity — 2026-10-14 — Reconstrução Total do Avatar em Micro-Pixel Art de Alta Densidade (100% Código)
 - **Entregue:**
-  1. **Modelo de Dados JSON (`src/lib/mr-crazy-avatar.json`)**:
-     - Estruturado modelo JSON com paleta de cores, dimensões, geometria facial e coordenadas vetoriais exatas dos 5 visemas anatômicos de fala (aberta, esticada, redonda, fechamento e repouso natural).
-  2. **Renderização Vetorial Pura (`PixelMrCrazy.tsx` & `globals.css`)**:
-     - Eliminada 100% de qualquer dependência de imagens estáticas rasterizadas (sem PNG, sem JPG, sem FBX).
-     - Renderização puramente em HTML5, SVG e CSS com cel-shading rico em gradientes (cabelo flamejante multicamadas com brilhos dourados, casaco teal com costuras e lapelas, capa carmesim fluida com dobras e sombras, botas com fivelas de ouro).
-     - Rosto altamente expressivo estilo anime/comic: olhos cel-shaded com íris amber, reflexos estrela e rastreamento de olhar (`lookX/lookY`), óculos com reflexo diagonal, sobrancelhas dinâmicas por emoção.
-     - Articulação labial fluida (`pixel-mouth`) que se deforma e escala dinamicamente com o volume real do WebRTC (`--live-level`).
-     - Efeitos cômicos reativos nativos (veia anime 💢, vapor dos ouvidos 💨, gota de suor 💧, brilho ✨).
-  3. **Zero Regressões**: Preservação total de classes contratuais e aprovação nos 48 testes nativos.
+  1. **Reconstrução Total do Avatar (`PixelMrCrazy.tsx` & `mr-crazy-avatar.json`)**:
+     - Avatar refeito 100% do zero em arte pixelada de alta densidade (micro-pixel deluxe / estilo arcade 32-bit clássico).
+     - Pixels finos com `shapeRendering="crispEdges"` e `image-rendering: pixelated !important`, sem suavização borrada.
+     - Sombreamento rico em 6 tons por elemento:
+       * Cabelo flamejante multicamadas com pontas incandescentes e micro-degraus de luz.
+       * Rosto detalhado com bochechas coradas, contorno de mandíbula, nariz com ponto de luz especular e orelhas articuladas.
+       * Casaco esmeralda/teal de professor com lapelas dobradas e bordados dourados, camisa vitoriana com gravata cravat e 3 botões dourados com brilho.
+       * Cinto nobre de couro com fivela retangular dourada e botas de cano alto com fivelas.
+       * Capa carmesim ampla com múltiplas dobras de tecido e asas fluidas.
+  2. **Expressão Facial Viva & Natural**:
+     - **Piscar Anatômico Natural**: Micro-pestanas que fecham e abrem proceduralmente (`isBlinking`).
+     - **Rastreamento de Olhar (Parallax)**: Pupilas com íris azul/celeste (ou rubi em raiva) e reflexos duplos de luz que acompanham a posição do cursor/toque (`lookX`/`lookY`).
+     - **Sobrancelhas Dinâmicas**: Reagem emotivamente a cada estado (irritado/bravo com vinco fechado em V, maluco com sobrancelhas assimétricas, calmo/orgulhoso com arco confiante, analisando com sobrancelha erguida).
+     - **Efeitos Cômicos Integrados**: Veia de raiva anime (💢), vapor saindo dos ouvidos (💨), gota de suor (💧) e brilho nos óculos (✨).
+  3. **Movimentação do Corpo & Gestos**:
+     - Respiração sutil (`pixel-idle-breathe`), balanço de capa (`pixel-cape-sway`) e movimentação de torso/ombros durante a fala (`pixel-speaking-body`).
+     - Braços gesticulando em sincronia (`pixel-talk-left`, `pixel-talk-right`).
+     - Gestos táticos animados (`thumbsup`, `heart`, `watergun`, `finger`).
+  4. **Lip-Sync em Perfeita Sincronia com a Voz**:
+     - 5 visemas de micro-pixel anatômicos:
+       * Visema 0 (Aberta): Cavidade escura profunda, arcada dentária superior com dentes individuais e língua rosada com relevo.
+       * Visema 1 (Esticada): Sorriso didático amplo com dentes superiores e inferiores aparentes.
+       * Visema 2 (Redonda): Abertura circular puckered para fonemas O/U/W com língua ao fundo.
+       * Visema 3 (Fechando): Lábios pressionados para consoantes (M, P, B, T).
+       * Visema 4 (Repouso / `phoneme-rest-live`): Lábios fechados relaxados com leve sorriso sarcástico de professor.
+     - Modulação direta em tempo real pela amplitude sonora WebRTC (`--live-level` e `--live-head-bob`), abrindo e expandindo a boca conforme a força da voz.
+- **Validação:** 100% dos testes aprovados (33/33 de progressão, 9/9 de scoring, 6/6 de realtime, 7/7 de landing e demais suítes nativas com exit code 0).
 
 ## 🟢 Antigravity — 2026-10-13 — Redesign Moderno & Cômico do Avatar + Autonomia ChatGPT Realtime & Fim de Cortes de Voz
 - **Entregue:**

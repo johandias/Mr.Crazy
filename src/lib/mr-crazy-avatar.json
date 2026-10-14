@@ -1,101 +1,90 @@
 {
-  "name": "MrCrazyAvatarModel",
-  "version": "2.0.0",
-  "viewBox": "0 0 320 420",
+  "name": "MrCrazyMicroPixelAvatar",
+  "version": "3.0.0",
+  "viewBox": "0 0 280 340",
   "palette": {
-    "skin": {
-      "light": "#ffedd5",
-      "base": "#fed7aa",
-      "shadow": "#ea580c",
-      "darkShadow": "#9a3412"
-    },
     "hair": {
-      "highlight": "#fef08a",
-      "amber": "#f59e0b",
-      "flame": "#ea580c",
-      "crimson": "#dc2626",
-      "deepShadow": "#7f1d1d",
-      "contour": "#450a0a"
+      "darkest": "#3b0707",
+      "shadow": "#7c1a1a",
+      "base": "#c2410c",
+      "bright": "#ea580c",
+      "highlight": "#f59e0b",
+      "tip": "#fef08a"
     },
-    "cape": {
-      "top": "#f43f5e",
-      "base": "#be123c",
-      "shadow": "#881337",
-      "deep": "#4c0519",
-      "stroke": "#1e050f"
+    "skin": {
+      "darkest": "#7c2d12",
+      "shadow": "#9a3412",
+      "midShadow": "#c2410c",
+      "base": "#fed7aa",
+      "highlight": "#ffedd5",
+      "specular": "#fff7ed",
+      "blush": "#fb7185"
     },
     "coat": {
-      "highlight": "#5eead4",
+      "deepest": "#022c22",
+      "shadow": "#064e3b",
       "base": "#0d9488",
-      "shadow": "#115e59",
-      "deep": "#042f2e",
-      "trim": "#2dd4bf"
+      "bright": "#14b8a6",
+      "highlight": "#2dd4bf",
+      "trim": "#5eead4"
+    },
+    "cape": {
+      "deepest": "#28050e",
+      "shadow": "#4c0519",
+      "base": "#881337",
+      "bright": "#be123c",
+      "highlight": "#e11d48",
+      "rim": "#fb7185"
     },
     "gold": {
-      "highlight": "#fef08a",
-      "base": "#f59e0b",
-      "shadow": "#b45309",
-      "stroke": "#78350f"
+      "darkest": "#451a03",
+      "shadow": "#78350f",
+      "base": "#b45309",
+      "bright": "#f59e0b",
+      "highlight": "#fde047",
+      "gleam": "#fef9c3"
     },
     "leather": {
-      "base": "#78350f",
+      "darkest": "#1c1917",
       "shadow": "#451a03",
-      "stroke": "#1c1917"
+      "base": "#78350f",
+      "highlight": "#92400e"
+    },
+    "pants": {
+      "darkest": "#090d16",
+      "shadow": "#0f172a",
+      "base": "#1e293b",
+      "highlight": "#334155"
     },
     "glasses": {
-      "frame": "#f59e0b",
-      "glass": "rgba(224, 242, 254, 0.45)",
-      "glare": "#ffffff"
+      "frameDark": "#78350f",
+      "frameBase": "#f59e0b",
+      "frameHighlight": "#fef08a",
+      "lensFill": "rgba(186, 230, 253, 0.42)",
+      "lensGlare": "#ffffff"
+    },
+    "eyes": {
+      "sclera": "#f8fafc",
+      "scleraShadow": "#94a3b8",
+      "irisDark": "#075985",
+      "irisBase": "#0284c7",
+      "irisLight": "#38bdf8",
+      "pupil": "#090d16",
+      "glint": "#ffffff"
     },
     "mouth": {
-      "cavity": "#3b0713",
+      "cavity": "#220309",
       "teeth": "#ffffff",
-      "tongue": "#fb7185",
-      "lipStroke": "#7f1d1d"
-    }
-  },
-  "visemes": {
-    "open": {
-      "id": 0,
-      "name": "aberta",
-      "cavityPath": "M136 150c0-2 48-2 48 0 0 20-11 30-24 30s-24-10-24-30z",
-      "teethPath": "M142 150h36c0 6-4 9-10 9h-16c-6 0-10-3-10-9z",
-      "tonguePath": "M146 170c5-5 16-6 24 0 0 6-10 8-14 8s-10-2-10-8z"
-    },
-    "wide": {
-      "id": 1,
-      "name": "esticada",
-      "cavityPath": "M132 152c18 9 38 9 56 0-4 19-24 22-28 22s-24-3-28-22z",
-      "teethPath": "M136 153h48c-3 7-10 10-24 10s-21-3-24-10z",
-      "tonguePath": "M148 167c4-3 14-3 18 0 0 3-6 5-9 5s-9-2-9-5z"
-    },
-    "round": {
-      "id": 2,
-      "name": "redonda",
-      "cx": 160,
-      "cy": 162,
-      "rx": 15,
-      "ry": 18,
-      "innerRx": 10,
-      "innerRy": 9,
-      "tongueRx": 8,
-      "tongueRy": 5
-    },
-    "consonant": {
-      "id": 3,
-      "name": "fechando",
-      "cavityPath": "M138 156c12 5 32 5 44 0-4 11-19 13-22 13s-18-2-22-13z",
-      "teethPath": "M142 156h36c0 3-6 5-18 5s-18-2-18-5z"
-    },
-    "rest": {
-      "id": 4,
-      "name": "repouso",
-      "lipPath": "M140 159c11 4 27 5 40-2",
-      "dimplePath": "M180 155c2 2 3 5 1 7"
+      "teethShadow": "#cbd5e1",
+      "tongueBase": "#e11d48",
+      "tongueHighlight": "#fb7185",
+      "lipDark": "#68131e",
+      "lipHighlight": "#f43f5e"
     }
   },
   "geometry": {
-    "headCenter": { "x": 160, "y": 118 },
-    "bodyAnchor": { "x": 160, "y": 230 }
+    "center": { "x": 140, "y": 170 },
+    "headCenter": { "x": 140, "y": 112 },
+    "mouthCenter": { "x": 140, "y": 136 }
   }
 }

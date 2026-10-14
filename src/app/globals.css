@@ -490,7 +490,8 @@ a {
   width: 88%;
   height: 92%;
   overflow: visible;
-  shape-rendering: geometricPrecision;
+  shape-rendering: crispEdges !important;
+  image-rendering: pixelated;
   filter: drop-shadow(0 20px 28px rgb(0 0 0 / 58%)) drop-shadow(0 0 20px rgb(56 189 248 / 15%));
   transform: translate3d(calc(var(--look-x, 0) * 8px), calc(var(--look-y, 0) * 5px - var(--live-head-bob, 0px)), 0);
   transform-origin: center bottom;
@@ -524,8 +525,8 @@ a {
 .pixel-mouth {
   transform-box: fill-box;
   transform-origin: 50% 50%;
-  transition: transform 0.06s ease-out;
-  transform: scale(calc(1 + var(--live-level, 0) * 0.45));
+  transition: transform 0.05s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: scaleY(calc(0.9 + var(--live-level, 0) * 1.6)) scaleX(calc(0.95 + var(--live-level, 0) * 0.4));
 }
 
 @keyframes pixel-idle-breathe { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-2px) scaleY(1.012); } }
@@ -16181,8 +16182,8 @@ textarea {
    center-of-mass shifts, layered breathing, readable gestures and impact FX.
    ======================================================================== */
 .pixel-mr-crazy-art {
-  image-rendering: auto;
-  shape-rendering: geometricPrecision;
+  image-rendering: pixelated;
+  shape-rendering: crispEdges !important;
   filter: drop-shadow(0 24px 30px rgb(0 0 0 / 58%)) drop-shadow(0 0 24px rgb(56 189 248 / 12%));
   transform: translate3d(calc(var(--look-x, 0) * 8px), calc(var(--look-y, 0) * 5px - var(--live-head-bob, 0px)), 0);
   transform-origin: 50% 92%;
@@ -16224,7 +16225,10 @@ textarea {
 }
 
 .pixel-mouth {
-  transition: opacity 75ms linear;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 0.05s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 75ms linear;
+  transform: scaleY(calc(0.9 + var(--live-level, 0) * 1.6)) scaleX(calc(0.95 + var(--live-level, 0) * 0.4));
 }
 
 .pixel-speaking .pixel-rig {

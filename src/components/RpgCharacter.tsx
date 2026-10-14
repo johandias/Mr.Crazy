@@ -170,7 +170,7 @@ export const RpgCharacter = memo(function RpgCharacter({
           lastSwitchTime = now;
 
           if (level < 0.028) {
-            // Pausa entre palavras: lábios relaxam em repouso natural
+            // Pausa entre palavras: lábios relaxam em repouso natural (phoneme-rest-live)
             setPhoneme(4);
           } else {
             const highBands = (bands[6] ?? 0) + (bands[7] ?? 0) + (bands[8] ?? 0);
@@ -193,7 +193,12 @@ export const RpgCharacter = memo(function RpgCharacter({
         }
       } else {
         // Fallback procedural suave quando em áudio sintetizado ou sem métricas WebRTC
-        if (now - lastSwitchTime > 115) {
+        const simLevel = 0.16 + Math.sin(now / 120) * 0.1;
+        if (containerRef.current) {
+          containerRef.current.style.setProperty("--live-level", simLevel.toFixed(2));
+          containerRef.current.style.setProperty("--live-head-bob", `${(simLevel * 4).toFixed(1)}px`);
+        }
+        if (now - lastSwitchTime > 110) {
           lastSwitchTime = now;
           fallbackIndex = (fallbackIndex + 1) % phonemeSequence.length;
           setPhoneme(phonemeSequence[fallbackIndex]);
