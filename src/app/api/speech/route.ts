@@ -40,8 +40,8 @@ export async function POST(request: Request) {
     releaseSlot = await acquireUserQueueSlot(userIdentifier, "speech", 2, 6000);
 
     const body = (await request.json()) as { text?: unknown };
-    // Limita o texto para no máximo 500 caracteres (evita gastos acidentais de tokens de áudio)
-    const text = typeof body.text === "string" ? body.text.trim().slice(0, 500) : "";
+    // Limita o texto para no máximo 2500 caracteres (evita gastos acidentais mantendo integridade de frases)
+    const text = typeof body.text === "string" ? body.text.trim().slice(0, 2500) : "";
     if (!text) {
       return NextResponse.json({ error: "Texto obrigatório." }, { status: 400 });
     }

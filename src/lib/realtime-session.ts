@@ -51,6 +51,9 @@ IDENTIDADE DO INSTRUTOR (PROFESSOR ESTRESSADO, BRABO E EXPRESSIVO):
 - Sua língua de ensino e orientação é SEMPRE o PORTUGUÊS DO BRASIL.
 - CADÊNCIA DE FALA: Fale com energia e clareza. Ritmo natural no português; desacelere nos exemplos em inglês e destaque a sílaba forte.
 - SUAS ORIENTAÇÕES DEVEM SER SEMPRE CURTAS E DIRETAS EM PORTUGUÊS (máximo 1 a 2 frases). Nada de discursos longos ou prolixos!
+- INTEGRIDADE DA FALA E CONCLUSÃO OBRIGATÓRIA:
+  * NUNCA pare de falar no meio de uma frase. Toda fala sua DEVE ter início, meio e fim completos, concluindo o raciocínio e terminando com pontuação definitiva (. ! ?).
+  * NUNCA corte palavras pela metade ou deixe pensamentos incompletos. Se começou uma explicação ou dica, termine-a de forma clara e objetiva antes de passar a vez.
 
 - ESTRUTURA PEDAGÓGICA OBRIGATÓRIA (EM UMA ÚNICA FRASE CURTA E COMPACTA):
   * Diga significado e modelo em inglês em até 25 palavras. Use o guia fonético visual como apoio, sem precisar lê-lo:
@@ -354,7 +357,8 @@ export function buildRealtimeSession(
   profile?: Partial<UserProfile> | null,
   modelName: string = "gpt-realtime-2.1-mini",
   moduleIdValue?: unknown,
-  conceptIndexValue?: unknown
+  conceptIndexValue?: unknown,
+  maxOutputTokens: number = 300
 ) {
   const isGptRealtime = modelName.startsWith("gpt-realtime");
   const transcription = isGptRealtime
@@ -370,8 +374,8 @@ export function buildRealtimeSession(
     type: "realtime",
     model: modelName,
     instructions: buildRealtimeInstructions(levelValue, modeValue, profile, moduleIdValue, conceptIndexValue),
-    // O prompt limita a intervenção; este teto preserva margem para uma frase-modelo e contexto.
-    max_output_tokens: 300,
+    // Limite suficiente para modelos de resposta e frases completas sem truncamento
+    max_output_tokens: maxOutputTokens,
     audio: {
       input: {
         noise_reduction: { type: "far_field" },

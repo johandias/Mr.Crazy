@@ -7,7 +7,18 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 124 testes passando nas suítes nativas + `tsc --noEmit` 0 erros.
+- **Suíte de Testes**: 124+ testes passando em todas as suítes (exit code 0).
+
+## 🟢 Antigravity — 2026-10-14 — Estabilização Completa do Motor de Voz & Eliminação de Cortes de Fala e Texto
+- **Problemas Resolvidos:**
+  1. **Fala interrompida pelo microfone (Echo Barge-in & Premature Drain)**: O timer fixo de 1.2s de drain desmutava o microfone enquanto o áudio do Mr. Crazy ainda tocava nos alto-falantes; o microfone captava o próprio áudio e acionava o VAD da OpenAI com barge-in (`response.cancel`), cortando a fala no meio. Agora, o `remoteTimer` monitora a energia real do áudio via `remoteAnalyser` e só encerra o playback após 450ms de silêncio contínuo confirmado, com `echoGuardActive` por mais 400ms.
+  2. **Tratamento de `output_audio_buffer.stopped`**: Não desliga mais playback abruptamente, pois indica apenas o fim do envio dos pacotes pelo servidor OpenAI, enquanto o browser ainda está reproduzindo os buffers de áudio.
+  3. **Ruídos de respiração/cliques cortando o professor**: Removida a chamada indevida de `realtimeRef.current?.interrupt()` quando Whisper detectava ruídos ou alucinações ambientais em `PracticeExperience.tsx`.
+  4. **Texto sumindo da tela antes da fala terminar**: Removida a limpeza precipitada de `realtimeReply` ao transitar para o estado `listening`, mantendo o balão de fala intacto até o texto ser comitado no histórico de contexto.
+  5. **Teto de tokens cortando frases pela metade (`max_output_tokens: 300`)**: Em áudio Realtime, 300 tokens esgotavam em apenas ~10s de áudio, fazendo a API truncar frases com status `incomplete (max_output_tokens)`. O teto foi elevado para 1500 tokens nas rotas `/api/realtime/session`, `/api/realtime/client-secret`, `requestAssistantResponse` e `sendText` (com default de 300 preservado para compatibilidade de testes unitários).
+  6. **Regra de integridade de frases no prompt**: Adicionada cláusula explícita em `MR_CRAZY_BASE_PROMPT` e nos prompts do tutor exigindo conclusão obrigatória de frases com início, meio e fim e pontuação definitiva (. ! ?), sem cortes a meio caminho.
+  7. **Teto de caracteres no TTS fallback**: Aumentado o slice de 500 para 2500 caracteres em `/api/speech/route.ts`.
+- **Validação:** 100% dos testes unitários aprovados (progression, scoring, realtime-session, realtime-client, landing-page, realtime-routes).
 
 ## 🟢 Antigravity — 2026-10-14 — Reconstrução Total do Avatar em Micro-Pixel Art de Alta Densidade (100% Código)
 - **Entregue:**

@@ -109,7 +109,8 @@ export async function GET(request: Request) {
       user,
       model,
       url.searchParams.get("moduleId"),
-      url.searchParams.get("conceptIndex")
+      url.searchParams.get("conceptIndex"),
+      1500
     );
 
     const controller = new AbortController();

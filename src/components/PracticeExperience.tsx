@@ -1378,7 +1378,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     const phraseToRepeat = target.targetConcept?.phrase || target.nextModule.initialGreeting.en;
     if (realtimeRef.current) {
       realtimeRef.current.requestAssistantResponse(
-        `O aluno concluiu a etapa anterior e avançou para a nova fase do módulo "${target.nextModule.cleanTitle || target.nextModule.title}". O foco agora é praticar a frase em inglês: "${phraseToRepeat}". Apresente a nova fase de forma curta, enérgica e bem-humorada em português (máximo 20 palavras), fale a frase em inglês e chame o aluno para praticar!`
+        `O aluno concluiu a etapa anterior e avançou para a nova fase do módulo "${target.nextModule.cleanTitle || target.nextModule.title}". O foco agora é praticar a frase em inglês: "${phraseToRepeat}". Apresente a nova fase de forma enérgica e bem-humorada em português em frases completas com início, meio e fim (sem cortar frases pela metade), fale a frase em inglês e chame o aluno para praticar!`
       );
     } else {
       const speechAnnouncement = `Boa! Agora fala: ${phraseToRepeat}. Sua vez!`;
@@ -1431,7 +1431,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           triggerGesture(score >= 70 ? "heart" : "watergun");
           if (realtimeRef.current) {
             realtimeRef.current.requestAssistantResponse(
-              `O aluno concluiu a avaliação do módulo "${activeModule.cleanTitle || activeModule.title}" com nota ${score} de 100. Resumo pedagógico: ${evalItem.summary_feedback}. Dê seu feedback expressivo em português no estilo Mr. Crazy!`
+              `O aluno concluiu a avaliação do módulo "${activeModule.cleanTitle || activeModule.title}" com nota ${score} de 100. Resumo pedagógico: ${evalItem.summary_feedback}. Dê seu feedback expressivo em português no estilo Mr. Crazy em frases completas e conclusivas!`
             );
           } else {
             speak(
@@ -1456,7 +1456,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       triggerGesture("thumbsup");
       if (realtimeRef.current) {
         realtimeRef.current.requestAssistantResponse(
-          `O aluno concluiu todas as etapas de treino do módulo "${activeModule.cleanTitle || activeModule.title}". Anuncie com animação e energia que agora é a prova prática com o Chefão!`
+          `O aluno concluiu todas as etapas de treino do módulo "${activeModule.cleanTitle || activeModule.title}". Anuncie com animação e energia em uma fala completa com início, meio e fim que agora é a prova prática com o Chefão!`
         );
       } else {
         speak(
@@ -1623,7 +1623,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           }
           if (state === "listening") {
             cancelSpeech();
-            setRealtimeReply("");
           }
         }
       },
@@ -1632,10 +1631,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         setTranscript(text);
         if (complete && text.trim()) {
           const clean = text.trim();
-          // Ignora ruído de fundo, respiração, cliques e alucinações curtas do Whisper
+          // Ignora ruído de fundo, respiração, cliques e alucinações curtas do Whisper sem cancelar a fala do professor
           if (isNoiseOrHallucination(clean)) {
             setTranscript("");
-            realtimeRef.current?.interrupt();
             return;
           }
 
@@ -3027,7 +3025,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             triggerGesture("thumbsup");
             if (realtimeRef.current) {
               realtimeRef.current.requestAssistantResponse(
-                `O aluno foi aprovado na prova prática do módulo e avançou para a etapa "${nextMod.cleanTitle || nextMod.title}". Comemore no seu estilo Mr. Crazy e dê as boas-vindas à nova etapa!`
+                `O aluno foi aprovado na prova prática do módulo e avançou para a etapa "${nextMod.cleanTitle || nextMod.title}". Comemore no seu estilo Mr. Crazy em frases completas e conclusivas (sem cortar frase pela metade) e dê as boas-vindas à nova etapa!`
               );
             } else {
               speak(`Você passou na prova prática e avançou para a etapa ${nextMod.cleanTitle || nextMod.title}!`);

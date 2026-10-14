@@ -142,12 +142,15 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
     catch { report(new VoiceError("channel_send_failed", "A conexão não conseguiu enviar a mensagem. Reconecte a voz."), true); return false; }
   };
   let echoGuardActive = false;
+  let lastAudioActivityTime = 0;
+  let waitingForAudioDrain = false;
+  let responseDoneTimestamp = 0;
   const syncCapture = () => {
-    const shouldCapture = microphoneEnabled && !pendingTurn && !playbackActive && !responseActive && !echoGuardActive && document.visibilityState !== "hidden";
+    const shouldCapture = microphoneEnabled && !pendingTurn && !playbackActive && !responseActive && !waitingForAudioDrain && !echoGuardActive && document.visibilityState !== "hidden";
     capture?.setEnabled(shouldCapture);
     if (!connected || closed) return;
     options.onVoiceState(
-      playbackActive
+      playbackActive || waitingForAudioDrain
         ? (audio?.paused ? "preparing_speech" : "speaking")
         : responseActive || pendingTurn
         ? "analyzing"
@@ -244,7 +247,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         clearInterval(remoteTimer);
         remoteTimer = setInterval(() => {
           if (closed || !remoteAnalyser) return;
-          if (!playbackActive) {
+          if (!playbackActive && !responseActive && !waitingForAudioDrain) {
             options.onOutputMetrics?.({ level: 0, bass: 0, mid: 0, high: 0, bands: new Array(12).fill(0) });
             return;
           }
@@ -285,11 +288,35 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
             return Math.min(1, avg * 1.5);
           });
 
-          if ((level > 0.015 || bass > 0.02) && responseActive && !playbackActive) {
-            playbackActive = true;
-            stage = "playback";
-            options.onVoiceState("speaking");
-            syncCapture();
+          const isAudioAudible = level > 0.012 || bass > 0.015;
+          if (isAudioAudible) {
+            lastAudioActivityTime = Date.now();
+            if (!playbackActive) {
+              playbackActive = true;
+              stage = "playback";
+              options.onVoiceState("speaking");
+              syncCapture();
+            }
+          }
+
+          // Dreno fino: quando a API já encerrou os tokens (response.done), aguarda o som sumir das caixas/fone
+          if (waitingForAudioDrain && !responseActive) {
+            const now = Date.now();
+            const silenceMs = lastAudioActivityTime > 0 ? now - lastAudioActivityTime : now - responseDoneTimestamp;
+            if (lastAudioActivityTime > 0 && silenceMs >= 450) {
+              waitingForAudioDrain = false;
+              playbackActive = false;
+              echoGuardActive = true;
+              clear("playback_drain");
+              clear("response");
+              syncCapture();
+              options.onOutputMetrics?.({ level: 0, bass: 0, mid: 0, high: 0, bands: new Array(12).fill(0) });
+              later("echo", 400, () => {
+                echoGuardActive = false;
+                syncCapture();
+              });
+              return;
+            }
           }
 
           options.onOutputMetrics?.({ level, bass, mid, high, bands });
@@ -364,19 +391,21 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           userSpeaking = true;
           clear("turn");
           options.onUserSpeechStarted?.();
-          // Barge-in: se o aluno interromper com o microfone ligado (não sob guarda de eco):
-          if ((playbackActive || responseActive) && microphoneEnabled && !echoGuardActive) {
+          // Barge-in: se o aluno interromper com o microfone ligado (não sob guarda de eco e não durante dreno protegido):
+          if ((playbackActive || responseActive) && microphoneEnabled && !echoGuardActive && !waitingForAudioDrain) {
             send({ type: "response.cancel" });
             send({ type: "output_audio_buffer.clear" });
             audio?.pause();
+            waitingForAudioDrain = false;
             playbackActive = false;
             responseActive = false;
           }
-          if (!playbackActive && !responseActive) {
+          if (!playbackActive && !responseActive && !waitingForAudioDrain) {
             assistantText = "";
             assistantCommitted = false;
             clear("response");
             clear("echo");
+            clear("playback_drain");
             stage = "listening";
             options.onVoiceState("listening");
           }
@@ -437,11 +466,16 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           if (audio?.paused) { void audio.play().catch(() => {}); }
           stage = "playback"; playbackActive = true; clear("echo"); watchResponse(); syncCapture(); break;
         case "output_audio_buffer.stopped":
+          // O servidor terminou de empurrar bytes para o buffer de saída.
+          // O áudio no cliente continuará tocando através do elemento de áudio até o dreno fino/silêncio.
+          break;
         case "output_audio_buffer.cleared":
+          waitingForAudioDrain = false;
           playbackActive = false;
           echoGuardActive = true;
           pendingTurn = false;
           clear("turn");
+          clear("playback_drain");
           if (!responseActive) clear("response");
           syncCapture();
           later("echo", 350, () => {
@@ -451,17 +485,23 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
           break;
         case "response.done": {
           responseActive = false;
+          responseDoneTimestamp = Date.now();
           const text = event.response?.output?.flatMap(item => item.content ?? []).map(item => item.transcript ?? item.text ?? "").join(" ");
           commitAssistant(text || assistantText);
           pendingTurn = false;
           clear("turn");
-          if (!playbackActive) {
+          if (!playbackActive && lastAudioActivityTime === 0) {
             clear("response");
             syncCapture();
           } else {
             // Garante que o áudio termine naturalmente sem corte abrupto
-            later("playback_drain", 1200, () => {
-              if (playbackActive && !responseActive) {
+            waitingForAudioDrain = true;
+            const drainDuration = remoteAnalyser
+              ? Math.max(2500, (assistantText.length || 20) * 85)
+              : 1200;
+            later("playback_drain", drainDuration, () => {
+              if ((playbackActive || waitingForAudioDrain) && !responseActive) {
+                waitingForAudioDrain = false;
                 playbackActive = false;
                 echoGuardActive = true;
                 clear("response");
@@ -630,32 +670,40 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
       interrupt() {
         if (responseActive) send({ type: "response.cancel" });
         send({ type: "output_audio_buffer.clear" });
-        responseActive = playbackActive = false; clear("response"); syncCapture();
-        if (audio) { audio.pause(); }
+        waitingForAudioDrain = false;
         responseActive = playbackActive = false;
+        clear("playback_drain");
+        clear("response");
+        if (audio) { audio.pause(); }
         assistantText = "";
         assistantCommitted = false;
-        clear("response");
         clear("echo");
         syncCapture();
       },
       sendText(text) {
-        if (!text.trim() || closed || responseActive || playbackActive || userSpeaking) return false;
+        if (!text.trim() || closed || responseActive || playbackActive || waitingForAudioDrain || userSpeaking) return false;
         if (!send({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text: text.trim() }] } })) return false;
         options.onUserTranscript(text.trim(), true);
-        responseActive = send({ type: "response.create" });
+        responseActive = send({
+          type: "response.create",
+          response: { max_output_tokens: 1500 }
+        });
         syncCapture(); watchResponse(); return responseActive;
       },
       requestAssistantResponse(instructions?: string) {
         if (closed) return false;
         responseActive = true;
         playbackActive = false;
+        waitingForAudioDrain = false;
         stage = "response";
         syncCapture();
         watchResponse();
-        const payload: { type: string; response?: { instructions?: string } } = { type: "response.create" };
+        const payload: { type: string; response: { max_output_tokens: number; instructions?: string } } = {
+          type: "response.create",
+          response: { max_output_tokens: 1500 }
+        };
         if (instructions && instructions.trim()) {
-          payload.response = { instructions: instructions.trim() };
+          payload.response.instructions = instructions.trim();
         }
         return send(payload);
       },
