@@ -490,9 +490,9 @@ a {
   width: 88%;
   height: 92%;
   overflow: visible;
-  image-rendering: pixelated;
-  shape-rendering: crispEdges;
-  filter: drop-shadow(0 18px 24px rgb(0 0 0 / 58%)) drop-shadow(0 0 18px rgb(245 158 11 / 12%));
+  image-rendering: auto;
+  shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 20px 28px rgb(0 0 0 / 58%)) drop-shadow(0 0 20px rgb(56 189 248 / 15%));
   transform: translate3d(calc(var(--look-x, 0) * 8px), calc(var(--look-y, 0) * 5px - var(--live-head-bob, 0px)), 0);
   transform-origin: center bottom;
   transition: transform 0.18s ease-out, filter 0.2s ease;
@@ -530,6 +530,69 @@ a {
 @keyframes pixel-gesture-pop { from { opacity: 0; transform: scale(0.72); } to { opacity: 1; transform: scale(1); } }
 @keyframes pixel-sparkle-pop { from { opacity: 0.45; transform: translateY(1px); } to { opacity: 1; transform: translateY(-3px); } }
 
+/* Avatar 3D de alta definição: Poses, Transições e Boca Animada */
+.mr-crazy-3d-character {
+  image-rendering: auto;
+  shape-rendering: geometricPrecision;
+}
+
+.mr-crazy-3d-rig {
+  transform-origin: 50% 90%;
+  transition: transform 0.2s ease-out;
+}
+
+.mr-crazy-pose-img {
+  transform-origin: 50% 90%;
+  transition: opacity 0.22s ease-in-out, transform 0.22s ease-out;
+  pointer-events: none;
+}
+
+.mr-crazy-pose-img.is-active {
+  opacity: 1;
+}
+
+.mr-crazy-pose-img.is-hidden {
+  opacity: 0;
+}
+
+/* Respiração e balanço dinâmico do personagem 3D */
+.pixel-idle .mr-crazy-3d-rig {
+  animation: mr-crazy-3d-breathe 3.4s ease-in-out infinite;
+}
+
+.pixel-speaking .mr-crazy-3d-rig {
+  animation: mr-crazy-3d-speak 0.76s cubic-bezier(0.35, 0, 0.2, 1) infinite alternate;
+}
+
+.pixel-listening .mr-crazy-face-rig {
+  animation: mr-crazy-3d-listen 2.4s ease-in-out infinite;
+}
+
+/* Articulação e modulação de volume da boca em tempo real */
+.mr-crazy-live-mouth {
+  transform-box: fill-box;
+  transform-origin: 0px 4px;
+  transition: transform 0.06s ease-out;
+  transform: scale(calc(1 + var(--live-level, 0) * 0.45));
+}
+
+@keyframes mr-crazy-3d-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.008, 1.012); }
+}
+
+@keyframes mr-crazy-3d-speak {
+  0% { transform: translateY(0px) rotate(-0.6deg); }
+  50% { transform: translateY(-3.5px) rotate(0.4deg); }
+  100% { transform: translateY(-1.5px) rotate(0.8deg); }
+}
+
+@keyframes mr-crazy-3d-listen {
+  0%, 100% { transform: rotate(0); }
+  35% { transform: rotate(-1.8deg) translateY(-1px); }
+  75% { transform: rotate(1.2deg) translateY(0); }
+}
+
 /* Efeitos cômicos animados do Mr. Crazy */
 .mr-crazy-vein { transform-origin: center; animation: mr-crazy-vein-throb 0.48s cubic-bezier(0.3, 0, 0.2, 1) infinite alternate; }
 .mr-crazy-steam-left { transform-origin: 96px 122px; animation: mr-crazy-steam-left-drift 1.2s ease-in-out infinite alternate; }
@@ -537,7 +600,7 @@ a {
 .mr-crazy-sweat { transform-origin: 100px 92px; animation: mr-crazy-sweat-wobble 1.4s ease-in-out infinite; }
 .mr-crazy-happy-glint { transform-origin: 198px 94px; animation: mr-crazy-glint-twinkle 0.75s ease-in-out infinite alternate; }
 
-@keyframes mr-crazy-vein-throb { from { transform: translate(224px, 68px) scale(0.85); opacity: 0.75; } to { transform: translate(224px, 68px) scale(1.22); opacity: 1; } }
+@keyframes mr-crazy-vein-throb { from { transform: translate(204px, 60px) scale(0.85); opacity: 0.75; } to { transform: translate(204px, 60px) scale(1.22); opacity: 1; } }
 @keyframes mr-crazy-steam-left-drift { 0% { transform: translate(0, 0) scale(0.8); opacity: 0.4; } 100% { transform: translate(-6px, -10px) scale(1.15); opacity: 0.95; } }
 @keyframes mr-crazy-steam-right-drift { 0% { transform: translate(0, 0) scale(0.8); opacity: 0.4; } 100% { transform: translate(6px, -10px) scale(1.15); opacity: 0.95; } }
 @keyframes mr-crazy-sweat-wobble { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(3px) scaleY(1.08); } }

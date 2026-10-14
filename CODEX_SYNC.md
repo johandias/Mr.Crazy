@@ -9,6 +9,16 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 124 testes passando nas suítes nativas + `tsc --noEmit` 0 erros.
 
+## 🟢 Antigravity — 2026-10-13 — Avatar 3D Alta Definição, Lip-Sync em Tempo Real & Expressões Cômicas
+- **Entregue:**
+  1. **Reconstrução Total do Avatar (`PixelMrCrazy.tsx` & `globals.css`)**:
+     - Substituído o SVG pixel-art plano por um rig 2.5D híbrido de alta definição utilizando as renderizações 3D oficiais do Mr. Crazy (Pixar/Clash style em 764x1024, fundo transparente).
+     - Poses dinâmicas integradas com transição suave (`mr_crazy_3d_idle.png`, `mr_crazy_3d_gesturing.png`, `mr_crazy_3d_pointing.png`, `mr_crazy_3d_headshot.png`) reagindo ao status de escuta, fala e ênfase didática.
+     - **Lip-Sync Procedural em Tempo Real**: Articulação labial sobreposta à face com 5 visemas anatômicos (aberto, largo, redondo, fechamento consonantal e repouso) escalando em tempo real conforme a intensidade do áudio WebRTC (`--live-level`).
+     - **Expressões Vivas & Efeitos Cômicos**: Piscar de olhos natural (`isBlinking`), tracking de olhar e inclinação de cabeça pelo cursor/toque (`--look-x`, `--look-y`), veia anime pulsante (💢), vapor saindo dos ouvidos (💨), gota de suor de estresse (💧) e brilho estrela nos dentes/óculos (✨).
+     - Preservação integral de contratos DOM e testes automatizados.
+- **Validação:** 48 testes nativos aprovados (exit code 0), zero erros de TypeScript.
+
 ## 🟢 Antigravity — 2026-10-13 — Redesign Moderno & Cômico do Avatar + Autonomia ChatGPT Realtime & Fim de Cortes de Voz
 - **Entregue:**
   1. **Redesign do Avatar (`PixelMrCrazy.tsx` & `globals.css`)**: Avatar modernizado para estilo cartoon/comic expressivo e cômico, preservando 100% da identidade (cabelo ruivo flamejante, óculos com reflexo, casaco de professor teal, capa carmesim). Adicionados visemas labiais expressivos com dentes e língua, olhos grandes cel-shaded com rastreamento de olhar (`lookX/lookY`), sobrancelhas dinâmicas, veia de raiva pulsante anime (💢), vapor saindo dos ouvidos (💨), gota de suor cômica (💧) e brilho estrela nos óculos (✨).
