@@ -9,7 +9,19 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
-## 🟢 Antigravity — 2026-10-14 — Correção de Build & Redesign Total do Avatar Mr. Crazy (Micro-Pixel Art 32-Bit)
+## 🟢 Antigravity — 2026-10-14 — Redesign Capilar & Facial Completo (Fim da Calvície e Isolamento de Gestos)
+- **Problema Relatado**:
+  - O avatar apresentava testa desproporcional com mechas laterais afastadas (aspecto de calvície evidente) e gestos simultâneos sobrepostos ao corpo.
+- **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
+  1. **Franja e Cabelo Denso Volumoso (Fim da Calvície)**:
+     - Adicionada franja longa e estilizada que cobre naturalmente a testa até a linha das sobrancelhas, com mechas flamejantes em camadas e pontas incandescentes.
+  2. **Estrutura Facial e Olhar Anime Confiante**:
+     - Queixo e mandíbula afilados proporcionais (estilo anime/arcade professor), sem formato oval/egghead.
+     - Olhos marcantes com íris safira viva, duplo ponto de brilho e cílios superiores bem delineados.
+     - Óculos refinados de fio de ouro fino que valorizam o olhar sem cobrir o rosto.
+  3. **Isolamento Estrito de Gestos**:
+     - Gestos agora são condicionados estritamente no React (`gesture === ...`), impedindo que múltiplos gestos (ex: coração e dedo ao mesmo tempo) apareçam sobrepostos.
+     - Proteção redundante no CSS com `display: none !important` por padrão.
 - **Causa Raiz da Versão Anterior Permanecer em Produção**:
   - O commit anterior continha erros de sintaxe e declarações duplicadas em `PixelMrCrazy.tsx`, o que causou falha silenciosa na compilação do Next.js no pipeline da Vercel. Como a Vercel cancelou o deploy com erro, a versão em produção continuou servindo o sprite antigo.
   - O arquivo foi completamente reescrito e validado com o compilador TypeScript (`0 diagnostics`).
