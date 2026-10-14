@@ -47,8 +47,8 @@ export const RpgCharacter = memo(function RpgCharacter({
   const [burstKey, setBurstKey] = useState(0);
   const previousEmotionRef = useRef<Emotion | null>(null);
   // Ciclo procedural de fonemas labiais realistas durante a fala
-  const [animatedPhoneme, setPhoneme] = useState(0);
-  const phoneme = voiceState === "speaking" ? animatedPhoneme : 0;
+  const [animatedPhoneme, setPhoneme] = useState(4);
+  const phoneme = voiceState === "speaking" ? animatedPhoneme : 4;
   // Animação de entrada: começa de pé e sem depender de carregamento externo.
   const [entranceStage, setEntranceStage] = useState<EntranceStage>("standing");
   const wakingUpRef = useRef(false);
@@ -63,9 +63,6 @@ export const RpgCharacter = memo(function RpgCharacter({
     }
   }, [emotion]);
 
-  useEffect(() => {
-    if (voiceState === "reacting") setBurstKey(Date.now());
-  }, [voiceState]);
 
   // Piscar de olhos procedural realista (intervalo de 3s a 5.5s com micro double-blinks)
   const [isBlinking, setIsBlinking] = useState(false);
@@ -137,7 +134,7 @@ export const RpgCharacter = memo(function RpgCharacter({
   // Articulação labial e movimento reativo ao som durante a fala do professor
   useEffect(() => {
     if (voiceState !== "speaking") {
-      setPhoneme(0);
+      setPhoneme(4);
       if (containerRef.current) {
         containerRef.current.style.setProperty("--live-level", "0");
         containerRef.current.style.setProperty("--live-head-bob", "0px");
@@ -148,7 +145,8 @@ export const RpgCharacter = memo(function RpgCharacter({
     let rafId: number;
     let lastSwitchTime = 0;
     let fallbackIndex = 0;
-    const phonemeSequence = [0, 1, 0, 2, 1, 3, 0, 2];
+    // Cadência fonética natural para fala: alterna consoantes, vogais e micropausas
+    const phonemeSequence = [3, 1, 3, 0, 3, 4, 2, 3, 1, 4, 3, 0, 3];
 
     const tick = (now: number) => {
       const metrics = audioMetricsRef?.current;
@@ -157,48 +155,48 @@ export const RpgCharacter = memo(function RpgCharacter({
       const bass = metrics?.bass ?? 0;
       const bands = metrics?.bands ?? [];
 
-      if (isCrazyAudio && (level > 0.02 || bass > 0.02)) {
+      if (isCrazyAudio) {
         // ÁUDIO REAL WebRTC: Boca e cabeça acompanham diretamente o som e as frequências
-        const smoothBob = Math.min(3.2, level * 4.8 + bass * 2.2);
+        const smoothBob = Math.min(2.5, level * 3.6 + bass * 1.8);
         if (containerRef.current) {
           containerRef.current.style.setProperty("--live-level", String(level));
           containerRef.current.style.setProperty("--live-head-bob", `${smoothBob.toFixed(1)}px`);
         }
 
-        // Troca de fonema de acordo com o espectro e intensidade da fala a cada ~75ms
-        if (now - lastSwitchTime > 75) {
+        // Troca de fonema de acordo com o espectro e intensidade da fala a cada ~70ms
+        if (now - lastSwitchTime > 70) {
           lastSwitchTime = now;
 
-          if (level < 0.028) {
+          if (level < 0.035) {
             // Pausa entre palavras: lábios relaxam em repouso natural (phoneme-rest-live)
             setPhoneme(4);
           } else {
             const highBands = (bands[6] ?? 0) + (bands[7] ?? 0) + (bands[8] ?? 0);
             const lowBands = (bands[0] ?? 0) + (bands[1] ?? 0) + bass;
 
-            if (lowBands > 0.48) {
+            if (lowBands > 0.52) {
               // Vogal redonda (O, U, W)
               setPhoneme(2);
-            } else if (highBands > 0.4) {
-              // Vogal aberta esticada (E, I)
+            } else if (highBands > 0.38) {
+              // Vogal esticada (E, I, consoantes sibilantes)
               setPhoneme(1);
-            } else if (level > 0.16) {
-              // Vogal aberta cheia (A, O)
+            } else if (level > 0.22) {
+              // Vogal aberta natural com ênfase (A, O)
               setPhoneme(0);
             } else {
-              // Consoante ou transição articulada
+              // Consoante articulada / semifechada
               setPhoneme(3);
             }
           }
         }
       } else {
         // Fallback procedural suave quando em áudio sintetizado ou sem métricas WebRTC
-        const simLevel = 0.16 + Math.sin(now / 120) * 0.1;
+        const simLevel = 0.12 + Math.sin(now / 150) * 0.08;
         if (containerRef.current) {
           containerRef.current.style.setProperty("--live-level", simLevel.toFixed(2));
-          containerRef.current.style.setProperty("--live-head-bob", `${(simLevel * 4).toFixed(1)}px`);
+          containerRef.current.style.setProperty("--live-head-bob", `${(simLevel * 3).toFixed(1)}px`);
         }
-        if (now - lastSwitchTime > 110) {
+        if (now - lastSwitchTime > 120) {
           lastSwitchTime = now;
           fallbackIndex = (fallbackIndex + 1) % phonemeSequence.length;
           setPhoneme(phonemeSequence[fallbackIndex]);

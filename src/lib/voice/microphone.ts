@@ -30,10 +30,12 @@ export async function openMicrophone(options: {
   }
   let abandoned = false;
   const acquire = async () => {
-    const audio: MediaTrackConstraints & { latency?: ConstrainDouble } = {
-      echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+    const audio: MediaTrackConstraints = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
       channelCount: { ideal: 1 },
-      latency: { ideal: 0.01 },
+      sampleRate: { ideal: 48000 },
       ...(options.deviceId ? { deviceId: { exact: options.deviceId } } : {})
     };
     let stream: MediaStream;

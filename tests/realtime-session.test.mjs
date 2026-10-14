@@ -6,9 +6,9 @@ const { buildRealtimeInstructions, buildRealtimeSession } = await import("../src
 
 test("gpt realtime transcription config uses the GA-supported transcriber", () => {
   const session = buildRealtimeSession("basic", "free-conversation", null, "gpt-realtime-2.1-mini");
-  assert.equal(session.audio.input.transcription.model, "gpt-4o-mini-transcribe");
+  assert.equal(session.audio.input.transcription.model, "whisper-1");
   assert.equal("prompt" in session.audio.input.transcription, false);
-  assert.equal(session.max_output_tokens, 300);
+  assert.equal(session.max_output_tokens, 1500);
   assert.equal("max_response_output_tokens" in session, false);
 });
 

@@ -8,6 +8,46 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Branch Principal**: `main`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 125+ testes passando em todas as suítes (exit code 0).
+- **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
+
+## 🟢 Antigravity — 2026-10-14 — Ultra-Concisão, Correção de Transcrição Whisper e Avatar Realista com Detalhes Ricos
+## 🟢 Antigravity — 2026-10-14 — Redesign Completo do Avatar Mr. Crazy (Micro-Pixel Art de Alta Densidade)
+- **Problema Abordado**:
+  - O avatar anterior utilizava primitivas poligonais rústicas e quadradas (estilo "Bart Simpson" facetado com óculos amarelos planos e tronco trapezoidal verde), causando espanto visual ao usuário.
+- **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
+  1. **Anatomia Humana Proporcional & Heroica**:
+     - Cabeça, pescoço, clavícula, ombros, torso, braços e pernas redesenhados com proporções anatômicas naturais em vez de blocos geométricos.
+  2. **Micro-Pixel Shading & Volumetria Rica**:
+     - Sistema de sombreamento em 6 camadas de pele com bochechas coradas e sombras sob os maxilares e cabelos.
+     - Cabelo flamejante estilizado em mechas fluidas sobrepostas (não mais triângulos serrilhados), com luzes de fogo âmbar e raízes profundas.
+  3. **Olhos Expressivos & Óculos Dourados Elegantes**:
+     - Olhos humanos expressivos com íris safira/azul cobalto, pupilas escuras, pontos de brilho especular e pálpebras que piscam naturalmente e acompanham o ponteiro/toque do usuário (tracking de olhar).
+     - Óculos intelectuais com aros dourados finos chanfrados, pontes curvas e lentes de cristal translúcido com reflexo oblíquo sutil sem obstruir os olhos.
+  4. **Vestimenta de Professor Vitoriano / Steampunk**:
+     - Sobretudo de veludo esmeralda/verde musgo com lapelas bem cortadas, debrum em fio de ouro e botões metálicos ornamentais.
+     - Camisa social branca com colarinho estruturado, gravata cravat de seda ametista e broche de rubi facetado.
+     - Cinto de couro com fivela dourada, calças carvão sob medida e botas de montaria detalhadas com fivelas.
+  5. **Mãos Articuladas & Gestos Dinâmicos**:
+     - Mãos com 5 dedos anatômicos articulados para suporte a gestos de aprovação (`thumbsup`), carinho (`heart`), instrução (`finger`) e brincadeira (`watergun`).
+  6. **Sincronia Labial de 5 Visemas**:
+     - 5 formatos de boca adaptativos (`open`, `wide`, `round`, `close` e `phoneme-rest-live`) reagindo proporcionalmente aos decibéis do WebRTC em tempo real via `--live-level`.
+- **Validação:** 100% dos testes unitários mantidos e aprovados (34 de progressão, 9 de scoring, 6 de realtime-session, 20 de realtime-client).
+- **Entregue:**
+  1. **Ultra-Concisão & Economia Estrita de Tokens (`route.ts` & `realtime-session.ts`)**:
+     - Reduzido o teto de `maxOutputTokens` de 1500 para 180 tokens no endpoint da sessão OpenAI Realtime, impedindo discursos longos e desperdício de tokens.
+     - Regra de abertura reescrita: ao receber cumprimentos ou "tudo bem?", Mr. Crazy responde em UMA única frase curta (até 12 palavras) e já lança imediatamente a primeira frase da fase atual, sem preâmbulos, sem discutir modalidades ou perguntar preferências.
+     - Reforçado o limite de no máximo 20 a 25 palavras por intervenção durante todo o treinamento.
+  2. **Correção da Transcrição de Voz (`realtime-session.ts` & `microphone.ts`)**:
+     - Configurado o modelo oficial `whisper-1` para transcrição do áudio de entrada na API Realtime WebRTC, substituindo o transcritor que gerava alucinações no português brasileiro.
+     - Removida restrição de `latency: { ideal: 0.01 }` no `getUserMedia` que causava buffer underruns e falhas na captura de áudio no Chrome/Windows, adicionando `sampleRate: { ideal: 48000 }` para entrada limpa e nítida.
+  3. **Avatar com Mais Detalhes e Acabamento Realista (`PixelMrCrazy.tsx`)**:
+     - Implementados gradientes volumétricos multicamadas para pele, cabelo, casaco de veludo esmeralda, capa carmesim e ouro metálico.
+     - Óculos intelectuais refinados com armação dourada chanfrada, plaquetas, hastes articuladas e lentes de vidro translúcido com reflexos diagonais de luz.
+     - Gravata cravat vitoriana de seda roxa com broche de rubi lapidado e brilho central.
+     - Casaco de professor com lapelas de cetim, bordados dourados, bolso com lenço duplo dobrado e botões ornamentais com relevo.
+     - Cabelo flamejante multicamada com degradê de raízes a pontas incandescentes e partículas de brasa.
+     - Reflexos de iluminação ambiente quente nos flancos esquerdo e direito, integrando o personagem com as tochas do cenário.
+- **Validação:** 100% dos testes unitários mantidos e aprovados (34 de progressão, 9 de scoring, 6 de realtime-session).
 
 ## 🟢 Antigravity — 2026-10-14 — Melhoria Geral do Curso, Autonomia do ChatGPT & Fim de Repetições
 - **Entregue:**

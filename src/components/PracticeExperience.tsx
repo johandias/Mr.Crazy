@@ -1610,7 +1610,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
         }
       },
       onOutputMetrics: (metrics) => {
-        if (voiceStateRef.current === "speaking" && metrics.level > 0.02) {
+        if (voiceStateRef.current === "speaking") {
           audioMetricsRef.current = {
             source: "crazy",
             level: metrics.level,
