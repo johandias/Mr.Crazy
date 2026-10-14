@@ -533,11 +533,10 @@ a {
   transform: scaleY(calc(0.96 + var(--live-level, 0) * 0.22)) scaleX(calc(0.98 + var(--live-level, 0) * 0.08));
 }
 
-@keyframes pixel-idle-breathe { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-2px) scaleY(1.012); } }
-@keyframes pixel-speaking-body { from { transform: translateY(1px) rotate(-0.5deg); } to { transform: translateY(-3px) rotate(0.5deg); } }
+@keyframes pixel-idle-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes pixel-speaking-body { 0%, 100% { transform: translateY(-2px) scale(1); } 50% { transform: translateY(-8px) scale(1.03); } }
 @keyframes pixel-talk-left { from { transform: rotate(2deg) translateY(0); } to { transform: rotate(-6deg) translateY(-2px); } }
 @keyframes pixel-talk-right { from { transform: rotate(-2deg); } to { transform: rotate(7deg) translateY(-2px); } }
-@keyframes pixel-speaking-body { from { transform: translateY(0.5px) rotate(-0.35deg); } to { transform: translateY(-2px) rotate(0.35deg); } }
 @keyframes pixel-talk-left { from { transform: rotate(1deg) translateY(0); } to { transform: rotate(-4deg) translateY(-2px); } }
 @keyframes pixel-talk-right { from { transform: rotate(-1deg); } to { transform: rotate(4deg) translateY(-2px); } }
 @keyframes pixel-listening-head { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(-2deg) translateY(-1px); } 75% { transform: rotate(1deg); } }

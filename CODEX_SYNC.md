@@ -9,7 +9,21 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
-## 🟢 Antigravity — 2026-10-14 — Novo Personagem do Zero: "The Electric Mad Professor"
+## 🟢 Antigravity — 2026-10-14 — Novo Avatar: Bola Flutuante Futurista (The Sentient AI Orb)
+- **Instrução Direta do Usuário**:
+  - Eliminar por completo o personagem humanoide anterior, corpo, roupas e cabelos.
+  - Criar estritamente uma bola flutuante com degradê 3D rico, brilho estelar, olhos expressivos e boca falante articulada em tempo real com o áudio.
+- **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
+  1. **Esfera Flutuante com Degradê Volumétrico 3D**:
+     - Esfera com iluminação especular, iluminação de borda (rim light) em azul safira/ciano elétrico e aura estelar no fundo.
+     - Anel orbital rotacionado com partícula satélite de energia.
+     - Sombra de chão dinâmica que se expande e contrai com o movimento suave de levitação.
+  2. **Olhos Digitais Expressivos & Rastreamento**:
+     - Olhos grandes com íris holográfica, pupilas que rastreiam o cursor e toque com parallax natural e piscar suave.
+  3. **Boca Articulada em Tempo Real (5 Visemas)**:
+     - Boca que abre, sorri, modula vogais e consoantes acompanhando milissegundo a milissegundo os decibéis do áudio WebRTC (`--live-level`).
+  4. **Gestos Holográficos Flutuantes**:
+     - Ícones orbitais de energia (`thumbsup`, `heart`, `watergun`) ativados apenas quando chamados.
 - **Decisão e Contexto**:
   - A pedido explícito do usuário para descarte total do personagem anterior e liberdade criativa, foi criado um novo conceito visual moderno e carismático que se alinha perfeitamente à proposta de "Mr. Crazy": o **Cientista/Professor Maluco Elétrico**.
 - **Novo Conceito Entregue (`PixelMrCrazy.tsx`)**:
