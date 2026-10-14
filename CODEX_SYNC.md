@@ -12,7 +12,8 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Antigravity — 2026-10-14 — Novo Avatar: Bola Flutuante Futurista (The Sentient AI Orb)
 - **Instrução Direta do Usuário**:
   - Eliminar por completo o personagem humanoide anterior, corpo, roupas e cabelos.
-  - Criar estritamente uma bola flutuante com degradê 3D rico, brilho estelar, olhos expressivos e boca falante articulada em tempo real com o áudio.
+  - Criar estritamente uma bola flutuante com degradê 3D rico, brilho estelar, olhos expressivos que piscam e boca hiper-detalhada falante articulada em tempo real com o áudio.
+  - 100% código nativo (SVG + CSS + React), sem canvas e sem imagens raster.
 - **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
   1. **Esfera Flutuante com Degradê Volumétrico 3D**:
      - Esfera com iluminação especular, iluminação de borda (rim light) em azul safira/ciano elétrico e aura estelar no fundo.
