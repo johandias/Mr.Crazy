@@ -110,6 +110,7 @@ export async function POST(request: Request) {
       completed?: boolean;
       phaseIndex?: number;
       stepIndex?: number;
+      allPhaseSteps?: boolean;
       teachingTarget?: {
         phaseId?: string;
         phraseEn?: string;
@@ -169,24 +170,32 @@ export async function POST(request: Request) {
       newMissions = newMissions.slice(-120);
     }
 
-    if (typeof body.phaseIndex === "number" && typeof body.stepIndex === "number") {
+    if (typeof body.phaseIndex === "number") {
       const phaseIndex = Math.min(
         teachingPhases.length - 1,
         Math.max(0, Math.trunc(body.phaseIndex))
       );
-      const stepIndex = Math.min(
-        LESSON_STEPS_PER_PHASE - 1,
-        Math.max(0, Math.trunc(body.stepIndex))
-      );
       const phase = teachingPhases[phaseIndex];
       if (phase) {
-        const marker = getLessonStepMarker(phase.id, stepIndex);
-        if (!newMissions.includes(marker)) newMissions.push(marker);
+        if (body.allPhaseSteps) {
+          for (let s = 0; s < LESSON_STEPS_PER_PHASE; s++) {
+            const marker = getLessonStepMarker(phase.id, s);
+            if (!newMissions.includes(marker)) newMissions.push(marker);
+          }
+        } else if (typeof body.stepIndex === "number") {
+          const stepIndex = Math.min(
+            LESSON_STEPS_PER_PHASE - 1,
+            Math.max(0, Math.trunc(body.stepIndex))
+          );
+          const marker = getLessonStepMarker(phase.id, stepIndex);
+          if (!newMissions.includes(marker)) newMissions.push(marker);
+        }
 
         const targetPhrase = body.teachingTarget?.phraseEn?.trim();
         const targetPhaseId = body.teachingTarget?.phaseId?.trim() || phase.id;
         if (targetPhrase) {
-          const targetMarker = getLessonTargetMarker(targetPhaseId, stepIndex, targetPhrase);
+          const stepIdx = typeof body.stepIndex === "number" ? body.stepIndex : 0;
+          const targetMarker = getLessonTargetMarker(targetPhaseId, stepIdx, targetPhrase);
           if (!newMissions.includes(targetMarker)) newMissions.push(targetMarker);
         }
       }

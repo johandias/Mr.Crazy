@@ -40,10 +40,12 @@ import {
   getModuleById,
   getStoredModuleId,
   setStoredModuleId,
+  detectConceptIndexFromText,
   DEFAULT_MODULE_ID
 } from "@/lib/modules";
 import {
   getLessonResumePosition,
+  getLessonStepMarker,
   LESSON_STEP_LABELS,
   LESSON_STEPS_PER_PHASE
 } from "@/lib/lesson-progress";
@@ -881,6 +883,20 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     if (!storageReady || selectedModuleId === "free-conversation" || teachingConcepts.length === 0) return;
     const controller = new AbortController();
 
+    // Cache local imediato para prevenir flicker ou reset visual
+    try {
+      const localKey = `mr-crazy-module-progress-${selectedModuleId}`;
+      const cached = JSON.parse(localStorage.getItem(localKey) || "{}");
+      if (Array.isArray(cached.completed_missions) && cached.completed_missions.length > 0) {
+        const resume = getLessonResumePosition(cached.completed_missions, teachingConcepts.map((concept) => concept.id));
+        currentConceptIndexRef.current = resume.phaseIndex;
+        currentLessonStepIndexRef.current = resume.stepIndex;
+        setCurrentConceptIndex(resume.phaseIndex);
+        setCurrentLessonStepIndex(resume.stepIndex);
+        setIsLessonCompleted(resume.lessonCompleted);
+      }
+    } catch {}
+
     fetch("/api/modules/progress", { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json().catch(() => null) as {
@@ -928,11 +944,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   const persistLessonProgress = useCallback(({
     addTurns = 0,
     phaseIndex,
-    stepIndex
+    stepIndex,
+    allPhaseSteps
   }: {
     addTurns?: number;
     phaseIndex?: number;
     stepIndex?: number;
+    allPhaseSteps?: boolean;
   }) => {
     if (selectedModuleId === "free-conversation") return true;
     const write = async () => {
@@ -945,6 +963,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             addTurns,
             phaseIndex,
             stepIndex,
+            allPhaseSteps,
             teachingTarget: teachingTargetRef.current
               ? {
                   phaseId: teachingTargetRef.current.phaseId,
@@ -968,24 +987,42 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     return progressWriteQueueRef.current;
   }, [selectedModuleId]);
 
-  const completeCurrentLessonStep = useCallback(async (addTurns = 0) => {
+  const completeCurrentLessonStep = useCallback(async (addTurns = 0, targetPhaseIndex?: number) => {
     const phaseIndex = currentConceptIndexRef.current;
-    const stepIndex = currentLessonStepIndexRef.current;
     const phase = teachingConcepts[phaseIndex];
     if (!phase) return;
 
-    const persisted = await persistLessonProgress({ addTurns, phaseIndex, stepIndex });
+    // Salva a fase inteira (todos os 3 steps) com allPhaseSteps: true para avanço limpo sem repetição
+    const persisted = await persistLessonProgress({
+      addTurns,
+      phaseIndex,
+      stepIndex: currentLessonStepIndexRef.current,
+      allPhaseSteps: true
+    });
     if (!persisted) return;
 
-    if (stepIndex < LESSON_STEPS_PER_PHASE - 1) {
-      const nextStep = stepIndex + 1;
-      currentLessonStepIndexRef.current = nextStep;
-      setCurrentLessonStepIndex(nextStep);
-      return;
-    }
+    // Salva imediatamente no localStorage como redundância instantânea
+    try {
+      const localKey = `mr-crazy-module-progress-${selectedModuleId}`;
+      const existing = JSON.parse(localStorage.getItem(localKey) || "{}");
+      const completedMissions = Array.isArray(existing.completed_missions) ? existing.completed_missions : [];
+      for (let s = 0; s < LESSON_STEPS_PER_PHASE; s++) {
+        const marker = getLessonStepMarker(phase.id, s);
+        if (!completedMissions.includes(marker)) completedMissions.push(marker);
+      }
+      localStorage.setItem(localKey, JSON.stringify({
+        ...existing,
+        module_id: selectedModuleId,
+        completed_missions: completedMissions,
+        last_practiced_at: new Date().toISOString()
+      }));
+    } catch {}
 
-    if (phaseIndex < teachingConcepts.length - 1) {
-      const nextPhase = phaseIndex + 1;
+    const nextPhase = typeof targetPhaseIndex === "number" && targetPhaseIndex > phaseIndex
+      ? Math.min(teachingConcepts.length - 1, targetPhaseIndex)
+      : phaseIndex + 1;
+
+    if (nextPhase < teachingConcepts.length) {
       currentConceptIndexRef.current = nextPhase;
       currentLessonStepIndexRef.current = 0;
       setCurrentConceptIndex(nextPhase);
@@ -994,7 +1031,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     }
 
     setIsLessonCompleted(true);
-  }, [persistLessonProgress, teachingConcepts]);
+  }, [persistLessonProgress, selectedModuleId, teachingConcepts]);
 
   const persistLessonProgressRef = useRef(persistLessonProgress);
   const completeCurrentLessonStepRef = useRef(completeCurrentLessonStep);
@@ -1376,7 +1413,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     const phraseToRepeat = target.targetConcept?.phrase || target.nextModule.initialGreeting.en;
     if (realtimeRef.current) {
       realtimeRef.current.requestAssistantResponse(
-        `O aluno concluiu a etapa anterior e avançou para a nova fase do módulo "${target.nextModule.cleanTitle || target.nextModule.title}". O foco agora é praticar a frase em inglês: "${phraseToRepeat}". Apresente a nova fase de forma enérgica e bem-humorada em português em frases completas com início, meio e fim (sem cortar frases pela metade), fale a frase em inglês e chame o aluno para praticar!`
+        `O aluno concluiu a etapa anterior e avançou para a nova fase do módulo "${target.nextModule.cleanTitle || target.nextModule.title}". Cenário: "${target.nextModule.scenario}". Apresente a nova fase de forma enérgica e bem-humorada em português no estilo Mr. Crazy com fala completa e conclusiva, crie uma frase ou desafio inicial contextual em inglês e chame o aluno para praticar!`
       );
     } else {
       const speechAnnouncement = `Boa! Agora fala: ${phraseToRepeat}. Sua vez!`;
@@ -1669,12 +1706,18 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           const lower = clean.toLowerCase();
           const isGreetingOnly = /(tudo ótimo por aqui|tudo bem por aqui|como você tá|e com você|bora treinar|o que manda|fala comigo|seja bem-vindo|seja bem-vinda)/i.test(lower);
           const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz|pra dizer)/i.test(lower);
-          const isPraise = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
+          const isPraise = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|certíssimo|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia|maravilha|sensacional|arrebentou|gostei de ver|isso aí|é isso|show de bola|deu pra entender|muito bem|ficou ótimo)/i.test(lower);
           const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|burrada|que porcaria)/i.test(lower);
+          const detectedConceptIdx = detectConceptIndexFromText(clean, teachingConcepts);
 
-          if (hasUserAttemptedPhaseRef.current && isPraise && !isCorrection) {
-            hasUserAttemptedPhaseRef.current = false;
-            void completeCurrentLessonStepRef.current();
+          if (hasUserAttemptedPhaseRef.current && !isCorrection) {
+            if (detectedConceptIdx !== null && detectedConceptIdx > currentConceptIndexRef.current) {
+              hasUserAttemptedPhaseRef.current = false;
+              void completeCurrentLessonStepRef.current(0, detectedConceptIdx);
+            } else if (isPraise) {
+              hasUserAttemptedPhaseRef.current = false;
+              void completeCurrentLessonStepRef.current();
+            }
           }
 
           if (isCorrection) {

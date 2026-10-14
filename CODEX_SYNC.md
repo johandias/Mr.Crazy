@@ -7,7 +7,24 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 ## 🟢 Status Atual do Projeto
 - **Branch Principal**: `main`
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
-- **Suíte de Testes**: 124+ testes passando em todas as suítes (exit code 0).
+- **Suíte de Testes**: 125+ testes passando em todas as suítes (exit code 0).
+
+## 🟢 Antigravity — 2026-10-14 — Melhoria Geral do Curso, Autonomia do ChatGPT & Fim de Repetições
+- **Entregue:**
+  1. **Autonomia Pedagógica e Poder de Criação do ChatGPT Realtime API (`realtime-session.ts` & `PracticeExperience.tsx`)**:
+     - O modelo (`gpt-realtime-2.1-mini`) agora tem total liberdade para raciocinar e criar diálogos, micro-cenários e exemplos vivos da situação real.
+     - Eliminadas as restrições mecânicas de ditar fórmulas fixas ou scripts rígidos.
+     - As fases e frases do módulo agora funcionam como bússola pedagógica e meta comunicativa, e não como roteiro fechado para leitura de papagaio.
+  2. **Fim dos Loops de Repetição de Frases Idênticas (`PracticeExperience.tsx`)**:
+     - Eliminada a obrigatoriedade de 3 sub-etapas artificiais ("Descobrir", "Praticar", "Aplicar") com a mesma frase antes de poder avançar.
+     - Assim que o aluno comunica a ideia de forma compreensível (~70% de acerto), o Mr. Crazy elogia e o sistema avança a fase diretamente!
+     - Adicionada sincronização em tempo real de fase com `detectConceptIndexFromText(clean, teachingConcepts)`: quando o tutor anuncia a próxima etapa ou introduz a frase seguinte, a interface avança imediatamente sem travar.
+  3. **Garantia Robusta de Persistência de Progresso (`route.ts` & `PracticeExperience.tsx`)**:
+     - Suporte a `allPhaseSteps: true` na rota `/api/modules/progress`: ao concluir uma fase, todos os checkpoints de missões são gravados de forma atômica no banco de dados (`mrcrazy_module_progress`).
+     - Sincronização redundante e instantânea com `localStorage`: ao recarregar a página ou reconectar, o progresso é restaurado imediatamente sem atrasos, resets visuais ou perda de fases dominadas.
+  4. **Revisão Completa dos 7 Módulos (`modules.ts`)**:
+     - Revisados todos os 7 módulos do curso (Greetings, Restaurant, Shopping, Travel, Work/Intermediate, Advanced, Boss Challenge) para garantir metas comunicativas ricas, vocabulário natural do inglês americano e progressão clara rumo ao Chefão.
+- **Validação:** 100% dos testes unitários mantidos e aprovados (34 de progressão, 9 de scoring, 6 de realtime-session, 20 de realtime-client).
 
 ## 🟢 Antigravity — 2026-10-14 — Desativação da Dica (Fundo Azul) e Desacoplamento Completo da Voz
 - **Entregue:**

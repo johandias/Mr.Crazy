@@ -572,3 +572,24 @@ test("beta conversation provides interactive selectable response options and exp
   assert.ok(globalCss.includes(".beta-interactive-card"), "globals.css deve conter estilos para o card interativo");
   assert.ok(globalCss.includes(".beta-explainer-banner"), "globals.css deve conter estilos para o banner explicativo");
 });
+
+test("direct phase progression and AI pedagogical autonomy prevent repetitive training loops", async () => {
+  const fs = await import("node:fs");
+  const practiceCode = fs.readFileSync("src/components/PracticeExperience.tsx", "utf-8");
+  const sessionCode = fs.readFileSync("src/lib/realtime-session.ts", "utf-8");
+  const progressApiCode = fs.readFileSync("src/app/api/modules/progress/route.ts", "utf-8");
+
+  // 1. PracticeExperience uses detectConceptIndexFromText and direct phase progression
+  assert.ok(practiceCode.includes("detectConceptIndexFromText(clean, teachingConcepts)"), "onAssistantTranscript deve detectar fase por detectConceptIndexFromText");
+  assert.ok(practiceCode.includes("allPhaseSteps: true"), "completeCurrentLessonStep deve salvar todos os steps da fase para evitar repetições");
+  assert.ok(practiceCode.includes("mr-crazy-module-progress-"), "Deve sincronizar progresso com localStorage para persistência imediata");
+
+  // 2. Realtime API instructions grant pedagogical reasoning and creative autonomy
+  assert.ok(sessionCode.includes("AUTONOMIA PEDAGÓGICA E PODER DE CRIAÇÃO DO CHATGPT"), "Prompt base deve conceder autonomia pedagógica ao ChatGPT");
+  assert.ok(sessionCode.includes("raciocínio pedagógico próprio"), "IA deve ser instruída a usar raciocínio pedagógico");
+  assert.ok(sessionCode.includes("NÃO como um texto rígido que você precise repetir"), "IA não deve ser engessada com repetição mecânica");
+
+  // 3. API supports allPhaseSteps for bulk phase persistence
+  assert.ok(progressApiCode.includes("body.allPhaseSteps"), "API de progresso deve aceitar allPhaseSteps");
+});
+
