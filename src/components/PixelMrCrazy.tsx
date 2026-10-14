@@ -18,11 +18,14 @@ type PixelMrCrazyProps = Readonly<{
 }>;
 
 /**
- * Mr. Crazy: Avatar de Alta Fidelidade em Micro-Pixel Art 32-Bit.
- * Estilo retro arcade moderno (estilo anime / Capcom CPS2 / Neo-Geo).
- * Cabelo flamejante denso e volumoso com franja estilizada (zero calvície),
- * olhar intelectual penetrante com óculos de fio de ouro,
- * traje vitoriano acadêmico detalhado e sincronia labial responsiva em tempo real.
+ * Mr. Crazy: Novo Avatar "The Electric Mad Professor".
+ * 100% código vetorial puro SVG, CSS e React.
+ * Conceito: Mascote cientista louco icônico, carismático e ultra-expressivo.
+ * Cabelo elétrico selvagem em prata e ciano neon com faíscas de energia,
+ * olhos grandes e expressivos estilo comic/anime com rastreamento de olhar,
+ * óculos de cientista na testa com lentes pulsantes,
+ * jaleco tecnológico escuro com núcleo de energia e fones de estúdio,
+ * e boca articulada em tempo real para sincronia fonética perfeita.
  */
 export function PixelMrCrazy({
   voiceState,
@@ -41,11 +44,11 @@ export function PixelMrCrazy({
   const mouth = voiceState === "speaking" ? phoneme : 4;
   const energy = Math.max(0.25, crazyLevel / 100);
 
-  // Parallax natural dos olhos e cabeça seguindo o cursor ou toque
-  const faceX = Math.round(lookX * 3.2);
-  const faceY = Math.round(lookY * 2.2);
-  const pupilX = Math.round(lookX * 2.8);
-  const pupilY = Math.round(lookY * 1.8);
+  // Parallax suave dos olhos e cabeça seguindo o cursor ou toque
+  const faceX = Math.round(lookX * 3.5);
+  const faceY = Math.round(lookY * 2.5);
+  const pupilX = Math.round(lookX * 3.2);
+  const pupilY = Math.round(lookY * 2.2);
 
   const mouthLabels = ["aberta", "esticada", "redonda", "fechando", "repouso"] as const;
   const mouthLabel = mouthLabels[mouth] ?? "repouso";
@@ -56,20 +59,18 @@ export function PixelMrCrazy({
     aura: `${instanceId}-aura`,
     floorShadow: `${instanceId}-floor-shadow`,
     glowFilter: `${instanceId}-glow`,
-    hairDeepGrad: `${instanceId}-hair-deep`,
-    hairBodyGrad: `${instanceId}-hair-body`,
-    hairTipGrad: `${instanceId}-hair-tip`,
-    skinFaceGrad: `${instanceId}-skin-face`,
+    electricSparkGrad: `${instanceId}-spark-grad`,
+    hairBaseGrad: `${instanceId}-hair-base`,
+    hairNeonGrad: `${instanceId}-hair-neon`,
+    hairGleamGrad: `${instanceId}-hair-gleam`,
+    skinGrad: `${instanceId}-skin-grad`,
     skinCheekGrad: `${instanceId}-skin-cheek`,
-    skinHandGrad: `${instanceId}-skin-hand`,
-    coatGrad: `${instanceId}-coat`,
-    coatLapelGrad: `${instanceId}-coat-lapel`,
-    capeGrad: `${instanceId}-cape`,
-    goldGrad: `${instanceId}-gold`,
-    leatherGrad: `${instanceId}-leather`,
+    coatGrad: `${instanceId}-coat-grad`,
+    coatAccentGrad: `${instanceId}-coat-accent`,
+    coreReactorGrad: `${instanceId}-core-reactor`,
+    goggleLensGrad: `${instanceId}-goggle-lens`,
     eyeIrisGrad: `${instanceId}-eye-iris`,
-    rubyGrad: `${instanceId}-ruby`,
-    cravatGrad: `${instanceId}-cravat`
+    headphoneGrad: `${instanceId}-headphone`
   };
 
   return (
@@ -87,337 +88,247 @@ export function PixelMrCrazy({
       } as CSSProperties}
     >
       <defs>
-        {/* Aura de energia sutil */}
-        <radialGradient id={ids.aura} cx="50%" cy="45%" r="55%">
-          <stop offset="0%" stopColor={isAngryOrCrazy ? "#ef4444" : "#0d9488"} stopOpacity={isAngryOrCrazy ? ".25" : ".14"} />
-          <stop offset="65%" stopColor={isAngryOrCrazy ? "#dc2626" : "#0f766e"} stopOpacity=".03" />
+        {/* Aura de energia do professor */}
+        <radialGradient id={ids.aura} cx="50%" cy="42%" r="56%">
+          <stop offset="0%" stopColor={isAngryOrCrazy ? "#f43f5e" : "#06b6d4"} stopOpacity={isAngryOrCrazy ? ".3" : ".2"} />
+          <stop offset="65%" stopColor={isAngryOrCrazy ? "#e11d48" : "#0284c7"} stopOpacity=".04" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0" />
         </radialGradient>
 
-        {/* Sombra de chão sob as botas */}
+        {/* Sombra de chão */}
         <radialGradient id={ids.floorShadow} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#000000" stopOpacity=".7" />
-          <stop offset="55%" stopColor="#000000" stopOpacity=".25" />
+          <stop offset="60%" stopColor="#000000" stopOpacity=".2" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0" />
         </radialGradient>
 
-        {/* Filtro de brilho sutil */}
+        {/* Filtro de brilho neon suave */}
         <filter id={ids.glowFilter} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feGaussianBlur stdDeviation="2.4" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
 
-        {/* Cabelo Fundo: Profundidade Sombria */}
-        <linearGradient id={ids.hairDeepGrad} x1="0%" y1="100%" x2="0%" y2="0%">
-          <stop offset="0%" stopColor="#200303" />
-          <stop offset="30%" stopColor="#480909" />
-          <stop offset="65%" stopColor="#7c1a1a" />
-          <stop offset="100%" stopColor="#b43403" />
+        {/* Cabelo Elétrico: Base Cinza-Chumbo / Prata Profunda */}
+        <linearGradient id={ids.hairBaseGrad} x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#1e293b" />
+          <stop offset="40%" stopColor="#334155" />
+          <stop offset="75%" stopColor="#64748b" />
+          <stop offset="100%" stopColor="#cbd5e1" />
         </linearGradient>
 
-        {/* Cabelo Corpo: Laranja / Vermelho Flamejante */}
-        <linearGradient id={ids.hairBodyGrad} x1="0%" y1="100%" x2="0%" y2="0%">
-          <stop offset="0%" stopColor="#500707" />
-          <stop offset="25%" stopColor="#991b1b" />
-          <stop offset="55%" stopColor="#c2410c" />
-          <stop offset="82%" stopColor="#ea580c" />
-          <stop offset="96%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#fef08a" />
+        {/* Cabelo Elétrico: Mechas Ciano Neon & Branco Elétrico */}
+        <linearGradient id={ids.hairNeonGrad} x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#0891b2" />
+          <stop offset="35%" stopColor="#06b6d4" />
+          <stop offset="70%" stopColor="#38bdf8" />
+          <stop offset="90%" stopColor="#a5f3fc" />
+          <stop offset="100%" stopColor="#ffffff" />
         </linearGradient>
 
-        {/* Cabelo Destaque: Mechas Douradas Incandescentes */}
-        <linearGradient id={ids.hairTipGrad} x1="0%" y1="100%" x2="0%" y2="0%">
-          <stop offset="0%" stopColor="#c2410c" />
-          <stop offset="45%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#fef08a" />
+        {/* Cabelo Elétrico: Pontas Brancas Incandescentes */}
+        <linearGradient id={ids.hairGleamGrad} x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="60%" stopColor="#e0f2fe" />
+          <stop offset="100%" stopColor="#ffffff" />
         </linearGradient>
 
-        {/* Pele Facial: Tom Quente Anime Esculpido */}
-        <radialGradient id={ids.skinFaceGrad} cx="50%" cy="38%" r="62%">
-          <stop offset="0%" stopColor="#fff5ee" />
-          <stop offset="35%" stopColor="#fde0cb" />
-          <stop offset="72%" stopColor="#f8c29b" />
-          <stop offset="90%" stopColor="#e39870" />
-          <stop offset="100%" stopColor="#b8532f" />
+        {/* Pele de Anime Expressiva e Saudável */}
+        <radialGradient id={ids.skinGrad} cx="50%" cy="38%" r="62%">
+          <stop offset="0%" stopColor="#fff7ed" />
+          <stop offset="45%" stopColor="#fed7aa" />
+          <stop offset="80%" stopColor="#fdba74" />
+          <stop offset="100%" stopColor="#ea580c" stopOpacity=".85" />
         </radialGradient>
 
-        {/* Rubor Suave nas Bochechas */}
+        {/* Rubor Suave */}
         <radialGradient id={ids.skinCheekGrad} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#f43f5e" stopOpacity=".38" />
-          <stop offset="65%" stopColor="#f43f5e" stopOpacity=".1" />
-          <stop offset="100%" stopColor="#f8c29b" stopOpacity="0" />
+          <stop offset="0%" stopColor="#fb7185" stopOpacity=".4" />
+          <stop offset="70%" stopColor="#fb7185" stopOpacity=".1" />
+          <stop offset="100%" stopColor="#fdba74" stopOpacity="0" />
         </radialGradient>
 
-        {/* Mãos Anatômicas */}
-        <linearGradient id={ids.skinHandGrad} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fff4ed" />
-          <stop offset="50%" stopColor="#f8c29b" />
-          <stop offset="100%" stopColor="#c86742" />
-        </linearGradient>
-
-        {/* Casaco Esmeralda Nobre */}
+        {/* Casaco Tecnológico Slate / Grafite Moderno */}
         <linearGradient id={ids.coatGrad} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#04231e" />
-          <stop offset="25%" stopColor="#083c34" />
-          <stop offset="55%" stopColor="#0d695d" />
-          <stop offset="85%" stopColor="#109180" />
-          <stop offset="100%" stopColor="#18b8a3" />
+          <stop offset="0%" stopColor="#0f172a" />
+          <stop offset="40%" stopColor="#1e293b" />
+          <stop offset="80%" stopColor="#334155" />
+          <stop offset="100%" stopColor="#475569" />
         </linearGradient>
 
-        {/* Lapelas de Cetim Esmeralda */}
-        <linearGradient id={ids.coatLapelGrad} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#18b8a3" />
-          <stop offset="40%" stopColor="#0d695d" />
-          <stop offset="100%" stopColor="#052c26" />
+        {/* Detalhes Neon do Casaco */}
+        <linearGradient id={ids.coatAccentGrad} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="50%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#38bdf8" />
         </linearGradient>
 
-        {/* Cravat de Seda Ametista */}
-        <linearGradient id={ids.cravatGrad} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#a855f7" />
-          <stop offset="45%" stopColor="#7e22ce" />
-          <stop offset="85%" stopColor="#581c87" />
-          <stop offset="100%" stopColor="#3b0764" />
-        </linearGradient>
-
-        {/* Capa Carmesim Heroica */}
-        <linearGradient id={ids.capeGrad} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#24040c" />
-          <stop offset="25%" stopColor="#4a0618" />
-          <stop offset="60%" stopColor="#820d2c" />
-          <stop offset="85%" stopColor="#b81440" />
-          <stop offset="100%" stopColor="#e0285a" />
-        </linearGradient>
-
-        {/* Ouro Metálico Polido */}
-        <linearGradient id={ids.goldGrad} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#5c2c05" />
-          <stop offset="25%" stopColor="#96530a" />
-          <stop offset="50%" stopColor="#d98218" />
-          <stop offset="78%" stopColor="#fcc419" />
-          <stop offset="100%" stopColor="#fff3bf" />
-        </linearGradient>
-
-        {/* Couro Nobre */}
-        <linearGradient id={ids.leatherGrad} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#1c1917" />
-          <stop offset="35%" stopColor="#451a03" />
-          <stop offset="70%" stopColor="#78350f" />
-          <stop offset="100%" stopColor="#92400e" />
-        </linearGradient>
-
-        {/* Íris Safira / Cobalto com Brilho Profundo */}
-        <radialGradient id={ids.eyeIrisGrad} cx="40%" cy="36%" r="60%">
-          <stop offset="0%" stopColor="#7dd3fc" />
-          <stop offset="35%" stopColor="#0284c7" />
-          <stop offset="75%" stopColor="#0369a1" />
-          <stop offset="100%" stopColor="#082f49" />
+        {/* Reator Central no Peito (Arc Grammar Core) */}
+        <radialGradient id={ids.coreReactorGrad} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="35%" stopColor="#67e8f9" />
+          <stop offset="70%" stopColor="#06b6d4" />
+          <stop offset="100%" stopColor="#0e7490" />
         </radialGradient>
 
-        {/* Broche Rubi Lapidado */}
-        <radialGradient id={ids.rubyGrad} cx="35%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#fecdd3" />
-          <stop offset="30%" stopColor="#f43f5e" />
-          <stop offset="75%" stopColor="#9f1239" />
-          <stop offset="100%" stopColor="#4c0519" />
+        {/* Fones de Estúdio DJ / Professor */}
+        <linearGradient id={ids.headphoneGrad} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#0f172a" />
+          <stop offset="50%" stopColor="#1e293b" />
+          <stop offset="100%" stopColor="#0284c7" />
+        </linearGradient>
+
+        {/* Lentes dos Óculos Tecnológicos na Testa */}
+        <linearGradient id={ids.goggleLensGrad} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#22c55e" stopOpacity=".9" />
+          <stop offset="60%" stopColor="#10b981" stopOpacity=".7" />
+          <stop offset="100%" stopColor="#047857" stopOpacity=".95" />
+        </linearGradient>
+
+        {/* Íris Elétrica Azul-Cobalto / Ciano Vivo */}
+        <radialGradient id={ids.eyeIrisGrad} cx="38%" cy="36%" r="62%">
+          <stop offset="0%" stopColor="#67e8f9" />
+          <stop offset="30%" stopColor="#0284c7" />
+          <stop offset="75%" stopColor="#0369a1" />
+          <stop offset="100%" stopColor="#0c4a6e" />
         </radialGradient>
       </defs>
 
-      {/* Aura de ambientação no fundo */}
+      {/* Aura de energia no fundo */}
       <ellipse className="pixel-aura" cx="140" cy="165" rx="118" ry="142" fill={`url(#${ids.aura})`} />
 
       {/* Sombra de chão */}
       <g className="pixel-ground-shadow" aria-hidden="true">
-        <ellipse cx="140" cy="326" rx="88" ry="10" fill={`url(#${ids.floorShadow})`} />
+        <ellipse cx="140" cy="326" rx="84" ry="10" fill={`url(#${ids.floorShadow})`} />
       </g>
 
       {/* ========================================================
-          RIG HEROICO DO AVATAR - MICRO-PIXEL ART 32-BIT
+          RIG HEROICO DO NOVO MR. CRAZY (THE ELECTRIC PROFESSOR)
           ======================================================== */}
       <g className="pixel-rig">
-        {/* 1. CAPA HEROICA CARMESIM */}
-        <g className="pixel-cape-back">
-          {/* Aba Esquerda da Capa */}
-          <path
-            d="M96 160 C80 185 64 228 58 288 C66 294 92 292 104 286 C98 238 98 190 102 162 Z"
-            fill="#180208"
-          />
-          <path
-            d="M98 162 C84 186 68 226 62 284 C70 290 92 288 102 282 C98 238 98 190 104 164 Z"
-            fill={`url(#${ids.capeGrad})`}
-          />
-          <path
-            d="M62 284 C66 250 78 206 94 170"
-            stroke="#f43f5e"
-            strokeWidth="1.6"
-            strokeOpacity=".6"
-            fill="none"
-          />
-
-          {/* Aba Direita da Capa */}
-          <path
-            d="M184 160 C200 185 216 228 222 288 C214 294 188 292 176 286 C182 238 182 190 178 162 Z"
-            fill="#180208"
-          />
-          <path
-            d="M182 162 C196 186 212 226 218 284 C210 290 188 288 178 282 C182 238 182 190 176 164 Z"
-            fill={`url(#${ids.capeGrad})`}
-          />
-          <path
-            d="M218 284 C214 250 202 206 186 170"
-            stroke="#f43f5e"
-            strokeWidth="1.6"
-            strokeOpacity=".6"
-            fill="none"
-          />
-        </g>
-
-        {/* 2. PERNAS E BOTAS DE COURO */}
+        {/* 1. PERNAS E TÊNIS MODERNOS */}
         <g className="pixel-legs">
-          {/* Perna Esquerda */}
-          <path d="M106 252 H133 V292 H106 Z" fill="#0b111e" />
+          {/* Calça Cargo Chumbo */}
+          <path d="M106 252 H133 V292 H106 Z" fill="#0f172a" />
           <path d="M108 254 H131 V290 H108 Z" fill="#1e293b" />
-          <line x1="120" y1="255" x2="120" y2="288" stroke="#334155" strokeWidth="1.4" />
+          <line x1="120" y1="256" x2="120" y2="288" stroke="#334155" strokeWidth="1.5" />
 
-          {/* Perna Direita */}
-          <path d="M147 252 H174 V292 H147 Z" fill="#0b111e" />
+          <path d="M147 252 H174 V292 H147 Z" fill="#0f172a" />
           <path d="M149 254 H172 V290 H149 Z" fill="#1e293b" />
-          <line x1="160" y1="255" x2="160" y2="288" stroke="#334155" strokeWidth="1.4" />
+          <line x1="160" y1="256" x2="160" y2="288" stroke="#334155" strokeWidth="1.5" />
 
-          {/* Bota Esquerda com Fivela Dourada */}
+          {/* Tênis Esquerdo de Alta Tecnologia */}
           <g className="pixel-boot-left">
             <path
-              d="M102 288 C102 302 101 318 102 325 C111 326 135 326 144 325 C147 324 145 320 143 316 C139 306 137 294 136 288 Z"
-              fill="#110d0a"
+              d="M100 290 C100 302 99 316 100 324 C108 326 134 326 142 324 C145 322 143 318 141 314 C137 305 136 294 135 290 Z"
+              fill="#0f172a"
             />
             <path
-              d="M104 290 C104 302 103 316 104 323 C113 324 133 324 141 323 C143 322 142 318 141 315 C137 306 135 296 134 290 Z"
-              fill={`url(#${ids.leatherGrad})`}
+              d="M102 292 C102 302 101 314 102 322 C110 324 132 324 140 322 C142 320 141 316 139 313 C135 305 134 296 133 292 Z"
+              fill="#1e293b"
             />
-            <path d="M101 322 Q124 322 145 322 L146 326 Q124 326 102 326 Z" fill="#090d16" />
-            <rect x="110" y="299" width="18" height="11" rx="3.5" fill={`url(#${ids.goldGrad})`} />
-            <rect x="113" y="301" width="12" height="7" rx="2" fill="#1c1917" />
-            <circle cx="119" cy="304.5" r="1.4" fill="#fff3bf" />
+            {/* Sola Neon Ciano Iluminada */}
+            <path d="M99 322 Q122 322 143 322 L144 326 Q122 326 100 326 Z" fill="#06b6d4" filter={`url(#${ids.glowFilter})`} />
+            <rect x="110" y="300" width="16" height="5" rx="2" fill="#38bdf8" />
           </g>
 
-          {/* Bota Direita com Fivela Dourada */}
+          {/* Tênis Direito de Alta Tecnologia */}
           <g className="pixel-boot-right">
             <path
-              d="M144 288 C144 302 143 318 144 325 C153 326 177 326 186 325 C189 324 187 320 185 316 C181 306 179 294 178 288 Z"
-              fill="#110d0a"
+              d="M145 290 C144 294 143 305 139 314 C137 318 135 322 138 324 C146 326 172 326 180 324 C181 316 180 302 180 290 Z"
+              fill="#0f172a"
             />
             <path
-              d="M146 290 C146 302 145 316 146 323 C155 324 175 324 183 323 C185 322 184 318 183 315 C179 306 177 296 176 290 Z"
-              fill={`url(#${ids.leatherGrad})`}
+              d="M147 292 C146 296 145 305 141 313 C139 316 138 320 140 322 C148 324 170 324 178 322 C179 314 178 302 178 292 Z"
+              fill="#1e293b"
             />
-            <path d="M143 322 Q166 322 187 322 L188 326 Q166 326 144 326 Z" fill="#090d16" />
-            <rect x="152" y="299" width="18" height="11" rx="3.5" fill={`url(#${ids.goldGrad})`} />
-            <rect x="155" y="301" width="12" height="7" rx="2" fill="#1c1917" />
-            <circle cx="161" cy="304.5" r="1.4" fill="#fff3bf" />
+            {/* Sola Neon Ciano Iluminada */}
+            <path d="M137 322 Q158 322 181 322 L180 326 Q158 326 136 326 Z" fill="#06b6d4" filter={`url(#${ids.glowFilter})`} />
+            <rect x="154" y="300" width="16" height="5" rx="2" fill="#38bdf8" />
           </g>
         </g>
 
-        {/* 3. TRONCO, CASACO ESMERALDA TAILORED, CRAVAT E BROCHE */}
+        {/* 2. TRONCO: JALECO TECNOLÓGICO, NÚCLEO ARC E FONES NO PESCOÇO */}
         <g className="pixel-body">
-          {/* Base e Corte do Casaco */}
+          {/* Base e Corte do Jaleco */}
           <path
-            d="M86 158 C86 154 110 152 140 152 C170 152 194 154 194 158 C198 178 201 218 200 256 C162 258 118 258 80 256 C79 218 82 178 86 158 Z"
-            fill="#04231e"
+            d="M84 158 C84 154 110 152 140 152 C170 152 196 154 196 158 C200 178 203 218 202 256 C162 258 118 258 78 256 C77 218 80 178 84 158 Z"
+            fill="#090d16"
           />
           <path
-            d="M90 159 C90 155 112 153 140 153 C168 153 190 155 190 159 C194 178 196 218 195 254 C160 256 120 256 85 254 C84 218 86 178 90 159 Z"
-            fill="#083c34"
-          />
-          <path
-            d="M94 160 C94 156 114 155 140 155 C166 155 186 156 186 160 C189 178 190 216 189 252 C158 254 122 254 91 252 C90 216 91 178 94 160 Z"
+            d="M88 160 C88 156 112 154 140 154 C168 154 192 156 192 160 C196 178 198 218 197 254 C160 256 120 256 83 254 C82 218 84 178 88 160 Z"
             fill={`url(#${ids.coatGrad})`}
           />
 
-          {/* Lapelas Peaked Elegantes */}
-          <path
-            d="M104 156 C110 174 124 204 128 218 C120 216 108 198 96 172 Z"
-            fill={`url(#${ids.coatLapelGrad})`}
-          />
-          <path
-            d="M176 156 C170 174 156 204 152 218 C160 216 172 198 184 172 Z"
-            fill={`url(#${ids.coatLapelGrad})`}
-          />
-          {/* Debrum em Fio de Ouro */}
-          <path
-            d="M104 156 C110 174 124 204 128 218"
-            stroke={`url(#${ids.goldGrad})`}
-            strokeWidth="1.6"
-            fill="none"
-            strokeLinecap="round"
-          />
-          <path
-            d="M176 156 C170 174 156 204 152 218"
-            stroke={`url(#${ids.goldGrad})`}
-            strokeWidth="1.6"
-            fill="none"
-            strokeLinecap="round"
-          />
+          {/* Faixas Neon Laterais de Energia no Casaco */}
+          <path d="M96 166 L90 250" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" filter={`url(#${ids.glowFilter})`} />
+          <path d="M184 166 L190 250" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" filter={`url(#${ids.glowFilter})`} />
 
-          {/* Camisa de Linho Branca e Cravat de Seda Ametista */}
-          <path d="M125 154 H155 C151 170 147 184 140 190 C133 184 129 170 125 154 Z" fill="#ffffff" />
-          <path d="M128 156 H152 C149 170 145 184 140 189 C135 184 131 170 128 156 Z" fill="#f1f5f9" />
-          {/* Pregas do Cravat */}
-          <path d="M130 158 C135 158 145 158 150 158 C147 174 144 188 140 194 C136 188 133 174 130 158 Z" fill={`url(#${ids.cravatGrad})`} />
-          <path d="M134 162 C137 162 143 162 146 162 C144 173 142 183 140 189 C138 183 136 173 134 162 Z" fill="#9333ea" />
+          {/* Gola Alta do Casaco */}
+          <path d="M116 152 L124 180 L140 174 L156 180 L164 152 Z" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
+          <path d="M126 152 H154 V176 H126 Z" fill="#1e293b" />
 
-          {/* Broche de Rubi com Aro de Ouro */}
-          <circle cx="140" cy="173" r="4.8" fill={`url(#${ids.goldGrad})`} />
-          <circle cx="140" cy="173" r="3.4" fill={`url(#${ids.rubyGrad})`} />
-          <circle cx="138.9" cy="171.9" r="1.1" fill="#ffffff" />
+          {/* NÚCLEO DE ENERGIA ARC REACTOR NO PEITO */}
+          <g className="pixel-arc-core" transform="translate(140, 206)">
+            {/* Anel Externo Dourado / Ciano */}
+            <circle cx="0" cy="0" r="16" fill="#0f172a" stroke="#06b6d4" strokeWidth="2" filter={`url(#${ids.glowFilter})`} />
+            <circle cx="0" cy="0" r="12" fill={`url(#${ids.coreReactorGrad})`} />
+            <circle cx="0" cy="0" r="7" fill="#ffffff" filter={`url(#${ids.glowFilter})`} />
+            {/* Linhas de grade do reator */}
+            <line x1="-12" y1="0" x2="12" y2="0" stroke="#0891b2" strokeWidth="1" />
+            <line x1="0" y1="-12" x2="0" y2="12" stroke="#0891b2" strokeWidth="1" />
+          </g>
 
-          {/* Botões Duplos Metálicos Ornamentais */}
-          <circle cx="132" cy="226" r="3.2" fill={`url(#${ids.goldGrad})`} />
-          <circle cx="132" cy="226" r="2.2" fill="#ffd43b" />
-          <circle cx="148" cy="226" r="3.2" fill={`url(#${ids.goldGrad})`} />
-          <circle cx="148" cy="226" r="2.2" fill="#ffd43b" />
+          {/* FONES DE ESTÚDIO DESCANÇANDO NO PESCOÇO */}
+          <g className="pixel-headphones">
+            {/* Arco Traseiro */}
+            <path d="M96 156 Q140 170 184 156" stroke="#0f172a" strokeWidth="5" fill="none" strokeLinecap="round" />
+            <path d="M96 156 Q140 170 184 156" stroke="#38bdf8" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+            {/* Concha Esquerda com Anel Neon */}
+            <rect x="84" y="150" width="16" height="24" rx="6" fill="#0f172a" stroke="#06b6d4" strokeWidth="1.5" filter={`url(#${ids.glowFilter})`} />
+            <circle cx="92" cy="162" r="4" fill="#06b6d4" />
+            {/* Concha Direita com Anel Neon */}
+            <rect x="180" y="150" width="16" height="24" rx="6" fill="#0f172a" stroke="#06b6d4" strokeWidth="1.5" filter={`url(#${ids.glowFilter})`} />
+            <circle cx="188" cy="162" r="4" fill="#06b6d4" />
+          </g>
 
-          <circle cx="133" cy="240" r="3.2" fill={`url(#${ids.goldGrad})`} />
-          <circle cx="133" cy="240" r="2.2" fill="#ffd43b" />
-          <circle cx="147" cy="240" r="3.2" fill={`url(#${ids.goldGrad})`} />
-          <circle cx="147" cy="240" r="2.2" fill="#ffd43b" />
-
-          {/* Cinto de Couro e Fivela Dourada */}
-          <path d="M91 251 H189 V260 H91 Z" fill="#1c1917" />
-          <path d="M93 252 H187 V258 H93 Z" fill={`url(#${ids.leatherGrad})`} />
-          <rect x="131" y="249" width="18" height="12" rx="3.5" fill={`url(#${ids.goldGrad})`} />
-          <rect x="134" y="251" width="12" height="8" rx="2" fill="#1c1917" />
-          <rect x="138" y="251" width="4" height="8" fill={`url(#${ids.goldGrad})`} />
+          {/* Cinto Tecnológico com Fivela Iluminada */}
+          <path d="M89 250 H191 V258 H89 Z" fill="#0f172a" />
+          <rect x="130" y="248" width="20" height="12" rx="3" fill="#1e293b" stroke="#06b6d4" strokeWidth="1.5" />
+          <circle cx="140" cy="254" r="3" fill="#22d3ee" filter={`url(#${ids.glowFilter})`} />
         </g>
 
-        {/* 4. BRAÇOS E MÃOS ANATÔMICAS EM REPOUSO */}
+        {/* 3. BRAÇOS E MÃOS ANATÔMICAS EM REPOUSO */}
         <g className="pixel-arms">
           {/* Braço Esquerdo */}
           <g className="pixel-arm-left">
             <path
               d="M86 160 C78 180 72 208 70 240 C76 242 88 242 94 240 C95 212 99 184 104 164 Z"
-              fill="#04231e"
+              fill="#0f172a"
             />
             <path
               d="M88 162 C80 181 74 208 72 238 C77 240 86 240 92 238 C93 212 97 185 102 165 Z"
               fill={`url(#${ids.coatGrad})`}
             />
-            <path d="M71 236 Q82 238 93 236 L94 240 Q82 242 70 240 Z" fill={`url(#${ids.goldGrad})`} />
+            {/* Faixa neon no punho */}
+            <path d="M71 236 Q82 238 93 236 L94 240 Q82 242 70 240 Z" fill="#06b6d4" filter={`url(#${ids.glowFilter})`} />
 
-            {/* Mão Esquerda Natural */}
+            {/* Luva / Mão Esquerda Tecnológica */}
             <g className="pixel-hand-left">
               <path
                 d="M72 240 C70 248 72 258 75 264 C80 266 88 266 91 264 C93 258 92 248 91 240 Z"
-                fill="#b44d28"
+                fill="#0f172a"
               />
               <path
                 d="M74 241 C72 248 73 257 76 262 C80 264 86 264 89 262 C91 257 91 248 89 241 Z"
-                fill={`url(#${ids.skinHandGrad})`}
+                fill="#1e293b"
               />
-              <line x1="77" y1="250" x2="77" y2="260" stroke="#b44d28" strokeWidth="0.8" />
-              <line x1="81" y1="250" x2="81" y2="261" stroke="#b44d28" strokeWidth="0.8" />
-              <line x1="85" y1="250" x2="85" y2="260" stroke="#b44d28" strokeWidth="0.8" />
+              {/* Articulações dos dedos com acentos neon */}
+              <circle cx="78" cy="254" r="1.5" fill="#38bdf8" />
+              <circle cx="82" cy="255" r="1.5" fill="#38bdf8" />
+              <circle cx="86" cy="254" r="1.5" fill="#38bdf8" />
             </g>
           </g>
 
@@ -425,49 +336,50 @@ export function PixelMrCrazy({
           <g className="pixel-arm-right">
             <path
               d="M194 160 C202 180 208 208 210 240 C204 242 192 242 186 240 C185 212 181 184 176 164 Z"
-              fill="#04231e"
+              fill="#0f172a"
             />
             <path
               d="M192 162 C200 181 206 208 208 238 C203 240 194 240 188 238 C187 212 183 185 178 165 Z"
               fill={`url(#${ids.coatGrad})`}
             />
-            <path d="M187 236 Q198 238 209 236 L210 240 Q198 242 186 240 Z" fill={`url(#${ids.goldGrad})`} />
+            {/* Faixa neon no punho */}
+            <path d="M187 236 Q198 238 209 236 L210 240 Q198 242 186 240 Z" fill="#06b6d4" filter={`url(#${ids.glowFilter})`} />
 
-            {/* Mão Direita Natural */}
+            {/* Luva / Mão Direita Tecnológica */}
             <g className="pixel-hand-right">
               <path
                 d="M189 240 C188 248 187 258 189 264 C192 266 200 266 205 264 C208 258 210 248 208 240 Z"
-                fill="#b44d28"
+                fill="#0f172a"
               />
               <path
                 d="M191 241 C189 248 189 257 191 262 C194 264 200 264 203 262 C206 257 207 248 206 241 Z"
-                fill={`url(#${ids.skinHandGrad})`}
+                fill="#1e293b"
               />
-              <line x1="195" y1="250" x2="195" y2="260" stroke="#b44d28" strokeWidth="0.8" />
-              <line x1="199" y1="250" x2="199" y2="261" stroke="#b44d28" strokeWidth="0.8" />
-              <line x1="203" y1="250" x2="203" y2="260" stroke="#b44d28" strokeWidth="0.8" />
+              {/* Articulações dos dedos com acentos neon */}
+              <circle cx="194" cy="254" r="1.5" fill="#38bdf8" />
+              <circle cx="198" cy="255" r="1.5" fill="#38bdf8" />
+              <circle cx="202" cy="254" r="1.5" fill="#38bdf8" />
             </g>
           </g>
         </g>
 
-        {/* 5. GESTOS CONDICIONAIS (APARECEM APENAS QUANDO ATIVOS) */}
+        {/* 4. GESTOS CONDICIONAIS REATIVOS */}
         <g className="pixel-gesture-layer">
           {gesture === "thumbsup" && (
             <g className="pixel-gesture-thumbsup">
               <g transform="translate(186, 178)">
                 <path
                   d="M16 26 C12 26 8 20 8 14 C8 8 13 4 16 2 C18 0 22 2 22 6 C22 10 22 14 24 16 C26 18 28 18 28 22 C28 26 24 28 20 28 Z"
-                  fill="#b44d28"
+                  fill="#0f172a"
                 />
                 <path
                   d="M17 25 C14 25 10 20 10 14 C10 9 14 5 17 4 C18 3 20 4 20 7 C20 10 20 14 23 16 C25 18 26 19 26 22 C26 24 23 26 19 26 Z"
-                  fill={`url(#${ids.skinHandGrad})`}
+                  fill="#06b6d4"
                 />
-                <line x1="20" y1="18" x2="25" y2="18" stroke="#b44d28" strokeWidth="1" />
-                <line x1="20" y1="22" x2="25" y2="22" stroke="#b44d28" strokeWidth="1" />
+                {/* Estrela de Energia de Aprovação */}
                 <g className="pixel-sparkles">
-                  <circle cx="28" cy="2" r="3" fill="#fef08a" filter={`url(#${ids.glowFilter})`} />
-                  <path d="M28 -3 L28 7 M23 2 L33 2" stroke="#f59e0b" strokeWidth="1.2" />
+                  <circle cx="28" cy="2" r="4" fill="#fde047" filter={`url(#${ids.glowFilter})`} />
+                  <path d="M28 -4 L28 8 M22 2 L34 2" stroke="#eab308" strokeWidth="1.5" />
                 </g>
               </g>
             </g>
@@ -478,12 +390,12 @@ export function PixelMrCrazy({
               <g transform="translate(126, 166)">
                 <path
                   d="M14 6 C10 0 2 2 2 8 C2 15 14 22 14 22 C14 22 26 15 26 8 C26 2 18 0 14 6 Z"
-                  fill="#f43f5e"
+                  fill="#ec4899"
                   filter={`url(#${ids.glowFilter})`}
                 />
                 <path
                   d="M14 8 C11 2 4 4 4 9 C4 14 14 20 14 20 C14 20 24 14 24 9 C24 4 17 2 14 8 Z"
-                  fill="#fb7185"
+                  fill="#f472b6"
                 />
               </g>
             </g>
@@ -492,10 +404,11 @@ export function PixelMrCrazy({
           {gesture === "watergun" && (
             <g className="pixel-gesture-watergun">
               <g transform="translate(186, 182)">
-                <path d="M8 18 H32 V24 H22 V30 H12 V24 H8 Z" fill="#b44d28" />
-                <path d="M10 19 H30 V22 H20 V28 H14 V22 H10 Z" fill={`url(#${ids.skinHandGrad})`} />
-                <line x1="33" y1="20" x2="65" y2="20" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" filter={`url(#${ids.glowFilter})`} />
-                <line x1="33" y1="20" x2="65" y2="20" stroke="#ffffff" strokeWidth="1.4" strokeLinecap="round" />
+                <path d="M8 18 H32 V24 H22 V30 H12 V24 H8 Z" fill="#0f172a" />
+                <path d="M10 19 H30 V22 H20 V28 H14 V22 H10 Z" fill="#06b6d4" />
+                {/* Feixe de Plasma Elétrico */}
+                <line x1="33" y1="20" x2="70" y2="20" stroke="#38bdf8" strokeWidth="4" strokeLinecap="round" filter={`url(#${ids.glowFilter})`} />
+                <line x1="33" y1="20" x2="70" y2="20" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
               </g>
             </g>
           )}
@@ -503,287 +416,287 @@ export function PixelMrCrazy({
           {gesture === "finger" && (
             <g className="pixel-gesture-finger">
               <g transform="translate(186, 164)">
-                <path d="M16 4 H22 V28 H12 V20 H16 Z" fill="#b44d28" />
-                <path d="M18 6 H20 V26 H14 V21 H18 Z" fill={`url(#${ids.skinHandGrad})`} />
+                <path d="M16 4 H22 V28 H12 V20 H16 Z" fill="#0f172a" />
+                <path d="M18 6 H20 V26 H14 V21 H18 Z" fill="#06b6d4" />
+                {/* Lâmpada de Ideia Flutuando */}
+                <g transform="translate(10, -22)">
+                  <circle cx="10" cy="10" r="7" fill="#fbbf24" filter={`url(#${ids.glowFilter})`} />
+                  <rect x="7" y="17" width="6" height="4" rx="1" fill="#64748b" />
+                </g>
               </g>
             </g>
           )}
         </g>
 
-        {/* 6. CABEÇA, ROSTO ANATÔMICO, CABELO DENSO (ZERO CALVÍCIE) E ÓCULOS */}
+        {/* 5. CABEÇA, ROSTO COMIC EXPRESSIVO, CABELO ELÉTRICO E GOGGLES */}
         <g className="pixel-head" transform={`translate(${faceX}, ${faceY})`}>
-          {/* CABELO TRASEIRO VOLUMOSO (FUNDO DAS MECHAS) */}
+          {/* ========================================================
+              CABELO ELÉTRICO TRASEIRO: EXPLOSÃO SELVAGEM DE ENERGIA
+              ======================================================== */}
           <g className="pixel-hair-back">
-            {/* Camada de Silhueta Profunda Traseira com Pontas Pontiagudas de Fogo */}
+            {/* Silhueta Base Escura com Spikes Extremos de Cientista Maluco */}
             <path
-              d="M54 136 C42 108 46 68 64 42 C82 16 112 8 140 8 C168 8 198 16 216 42 C234 68 238 108 226 136 C232 104 226 66 208 46 C190 26 166 20 140 20 C114 20 90 26 72 46 C54 66 48 104 54 136 Z"
-              fill="#220303"
+              d="M44 140 C32 108 36 62 58 34 C78 8 110 2 140 2 C170 2 202 8 222 34 C244 62 248 108 236 140 C242 106 236 60 216 38 C196 16 170 12 140 12 C110 12 84 16 64 38 C44 60 38 106 44 140 Z"
+              fill="#0f172a"
             />
-            {/* Mechas volumosas de fogo saindo pelas laterais e topo */}
+            {/* Volume Elétrico Médio com Mechas Volumosas em Degradê de Ciano */}
             <path
-              d="M58 132 C48 106 52 68 70 44 C88 20 114 12 140 12 C166 12 192 20 210 44 C228 68 232 106 222 132 C228 100 220 62 202 44 C184 26 164 18 140 18 C116 18 96 26 78 44 C60 62 52 100 58 132 Z"
-              fill={`url(#${ids.hairDeepGrad})`}
+              d="M48 134 C38 104 42 64 62 38 C82 12 112 6 140 6 C168 6 198 12 218 38 C238 64 242 104 232 134 C238 98 230 56 210 36 C190 16 166 12 140 12 C114 12 90 16 70 36 C50 56 42 98 48 134 Z"
+              fill={`url(#${ids.hairBaseGrad})`}
             />
-            {/* Mechas exteriores que quebram o contorno da cabeça */}
-            <path d="M48 94 L36 82 L52 74 L44 60 L62 52 L56 38 L78 30" fill="none" stroke={`url(#${ids.hairDeepGrad})`} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M232 94 L244 82 L228 74 L236 60 L218 52 L224 38 L202 30" fill="none" stroke={`url(#${ids.hairDeepGrad})`} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+
+            {/* Espículas Elétricas Externas que explodem para todos os lados */}
+            <path d="M40 92 L24 78 L44 70 L34 52 L56 44 L48 26 L76 20" fill="none" stroke={`url(#${ids.hairNeonGrad})`} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M240 92 L256 78 L236 70 L246 52 L224 44 L232 26 L204 20" fill="none" stroke={`url(#${ids.hairNeonGrad})`} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M102 12 L112 -4 L126 8 L140 -8 L154 8 L168 -4 L178 12" fill="none" stroke={`url(#${ids.hairGleamGrad})`} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${ids.glowFilter})`} />
           </g>
 
-          {/* Pescoço com Sombra da Mandíbula */}
-          <path d="M122 144 H158 V162 H122 Z" fill="#b44d28" />
-          <path d="M125 146 H155 V160 H125 Z" fill={`url(#${ids.skinFaceGrad})`} />
-          <path d="M122 144 Q140 152 158 144 Z" fill="#8c3315" />
+          {/* Pescoço com Sombra */}
+          <path d="M122 144 H158 V162 H122 Z" fill="#c2410c" />
+          <path d="M125 146 H155 V160 H125 Z" fill={`url(#${ids.skinGrad})`} />
 
-          {/* Mandíbula e Rosto Proporcional (Tapered Anime Jaw) */}
+          {/* Mandíbula e Rosto Estilizado Comic / Anime Proporcional */}
           <path
-            d="M96 76 C94 104 98 126 114 144 C124 152 134 156 140 156 C146 156 156 152 166 144 C182 126 186 104 184 76 C182 52 170 42 140 42 C110 42 98 52 96 76 Z"
-            fill="#b44d28"
+            d="M96 78 C94 106 98 128 114 146 C124 154 134 158 140 158 C146 158 156 154 166 146 C182 128 186 106 184 78 C182 54 170 44 140 44 C110 44 98 54 96 78 Z"
+            fill="#c2410c"
           />
           <path
-            d="M98 78 C96 104 100 124 115 142 C124 150 134 154 140 154 C146 154 156 150 165 142 C180 124 184 104 182 78 C180 54 168 44 140 44 C112 44 100 54 98 78 Z"
-            fill={`url(#${ids.skinFaceGrad})`}
+            d="M98 80 C96 106 100 126 115 144 C124 152 134 156 140 156 C146 156 156 152 165 144 C180 126 184 106 182 80 C180 56 168 46 140 46 C112 46 100 56 98 80 Z"
+            fill={`url(#${ids.skinGrad})`}
           />
 
-          {/* Orelhas com Brincos */}
-          <path d="M90 98 C88 90 96 84 98 88 V114 C96 118 88 112 90 104 Z" fill="#b44d28" />
-          <path d="M92 99 C90 92 96 86 97 90 V112 C96 116 90 110 92 103 Z" fill={`url(#${ids.skinFaceGrad})`} />
-          <circle cx="93" cy="113" r="2.2" fill={`url(#${ids.goldGrad})`} />
+          {/* Orelhas com Brincos Tecnológicos */}
+          <path d="M90 98 C88 90 96 84 98 88 V114 C96 118 88 112 90 104 Z" fill="#ea580c" />
+          <path d="M92 99 C90 92 96 86 97 90 V112 C96 116 90 110 92 103 Z" fill={`url(#${ids.skinGrad})`} />
+          <circle cx="93" cy="113" r="2.2" fill="#06b6d4" />
 
-          <path d="M190 98 C192 90 184 84 182 88 V114 C184 118 192 112 190 104 Z" fill="#b44d28" />
-          <path d="M188 99 C190 92 184 86 183 90 V112 C184 116 190 110 188 103 Z" fill={`url(#${ids.skinFaceGrad})`} />
-          <circle cx="187" cy="113" r="2.2" fill={`url(#${ids.goldGrad})`} />
+          <path d="M190 98 C192 90 184 84 182 88 V114 C184 118 192 112 190 104 Z" fill="#ea580c" />
+          <path d="M188 99 C190 92 184 86 183 90 V112 C184 116 190 110 188 103 Z" fill={`url(#${ids.skinGrad})`} />
+          <circle cx="187" cy="113" r="2.2" fill="#06b6d4" />
 
-          {/* Efeito de Fumaça/Vapor nas orelhas se irritado */}
+          {/* Raio / Vapor de Sobrecarga Elétrica quando louco ou irritado */}
           {isAngryOrCrazy && (
             <g className="pixel-steam-burst">
-              <path d="M86 102 C76 96 70 84 76 76 C80 70 86 74 82 82" fill="none" stroke="#fca5a5" strokeWidth="1.8" strokeLinecap="round" />
-              <path d="M194 102 C204 96 210 84 204 76 C200 70 194 74 198 82" fill="none" stroke="#fca5a5" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M84 96 L74 88 L82 82 L70 72" stroke="#f43f5e" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${ids.glowFilter})`} />
+              <path d="M196 96 L206 88 L198 82 L210 72" stroke="#f43f5e" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${ids.glowFilter})`} />
             </g>
           )}
 
-          {/* Rubor Suave nas Bochechas */}
-          <ellipse cx="112" cy="118" rx="14" ry="7" fill={`url(#${ids.skinCheekGrad})`} />
-          <ellipse cx="168" cy="118" rx="14" ry="7" fill={`url(#${ids.skinCheekGrad})`} />
+          {/* Bochechas Coradas */}
+          <ellipse cx="112" cy="120" rx="14" ry="7" fill={`url(#${ids.skinCheekGrad})`} />
+          <ellipse cx="168" cy="120" rx="14" ry="7" fill={`url(#${ids.skinCheekGrad})`} />
 
-          {/* Nariz Esculpido Anime */}
-          <path d="M138 98 L137 118 Q140 122 143 118 L142 98 Z" fill="#e39870" />
-          <ellipse cx="137" cy="118" rx="1.6" ry="1.2" fill="#8c3315" />
-          <ellipse cx="143" cy="118" rx="1.6" ry="1.2" fill="#8c3315" />
-          <circle cx="139" cy="116" r="1.1" fill="#fff4ed" />
+          {/* Nariz Expressivo Comic */}
+          <path d="M138 102 L137 118 Q140 122 143 118 L142 102 Z" fill="#fdba74" />
+          <circle cx="140" cy="118" r="1.8" fill="#ea580c" />
+          <circle cx="139" cy="116.5" r="0.8" fill="#ffffff" />
 
-          {/* Sobrancelhas Confiantes e Expressivas */}
+          {/* ÓCULOS TECNOLÓGICOS / GOGGLES POUSADOS NA TESTA (ESTILO DOC BROWN / CIENTISTA) */}
+          <g className="pixel-goggles" transform="translate(0, -6)">
+            {/* Tira de couro dos óculos que circunda a cabeça */}
+            <path d="M88 66 Q140 58 192 66" stroke="#0f172a" strokeWidth="6" fill="none" strokeLinecap="round" />
+            <path d="M88 66 Q140 58 192 66" stroke="#0284c7" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+
+            {/* Lente e Armação Esquerda */}
+            <circle cx="116" cy="62" r="16" fill="#0f172a" stroke="#06b6d4" strokeWidth="2.5" />
+            <circle cx="116" cy="62" r="12" fill={`url(#${ids.goggleLensGrad})`} filter={`url(#${ids.glowFilter})`} />
+            <path d="M110 54 L114 70" stroke="#ffffff" strokeWidth="2" strokeOpacity=".6" strokeLinecap="round" />
+
+            {/* Ponte Central dos Goggles */}
+            <rect x="132" y="58" width="16" height="6" rx="2" fill="#0f172a" stroke="#06b6d4" strokeWidth="1.5" />
+
+            {/* Lente e Armação Direita */}
+            <circle cx="164" cy="62" r="16" fill="#0f172a" stroke="#06b6d4" strokeWidth="2.5" />
+            <circle cx="164" cy="62" r="12" fill={`url(#${ids.goggleLensGrad})`} filter={`url(#${ids.glowFilter})`} />
+            <path d="M158 54 L162 70" stroke="#ffffff" strokeWidth="2" strokeOpacity=".6" strokeLinecap="round" />
+          </g>
+
+          {/* SOBRANCELHAS EXPRESSIVAS E VIVAS */}
           <g className="pixel-eyebrows">
             {isAngryOrCrazy ? (
               <>
-                <path d="M104 88 L126 95" stroke="#450a0a" strokeWidth="3.4" strokeLinecap="round" />
-                <path d="M105 88 L125 94" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" />
-                <path d="M176 88 L154 95" stroke="#450a0a" strokeWidth="3.4" strokeLinecap="round" />
-                <path d="M175 88 L155 94" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" />
+                <path d="M104 88 L126 97" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" />
+                <path d="M105 88 L125 96" stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M176 88 L154 97" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" />
+                <path d="M175 88 L155 96" stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round" />
               </>
             ) : (
               <>
-                <path d="M104 89 Q116 84 128 88" stroke="#450a0a" strokeWidth="3.2" fill="none" strokeLinecap="round" />
-                <path d="M105 89 Q116 85 127 88" stroke="#ea580c" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-                <path d="M176 89 Q164 84 152 88" stroke="#450a0a" strokeWidth="3.2" fill="none" strokeLinecap="round" />
-                <path d="M175 89 Q164 85 153 88" stroke="#ea580c" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                <path d="M102 87 Q116 80 128 85" stroke="#0f172a" strokeWidth="3.6" fill="none" strokeLinecap="round" />
+                <path d="M103 87 Q116 81 127 85" stroke="#38bdf8" strokeWidth="2" fill="none" strokeLinecap="round" />
+                <path d="M178 87 Q164 80 152 85" stroke="#0f172a" strokeWidth="3.6" fill="none" strokeLinecap="round" />
+                <path d="M177 87 Q164 81 153 85" stroke="#38bdf8" strokeWidth="2" fill="none" strokeLinecap="round" />
               </>
             )}
           </g>
 
-          {/* Olhos Anime Inteligentes e Vivos com Parallax */}
+          {/* OLHOS COMIC GRANDES, VIVOS E EXPRESSIVOS COM PARALLAX */}
           <g className="pixel-eyes">
             {/* Olho Esquerdo */}
             <g className="pixel-eye pixel-eye-left">
-              <ellipse cx="116" cy="103" rx="10" ry="7" fill="#ffffff" />
-              <path d="M106 101 Q116 97 126 101" stroke="#b44d28" strokeWidth="1" fill="none" />
+              <ellipse cx="116" cy="103" rx="12" ry="14" fill="#ffffff" stroke="#0f172a" strokeWidth="2.2" />
               <g transform={`translate(${pupilX}, ${pupilY})`}>
-                <circle cx="116" cy="103" r="5.2" fill={`url(#${ids.eyeIrisGrad})`} />
-                <circle cx="116" cy="103" r="2.8" fill="#090d16" />
-                {/* Brilhos especulares nos olhos */}
-                <circle cx="114.5" cy="101.5" r="1.5" fill="#ffffff" />
-                <circle cx="117.8" cy="104.5" r="0.8" fill="#ffffff" />
+                <circle cx="116" cy="103" r="7.5" fill={`url(#${ids.eyeIrisGrad})`} />
+                <circle cx="116" cy="103" r="4.2" fill="#090d16" />
+                {/* Brilhos especulares duplos marcantes */}
+                <circle cx="113.5" cy="100.5" r="2.2" fill="#ffffff" />
+                <circle cx="118.5" cy="105.5" r="1.1" fill="#ffffff" />
               </g>
-              {/* Delineado superior anime marcante com cílio sutil */}
-              <path d="M105 102 C108 96 123 96 127 101" stroke="#0f172a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+              {/* Delineado e cílio superior expressivo */}
+              <path d="M103 98 C108 91 124 91 129 98" stroke="#0f172a" strokeWidth="3.2" fill="none" strokeLinecap="round" />
             </g>
 
             {/* Olho Direito */}
             <g className="pixel-eye pixel-eye-right">
-              <ellipse cx="164" cy="103" rx="10" ry="7" fill="#ffffff" />
-              <path d="M154 101 Q164 97 174 101" stroke="#b44d28" strokeWidth="1" fill="none" />
+              <ellipse cx="164" cy="103" rx="12" ry="14" fill="#ffffff" stroke="#0f172a" strokeWidth="2.2" />
               <g transform={`translate(${pupilX}, ${pupilY})`}>
-                <circle cx="164" cy="103" r="5.2" fill={`url(#${ids.eyeIrisGrad})`} />
-                <circle cx="164" cy="103" r="2.8" fill="#090d16" />
-                {/* Brilhos especulares nos olhos */}
-                <circle cx="162.5" cy="101.5" r="1.5" fill="#ffffff" />
-                <circle cx="165.8" cy="104.5" r="0.8" fill="#ffffff" />
+                <circle cx="164" cy="103" r="7.5" fill={`url(#${ids.eyeIrisGrad})`} />
+                <circle cx="164" cy="103" r="4.2" fill="#090d16" />
+                {/* Brilhos especulares duplos marcantes */}
+                <circle cx="161.5" cy="100.5" r="2.2" fill="#ffffff" />
+                <circle cx="166.5" cy="105.5" r="1.1" fill="#ffffff" />
               </g>
-              {/* Delineado superior anime marcante */}
-              <path d="M153 101 C157 96 172 96 175 102" stroke="#0f172a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+              {/* Delineado e cílio superior expressivo */}
+              <path d="M151 98 C156 91 172 91 177 98" stroke="#0f172a" strokeWidth="3.2" fill="none" strokeLinecap="round" />
             </g>
 
-            {/* Pálpebra para piscar natural */}
+            {/* Pálpebras de Piscar Natural */}
             <path
               className="pixel-eyelid-blink"
-              d="M104 103 C108 106 124 106 128 103 M152 103 C156 106 172 106 176 103"
-              stroke="#b44d28"
-              strokeWidth="2.8"
+              d="M102 103 C108 108 124 108 130 103 M150 103 C156 108 172 108 178 103"
+              stroke="#ea580c"
+              strokeWidth="3.5"
               fill="none"
               strokeLinecap="round"
             />
           </g>
 
-          {/* Óculos Elegantes de Fio de Ouro (Armação fina que realça os olhos) */}
-          <g className="pixel-glasses">
-            {/* Lente e Aro Esquerdo */}
-            <rect x="102" y="93" width="28" height="20" rx="5" fill="#38bdf8" fillOpacity="0.08" stroke={`url(#${ids.goldGrad})`} strokeWidth="1.5" />
-            <line x1="106" y1="95" x2="112" y2="109" stroke="#ffffff" strokeWidth="1.2" strokeOpacity=".35" strokeLinecap="round" />
-
-            {/* Ponte do Nariz */}
-            <path d="M130 101 Q140 98 150 101" stroke={`url(#${ids.goldGrad})`} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-
-            {/* Lente e Aro Direito */}
-            <rect x="150" y="93" width="28" height="20" rx="5" fill="#38bdf8" fillOpacity="0.08" stroke={`url(#${ids.goldGrad})`} strokeWidth="1.5" />
-            <line x1="154" y1="95" x2="160" y2="109" stroke="#ffffff" strokeWidth="1.2" strokeOpacity=".35" strokeLinecap="round" />
-
-            {/* Hastes Laterais */}
-            <path d="M102 99 L92 98" stroke={`url(#${ids.goldGrad})`} strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M178 99 L188 98" stroke={`url(#${ids.goldGrad})`} strokeWidth="1.5" strokeLinecap="round" />
-          </g>
-
-          {/* Sincronia Labial de 5 Visemas (pixel-mouth) */}
+          {/* ========================================================
+              SINCRONIA LABIAL EXPRESSIVA DE 5 VISEMAS (pixel-mouth)
+              ======================================================== */}
           <g className="pixel-mouth" data-viseme={mouth}>
-            {/* 0. Visema ABERTA (A, O) */}
+            {/* 0. Visema ABERTA (A, O) - Grande e Engraçada */}
             {mouth === 0 && (
               <g className="viseme-open">
-                <path d="M130 131 C130 128 150 128 150 131 C151 140 148 145 140 145 C132 145 129 140 130 131 Z" fill="#220309" stroke="#68131e" strokeWidth="1.2" />
-                <path d="M133 131 H147 V134 H133 Z" fill="#ffffff" />
-                <ellipse cx="140" cy="142" rx="5" ry="2.5" fill="#f43f5e" />
+                <path d="M128 130 C128 126 152 126 152 130 C154 144 150 148 140 148 C130 148 126 144 128 130 Z" fill="#1e1b4b" stroke="#0f172a" strokeWidth="1.8" />
+                {/* Dentes Superiores Brancos */}
+                <path d="M131 129 H149 V134 H131 Z" fill="#ffffff" />
+                <line x1="137" y1="129" x2="137" y2="134" stroke="#cbd5e1" strokeWidth="1" />
+                <line x1="143" y1="129" x2="143" y2="134" stroke="#cbd5e1" strokeWidth="1" />
+                {/* Língua Rosa Animada */}
+                <ellipse cx="140" cy="144" rx="6" ry="3.5" fill="#f43f5e" />
               </g>
             )}
 
-            {/* 1. Visema ESTICADA (E, I) */}
+            {/* 1. Visema ESTICADA (E, I) - Grande Sorriso com Dentes */}
             {mouth === 1 && (
               <g className="viseme-wide">
-                <path d="M128 132 C134 130 146 130 152 132 C154 138 148 142 140 142 C132 142 126 138 128 132 Z" fill="#220309" stroke="#68131e" strokeWidth="1.2" />
-                <path d="M131 133 H149 V136 H131 Z" fill="#ffffff" />
-                <path d="M128 132 Q140 130 152 132" stroke="#f43f5e" strokeWidth="1.1" fill="none" strokeLinecap="round" />
+                <path d="M126 132 C132 128 148 128 154 132 C156 141 150 144 140 144 C130 144 124 141 126 132 Z" fill="#1e1b4b" stroke="#0f172a" strokeWidth="1.8" />
+                <path d="M129 131 H151 V136 H129 Z" fill="#ffffff" />
+                <line x1="135" y1="131" x2="135" y2="136" stroke="#cbd5e1" strokeWidth="1" />
+                <line x1="140" y1="131" x2="140" y2="136" stroke="#cbd5e1" strokeWidth="1" />
+                <line x1="145" y1="131" x2="145" y2="136" stroke="#cbd5e1" strokeWidth="1" />
+                <path d="M126 132 Q140 128 154 132" stroke="#f43f5e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
               </g>
             )}
 
             {/* 2. Visema REDONDA (O, U, W) */}
             {mouth === 2 && (
               <g className="viseme-round">
-                <ellipse cx="140" cy="136" rx="6.5" ry="5.5" fill="#220309" stroke="#68131e" strokeWidth="1.4" />
-                <ellipse cx="140" cy="135" rx="3.5" ry="2.2" fill="#f43f5e" />
-                <circle cx="140" cy="136" r="2" fill="#090d16" />
+                <ellipse cx="140" cy="136" rx="7.5" ry="6.5" fill="#1e1b4b" stroke="#0f172a" strokeWidth="2" />
+                <ellipse cx="140" cy="135" rx="4" ry="2.8" fill="#f43f5e" />
+                <circle cx="140" cy="136" r="2.5" fill="#090d16" />
               </g>
             )}
 
             {/* 3. Visema FECHANDO (Consoantes) */}
             {mouth === 3 && (
               <g className="viseme-close">
-                <path d="M132 135 Q140 133 148 135" stroke="#220309" strokeWidth="2.4" strokeLinecap="round" />
-                <path d="M133 135.2 Q140 136.2 147 135.2" stroke="#f43f5e" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                <path d="M130 135 Q140 132 150 135" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
+                <path d="M131 135.2 Q140 136.5 149 135.2" stroke="#f43f5e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
               </g>
             )}
 
-            {/* 4. Visema REPOUSO / PHONEME-REST-LIVE (Sorriso Confiante) */}
+            {/* 4. Visema REPOUSO / PHONEME-REST-LIVE (Sorriso Maroto de Professor) */}
             {mouth === 4 && (
               <g className="viseme-rest phoneme-rest-live">
-                <path d="M133 134 Q140 133 147 135" stroke="#450a0a" strokeWidth="2.2" strokeLinecap="round" />
-                <path d="M134 134.5 Q140 135.5 146 134.5" stroke="#f43f5e" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-                <circle cx="147.5" cy="134" r="0.9" fill="#b44d28" />
+                <path d="M131 134 Q140 131 149 134" stroke="#0f172a" strokeWidth="2.8" strokeLinecap="round" />
+                <path d="M132 134.8 Q140 136.2 148 134.8" stroke="#f43f5e" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+                {/* Covinha expressiva no canto da boca */}
+                <circle cx="150" cy="133.5" r="1.2" fill="#ea580c" />
+                {/* Brilho de estrela no dente */}
+                <circle cx="146" cy="133" r="1.2" fill="#ffffff" filter={`url(#${ids.glowFilter})`} />
               </g>
             )}
           </g>
 
-          {/* =============================================================
-              CABELO FRONTAL & FRANJA FLAMEJANTE VOLUMOSA (ZERO CALVÍCIE)
-              ============================================================= */}
+          {/* ========================================================
+              CABELO FRONTAL & FRANJA FLAMEJANTE ELÉTRICA (ZERO CALVÍCIE)
+              ======================================================== */}
           <g className="pixel-hair-front">
-            {/* Camada 1: Cúpula Densa de Cabelo Cobrindo Toda a Testa Superior */}
+            {/* Camada 1: Cúpula Densa de Cabelo Cobrindo Toda a Cabeça */}
             <path
-              d="M74 68 C76 34 104 14 140 14 C176 14 204 34 206 68 C204 78 198 88 194 98 C188 82 184 74 172 66 C158 58 148 64 140 68 C132 64 122 58 108 66 C96 74 92 82 86 98 C82 88 76 78 74 68 Z"
-              fill="#540a0a"
+              d="M68 62 C70 28 100 8 140 8 C180 8 210 28 212 62 C210 74 204 86 198 96 C192 80 186 70 174 62 C160 52 148 58 140 62 C132 58 120 52 106 62 C94 70 88 80 82 96 C76 86 70 74 68 62 Z"
+              fill="#0f172a"
             />
-            {/* Camada 2: Volume Flamejante Principal */}
+            {/* Camada 2: Volume Ciano Elétrico Principal */}
             <path
-              d="M72 66 C74 30 102 10 140 10 C178 10 206 30 208 66 C206 78 200 90 196 102 C190 84 186 74 174 66 C160 56 148 62 140 66 C132 62 120 56 106 66 C94 74 90 84 84 102 C80 90 74 78 72 66 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
+              d="M66 60 C68 24 98 4 140 4 C182 4 212 24 214 60 C212 74 206 88 200 100 C194 82 188 70 176 62 C162 50 148 56 140 60 C132 56 118 50 104 62 C92 70 86 82 80 100 C74 88 68 74 66 60 Z"
+              fill={`url(#${ids.hairNeonGrad})`}
             />
 
-            {/* FRANJA CENTRAL QUE CAI SOBRE A TESTA (ELIMINA QUALQUER SENSÇÃO DE CALVICE) */}
-            {/* Mecha Central Longa que desce até o meio das sobrancelhas */}
+            {/* FRANJA ELÉTRICA QUE CAI SOBRE A TESTA E ENTRE OS OLHOS */}
+            {/* Mecha Central Longa que desce até o nariz */}
             <path
-              d="M134 46 C138 60 136 74 140 88 C144 74 142 60 146 46 Z"
-              fill="#7c1a1a"
+              d="M134 42 C138 58 136 74 140 90 C144 74 142 58 146 42 Z"
+              fill="#0891b2"
             />
             <path
-              d="M135 48 C139 60 137 72 140 86 C143 72 141 60 145 48 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
+              d="M135 44 C139 58 137 72 140 88 C143 72 141 58 145 44 Z"
+              fill={`url(#${ids.hairGleamGrad})`}
+              filter={`url(#${ids.glowFilter})`}
             />
-            <path d="M139 52 L140 84" stroke={`url(#${ids.hairTipGrad})`} strokeWidth="1.8" strokeLinecap="round" />
 
             {/* Mecha Franja Esquerda */}
             <path
-              d="M116 48 C118 62 120 74 125 84 C128 72 128 60 126 48 Z"
-              fill="#7c1a1a"
+              d="M114 44 C116 60 118 72 124 84 C126 70 126 58 124 44 Z"
+              fill="#0891b2"
             />
             <path
-              d="M117 50 C119 62 121 72 125 82 C127 72 127 60 125 50 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
+              d="M115 46 C117 60 119 70 124 82 C125 70 125 58 123 46 Z"
+              fill={`url(#${ids.hairGleamGrad})`}
             />
-            <path d="M123 54 L125 80" stroke={`url(#${ids.hairTipGrad})`} strokeWidth="1.6" strokeLinecap="round" />
 
             {/* Mecha Franja Direita */}
             <path
-              d="M164 48 C162 62 160 74 155 84 C152 72 152 60 154 48 Z"
-              fill="#7c1a1a"
+              d="M166 44 C164 60 162 72 156 84 C154 70 154 58 156 44 Z"
+              fill="#0891b2"
             />
             <path
-              d="M163 50 C161 62 159 72 155 82 C153 72 153 60 155 50 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
+              d="M165 46 C163 60 161 70 156 82 C155 70 155 58 157 46 Z"
+              fill={`url(#${ids.hairGleamGrad})`}
             />
-            <path d="M157 54 L155 80" stroke={`url(#${ids.hairTipGrad})`} strokeWidth="1.6" strokeLinecap="round" />
 
-            {/* Mecha Franja Externa Esquerda (cobre a têmpora esquerda) */}
+            {/* Cachos / Mechas Laterais descendo pelas bochechas */}
             <path
-              d="M98 56 C102 70 106 80 110 88 C112 76 110 66 106 56 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
+              d="M78 70 C72 88 70 112 76 128 C80 114 84 100 88 86 Z"
+              fill={`url(#${ids.hairNeonGrad})`}
             />
-            <path d="M106 60 L109 86" stroke={`url(#${ids.hairTipGrad})`} strokeWidth="1.4" strokeLinecap="round" />
-
-            {/* Mecha Franja Externa Direita (cobre a têmpora direita) */}
-            <path
-              d="M182 56 C178 70 174 80 170 88 C168 76 170 66 174 56 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
-            />
-            <path d="M174 60 L171 86" stroke={`url(#${ids.hairTipGrad})`} strokeWidth="1.4" strokeLinecap="round" />
-
-            {/* Cachos / Mechas Laterais Longas descendo pelas bochechas */}
-            <path
-              d="M84 72 C78 90 76 112 82 128 C86 114 90 100 94 86 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
-            />
-            <path d="M84 76 Q80 104 84 124" stroke={`url(#${ids.hairTipGrad})`} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+            <path d="M78 74 Q74 104 78 124" stroke="#ffffff" strokeWidth="1.8" fill="none" strokeLinecap="round" />
 
             <path
-              d="M196 72 C202 90 204 112 198 128 C194 114 190 100 186 86 Z"
-              fill={`url(#${ids.hairBodyGrad})`}
+              d="M202 70 C208 88 210 112 204 128 C200 114 196 100 192 86 Z"
+              fill={`url(#${ids.hairNeonGrad})`}
             />
-            <path d="M196 76 Q200 104 196 124" stroke={`url(#${ids.hairTipGrad})`} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+            <path d="M202 74 Q206 104 202 124" stroke="#ffffff" strokeWidth="1.8" fill="none" strokeLinecap="round" />
 
-            {/* Topete Superior Dinâmico (Spikes incandescentes no topo) */}
+            {/* TOPETE ELÉTRICO SUPERIOR (EXPLOSÃO DE ENERGIA) */}
             <path
-              d="M118 36 C126 18 136 6 142 2 C146 14 154 24 162 36 C152 30 142 28 132 32 Z"
-              fill={`url(#${ids.hairTipGrad})`}
+              d="M116 32 C126 12 136 0 140 -4 C144 0 154 12 164 32 C152 26 140 24 128 28 Z"
+              fill={`url(#${ids.hairGleamGrad})`}
+              filter={`url(#${ids.glowFilter})`}
             />
-            <path d="M136 24 L142 4 L148 24" stroke="#fef08a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-
-            {/* Mechas adicionais de chama no topo */}
-            <path d="M102 24 C110 12 120 8 126 6 C124 16 126 24 124 30 Z" fill={`url(#${ids.hairTipGrad})`} />
-            <path d="M178 24 C170 12 160 8 154 6 C156 16 154 24 156 30 Z" fill={`url(#${ids.hairTipGrad})`} />
+            <path d="M134 20 L140 -2 L146 20" stroke="#ffffff" strokeWidth="2" fill="none" strokeLinecap="round" />
           </g>
         </g>
       </g>

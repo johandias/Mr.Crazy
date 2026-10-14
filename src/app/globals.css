@@ -16280,6 +16280,11 @@ textarea {
   filter: drop-shadow(0 20px 25px rgb(0 0 0 / 55%)) drop-shadow(0 0 20px rgb(244 63 94 / 24%));
 }
 
+.pixel-gesture-layer > .pixel-gesture-finger,
+.pixel-gesture-layer > .pixel-gesture-thumbsup,
+.pixel-gesture-layer > .pixel-gesture-heart,
+.pixel-gesture-layer > .pixel-gesture-watergun {
+  opacity: 1;
 .pixel-gesture-layer > g {
   display: none !important;
   opacity: 0 !important;

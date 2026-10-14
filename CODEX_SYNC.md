@@ -9,7 +9,22 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
-## 🟢 Antigravity — 2026-10-14 — Redesign Capilar & Facial Completo (Fim da Calvície e Isolamento de Gestos)
+## 🟢 Antigravity — 2026-10-14 — Novo Personagem do Zero: "The Electric Mad Professor"
+- **Decisão e Contexto**:
+  - A pedido explícito do usuário para descarte total do personagem anterior e liberdade criativa, foi criado um novo conceito visual moderno e carismático que se alinha perfeitamente à proposta de "Mr. Crazy": o **Cientista/Professor Maluco Elétrico**.
+- **Novo Conceito Entregue (`PixelMrCrazy.tsx`)**:
+  1. **Visual Comic/Arcade Icônico & Carismático**:
+     - Cabelo elétrico selvagem em prata e ciano neon com mechas em camadas e faíscas dinâmicas de energia (zero calvície).
+     - Olhos grandes, vivos e expressivos estilo comic com íris ciano-cobalto e duplo brilho especular, eliminando qualquer risco de uncanny valley.
+     - Óculos tecnológicos (goggles) com lentes esmeralda pousados com estilo na testa, liberando totalmente a visão dos olhos.
+  2. **Indumentária Moderna High-Tech**:
+     - Jaleco tecnológico chumbo/grafite com detalhes em ciano neon.
+     - Arc Grammar Core (reator no peito) que pulsa energia conforme o tutor fala e raciocina.
+     - Fones de estúdio/DJ neon repousando confortavelmente ao redor do pescoço.
+     - Tênis modernos de cano alto com solado iluminado em neon.
+  3. **Sincronia Labial & Expressões**:
+     - Boca grande, expressiva e divertida com 5 visemas nítidos (aberta, esticada, redonda, fechando e repouso com sorriso inteligente).
+     - Gestos condicionais atômicos (`thumbsup`, `heart`, `watergun`, `finger`) sem vazamento ou sobreposição.
 - **Problema Relatado**:
   - O avatar apresentava testa desproporcional com mechas laterais afastadas (aspecto de calvície evidente) e gestos simultâneos sobrepostos ao corpo.
 - **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
