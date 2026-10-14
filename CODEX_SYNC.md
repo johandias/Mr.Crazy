@@ -9,6 +9,17 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 124+ testes passando em todas as suítes (exit code 0).
 
+## 🟢 Antigravity — 2026-10-14 — Desativação da Dica (Fundo Azul) e Desacoplamento Completo da Voz
+- **Entregue:**
+  1. **Desativação do Cartão Visual Didático (`shouldShowStudyGuide = false`)**:
+     - O cartão de dicas de pronúncia com fundo azul/ciano abaixo do balão de fala (`.speech-pronunciation-card`) foi temporariamente desativado a pedido do usuário por não estar em sincronia com o diálogo dinâmico do Mr. Crazy.
+  2. **Desacoplamento do Fluxo de Voz (`PracticeExperience.tsx`)**:
+     - Removidas as verificações regex sobre transcrição streaming (`onAssistantTranscript`) que disparavam re-renderizações e ativavam o cartão durante a fala.
+     - Removidas as injeções automáticas de micro-etapas de cartão (`phaseTargets` e `currentLessonStepIndex`) no `updateInstructions` do WebRTC. O canal de voz agora só atualiza instruções quando o aluno realmente troca de fase ou módulo, evitando interrupções e conflitos (`session.update`) no meio da fala.
+  3. **Liberação do Prompt do Tutor (`realtime-session.ts`)**:
+     - Substituída a restrição rígida de sincronização obrigatória com o cartão visual por foco didático adaptativo e natural, permitindo que o Mr. Crazy dialogue livremente com o aluno sem amarras a alvos visuais desconectados.
+- **Validação:** 100% dos testes unitários mantidos e aprovados (33 de progressão, 9 de scoring, 6 de realtime-session, 20 de realtime-client).
+
 ## 🟢 Antigravity — 2026-10-14 — Estabilização Completa do Motor de Voz & Eliminação de Cortes de Fala e Texto
 - **Problemas Resolvidos:**
   1. **Fala interrompida pelo microfone (Echo Barge-in & Premature Drain)**: O timer fixo de 1.2s de drain desmutava o microfone enquanto o áudio do Mr. Crazy ainda tocava nos alto-falantes; o microfone captava o próprio áudio e acionava o VAD da OpenAI com barge-in (`response.cancel`), cortando a fala no meio. Agora, o `remoteTimer` monitora a energia real do áudio via `remoteAnalyser` e só encerra o playback após 450ms de silêncio contínuo confirmado, com `echoGuardActive` por mais 400ms.

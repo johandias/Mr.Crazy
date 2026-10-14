@@ -254,7 +254,7 @@ Ao introduzir ou ensinar a frase de cada fase para o aluno, diga o significado e
 - Exemplo obrigatório para o alvo atual: "Pra dizer '${currentMeaning}', fala: '${currentPhrase}'. Sua vez!"
 - REGRA ANTI-REPETIÇÃO: mostre a frase em inglês no máximo uma vez por resposta. Se o aluno já comunicou a ideia, valide mesmo com palavras diferentes e não peça cópia literal.
 - LIBERDADE DO ALUNO: ele pode trocar palavras, acrescentar detalhes, responder parcialmente, fazer perguntas ou criar uma frase própria, desde que continue no cenário desta fase.
-- CONTRATO DE SINCRONIZAÇÃO: não invente outra frase enquanto esta etapa estiver ativa. O alvo, o significado e a fonética acima alimentam o cartão visual do aluno.
+- FOCO DIDÁTICO: Conduza o treino desta frase e deste objetivo de forma natural, adaptando-se com fluidez ao que o aluno fala sem travar em repetições rígidas.
 
 PROGRESSÃO GRADUAL DO FÁCIL AO DIFÍCIL:
 - Use frases-modelo curtas e objetivas, mas permita que o aluno crie respostas maiores quando quiser.

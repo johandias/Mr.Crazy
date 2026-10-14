@@ -765,7 +765,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
   }, [activeModule, currentConceptIndex, teachingConcepts.length]);
 
   useEffect(() => {
-    // Sincroniza dinamicamente as instruções WebRTC com a fase atual do aluno
+    // Sincroniza as instruções WebRTC ao trocar de fase ou módulo, mantendo a voz estável e sem interferência de micro-etapas de cartão
     if (realtimeRef.current && realtimeStatus === "connected") {
       try {
         const updatedInstructions = buildRealtimeInstructions(
@@ -773,16 +773,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           selectedMode,
           studentProfile,
           selectedModuleId,
-          currentConceptIndex,
-          currentLessonStepIndex,
-          phaseTargets
+          currentConceptIndex
         );
         realtimeRef.current.updateInstructions(updatedInstructions);
       } catch (err) {
         console.warn("[Practice] Erro ao sincronizar instruções WebRTC:", err);
       }
     }
-  }, [currentConceptIndex, currentLessonStepIndex, phaseTargets, selectedModuleId, selectedLevel, selectedMode, studentProfile, realtimeStatus]);
+  }, [currentConceptIndex, selectedModuleId, selectedLevel, selectedMode, studentProfile, realtimeStatus]);
   const [isLessonCompleted, setIsLessonCompleted] = useState(false);
   const [isModuleCompleted, setIsModuleCompleted] = useState(false);
   const [isCharacterAwake, setIsCharacterAwake] = useState(false);
@@ -1116,9 +1114,9 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     return openingLine || initialBubbleText;
   }, [allConversationItems, openingIndex, openingLine, realtimeReply, studentProfile?.nickname]);
 
-  const shouldShowStudyGuide = Boolean(
-    teachingTarget && isStudyCardVisible
-  );
+  // Feature da dica de estudo (fundo azul abaixo do balão de fala) temporariamente desativada
+  // a pedido do usuário por estar fora de sincronia com a fala do Mr. Crazy
+  const shouldShowStudyGuide = false;
 
   useEffect(() => {
     const container = speechBubbleScrollRef.current;
@@ -1135,11 +1133,11 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       window.cancelAnimationFrame(frame);
       observer?.disconnect();
     };
-  }, [latestCrazySpeech, shouldShowStudyGuide, teachingTarget]);
+  }, [latestCrazySpeech]);
 
   useEffect(() => {
     setIsSpeechBubbleExpanded(false);
-  }, [latestCrazySpeech, teachingTarget?.phraseEn]);
+  }, [latestCrazySpeech]);
 
   const latestUserSpeech = useMemo(() => {
     if (transcript.trim()) return transcript.trim();
@@ -1639,7 +1637,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
           setIsCharacterAwake(true);
           hasUserAttemptedPhaseRef.current = true;
-          setIsStudyCardVisible(true);
           setModuleTurnsCount((prev) => prev + 1);
           void persistLessonProgressRef.current({ addTurns: 1 });
 
@@ -1653,17 +1650,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       },
       onAssistantTranscript: (text, complete) => {
         if (connectAbortRef.current !== abortController || abortController.signal.aborted) return;
-
-        // Revela o cartão didático de fala assim que o Mr. Crazy começa a introduzir ou pedir treino da frase
-        const lowerText = text.toLowerCase();
-        const targetPhraseClean = (teachingTargetRef.current?.phraseEn || "").toLowerCase().trim();
-        const isTeachingOrAskingToPractice =
-          /(fala pra mim|diga pra mim|repita comigo|repete comigo|em inglês se fala|em inglês é|como se fala|como falar|como pedir|como dizer|a pronúncia soa|a pronúncia é|tente falar|tenta falar|agora é sua vez|sua vez|manda ver|bora praticar essa|pronúncia aportuguesada|fase [1-9]|pra dizer)/i.test(lowerText) ||
-          (targetPhraseClean.length >= 4 && lowerText.includes(targetPhraseClean));
-
-        if (isTeachingOrAskingToPractice) {
-          setIsStudyCardVisible(true);
-        }
 
         if (!complete) {
           setRealtimeReply(text);
@@ -1685,12 +1671,6 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           const isInstruction = /(vamos treinar|fala pra mim|diga pra mim|repita comigo|em inglês se fala|a pronúncia soa|como se fala|tente falar|como falar|como se diz|pra dizer)/i.test(lower);
           const isPraise = /(aí sim|boa|muito bom|parabéns|mandou bem|mandou benzão|show|perfeito|excelente|ótimo|certinho|destravou|dominou|dominada|fase concluída|etapa concluída|próxima fase|fase seguinte|mandou bala|aleluia)/i.test(lower);
           const isCorrection = /(quase|atenção|cuidado|ajuste|língua|dente|errou|errado|ops|esguicho|acorda pra cuspir|tá errado|não é assim|pronúncia torta|não consegui te ouvir|não te ouvi|não entendi|burrada|que porcaria)/i.test(lower);
-
-          if (isInstruction) setIsStudyCardVisible(true);
-
-          if (isPraise && !isCorrection && !isInstruction) {
-            setIsStudyCardVisible(false);
-          }
 
           if (hasUserAttemptedPhaseRef.current && isPraise && !isCorrection) {
             hasUserAttemptedPhaseRef.current = false;
