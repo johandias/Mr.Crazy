@@ -36,6 +36,7 @@ export function PixelMrCrazy({
   lookY = 0,
   phoneme = 4,
   isBlinking = false,
+  burstKey = 0,
   isAwake = false
 }: PixelMrCrazyProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,7 +63,8 @@ export function PixelMrCrazy({
     lookX,
     lookY,
     isBlinking,
-    targetGest
+    targetGest,
+    burstKey
   });
   stateRef.current = {
     voiceState,
@@ -70,7 +72,8 @@ export function PixelMrCrazy({
     lookX,
     lookY,
     isBlinking,
-    targetGest
+    targetGest,
+    burstKey
   };
 
   useEffect(() => {
@@ -275,6 +278,8 @@ export function PixelMrCrazy({
     let nextBlink = 2;
     let blinkT = 0;
     let last = 0;
+    let lastPaint = 0;
+    const paintInterval = 1000 / 30;
     let spawn = 0;
     let clA = 0;
     let clV = 0;
@@ -291,6 +296,10 @@ export function PixelMrCrazy({
     let hatV = 0;
     let nodV = 0;
     let mouthT = 0;
+    let lastBurstKey = burstKey;
+    let burstEnergy = 0;
+    let burstRing = 0;
+    const burstParticles: Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; color: string }> = [];
 
     const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
@@ -337,6 +346,7 @@ export function PixelMrCrazy({
 
       const gest = stateRef.current.targetGest;
       const crazy = gest === "crazy";
+      const speakingNow = stateRef.current.voiceState === "speaking";
       const hop = crazy ? Math.abs(Math.sin(t * 9)) * 1.6 : 0;
       const breath = Math.sin(t * 1.9);
       const bob = Math.sin(t * 2) * 0.4 - hop;
@@ -353,7 +363,8 @@ export function PixelMrCrazy({
       const headRot = Math.sin(t * 1.3) * 0.02 + idle + look[0] * 0.04 + (crazy ? Math.sin(t * 9) * 0.08 : 0) + lean * 0.6;
       hatV += ((-headRot * 1.5 - lean * 2 - hatA) * 60 - hatV * 7) * dt;
       hatA += hatV * dt;
-      nodV = Math.max(0, nodV - dt * 5);
+      const nodTarget = speakingNow ? 0.8 + Math.abs(Math.sin(t * 4.6)) * 0.45 : 0;
+      nodV = lerp(nodV, nodTarget, speakingNow ? 0.16 : 0.08);
 
       const tg = (G[gest] || G.idle)(t);
       const ex = EXP[gest] || {};
@@ -386,8 +397,7 @@ export function PixelMrCrazy({
       }
 
       // Modulação de boca durante fala
-      const curSpeaking = stateRef.current.voiceState === "speaking";
-      if (curSpeaking) {
+      if (speakingNow) {
         talk = 0.2;
         const phonemeMap = [0.95, 0.62, 0.8, 0.45, 0.02];
         const pLevel = phonemeMap[stateRef.current.phoneme] ?? 0.5;
@@ -444,10 +454,10 @@ export function PixelMrCrazy({
       ctx.beginPath();
       ctx.ellipse(48, 82, 24, 28, 0, 0, 7);
       ctx.clip();
-      for (let r = 0; r < 5; r++) {
-        for (let c = 0; c < 7; c++) {
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 5; c++) {
           const x = 26 + c * 6.8 + (r % 2) * 3.4;
-          const y = 60 + r * 7.4 + Math.sin(t * 2.2 + r + c) * 0.12 * (1 + rf * 3);
+          const y = 61 + r * 8.5;
           const v = (r * 7 + c * 13) % 5;
           E(x, y, 3.8, 3.2, lg(x, y - 3.2, x, y + 3.2, [[0, v < 2 ? "#b08a60" : "#9a7650"], [1, "#5d412c"]]));
           Q(`M${x - 2.4} ${y + 0.8}q2.4 2.1 4.8 0`, null, "rgba(40,22,10,.45)", 0.5);
@@ -466,10 +476,10 @@ export function PixelMrCrazy({
       ctx.beginPath();
       ctx.ellipse(48, 73, 15, 13, 0, 0, 7);
       ctx.clip();
-      for (let r = 0; r < 5; r++) {
-        for (let c = 0; c < 8; c++) {
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 5; c++) {
           const x = 35.5 + c * 3.4 + (r % 2) * 1.7;
-          const y = 65 + r * 3.7 + Math.sin(t * 2 + c + r) * 0.1;
+          const y = 65.5 + r * 4.6;
           E(x, y, 2.3, 1.9, lg(x, y - 2, x, y + 2, [[0, "#fffaf0"], [1, "#e8d4ae"]]));
           Q(`M${x - 1.4} ${y + 0.6}q1.4 1.2 2.8 0`, null, "rgba(150,110,70,.4)", 0.4);
         }
@@ -628,8 +638,8 @@ export function PixelMrCrazy({
       ctx.beginPath();
       ctx.ellipse(48, 42, 26, 22, 0, 0, 7);
       ctx.clip();
-      for (let r = 0; r < 5; r++) {
-        for (let x = 24 + (r % 2) * 2.4; x < 74; x += 4.8) {
+      for (let r = 0; r < 3; r++) {
+        for (let x = 25 + (r % 2) * 2.4; x < 74; x += 7.2) {
           Q(`M${x} ${22 + r * 5}q2.4 2.8 4.8 0`, null, "rgba(70,45,28,.3)", 0.5);
         }
       }
@@ -782,8 +792,7 @@ export function PixelMrCrazy({
       ctx.restore();
 
       // Letras mágicas saindo do bico durante a fala
-      const curSpeaking = stateRef.current.voiceState === "speaking";
-      if (curSpeaking && (spawn -= dt) < 0) {
+      if (speakingNow && (spawn -= dt) < 0) {
         spawn = 0.14;
         parts.push({
           ch: "ABCDEFGHIJKLMNOPQRSTUVWXYZ?!"[(Math.random() * 28) | 0],
@@ -794,6 +803,62 @@ export function PixelMrCrazy({
           l: 1.6,
           c: `hsl(${Math.random() * 360},85%,72%)`
         });
+      }
+
+      const nextBurstKey = stateRef.current.burstKey;
+      if (nextBurstKey && nextBurstKey !== lastBurstKey) {
+        lastBurstKey = nextBurstKey;
+        burstEnergy = 1;
+        burstRing = 1;
+        burstParticles.length = 0;
+        for (let i = 0; i < 18; i++) {
+          const angle = (i / 18) * Math.PI * 2;
+          const speed = 10 + (i % 4) * 2.5;
+          const maxLife = 0.55 + (i % 3) * 0.08;
+          burstParticles.push({
+            x: 48,
+            y: 57,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 4,
+            life: maxLife,
+            maxLife,
+            size: 0.8 + (i % 3) * 0.35,
+            color: i % 3 === 0 ? "#fff0a0" : i % 3 === 1 ? "#f0c24a" : "#5ad0ff"
+          });
+        }
+      }
+      if (burstEnergy > 0 || burstParticles.length > 0) {
+        burstEnergy = Math.max(0, burstEnergy - dt * 2.8);
+        burstRing = Math.max(0, burstRing - dt * 2.2);
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        if (burstEnergy > 0) {
+          ctx.globalAlpha = burstEnergy * 0.7;
+          E(48, 57, 5 + burstEnergy * 8, 5 + burstEnergy * 8, "#fff0a0");
+        }
+        if (burstRing > 0) {
+          ctx.globalAlpha = burstRing;
+          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = "#5ad0ff";
+          ctx.beginPath();
+          ctx.arc(48, 57, 5 + (1 - burstRing) * 17, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        for (let i = burstParticles.length - 1; i >= 0; i--) {
+          const p = burstParticles[i];
+          p.life -= dt;
+          if (p.life <= 0) {
+            burstParticles.splice(i, 1);
+            continue;
+          }
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += 20 * dt;
+          ctx.globalAlpha = Math.min(1, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+        ctx.restore();
       }
 
       ctx.font = 'bold 6px "Comic Sans MS",cursive,sans-serif';
@@ -817,6 +882,11 @@ export function PixelMrCrazy({
 
     let rafId: number;
     const loop = (ms: number) => {
+      if (ms - lastPaint < paintInterval) {
+        rafId = requestAnimationFrame(loop);
+        return;
+      }
+      lastPaint = ms;
       const t = ms / 1000;
       const dt = Math.min(0.05, t - last);
       last = t;

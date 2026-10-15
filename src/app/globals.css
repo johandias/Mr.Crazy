@@ -16340,6 +16340,63 @@ textarea {
   }
 }
 
+/* Desktop compact contract: reserve a clear, stable lane for the voice dock.
+   The avatar stays prominent without consuming the entire stage or colliding
+   with the microphone controls. */
+@media (min-width: 1200px) {
+  .practice-main.clean-layout .clean-stage.history-is-closed {
+    min-height: clamp(440px, calc(100dvh - 270px), 560px);
+    padding: 0 12px;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-column {
+    justify-content: flex-start;
+    padding: 18px 28px 18px;
+    gap: 0;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
+    margin-bottom: 8px;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-avatar-wrapper {
+    flex: 0 0 auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-stage {
+    width: clamp(270px, 20vw, 360px);
+    height: clamp(270px, 20vw, 360px);
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .owl-wizard-canvas {
+    max-height: 300px !important;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .practice-voice-hub {
+    width: min(100%, 390px) !important;
+    margin-top: 6px !important;
+    padding: 6px 12px 5px !important;
+    gap: 3px !important;
+    border-radius: 18px !important;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .avatar-mic-circle-btn {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .voice-dock-actions-row {
+    margin-top: 1px;
+    gap: 8px;
+  }
+}
+
 /* ========================================================================
    Mr. Crazy — character direction pass
    The drawing is SVG, but the motion language is closer to a game NPC:
@@ -16441,6 +16498,7 @@ textarea {
 .pixel-gesture-layer > .pixel-gesture-heart,
 .pixel-gesture-layer > .pixel-gesture-watergun {
   opacity: 1;
+}
 .pixel-gesture-layer > g {
   display: none !important;
   opacity: 0 !important;
@@ -16462,6 +16520,7 @@ textarea {
   transform-origin: 50% 50%;
   pointer-events: none;
   animation: mr-crazy-impact .72s cubic-bezier(.16, 1, .3, 1) both;
+}
 .pixel-explosion-burst,
 .pixel-input-ring {
   display: none !important;
