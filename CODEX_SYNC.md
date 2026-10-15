@@ -9,6 +9,29 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
+## 🟢 Antigravity — 2026-10-14 — Otimização de Performance, Remoção de Fundo do Avatar e Front Limpo
+- **Demandas do Usuário**:
+  1. Performance do navegador travando: reduzir drasticamente peso do canvas e animações desnecessárias.
+  2. Retirar o fundo que veio junto com o avatar da coruja (cenário de biblioteca/chão embutido).
+  3. Melhorar o posicionamento do microfone no site (ergonomia, centralização, respiro).
+  4. Melhorar o front: estava muito poluído (excesso de cards e tochas competindo com o Mr. Crazy).
+- **Entregas Realizadas**:
+  1. **Performance do Canvas & Background Removido (`PixelMrCrazy.tsx`)**:
+     - Fundo de biblioteca, livros, velas, círculo mágico no chão e vinheta escura totalmente removidos; o canvas agora é 100% transparente.
+     - Implementado cache `Map<string, Path2D>` em `getPath(d)` para eliminar a criação contínua de objetos e garbage collection em 60fps.
+     - Malha de penas corporais reduzida de 11x11 (121 operações) para 5x7 com chamadas otimizadas.
+     - Asas otimizadas com eliminação de Path2D em strings dinâmicas no loop de penas.
+     - Removido array e laços `speck`.
+  2. **Front Despoluído & Foco no Tutor (`globals.css`)**:
+     - Ocultadas as rails laterais com 6 cards (`.desktop-support-rail { display: none !important; }`), eliminando a poluição visual redundante.
+     - Ocultada a cena pesada de tochas e chamas animadas (`.clean-stage .practice-ambient-scene { display: none !important; }`), liberando GPU/CPU do navegador.
+     - Palco central limpo, executivo e focado no Mr. Crazy.
+  3. **Posicionamento e Ergonomia do Microfone (`globals.css`)**:
+     - `.practice-voice-hub` transformado em um dock elegante, elevado, com backdrop blur, borda sutil e respiro generoso em relação ao avatar.
+     - Botão de microfone ampliado e centralizado (62px), com espaçamento harmônico entre as ondas de áudio laterais.
+     - Badge de instrução e botões auxiliares (Digitar/Histórico) limpos e bem distribuídos sem espremer o controle de voz.
+  4. **Suíte de Testes**: Todos os 69 testes passando sem regressão.
+
 ## 🟢 Antigravity — 2026-10-14 — Novo Avatar 2D: Coruja Mago Professora de Inglês (Mr. Crazy)
 - **Instrução Direta do Usuário**:
   - Trocar o avatar anterior pelo novo avatar 2D fornecido ("Mr. Crazy – Coruja Mago Professora de Inglês").

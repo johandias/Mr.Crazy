@@ -16016,25 +16016,37 @@ textarea {
   .practice-main.clean-layout .module-phase-stepper-track { gap: 9px; }
 
   .practice-main.clean-layout .clean-stage.history-is-closed {
-    display: grid;
-    grid-template-columns: minmax(210px, .68fr) minmax(600px, 1.9fr) minmax(210px, .68fr);
+    display: flex;
+    justify-content: center;
     align-items: stretch;
-    gap: 18px;
     width: 100%;
-    max-width: 1480px;
-    min-height: clamp(520px, calc(100dvh - 248px), 760px);
-    margin: 0;
+    max-width: 920px;
+    min-height: clamp(520px, calc(100dvh - 220px), 780px);
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .desktop-support-rail {
+    display: none !important;
+  }
+
+  .practice-main.clean-layout .practice-ambient-scene {
+    display: none !important;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
-    max-width: none;
+    max-width: 780px;
     min-width: 0;
     min-height: 0;
-    padding: 24px 30px 28px;
+    padding: 24px 32px 28px;
     border: 1px solid rgba(230, 183, 68, .22);
-    border-radius: 26px;
-    background: radial-gradient(circle at 50% 35%, rgba(22, 38, 58, .75) 0%, rgba(10, 17, 26, .88) 60%, rgba(6, 9, 14, .98) 100%);
+    border-radius: 28px;
+    background: radial-gradient(circle at 50% 35%, rgba(22, 38, 58, .75) 0%, rgba(10, 17, 26, .9) 60%, rgba(6, 9, 14, .98) 100%);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 25px 60px -15px rgba(0, 0, 0, .85);
   }
 
@@ -16069,12 +16081,12 @@ textarea {
   .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble-container {
     width: 100%;
     max-width: none;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-speech-bubble {
-    padding: 16px 20px 18px;
-    border-radius: 18px;
+    padding: 16px 22px 18px;
+    border-radius: 20px;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .speech-bubble-text {
@@ -16084,13 +16096,16 @@ textarea {
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-avatar-wrapper {
     flex: 1 1 auto;
-    min-height: 330px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-stage {
     --real-avatar-scale: 1.26;
-    width: clamp(390px, 28vw, 540px);
-    height: clamp(390px, 28vw, 540px);
+    width: clamp(340px, 26vw, 480px);
+    height: clamp(340px, 26vw, 480px);
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .mr-crazy-preview-layer {
@@ -16098,24 +16113,42 @@ textarea {
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .practice-voice-hub {
-    max-width: 560px;
-    margin-top: 2px;
+    width: 100%;
+    max-width: 520px;
+    margin-top: 14px;
     margin-bottom: 0;
+    padding: 12px 20px 10px;
+    background: rgba(10, 16, 26, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 8px;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .avatar-mic-circle-btn {
+    width: 62px;
+    height: 62px;
+    min-width: 62px;
+    min-height: 62px;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .voice-dock-actions-row {
     gap: 12px;
-    margin-top: 8px;
+    margin-top: 4px;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .dock-action-pill-btn {
-    min-height: 38px;
-    padding: 7px 18px;
+    min-height: 34px;
+    padding: 5px 16px;
   }
 
   .desktop-support-rail {
-    display: flex;
+    display: none;
     flex-direction: column;
     justify-content: center;
     gap: 14px;

@@ -139,9 +139,19 @@ export function PixelMrCrazy({
       ctx.stroke();
     };
 
+    const pathCache = new Map<string, Path2D>();
+    const getPath = (d: string) => {
+      let p = pathCache.get(d);
+      if (!p) {
+        p = new Path2D(d);
+        pathCache.set(d, p);
+      }
+      return p;
+    };
+
     const Q = (d: string, f?: any, s?: any, w = 0.6) => {
       if (typeof Path2D !== "undefined") {
-        const p = new Path2D(d);
+        const p = getPath(d);
         if (f) {
           ctx.fillStyle = f;
           ctx.fill(p);
@@ -205,36 +215,13 @@ export function PixelMrCrazy({
       Q(d, f);
       if (typeof Path2D !== "undefined") {
         ctx.save();
-        ctx.clip(new Path2D(d));
+        ctx.clip(getPath(d));
         shade(x, y, w, h, l, dk);
         ctx.restore();
       }
     };
 
-    let sd = 7;
-    const rn = () => (sd = (sd * 9301 + 49297) % 233280) / 233280;
-
-    const books: [number, number, number, number, string][] = [];
-    for (const x0 of [0, 77]) {
-      for (let r = 0; r < 5; r++) {
-        let x = x0;
-        while (x < x0 + 19) {
-          const w = 1.6 + rn() * 2.2;
-          const h = 10 + rn() * 6;
-          books.push([
-            x,
-            28 + r * 19 - h,
-            w,
-            h,
-            `hsl(${Math.floor(rn() * 360)},${35 + rn() * 30}%,${26 + rn() * 20}%)`
-          ]);
-          x += w + 0.2;
-        }
-      }
-    }
-
     const parts: { ch: string; x: number; y: number; vx: number; vy: number; l: number; c: string }[] = [];
-    const speck = Array.from({ length: 14 }, () => [38 + rn() * 20, 64 + rn() * 20, 0.3 + rn() * 0.4]);
 
     const G: Record<string, (t: number) => { L: [number, number]; R: [number, number] }> = {
       idle: (t) => ({
@@ -298,27 +285,22 @@ export function PixelMrCrazy({
       const W = "M-1 -3C6 -3 12.5 6 13 20C13.2 28 11.6 33 10.6 36Q8.8 33 7.6 37Q5.6 33 4 37Q2.4 33 .8 36C-1.4 30 -3.4 14 -3.4 3Z";
       shQ(W, lg(0, -3, 0, 37, [[0, "#ad865a"], [0.55, "#7d5b3a"], [1, "#4b3322"]]), -4, -3, 18, 40, 0.22, 0.34);
       ctx.save();
-      if (typeof Path2D !== "undefined") ctx.clip(new Path2D(W));
-      for (let r = 0; r < 4; r++) {
-        for (let i = 0; i < 4; i++) {
-          const x = -0.6 + i * 3.5 + (r % 2) * 1.7;
-          const y = 5 + r * 5.4;
-          E(x, y, 2.6, 2.2, lg(x, y - 2, x, y + 2, [[0, r % 2 ? "#b48c62" : "#a68058"], [1, "#6a4a30"]]));
-          Q(`M${x - 1.6} ${y + 0.7}q1.6 1.5 3.2 0`, null, "rgba(40,22,10,.45)", 0.45);
+      if (typeof Path2D !== "undefined") ctx.clip(getPath(W));
+      for (let r = 0; r < 3; r++) {
+        for (let i = 0; i < 3; i++) {
+          const x = 0.5 + i * 4 + (r % 2) * 2;
+          const y = 6 + r * 7;
+          E(x, y, 3, 2.5, lg(x, y - 2, x, y + 2, [[0, r % 2 ? "#b48c62" : "#a68058"], [1, "#6a4a30"]]));
           L_([[x, y - 1.4], [x, y + 0.5]], 0.3, "rgba(255,225,170,.3)");
         }
       }
       ctx.restore();
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 4; i++) {
         ctx.save();
-        ctx.translate(-1.6 + i * 2.5, 24);
-        ctx.rotate((i - 2.5) * 0.07 * sp + Math.sin(TT * 5 + i) * 0.015);
+        ctx.translate(-1.2 + i * 3.4, 25);
+        ctx.rotate((i - 1.5) * 0.08 * sp + Math.sin(TT * 4 + i) * 0.015);
         Q("M0 0Q2.2 7 1.5 15Q0 17 -1.2 15Q-1.7 7 0 0Z", lg(-2, 0, 2, 15, [[0, "#9a7650"], [1, "#3d2a1a"]]));
         L_([[0, 1], [0.1, 14]], 0.4, "rgba(255,225,170,.45)");
-        for (let k = 1; k < 5; k++) {
-          L_([[0, k * 2.8], [1.2, k * 2.8 - 1.1]], 0.3, "rgba(255,225,170,.28)");
-          L_([[0, k * 2.8], [-1.1, k * 2.8 - 1]], 0.3, "rgba(30,15,5,.3)");
-        }
         Q("M-1.1 14.6L1.4 14.6", null, "rgba(240,200,140,.6)", 0.5);
         ctx.restore();
       }
@@ -401,84 +383,6 @@ export function PixelMrCrazy({
       F.open = lerp(F.open, mouthT, 0.45);
       F.blink = blinkT > 0 || isBlinking ? 1 : 0;
 
-      // 1. Fundo de biblioteca mágica
-      RR(0, 0, 96, 120, 0, lg(0, 0, 0, 120, [[0, "#2c2150"], [0.6, "#4a3376"], [1, "#2a1a3a"]]));
-      E(48, 40, 42, 42, rg(48, 40, 42, "rgba(255,230,160,.34)", "rgba(255,230,160,0)"));
-
-      books.forEach((b, i) => {
-        RR(b[0], b[1], b[2], b[3], 0.4, b[4]);
-        if (i % 3 === 0) RR(b[0], b[1] + 3, b[2], 0.6, 0, "rgba(240,194,74,.6)");
-        RR(b[0] + b[2] * 0.7, b[1], b[2] * 0.3, b[3], 0, "rgba(0,0,0,.18)");
-      });
-
-      for (const x0 of [0, 77]) {
-        for (let r = 0; r < 5; r++) {
-          RR(x0, 28 + r * 19, 19, 1.6, 0.4, "#2a1a10");
-          RR(x0, 29.6 + r * 19, 19, 4, 0, lg(0, 29.6, 0, 33.6, [[0, "rgba(0,0,0,.35)"], [1, "rgba(0,0,0,0)"]]));
-        }
-      }
-
-      RR(0, 106, 96, 14, 0, lg(0, 106, 0, 120, [[0, "#5a3a4a"], [1, "#2b1b2e"]]));
-      for (let x = -6; x < 100; x += 13) L_([[x, 106], [x - (x - 48) * 0.12, 120]], 0.3, "rgba(0,0,0,.2)");
-
-      // Círculo mágico no chão
-      ctx.save();
-      ctx.strokeStyle = "rgba(150,130,255,.65)";
-      ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      ctx.ellipse(48, 113, 38, 5.2, 0, 0, 7);
-      ctx.stroke();
-      ctx.setLineDash([2, 1.6]);
-      ctx.lineDashOffset = -t * 3;
-      ctx.strokeStyle = "rgba(120,220,255,.6)";
-      ctx.beginPath();
-      ctx.ellipse(48, 113, 30, 4, 0, 0, 7);
-      ctx.stroke();
-      ctx.restore();
-
-      for (let i = 0; i < 8; i++) {
-        const q = t * 0.5 + (i * Math.PI) / 4;
-        spk(48 + Math.cos(q) * 34, 113 + Math.sin(q) * 4.6, 1.2, 0.5 + 0.4 * Math.sin(t * 3 + i));
-      }
-
-      E(53, 113.6, 26, 3.8, "rgba(0,0,0,.34)");
-      E(14, 113, 8, 2, "rgba(110,210,255,.25)");
-
-      // Velas flutuantes
-      [[11, 58], [85, 46], [86, 84]].forEach(([x, y0], i) => {
-        const y = y0 + Math.sin(t * 1.5 + i * 2) * 2;
-        const f = Math.sin(t * 12 + i * 3) * 0.4;
-        E(x, y - 2, 8, 8, rg(x, y - 2, 8, "rgba(255,200,110,.4)", "rgba(255,200,110,0)"));
-        RR(x - 1.2, y, 2.4, 6, 0.6, "#fff1d0");
-        RR(x + 0.2, y, 1, 6, 0.5, "rgba(150,100,50,.3)");
-        E(x, y - 1.6, 0.9, 1.8 + f, rg(x, y - 1.6, 2, "#fff6b0", "#ff8a2a"));
-      });
-
-      // Cajado com orbe mágica
-      const pu = 1 + Math.sin(t * 3) * 0.12 + (talk > 0 ? 0.3 : 0) + (gest === "lesson" ? 0.25 : 0);
-      L_([[12, 114], [14, 34]], 2.6, "#6b4423");
-      L_([[11.4, 114], [13.4, 34]], 0.8, "rgba(255,210,150,.4)");
-      L_([[13.4, 114], [15.4, 34]], 0.6, "rgba(30,10,0,.3)");
-      for (let y = 44; y < 108; y += 9) L_([[11.2, y], [15, y + 2]], 0.5, "rgba(60,30,10,.4)");
-      Q("M10.6 35Q7.5 29 11 23.5", null, "#8a5a2e", 1.4);
-      Q("M17.4 35Q20.5 29 17 23.5", null, "#8a5a2e", 1.4);
-      E(14, 29, 17 * pu, 17 * pu, rg(14, 29, 17 * pu, "rgba(110,210,255,.42)", "rgba(110,210,255,0)"));
-      E(14, 29, 4.4, 4.4, rg(14, 29, 4.4, "#f2ffff", "#4cb8ff"));
-
-      if (crazy) {
-        for (let k = 0; k < 3; k++) {
-          let x = 14;
-          let y = 29;
-          const p: [number, number][] = [[x, y]];
-          for (let j = 0; j < 4; j++) {
-            x += (Math.random() - 0.5) * 9;
-            y -= 2 + Math.random() * 4;
-            p.push([x, y]);
-          }
-          L_(p, 0.6, "rgba(170,235,255,.85)");
-        }
-      }
-
       // Pés com garras
       for (const x of [41, 55]) {
         E(x, 112, 5, 2.6, rg(x, 111, 5, K.bk, K.bkD));
@@ -522,14 +426,14 @@ export function PixelMrCrazy({
       ctx.beginPath();
       ctx.ellipse(48, 82, 24, 28, 0, 0, 7);
       ctx.clip();
-      for (let r = 0; r < 11; r++) {
-        for (let c = 0; c < 11; c++) {
-          const x = 25 + c * 4.6 + (r % 2) * 2.3;
-          const y = 57 + r * 4.7 + Math.sin(t * 2.2 + r + c) * 0.12 * (1 + rf * 3);
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 7; c++) {
+          const x = 26 + c * 6.8 + (r % 2) * 3.4;
+          const y = 60 + r * 7.4 + Math.sin(t * 2.2 + r + c) * 0.12 * (1 + rf * 3);
           const v = (r * 7 + c * 13) % 5;
-          E(x, y, 2.9, 2.4, lg(x, y - 2.4, x, y + 2.4, [[0, v < 2 ? "#b08a60" : "#9a7650"], [1, "#5d412c"]]));
-          Q(`M${x - 1.8} ${y + 0.6}q1.8 1.6 3.6 0`, null, "rgba(40,22,10,.45)", 0.5);
-          L_([[x, y - 1.6], [x, y + 0.6]], 0.3, "rgba(255,225,170,.28)");
+          E(x, y, 3.8, 3.2, lg(x, y - 3.2, x, y + 3.2, [[0, v < 2 ? "#b08a60" : "#9a7650"], [1, "#5d412c"]]));
+          Q(`M${x - 2.4} ${y + 0.8}q2.4 2.1 4.8 0`, null, "rgba(40,22,10,.45)", 0.5);
+          L_([[x, y - 2.2], [x, y + 0.8]], 0.3, "rgba(255,225,170,.28)");
         }
       }
       ctx.fillStyle = lg(24, 57, 72, 110, [[0, "rgba(255,240,200,.12)"], [0.5, "rgba(0,0,0,0)"], [1, "rgba(20,5,50,.4)"]]);
@@ -553,7 +457,6 @@ export function PixelMrCrazy({
         }
       }
       ctx.restore();
-      for (const p of speck) E(p[0], p[1], p[2], p[2] * 1.4, "rgba(120,80,50,.35)");
 
       // Túnica mágica
       const sw = Math.sin(t * 1.6) * 0.9 + clA * 5;
@@ -567,7 +470,7 @@ export function PixelMrCrazy({
       shQ(RB, lg(20, 64, 76, 110, [[0, K.roL], [0.5, K.ro], [1, K.roD]]), 20, 63, 56, 52, 0.3, 0.5);
 
       ctx.save();
-      if (typeof Path2D !== "undefined") ctx.clip(new Path2D(RB));
+      if (typeof Path2D !== "undefined") ctx.clip(getPath(RB));
       for (const x of [28, 42, 61]) {
         const d = x < 48 ? -1 : 1;
         const o = clA * 3;
@@ -891,13 +794,6 @@ export function PixelMrCrazy({
         ctx.fillText(p.ch, p.x, p.y);
         ctx.globalAlpha = 1;
       }
-
-      // Vinheta de iluminação suave
-      const vg = ctx.createRadialGradient(48, 58, 30, 48, 58, 76);
-      vg.addColorStop(0, "rgba(10,0,30,0)");
-      vg.addColorStop(1, "rgba(10,0,30,.45)");
-      ctx.fillStyle = vg;
-      ctx.fillRect(0, 0, 96, 120);
     };
 
     let rafId: number;
