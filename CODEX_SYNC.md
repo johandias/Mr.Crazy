@@ -18,18 +18,15 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Entregas Realizadas**:
   1. **Performance do Canvas & Background Removido (`PixelMrCrazy.tsx`)**:
      - Fundo de biblioteca, livros, velas, círculo mágico no chão e vinheta escura totalmente removidos; o canvas agora é 100% transparente.
+     - Otimização crítica de re-renderização: `useEffect` agora roda uma única vez no mount (`[]`) com todas as propriedades dinâmicas (`lookX`, `lookY`, `phoneme`, `voiceState`, `isBlinking`, `targetGest`) consumidas via `stateRef.current` no loop RAF, eliminando o cancelamento/recriação do loop 60 vezes por segundo no mousemove.
      - Implementado cache `Map<string, Path2D>` em `getPath(d)` para eliminar a criação contínua de objetos e garbage collection em 60fps.
-     - Malha de penas corporais reduzida de 11x11 (121 operações) para 5x7 com chamadas otimizadas.
-     - Asas otimizadas com eliminação de Path2D em strings dinâmicas no loop de penas.
-     - Removido array e laços `speck`.
-  2. **Front Despoluído & Foco no Tutor (`globals.css`)**:
+     - Removido `border-radius: 16px` do elemento `<canvas>` para evitar qualquer aspecto de cartão retangular no avatar.
+  2. **Microfone Pairando Estritamente ABAIXO da Coruja (`globals.css`)**:
+     - Corrigida a colisão vertical: `character-avatar-wrapper` e `character-stage` tiveram alturas máximas ajustadas (`max-height: 380px`), e o dock do microfone (`practice-voice-hub`) foi posicionado com `position: relative !important` e margem superior generosa (`margin-top: 16px`), garantindo que o botão e as ondas de voz pairem limpos **ABAIXO** dos pés/túnica da coruja, sem sobreposição.
+  3. **Front Despoluído & Foco no Tutor (`globals.css`)**:
      - Ocultadas as rails laterais com 6 cards (`.desktop-support-rail { display: none !important; }`), eliminando a poluição visual redundante.
      - Ocultada a cena pesada de tochas e chamas animadas (`.clean-stage .practice-ambient-scene { display: none !important; }`), liberando GPU/CPU do navegador.
      - Palco central limpo, executivo e focado no Mr. Crazy.
-  3. **Posicionamento e Ergonomia do Microfone (`globals.css`)**:
-     - `.practice-voice-hub` transformado em um dock elegante, elevado, com backdrop blur, borda sutil e respiro generoso em relação ao avatar.
-     - Botão de microfone ampliado e centralizado (62px), com espaçamento harmônico entre as ondas de áudio laterais.
-     - Badge de instrução e botões auxiliares (Digitar/Histórico) limpos e bem distribuídos sem espremer o controle de voz.
   4. **Suíte de Testes**: Todos os 69 testes passando sem regressão.
 
 ## 🟢 Antigravity — 2026-10-14 — Novo Avatar 2D: Coruja Mago Professora de Inglês (Mr. Crazy)

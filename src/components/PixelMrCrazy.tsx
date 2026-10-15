@@ -56,6 +56,23 @@ export function PixelMrCrazy({
     targetGest = "hello";
   }
 
+  const stateRef = useRef({
+    voiceState,
+    phoneme,
+    lookX,
+    lookY,
+    isBlinking,
+    targetGest
+  });
+  stateRef.current = {
+    voiceState,
+    phoneme,
+    lookX,
+    lookY,
+    isBlinking,
+    targetGest
+  };
+
   useEffect(() => {
     const cv = canvasRef.current;
     if (!cv) return;
@@ -318,7 +335,7 @@ export function PixelMrCrazy({
       ctx.setTransform(S, 0, 0, S, 0, 0);
       ctx.clearRect(0, 0, 96, 120);
 
-      const gest = targetGest;
+      const gest = stateRef.current.targetGest;
       const crazy = gest === "crazy";
       const hop = crazy ? Math.abs(Math.sin(t * 9)) * 1.6 : 0;
       const breath = Math.sin(t * 1.9);
@@ -369,10 +386,11 @@ export function PixelMrCrazy({
       }
 
       // Modulação de boca durante fala
-      if (isSpeaking) {
+      const curSpeaking = stateRef.current.voiceState === "speaking";
+      if (curSpeaking) {
         talk = 0.2;
         const phonemeMap = [0.95, 0.62, 0.8, 0.45, 0.02];
-        const pLevel = phonemeMap[phoneme] ?? 0.5;
+        const pLevel = phonemeMap[stateRef.current.phoneme] ?? 0.5;
         mouthT = 0.25 + 0.55 * Math.abs(Math.sin(t * 11)) * pLevel;
       } else {
         mouthT = 0;
@@ -381,7 +399,7 @@ export function PixelMrCrazy({
       const tgt = { br: ex.br || 0, wide: ex.wide || 0, sq: ex.sq || 0 };
       for (const n in tgt) (F as any)[n] = lerp((F as any)[n], (tgt as any)[n], 0.2);
       F.open = lerp(F.open, mouthT, 0.45);
-      F.blink = blinkT > 0 || isBlinking ? 1 : 0;
+      F.blink = blinkT > 0 || stateRef.current.isBlinking ? 1 : 0;
 
       // Pés com garras
       for (const x of [41, 55]) {
@@ -764,7 +782,8 @@ export function PixelMrCrazy({
       ctx.restore();
 
       // Letras mágicas saindo do bico durante a fala
-      if (isSpeaking && (spawn -= dt) < 0) {
+      const curSpeaking = stateRef.current.voiceState === "speaking";
+      if (curSpeaking && (spawn -= dt) < 0) {
         spawn = 0.14;
         parts.push({
           ch: "ABCDEFGHIJKLMNOPQRSTUVWXYZ?!"[(Math.random() * 28) | 0],
@@ -810,8 +829,8 @@ export function PixelMrCrazy({
       blinkT -= dt;
 
       // Parallax suave das pupilas
-      mouse[0] = Math.max(-1, Math.min(1, lookX));
-      mouse[1] = Math.max(-1, Math.min(1, lookY));
+      mouse[0] = Math.max(-1, Math.min(1, stateRef.current.lookX));
+      mouse[1] = Math.max(-1, Math.min(1, stateRef.current.lookY));
       look[0] = lerp(look[0], mouse[0], 0.1);
       look[1] = lerp(look[1], mouse[1], 0.1);
 
@@ -834,7 +853,7 @@ export function PixelMrCrazy({
       cancelAnimationFrame(rafId);
       cv.removeEventListener("pointermove", handlePointerMove);
     };
-  }, [voiceState, phoneme, lookX, lookY, isBlinking, targetGest]);
+  }, []);
 
   return (
     <div
@@ -863,9 +882,9 @@ export function PixelMrCrazy({
           maxWidth: "100%",
           aspectRatio: "4 / 5",
           objectFit: "contain",
-          borderRadius: "16px",
+          background: "transparent",
           display: "block",
-          filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.55))"
+          filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.5))"
         }}
       />
 

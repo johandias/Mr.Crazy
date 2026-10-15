@@ -512,7 +512,7 @@ a {
   max-width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: contain;
-  border-radius: 16px;
+  background: transparent;
   display: block;
 }
 .pixel-head { transform-box: fill-box; transform-origin: 50% 75%; transition: transform 0.15s ease-out; }
@@ -16096,16 +16096,36 @@ textarea {
 
   .practice-main.clean-layout .clean-stage.history-is-closed .character-avatar-wrapper {
     flex: 1 1 auto;
-    min-height: 300px;
+    min-height: 220px;
+    max-height: 380px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 4px auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  .practice-main.clean-layout .clean-stage.history-is-closed .character-stage {
+    --real-avatar-scale: 1.15;
+    width: clamp(240px, 24vw, 360px);
+    height: clamp(240px, 24vw, 360px);
+    aspect-ratio: 1;
+    margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .practice-main.clean-layout .clean-stage.history-is-closed .character-stage {
-    --real-avatar-scale: 1.26;
-    width: clamp(340px, 26vw, 480px);
-    height: clamp(340px, 26vw, 480px);
+  .practice-main.clean-layout .clean-stage.history-is-closed .owl-wizard-canvas {
+    max-height: 340px !important;
+    width: auto !important;
+    aspect-ratio: 4 / 5;
+    object-fit: contain;
+    background: transparent !important;
+    display: block;
+    margin: 0 auto;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .mr-crazy-preview-layer {
@@ -16113,21 +16133,25 @@ textarea {
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .practice-voice-hub {
-    width: 100%;
-    max-width: 520px;
-    margin-top: 14px;
-    margin-bottom: 0;
-    padding: 12px 20px 10px;
-    background: rgba(10, 16, 26, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 480px !important;
+    margin-top: 16px !important;
+    margin-bottom: 0 !important;
+    padding: 10px 18px 8px !important;
+    background: rgba(10, 16, 26, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 26px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+    z-index: 10 !important;
   }
 
   .practice-main.clean-layout .clean-stage.history-is-closed .avatar-mic-circle-btn {
