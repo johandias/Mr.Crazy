@@ -133,9 +133,9 @@ a {
   width: 28px;
   height: 28px;
   object-fit: contain;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.45));
-  border-radius: 4px;
+  image-rendering: auto;
+  filter: drop-shadow(0 0 7px rgba(245, 68, 68, 0.48));
+  border-radius: 7px;
 }
 
 .brand-title-text {

@@ -21,7 +21,7 @@ export function MrCrazyCharacter({
 }: MrCrazyCharacterProps) {
   const imgSrc =
     mode === "avatar"
-      ? "/assets/character/mr_crazy_avatar_clean.png"
+      ? "/assets/character/mr_crazy_owl_epic.webp"
       : "/assets/character/mr_crazy_full_clean.png";
 
   return (
@@ -52,4 +52,3 @@ export function MrCrazyCharacter({
     </div>
   );
 }
-

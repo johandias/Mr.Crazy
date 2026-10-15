@@ -52,7 +52,7 @@ export function LandingPage({ user }: LandingPageProps) {
               <div className="landing-brand-avatar">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src="/assets/character/mr_crazy_3d_headshot.png" 
+                  src="/assets/character/mr_crazy_owl_epic.webp" 
                   alt="Mr.Crazy Logo"
                   width={42}
                   height={42}
@@ -103,7 +103,7 @@ export function LandingPage({ user }: LandingPageProps) {
         <div className="landing-logo-emblem">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
-            src="/assets/character/mr_crazy_3d_headshot.png" 
+            src="/assets/character/mr_crazy_owl_epic.webp" 
             alt="Logo Oficial Mr. Crazy"
             className="landing-top-logo-img"
           />
@@ -211,7 +211,7 @@ export function LandingPage({ user }: LandingPageProps) {
                 <div className="landing-mockup-avatar-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/assets/character/mr_crazy_full_transparent.png"
+                    src="/assets/character/mr_crazy_owl_epic.webp"
                     alt="Mr. Crazy"
                     style={{ width: "100%", height: "100%", objectFit: "contain" }}
                   />

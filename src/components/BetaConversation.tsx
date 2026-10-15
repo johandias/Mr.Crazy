@@ -418,7 +418,7 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
             <ArrowLeft size={19} />
           </Link>
           <Image
-            src="/assets/character/mr_crazy_avatar_clean.png"
+            src="/assets/character/mr_crazy_owl_epic.webp"
             alt="Mr.Crazy"
             className="beta-conversation-avatar"
             width={46}
@@ -505,7 +505,7 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
             <article key={message.id} className={`beta-message beta-message-${message.role}`}>
               {message.role === "crazy" ? (
                 <Image
-                  src="/assets/character/mr_crazy_avatar_clean.png"
+                  src="/assets/character/mr_crazy_owl_epic.webp"
                   alt=""
                   className="beta-message-avatar"
                   width={30}
@@ -637,7 +637,7 @@ export function BetaConversation({ userName, learningLevel }: Readonly<{ userNam
 
           {isSending ? (
             <div className="beta-message beta-message-crazy beta-message-loading" aria-label="Mr.Crazy está preparando o feedback">
-              <Image src="/assets/character/mr_crazy_avatar_clean.png" alt="" className="beta-message-avatar" width={30} height={30} />
+              <Image src="/assets/character/mr_crazy_owl_epic.webp" alt="" className="beta-message-avatar" width={30} height={30} />
               <span><i /> <i /> <i /></span>
             </div>
           ) : null}

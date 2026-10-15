@@ -77,8 +77,8 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
         <Link className="brand-mark" href="/practice" aria-label="Prática Mr.Crazy">
           <span className="brand-pulse" />
           <img
-            src="/assets/character/mr_crazy_avatar_clean.png"
-            alt="Mr.Crazy"
+            src="/assets/character/mr_crazy_owl_epic.webp"
+            alt="Mr.Crazy, coruja professora de inglês"
             className="brand-avatar-pixel"
             width={28}
             height={28}
