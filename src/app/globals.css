@@ -499,7 +499,7 @@ a {
 }
 
 .pixel-body,
-.pixel-float { transform-box: fill-box; transform-origin: 200px 200px; animation: float 5s ease-in-out infinite; }
+.pixel-float { transform-box: fill-box; transform-origin: 200px 200px; animation: float 4.6s ease-in-out infinite; }
 .pixel-head { transform-box: fill-box; transform-origin: 50% 75%; transition: transform 0.15s ease-out; }
 .pixel-arms { transform-box: fill-box; transform-origin: 50% 20%; }
 .pixel-arm-left { transform-origin: 50% 20%; }
@@ -521,22 +521,65 @@ a {
 .pixel-emotion-happy .pixel-sparkles,
 .pixel-emotion-proud .pixel-sparkles { animation: pixel-sparkle-pop 1.1s ease-in-out infinite alternate; }
 
-/* Aura e sombra de chão sincronizadas da esfera viva */
+/* Aura e sombra de chão sincronizadas da esfera viva com ciclo de cores */
 .pixel-orb-aura {
   animation: pulse 4s ease-in-out infinite;
   transform-origin: 200px 200px;
 }
+.pixel-color-shift {
+  animation: pulse 4s ease-in-out infinite, bg-color-shift 12s linear infinite;
+}
+@keyframes bg-color-shift {
+  0% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(180deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* Brilhos estelares e partículas coloridas no fundo */
+.pixel-sparkle-star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sparkle-twinkle 3.2s ease-in-out infinite alternate, sparkle-color-shift 8s linear infinite;
+}
+.pixel-sparkle-1 { animation-delay: 0s, 0s; }
+.pixel-sparkle-2 { animation-delay: 0.8s, -2.5s; }
+.pixel-sparkle-3 { animation-delay: 1.6s, -5s; }
+.pixel-sparkle-4 { animation-delay: 2.2s, -7.5s; }
+.pixel-sparkle-5 { animation-delay: 0.5s, -3.5s; }
+.pixel-sparkle-6 { animation-delay: 1.2s, -6s; }
+
+@keyframes sparkle-twinkle {
+  0% { transform: scale(0.6) rotate(0deg); opacity: 0.35; }
+  50% { transform: scale(1.3) rotate(45deg); opacity: 0.95; }
+  100% { transform: scale(0.7) rotate(90deg); opacity: 0.4; }
+}
+@keyframes sparkle-color-shift {
+  0% { filter: hue-rotate(0deg); }
+  33% { filter: hue-rotate(90deg); }
+  66% { filter: hue-rotate(210deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+.pixel-star-glint {
+  animation: star-glint-pulse 2.2s ease-in-out infinite alternate;
+  transform-origin: 146px 98px;
+}
+@keyframes star-glint-pulse {
+  0% { transform: scale(0.85) rotate(-5deg); opacity: 0.7; }
+  100% { transform: scale(1.25) rotate(10deg); opacity: 1; }
+}
+
 .pixel-ground-shadow {
-  animation: shadow 5s ease-in-out infinite;
+  animation: shadow 4.6s ease-in-out infinite;
   transform-origin: 200px 385px;
 }
 @keyframes float {
-  0%, 100% { transform: translateY(8px) rotate(-1.2deg); }
-  50% { transform: translateY(-14px) rotate(1.2deg); }
+  0%, 100% { transform: translateY(12px) rotate(-2.2deg) scale(0.99, 1.01); }
+  50% { transform: translateY(-18px) rotate(2.2deg) scale(1.01, 0.99); }
 }
 @keyframes shadow {
-  0%, 100% { transform: scale(1.1); opacity: .9; }
-  50% { transform: scale(.75); opacity: .45; }
+  0%, 100% { transform: scale(1.15) translateY(0); opacity: 0.85; }
+  50% { transform: scale(0.68) translateY(-4px); opacity: 0.35; }
 }
 @keyframes pulse {
   0%, 100% { opacity: .75; transform: scale(.97); }
@@ -553,17 +596,17 @@ a {
   animation: pixel-mouth-talk 0.16s ease-in-out infinite alternate;
 }
 @keyframes pixel-mouth-talk {
-  0% { transform: scaleY(0.96) scaleX(0.98); }
-  100% { transform: scaleY(1.12) scaleX(1.03); }
+  0% { transform: scaleY(0.95) scaleX(0.98); }
+  100% { transform: scaleY(1.16) scaleX(1.04); }
 }
 
 @keyframes pixel-idle-breathe {
-  0%, 100% { transform: translateY(8px) rotate(-1.2deg); }
-  50% { transform: translateY(-14px) rotate(1.2deg); }
+  0%, 100% { transform: translateY(12px) rotate(-2.2deg); }
+  50% { transform: translateY(-18px) rotate(2.2deg); }
 }
 @keyframes pixel-speaking-body {
-  0%, 100% { transform: translateY(6px) rotate(-1.4deg) scale(1); }
-  50% { transform: translateY(-16px) rotate(1.4deg) scale(1.02); }
+  0%, 100% { transform: translateY(8px) rotate(-2.6deg) scale(1); }
+  50% { transform: translateY(-20px) rotate(2.6deg) scale(1.03); }
 }
 @keyframes pixel-talk-left { from { transform: rotate(1deg) translateY(0); } to { transform: rotate(-4deg) translateY(-2px); } }
 @keyframes pixel-talk-right { from { transform: rotate(-1deg); } to { transform: rotate(4deg) translateY(-2px); } }

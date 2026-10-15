@@ -9,29 +9,28 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
-## 🟢 Antigravity — 2026-10-14 — Avatar Esfera Viva Flutuante (Design Original Fornecido)
+## 🟢 Antigravity — 2026-10-14 — Avatar Cartoon Digital: Olhos/Boca Estilizados, Reflexos de Luz e Brilhos Coloridos
 - **Instrução Direta do Usuário**:
-  - Utilizar o design e arquitetura do avatar esfera viva fornecido em HTML/SVG/CSS/JS.
-  - Implementar em código nativo React/Next.js/SVG/CSS, preservando 100% da identidade visual, iluminação, paleta de cores e animações.
+  - Eliminar qualquer aspecto facial humano nos olhos e boca, adotando estética 100% desenho animado / digital expressivo.
+  - Aumentar o dinamismo da animação e sensação orgânica de flutuação.
+  - Implementar reflexos de luz dinâmicos na curvatura da superfície da esfera enquanto ela se movimenta.
+  - Adicionar brilhos de energia e estrelas cósmicas no fundo que mudam de cor continuamente.
 - **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
-  1. **Gráficos e Shading Vetorial Fiel ao Código Fornecido**:
-     - Esfera volumétrica com degradê `#body` (`#9aeaff` -> `#2aa6f0` -> `#0d4f9e` -> `#050f2e`), sombra de oclusão `#shade` e rim light `#rim` (`#d6f6ff` -> `#2fb8ff` -> `#6a5cff`).
-     - Linhas de latitude e longitude em `#8fe3ff` recortadas pela esfera via `clipPath #sph`.
-     - Brilho especular elíptico inclinado (`opacity=.28`) e estrela de brilho reluzente de 4 pontas com filtro de glow.
-  2. **Anel Orbital e Satélite em Órbita Contínua**:
-     - Anel frontal e traseiro em degradê ciano/violeta com filtro blur glow (`stdDeviation="4"`).
-     - Satélite de energia (`#orb`) que realiza translação contínua sobre a elipse orbital (`rx=188, ry=38`) a 60fps via `requestAnimationFrame`.
-  3. **Olhos Expressivos, Sobrancelhas e Piscar Natural**:
-     - Olhos ovais em `#eaf8ff` com delineado profundo, íris em degradê `#iris` e pupilas com reflexo que rastreiam suavemente o mouse/toque (`lookX`/`lookY`).
-     - Sobrancelhas masculinas dinâmicas que levantam durante a fala (`lift = o * 5`).
-     - Ciclo de piscar procedural com interpolação senoidal suave via `scale(1, sc)` até pálpebra fechada.
-  4. **Boca Articulada em Tempo Real e Língua Dinâmica**:
-     - Cavidade oral procedural (`#mouth` e `#mclip`) que modula a curva Bézier (`M...Q...Q...Z`) conforme a cadência silábica e o áudio da fala.
-     - Língua volumétrica azul cobalto (`#1c63c9`) que sobe e ajusta a opacidade quando a boca abre.
-  5. **Flutuação, Aura Pulsante e Sombra de Chão**:
-     - Levitação orgânica com `@keyframes float` (movimento vertical e inclinação suave).
-     - Aura ciano difusa pulsando via `@keyframes pulse`.
-     - Sombra elíptica no chão com escala e opacidade sincronizadas via `@keyframes shadow`.
+  1. **Olhos Digitais Cartunescos (Estilo Anime / AI Companion)**:
+     - Substituição de traços humanos por cápsulas digitais com contorno neon ciano (`#38bdf8`), íris luminosa azul elétrico com brilho estelar e múltiplos reflexos anime (glint principal + secundário em diamante + mini reflexo).
+     - Sobrancelhas transformadas em arcos flutuantes de energia holográfica neon que arqueiam e pulsam com as expressões.
+     - Remoção completa da linha de nariz e vinco humano.
+  2. **Boca Cartunesca Digital**:
+     - Cavidade bucal em azul elétrico neon com contorno ciano luminoso, barra de dentes digitais cartoon e língua rosada neon.
+     - Curvatura suave e alegre em repouso, articulando dinamicamente com visemas elásticos e expressivos durante a fala.
+  3. **Reflexos de Luz Dinâmicos na Superfície da Esfera**:
+     - O reflexo especular elíptico curvado agora desliza dinamicamente na superfície da esfera em tempo real (`requestAnimationFrame`), reagindo ao ângulo de inclinação e levitação para transmitir materialidade de vidro/cristal líquido.
+     - Arco especular superior e luz de fresnel inferior que refletem o solo e a luz ambiente.
+  4. **Brilhos Cósmicos e Mudança de Cor no Fundo**:
+     - Aura de fundo com `@keyframes bg-color-shift` em transição gradual de ciano para lavanda, magenta e esmeralda.
+     - Constelação de estrelas cintilantes de 4 e 8 pontas no fundo (`pixel-sparkle-star`) com rotação, escala e transição de cores síncrona.
+  5. **Levitação e Sombra Aprimoradas**:
+     - Animação de flutuação com oscilação vertical ampliada e inclinação suave de 2.2°, acompanhada por pulso sincronizado da sombra no solo.
 - **Decisão e Contexto**:
   - A pedido explícito do usuário para descarte total do personagem anterior e liberdade criativa, foi criado um novo conceito visual moderno e carismático que se alinha perfeitamente à proposta de "Mr. Crazy": o **Cientista/Professor Maluco Elétrico**.
 - **Novo Conceito Entregue (`PixelMrCrazy.tsx`)**:
