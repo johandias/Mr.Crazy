@@ -514,6 +514,7 @@ a {
   object-fit: contain;
   background: transparent;
   display: block;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .pixel-head { transform-box: fill-box; transform-origin: 50% 75%; transition: transform 0.15s ease-out; }
 .pixel-arms { transform-box: fill-box; transform-origin: 50% 20%; }
@@ -6617,6 +6618,7 @@ meter {
   outline: none !important;
   border: none !important;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .character-stage:focus,

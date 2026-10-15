@@ -1766,7 +1766,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       realtimeRef.current = controller;
       setRealtimeStatus("connected");
       setErrorMessage("");
-      const shouldEnable = pendingMicEnableRef.current && !isAutoConnect;
+      const shouldEnable = pendingMicEnableRef.current || !isAutoConnect;
       pendingMicEnableRef.current = false;
       controller.setMicrophoneEnabled(shouldEnable);
       setMicrophoneEnabled(shouldEnable);
@@ -1778,18 +1778,10 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       pendingMicEnableRef.current = false;
       if (!abortController.signal.aborted && connectAbortRef.current === abortController) {
         if (!isAbortError(err)) {
-          setRealtimeStatus("failed");
+          setRealtimeStatus(isAutoConnect ? "idle" : "failed");
           setVoiceState("idle");
           setMicrophoneEnabled(false);
-          setErrorMessage(getConnectionError(err));
-          if (isAutoConnect && (err instanceof Error && (err.name === "NotAllowedError" || err.name === "SecurityError"))) {
-            setRealtimeStatus("idle");
-            setVoiceState("idle");
-            setMicrophoneEnabled(false);
-          } else {
-            setRealtimeStatus("failed");
-            setVoiceState("idle");
-            setMicrophoneEnabled(false);
+          if (!isAutoConnect) {
             setErrorMessage(getConnectionError(err));
           }
         }
@@ -1964,9 +1956,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       return;
     }
     pendingMicEnableRef.current = true;
-    if (!isConnectingRef.current) {
-      void connectSession(undefined, false);
+    if (connectAbortRef.current && isConnectingRef.current) {
+      connectAbortRef.current.abort();
+      connectAbortRef.current = null;
+      isConnectingRef.current = false;
     }
+    void connectSession(undefined, false);
   }
 
   function finishRealtimeTurn() {
@@ -2528,14 +2523,14 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
             </div>
 
             {/* Feedback em Tempo Real da Fala do Aluno (Live Transcript & Análise) */}
-            {(transcript || (voiceState === "analyzing" && latestUserSpeech) || (voiceState === "listening" && latestUserSpeech)) && (
+            {((transcript.trim().length > 0) || (voiceState === "analyzing" && latestUserSpeech)) && (
               <div className={`user-live-transcript-badge ${voiceState === "analyzing" ? "is-analyzing" : "is-live"}`}>
                 <span className="user-live-transcript-dot" />
                 <span className="user-live-transcript-label">
                   {voiceState === "analyzing" ? "Você falou: " : "Ouvindo você: "}
                 </span>
                 <span className="user-live-transcript-text">
-                  &ldquo;{transcript || latestUserSpeech}&rdquo;
+                  &ldquo;{transcript.trim() || latestUserSpeech}&rdquo;
                 </span>
                 {voiceState === "analyzing" && (
                   <span className="user-live-analyzing-spinner">⚡ Analisando...</span>

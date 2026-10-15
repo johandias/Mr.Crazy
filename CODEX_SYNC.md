@@ -9,6 +9,21 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
+## 🟢 Antigravity — 2026-10-14 — Correção de Conexão do Microfone e Estabilidade do Avatar
+- **Demandas do Usuário**:
+  1. Ao apertar o botão do microfone ele não conectava.
+  2. Ao clicar, o personagem ficava mudando de posição e voltando muito rápido (flicker/jitter de layout).
+- **Causas Raiz Identificadas & Solucionadas**:
+  1. **Falha de Conexão no Toque do Microfone (`PracticeExperience.tsx`)**:
+     - O auto-connect de mount tentava abrir `getUserMedia` sem gesto do usuário, ficando bloqueado pelo navegador ou em timeout com `isConnectingRef.current = true`. Quando o usuário tocava no botão, `handleAvatarMicClick` via `isConnectingRef.current === true` e ignorava a tentativa de reconexão.
+     - Além disso, a flag `const shouldEnable = pendingMicEnableRef.current && !isAutoConnect` forçava `shouldEnable = false` se a conexão estivesse finalizando em background.
+     - **Correção**: `handleAvatarMicClick` agora aborta qualquer conexão anterior travada e inicia imediatamente a sessão com o gesto do usuário. `shouldEnable` foi corrigido para `pendingMicEnableRef.current || !isAutoConnect`.
+  2. **Eliminação do Salto/Flicker de Posição do Personagem (`VoiceInputControl.tsx`, `responsive.css`, `globals.css`, `PracticeExperience.tsx`)**:
+     - **Caixa de Erro Removida do Fluxo**: `VoiceFallbackNotice` (card de ~120px) abria e fechava rapidamente ao clicar (`setErrorMessage("")`), fazendo o avatar despencar e subir violentamente. O controle agora segue estritamente a diretriz global de interface limpa e minimalista sem caixas técnicas.
+     - **Badge de Transcrição Suavizado**: `user-live-transcript-badge` não é mais montado apenas pelo estado `listening` com frases antigas; ele só aparece quando há texto de fala ativa sendo capturado em tempo real.
+     - **Transform & Transições Estáveis**: Removido `translateY` conflitante em `responsive.css` e adicionado `transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)` em `.character-stage, .rpg-character-stage` e `.owl-wizard-canvas`.
+- **Suíte de Testes**: Todos os testes passando sem nenhuma regressão (exit code 0).
+
 ## 🟢 Antigravity — 2026-10-14 — Otimização de Performance, Remoção de Fundo do Avatar e Front Limpo
 - **Demandas do Usuário**:
   1. Performance do navegador travando: reduzir drasticamente peso do canvas e animações desnecessárias.

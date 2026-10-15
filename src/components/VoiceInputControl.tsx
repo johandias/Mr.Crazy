@@ -2,7 +2,7 @@
 
 import type { RefObject, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Radio, Keyboard, RefreshCw } from "lucide-react";
+import { Mic, MicOff, Radio } from "lucide-react";
 import type { RealtimeConnectionStatus, VoiceDiagnostic } from "@/lib/realtime-client";
 
 export type LiveAudioVisualizer = {
@@ -33,48 +33,7 @@ type Props = {
   onHoldCancel?: () => void;
 };
 
-function VoiceFallbackNotice({
-  error,
-  onReconnect,
-  onTextFallback
-}: {
-  error: string;
-  onReconnect?: () => void;
-  onTextFallback?: () => void;
-}) {
-  const isMicrophoneIssue = /(microfone|microphone|permiss|captur|dispositivo|áudio|audio)/iu.test(error);
 
-  return (
-    <div className="avatar-mic-error-box" role="alert">
-      <div className="avatar-mic-error-copy">
-        <MicOff size={14} aria-hidden="true" />
-        <div className="avatar-mic-error-text-col">
-          <strong>{isMicrophoneIssue ? "Microfone não detectado" : "Conexão de voz pausada"}</strong>
-          <p>
-            {isMicrophoneIssue
-              ? "Reconecte o áudio ou continue por digitação."
-              : "Reconecte ou continue a aula digitando."}
-          </p>
-        </div>
-      </div>
-      <p className="avatar-mic-error-detail">{error}</p>
-      <div className="avatar-mic-error-actions">
-        {onTextFallback ? (
-          <button type="button" className="text-fallback-btn" onClick={onTextFallback} title="Responder digitando">
-            <Keyboard size={12} />
-            <span>Digitar</span>
-          </button>
-        ) : null}
-        {onReconnect ? (
-          <button type="button" className="retry-connection-btn" onClick={onReconnect} title="Reconectar microfone">
-            <RefreshCw size={12} />
-            <span>Reconectar</span>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 /** Barras de onda inline que respondem em tempo real ao som, voz e graves */
 function InlineWaveBars({
@@ -332,12 +291,11 @@ export function VoiceInputControl({
             <span className="ptt-dock-status">
               {speaking ? "Mr. Crazy falando..." :
                isHolding ? "Ouvindo você..." :
+               error ? "Segure para falar" :
                "Segure e fale a frase"}
             </span>
           </div>
         </div>
-
-        {error ? <VoiceFallbackNotice error={error} onReconnect={onReconnect} onTextFallback={onTextFallback} /> : null}
       </section>
     );
   }
@@ -424,22 +382,20 @@ export function VoiceInputControl({
 
       {/* Instrução em destaque alto contraste para o usuário não ficar confuso */}
       <div
-        className={`voice-action-badge ${active ? "is-active" : ""} ${readyToTalk ? "is-ready" : ""} ${speaking ? "is-speaking" : ""}`}
+        className={`voice-action-badge ${active ? "is-active" : ""} ${readyToTalk ? "is-ready" : ""} ${speaking ? "is-speaking" : ""} ${error ? "has-error" : ""}`}
         role="status"
         onClick={() => { if (!active) onToggle(); }}
       >
         <span className="voice-action-indicator-dot" />
         <span className="voice-action-text">
           {speaking ? "Mr. Crazy falando... aguarde" :
-           active && !isAwake ? "Microfone aberto • Pode falar!" :
            active ? "Microfone aberto • Pode falar!" :
            readyToTalk ? "Microfone pronto • toque para desbloquear e falar" :
            connecting ? "Preparando o microfone..." :
+           error ? "Toque no microfone para falar" :
            "Toque para falar"}
         </span>
       </div>
-
-      {error ? <VoiceFallbackNotice error={error} onReconnect={onReconnect} onTextFallback={onTextFallback} /> : null}
     </section>
   );
 }
