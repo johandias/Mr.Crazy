@@ -775,14 +775,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           selectedMode,
           studentProfile,
           selectedModuleId,
-          currentConceptIndex
+          currentConceptIndex,
+          currentLessonStepIndex,
+          phaseTargets
         );
         realtimeRef.current.updateInstructions(updatedInstructions);
       } catch (err) {
         console.warn("[Practice] Erro ao sincronizar instruções WebRTC:", err);
       }
     }
-  }, [currentConceptIndex, selectedModuleId, selectedLevel, selectedMode, studentProfile, realtimeStatus]);
+  }, [currentConceptIndex, currentLessonStepIndex, phaseTargets, selectedModuleId, selectedLevel, selectedMode, studentProfile, realtimeStatus]);
   const [isLessonCompleted, setIsLessonCompleted] = useState(false);
   const [isModuleCompleted, setIsModuleCompleted] = useState(false);
   const [isCharacterAwake, setIsCharacterAwake] = useState(false);
@@ -1133,6 +1135,13 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
     return items;
   }, [conversationDisplayItems, liveUserItem, liveCrazyItem]);
+
+  // A fala do aluno continua no contexto interno da aula, mas não é exibida
+  // na interface: o foco visual fica na resposta e na orientação do professor.
+  const visibleConversationItems = useMemo(
+    () => allConversationItems.filter((item) => item.role === "crazy"),
+    [allConversationItems]
+  );
 
   const latestCrazySpeech = useMemo(() => {
     const initialBubbleText = buildSilentWelcomeLine(openingIndex, studentProfile?.nickname);
@@ -2102,12 +2111,12 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
         {/* Diálogo da conversa focado puramente nos textos */}
         <div ref={conversationContainerRef} className="popup-dialogue-feed">
-          {allConversationItems.length === 0 ? (
+          {visibleConversationItems.length === 0 ? (
             <div className="popup-empty-hint">
               <p>{openingLine}</p>
             </div>
           ) : (
-            allConversationItems.map((item) => (
+            visibleConversationItems.map((item) => (
               <ConversationBubble
                 key={`popup-${item.key}`}
                 label={item.role === "user" ? "Você" : "Mr.Crazy"}
@@ -2231,8 +2240,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
           voiceState={voiceState}
           realtimeStatus={realtimeStatus}
           currentText={
-            (voiceState === "speaking" ? liveCrazyItem?.text || realtimeReply : liveUserItem?.text || transcript) ||
-            (contextHistory[contextHistory.length - 1]?.text ?? openingLine)
+            (voiceState === "speaking" ? liveCrazyItem?.text || realtimeReply : latestCrazySpeech) ||
+            openingLine
           }
           microphoneEnabled={microphoneEnabled}
         />
@@ -2266,8 +2275,8 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 aria-label="Alternar histórico da conversa"
               >
                 <MessagesSquare size={16} />
-                {allConversationItems.length > 0 && (
-                  <span className="header-icon-count-badge">{allConversationItems.length}</span>
+                {visibleConversationItems.length > 0 && (
+                  <span className="header-icon-count-badge">{visibleConversationItems.length}</span>
                 )}
               </button>
 
@@ -2658,7 +2667,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                   <span>
                     {isHistoryExpanded
                       ? "Ocultar Histórico"
-                      : `Histórico (${allConversationItems.length})`}
+                      : `Histórico (${visibleConversationItems.length})`}
                   </span>
                 </button>
               </div>
@@ -2709,7 +2718,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
               </div>
               <div className="desktop-support-stat-row">
                 <span>Interações na sessão</span>
-                <strong>{allConversationItems.length}</strong>
+                <strong>{visibleConversationItems.length}</strong>
               </div>
               <div className="desktop-support-stat-row">
                 <span>Meta de fala ativa</span>
@@ -2743,7 +2752,7 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
                 </button>
               </div>
 
-              {allConversationItems.map((item) => (
+              {visibleConversationItems.map((item) => (
                 <ConversationBubble
                   key={item.key}
                   label={item.role === "user" ? "Você" : "Mr.Crazy"}

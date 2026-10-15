@@ -64,6 +64,7 @@ export function PixelMrCrazy({
     lookY,
     isBlinking,
     targetGest,
+    anger: Math.max(0, Math.min(1, crazyLevel / 100)),
     burstKey
   });
   useEffect(() => {
@@ -74,9 +75,10 @@ export function PixelMrCrazy({
       lookY,
       isBlinking,
       targetGest,
+      anger: Math.max(0, Math.min(1, crazyLevel / 100)),
       burstKey
     };
-  }, [voiceState, phoneme, lookX, lookY, isBlinking, targetGest, burstKey]);
+  }, [voiceState, phoneme, lookX, lookY, isBlinking, targetGest, crazyLevel, burstKey]);
 
   useEffect(() => {
     const cv = canvasRef.current;
@@ -354,10 +356,26 @@ export function PixelMrCrazy({
 
       const gest = stateRef.current.targetGest;
       const crazy = gest === "crazy";
+      const anger = Math.max(stateRef.current.anger, crazy ? 0.78 : 0);
       const speakingNow = stateRef.current.voiceState === "speaking";
       const hop = crazy ? Math.abs(Math.sin(t * 9)) * 1.6 : 0;
       const breath = Math.sin(t * 1.9);
       const bob = Math.sin(t * 2) * 0.4 - hop;
+
+      // Aura de raiva discreta: cresce com a irritação sem poluir o cenário.
+      if (anger > 0.18) {
+        ctx.save();
+        const ragePulse = 0.75 + Math.sin(t * 5.5) * 0.12;
+        const rageGradient = ctx.createRadialGradient(48, 54, 7, 48, 54, 45);
+        rageGradient.addColorStop(0, `rgba(255, 46, 46, ${0.08 + anger * 0.16})`);
+        rageGradient.addColorStop(0.55, `rgba(220, 38, 38, ${0.04 + anger * 0.1 * ragePulse})`);
+        rageGradient.addColorStop(1, "rgba(127, 29, 29, 0)");
+        ctx.fillStyle = rageGradient;
+        ctx.beginPath();
+        ctx.ellipse(48, 54, 43, 49, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
 
       lean = lerp(lean, Math.sin(t * 0.8) * 0.018 + (crazy ? Math.sin(t * 9) * 0.045 : 0) + (gest === "hello" ? -0.02 : 0) + (gest === "lesson" ? 0.025 : 0), 0.12);
 
@@ -683,10 +701,21 @@ export function PixelMrCrazy({
           px = Math.cos(t * 8 + cx) * 2.4;
           py = Math.sin(t * 8 + cx) * 2.4;
         }
-        E(cx, 44, r + 1.4, r + 1.4, "#fff6df");
+        const eyeWhite = anger > 0.3
+          ? `rgba(255, ${Math.round(246 - anger * 72)}, ${Math.round(223 - anger * 92)}, 1)`
+          : "#fff6df";
+        E(cx, 44, r + 1.4, r + 1.4, eyeWhite);
         const ix = cx + px * 0.4;
         const iy = 44 + py * 0.4;
-        E(ix, iy, r - 0.8, r - 0.8, rg(ix, iy, r, "#ffd36a", "#d8741f"));
+        if (anger > 0.25) {
+          ctx.save();
+          ctx.shadowColor = `rgba(255, 35, 35, ${0.35 + anger * 0.45})`;
+          ctx.shadowBlur = 3 + anger * 5;
+          E(ix, iy, r - 0.8, r - 0.8, rg(ix, iy, r, "#ffb347", "#d62222"));
+          ctx.restore();
+        } else {
+          E(ix, iy, r - 0.8, r - 0.8, rg(ix, iy, r, "#ffd36a", "#d8741f"));
+        }
         for (let i = 0; i < 24; i++) {
           const q = (i / 24) * 6.283;
           L_([[ix + Math.cos(q) * 2.6, iy + Math.sin(q) * 2.6], [ix + Math.cos(q) * (r - 1.2), iy + Math.sin(q) * (r - 1.2)]], 0.3, "rgba(150,60,10,.35)");

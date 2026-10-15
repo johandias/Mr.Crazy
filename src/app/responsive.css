@@ -1693,6 +1693,11 @@
   }
 }
 
+/* A transcrição continua disponível para a avaliação interna, mas não ocupa a tela. */
+.user-live-transcript-badge {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .practice-main.clean-layout .voice-hub-heading {
     display: none;

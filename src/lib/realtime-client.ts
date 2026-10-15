@@ -19,6 +19,8 @@ export type RealtimeController = {
   interrupt: () => void;
   updateInstructions: (instructions: string) => boolean;
 };
+
+const VOICE_RESPONSE_TOKEN_BUDGET = 480;
 type Options = {
   level: LearningLevel;
   mode: string;
@@ -545,18 +547,17 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         // primeiro candidato (ou em 150 ms) gera ofertas incompletas em redes
         // móveis/Vercel e deixa o botão preso em "Conectando".
         await waitFor(new Promise<void>(resolve => {
-          let fastTimer: ReturnType<typeof setTimeout> | undefined;
+          const fastTimer = setTimeout(() => {
+            const availableSdp = peer?.localDescription?.sdp ?? "";
+            if (availableSdp.includes("a=candidate:")) resolve();
+          }, 350);
           const checkComplete = () => {
             if (peer?.iceGatheringState === "complete") {
-              if (fastTimer) clearTimeout(fastTimer);
+              clearTimeout(fastTimer);
               resolve();
             }
           };
           listen(peer!, "icegatheringstatechange", checkComplete);
-          fastTimer = setTimeout(() => {
-            const availableSdp = peer?.localDescription?.sdp ?? "";
-            if (availableSdp.includes("a=candidate:")) resolve();
-          }, 350);
           checkComplete();
         }), lifetime.signal, 1800, "ice_gather_timeout");
       } catch (error) {
@@ -686,7 +687,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         options.onUserTranscript(text.trim(), true);
         responseActive = send({
           type: "response.create",
-          response: { max_output_tokens: 1500 }
+          response: { max_output_tokens: VOICE_RESPONSE_TOKEN_BUDGET }
         });
         syncCapture(); watchResponse(); return responseActive;
       },
@@ -700,7 +701,7 @@ export async function connectRealtime(options: Options): Promise<RealtimeControl
         watchResponse();
         const payload: { type: string; response: { max_output_tokens: number; instructions?: string } } = {
           type: "response.create",
-          response: { max_output_tokens: 1500 }
+          response: { max_output_tokens: VOICE_RESPONSE_TOKEN_BUDGET }
         };
         if (instructions && instructions.trim()) {
           payload.response.instructions = instructions.trim();

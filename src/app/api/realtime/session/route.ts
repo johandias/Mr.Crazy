@@ -139,7 +139,7 @@ export async function POST(request: Request) {
           candidate,
           url.searchParams.get("moduleId"),
           url.searchParams.get("conceptIndex"),
-          1500
+          480
         );
 
         const formData = new FormData();
