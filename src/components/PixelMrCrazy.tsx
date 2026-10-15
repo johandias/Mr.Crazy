@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, type CSSProperties } from "react";
 import type { CharacterGesture } from "@/components/RpgCharacter";
+import type { LiveAudioVisualizer } from "@/components/VoiceInputControl";
+import type { RefObject } from "react";
 import type { Emotion, VoiceState } from "@/lib/mr-crazy";
 
 type PixelMrCrazyProps = Readonly<{
@@ -15,6 +17,7 @@ type PixelMrCrazyProps = Readonly<{
   isBlinking?: boolean;
   burstKey?: number;
   isAwake?: boolean;
+  audioMetricsRef?: RefObject<LiveAudioVisualizer>;
 }>;
 
 /**
@@ -25,7 +28,7 @@ type PixelMrCrazyProps = Readonly<{
  * - Óculos dourados, olhos de âmbar brilhantes com rastreamento de olhar e piscar.
  * - Chapéu pontudo de mago articulado com estrelas mágicas.
  * - Asas articuladas com gestos dinâmicos (lição, explicação, magia maluca).
- * - Bico procedural que se abre em sincronia com a voz do tutor e letras mágicas flutuantes (A-Z).
+ * - Bico procedural que se abre em sincronia com a intensidade real da voz do tutor.
  */
 export function PixelMrCrazy({
   voiceState = "idle",
@@ -37,7 +40,8 @@ export function PixelMrCrazy({
   phoneme = 4,
   isBlinking = false,
   burstKey = 0,
-  isAwake = false
+  isAwake = false,
+  audioMetricsRef
 }: PixelMrCrazyProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isSpeaking = voiceState === "speaking";
@@ -252,8 +256,6 @@ export function PixelMrCrazy({
       }
     };
 
-    const parts: { ch: string; x: number; y: number; vx: number; vy: number; l: number; c: string }[] = [];
-
     const G: Record<string, (t: number) => { L: [number, number]; R: [number, number] }> = {
       idle: (t) => ({
         L: [0.18 + Math.sin(t * 2) * 0.03, Math.sin(t * 1.3) * 0.04],
@@ -290,7 +292,6 @@ export function PixelMrCrazy({
     let last = 0;
     let lastPaint = 0;
     const paintInterval = 1000 / (lowPowerDevice ? 24 : 30);
-    let spawn = 0;
     let clA = 0;
     let clV = 0;
     let ruf = 0;
@@ -422,11 +423,18 @@ export function PixelMrCrazy({
         }
       }
 
-      // Modulação de boca durante fala
+      // Modulação de boca pelo nível RMS real do áudio do tutor.
+      // Sem métrica de áudio, a boca permanece em repouso para não fingir fala.
       if (speakingNow) {
         const phonemeMap = [0.95, 0.62, 0.8, 0.45, 0.02];
         const pLevel = phonemeMap[stateRef.current.phoneme] ?? 0.5;
-        mouthT = 0.25 + 0.55 * Math.abs(Math.sin(t * 11)) * pLevel;
+        const liveMetrics = audioMetricsRef?.current;
+        const liveLevel = liveMetrics?.source === "crazy"
+          ? Math.min(1, Math.max(0, liveMetrics.level))
+          : 0;
+        mouthT = liveLevel > 0.012
+          ? Math.min(0.92, 0.1 + liveLevel * 1.7 * Math.max(0.28, pLevel))
+          : 0;
       } else {
         mouthT = 0;
       }
@@ -829,20 +837,6 @@ export function PixelMrCrazy({
       ctx.restore();
       ctx.restore();
 
-      // Letras mágicas saindo do bico durante a fala
-      if (speakingNow && parts.length < 16 && (spawn -= dt) < 0) {
-        spawn = 0.14;
-        parts.push({
-          ch: "ABCDEFGHIJKLMNOPQRSTUVWXYZ?!"[(Math.random() * 28) | 0],
-          x: 48,
-          y: 56 + bob,
-          vx: (Math.random() - 0.5) * 22,
-          vy: -12 - Math.random() * 10,
-          l: 1.6,
-          c: `hsl(${Math.random() * 360},85%,72%)`
-        });
-      }
-
       const nextBurstKey = stateRef.current.burstKey;
       if (nextBurstKey && nextBurstKey !== lastBurstKey) {
         lastBurstKey = nextBurstKey;
@@ -899,23 +893,6 @@ export function PixelMrCrazy({
         ctx.restore();
       }
 
-      ctx.font = 'bold 6px "Comic Sans MS",cursive,sans-serif';
-      ctx.textAlign = "center";
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const p = parts[i];
-        p.l -= dt;
-        if (p.l <= 0) {
-          parts.splice(i, 1);
-          continue;
-        }
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vy += 6 * dt;
-        ctx.globalAlpha = Math.min(1, p.l);
-        ctx.fillStyle = p.c;
-        ctx.fillText(p.ch, p.x, p.y);
-        ctx.globalAlpha = 1;
-      }
     };
 
     let rafId: number;

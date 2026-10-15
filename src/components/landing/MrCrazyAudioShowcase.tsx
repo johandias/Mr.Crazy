@@ -99,6 +99,7 @@ export function MrCrazyAudioShowcase() {
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
   const hasAutoStartedRef = useRef(false);
+  const lastWaveRenderRef = useRef(0);
 
   // Audio metrics passed to RpgCharacter
   const audioMetricsRef = useRef<LiveAudioVisualizer>({
@@ -134,7 +135,7 @@ export function MrCrazyAudioShowcase() {
 
       const ctx = new AudioCtx();
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 64;
+      analyser.fftSize = 128;
       analyser.smoothingTimeConstant = 0.75;
 
       const source = ctx.createMediaElementSource(audioRef.current);
@@ -225,27 +226,33 @@ export function MrCrazyAudioShowcase() {
     }
 
     const analyser = analyserRef.current;
-    const bufferLength = analyser ? analyser.frequencyBinCount : 32;
+    const bufferLength = analyser ? analyser.frequencyBinCount : 64;
     const dataArray = new Uint8Array(bufferLength);
+    const timeDataArray = new Uint8Array(analyser?.fftSize ?? 128);
 
-    const updateAudioLoop = () => {
+    const updateAudioLoop = (now: number) => {
       if (analyser) {
         analyser.getByteFrequencyData(dataArray);
+        analyser.getByteTimeDomainData(timeDataArray);
 
-        let sum = 0;
         let bassSum = 0;
         const bars: number[] = [];
 
         for (let i = 0; i < 24; i++) {
           const index = Math.min(bufferLength - 1, Math.floor((i / 24) * bufferLength));
           const val = dataArray[index] || 0;
-          sum += val;
           if (i < 4) bassSum += val;
           const barHeight = Math.max(4, Math.min(46, (val / 255) * 44 + 4));
           bars.push(barHeight);
         }
 
-        const avg = sum / (24 * 255);
+        let rmsSum = 0;
+        for (const sample of timeDataArray) {
+          const centered = (sample - 128) / 128;
+          rmsSum += centered * centered;
+        }
+        const rms = Math.sqrt(rmsSum / timeDataArray.length);
+        const avg = Math.min(1, rms * 2.8);
         const bassAvg = bassSum / (4 * 255);
 
         audioMetricsRef.current = {
@@ -255,22 +262,19 @@ export function MrCrazyAudioShowcase() {
           bands: bars.map((b) => b / 46)
         };
 
-        setWaveBars(bars);
-      } else {
-        // Fallback procedural wave bars
-        const time = Date.now() / 150;
-        const bars: number[] = [];
-        for (let i = 0; i < 24; i++) {
-          const wave = Math.sin(time + i * 0.4) * 0.5 + 0.5;
-          bars.push(Math.round(wave * 26 + 6));
+        // O canvas lê as métricas em todo frame; as barras são UI e não precisam
+        // provocar renderização React mais de 12 vezes por segundo.
+        if (now - lastWaveRenderRef.current >= 80) {
+          lastWaveRenderRef.current = now;
+          setWaveBars(bars);
         }
-        audioMetricsRef.current = {
-          source: "crazy",
-          level: 0.2,
-          bass: 0.25,
-          bands: bars.map((b) => b / 32)
-        };
-        setWaveBars(bars);
+      } else {
+        // Sem analisador, não inventa movimento de boca nem volume de voz.
+        audioMetricsRef.current = { source: "none", level: 0, bass: 0, bands: [] };
+        if (now - lastWaveRenderRef.current >= 80) {
+          lastWaveRenderRef.current = now;
+          setWaveBars(new Array(24).fill(6));
+        }
       }
 
       rafRef.current = requestAnimationFrame(updateAudioLoop);

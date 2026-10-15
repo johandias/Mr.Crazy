@@ -145,9 +145,6 @@ export const RpgCharacter = memo(function RpgCharacter({
 
     let rafId: number;
     let lastSwitchTime = 0;
-    let fallbackIndex = 0;
-    // Cadência fonética natural para fala: alterna consoantes, vogais e micropausas
-    const phonemeSequence = [3, 1, 3, 0, 3, 4, 2, 3, 1, 4, 3, 0, 3];
 
     const tick = (now: number) => {
       const metrics = audioMetricsRef?.current;
@@ -191,16 +188,14 @@ export const RpgCharacter = memo(function RpgCharacter({
           }
         }
       } else {
-        // Fallback procedural suave quando em áudio sintetizado ou sem métricas WebRTC
-        const simLevel = 0.12 + Math.sin(now / 150) * 0.08;
+        // Sem sinal confirmado do áudio, não simula fala: mantém a boca fechada.
         if (containerRef.current) {
-          containerRef.current.style.setProperty("--live-level", simLevel.toFixed(2));
-          containerRef.current.style.setProperty("--live-head-bob", `${(simLevel * 3).toFixed(1)}px`);
+          containerRef.current.style.setProperty("--live-level", "0");
+          containerRef.current.style.setProperty("--live-head-bob", "0px");
         }
         if (now - lastSwitchTime > 120) {
           lastSwitchTime = now;
-          fallbackIndex = (fallbackIndex + 1) % phonemeSequence.length;
-          setPhoneme(phonemeSequence[fallbackIndex]);
+          setPhoneme(4);
         }
       }
 
@@ -287,6 +282,7 @@ export const RpgCharacter = memo(function RpgCharacter({
         isBlinking={isBlinking}
         burstKey={burstKey}
         isAwake={isAwake}
+        audioMetricsRef={audioMetricsRef}
       />
       {false && (
       <svg
