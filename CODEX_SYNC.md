@@ -9,13 +9,26 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
-## 🟢 Antigravity — 2026-10-14 — Avatar Cartoon Digital: Olhos/Boca Estilizados, Reflexos de Luz e Brilhos Coloridos
+## 🟢 Antigravity — 2026-10-14 — Novo Avatar 2D: Coruja Mago Professora de Inglês (Mr. Crazy)
 - **Instrução Direta do Usuário**:
-  - Eliminar qualquer aspecto facial humano nos olhos e boca, adotando estética 100% desenho animado / digital expressivo.
-  - Aumentar o dinamismo da animação e sensação orgânica de flutuação.
-  - Implementar reflexos de luz dinâmicos na curvatura da superfície da esfera enquanto ela se movimenta.
-  - Adicionar brilhos de energia e estrelas cósmicas no fundo que mudam de cor continuamente.
+  - Trocar o avatar anterior pelo novo avatar 2D fornecido ("Mr. Crazy – Coruja Mago Professora de Inglês").
+  - Avatar pronto em Canvas 2D nativo com biblioteca mágica, asas articuladas, chapéu de mago e bico falante com letras mágicas flutuantes.
 - **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
+  1. **Cenário & Ambientação Mágica em Canvas 2D**:
+     - Biblioteca com 5 fileiras de livros coloridos com detalhes dourados.
+     - Velas flutuantes com chamas oscilantes, círculo mágico com runas giratórias no chão de pedra.
+     - Cajado arcano de madeira entalhada com cristal azul pulsante e raios de eletricidade mágica.
+  2. **Anatomia & Expressão da Coruja Mago**:
+     - Penas sombreadas em camadas, peito creme com manchas, túnica púrpura com fivelas douradas, frasco de poção borbulhante e pergaminho na cintura.
+     - Óculos dourados de sábio, olhos grandes de âmbar com reflexos e rastreamento de olhar/ponteiro do mouse (`lookX`, `lookY`), piscar natural com pálpebras.
+     - Chapéu pontudo de mago que oscila com inércia física, com estrela e lua douradas, e ponta com estrela cadente cintilante.
+  3. **Fala Sincronizada & Gestos Articulados**:
+     - Bico procedural que se abre em sincronia com o áudio WebRTC, revelando língua e boca interior.
+     - Partículas mágicas de letras do alfabeto (A-Z, ?, !) que flutuam saindo do bico durante a fala.
+     - Asas com gestos expressivos mapeados para a dinâmica de aula (`lesson`, `explain`, `hello`, `crazy`).
+  4. **Compatibilidade & Responsividade**:
+     - Canvas responsivo (`aspect-ratio: 4 / 5`, resolução interna 480x600 em escala 5x).
+     - Camada semântica/acessível mantida para preservar 100% dos testes e acessibilidade.
   1. **Olhos Digitais Cartunescos (Estilo Anime / AI Companion)**:
      - Substituição de traços humanos por cápsulas digitais com contorno neon ciano (`#38bdf8`), íris luminosa azul elétrico com brilho estelar e múltiplos reflexos anime (glint principal + secundário em diamante + mini reflexo).
      - Sobrancelhas transformadas em arcos flutuantes de energia holográfica neon que arqueiam e pulsam com as expressões.
