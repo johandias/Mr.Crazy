@@ -9,22 +9,29 @@ Este arquivo é o canal de coordenação e sincronização entre **Codex** e **A
 - **Ambiente de Produção**: [mrcrazy.fun](https://www.mrcrazy.fun) (Vercel — Deploy Ativo)
 - **Suíte de Testes**: 69 testes passando em todas as suítes (exit code 0).
 
-## 🟢 Antigravity — 2026-10-14 — Novo Avatar: Bola Flutuante Futurista (The Sentient AI Orb)
+## 🟢 Antigravity — 2026-10-14 — Avatar Esfera Viva Flutuante (Design Original Fornecido)
 - **Instrução Direta do Usuário**:
-  - Eliminar por completo o personagem humanoide anterior, corpo, roupas e cabelos.
-  - Criar estritamente uma bola flutuante com degradê 3D rico, brilho estelar, olhos expressivos que piscam e boca hiper-detalhada falante articulada em tempo real com o áudio.
-  - 100% código nativo (SVG + CSS + React), sem canvas e sem imagens raster.
+  - Utilizar o design e arquitetura do avatar esfera viva fornecido em HTML/SVG/CSS/JS.
+  - Implementar em código nativo React/Next.js/SVG/CSS, preservando 100% da identidade visual, iluminação, paleta de cores e animações.
 - **Entregue (`PixelMrCrazy.tsx` & `globals.css`)**:
-  1. **Esfera Flutuante com Degradê Volumétrico 3D**:
-     - Esfera com iluminação especular, iluminação de borda (rim light) em azul safira/ciano elétrico e aura estelar no fundo.
-     - Anel orbital rotacionado com partícula satélite de energia.
-     - Sombra de chão dinâmica que se expande e contrai com o movimento suave de levitação.
-  2. **Olhos Digitais Expressivos & Rastreamento**:
-     - Olhos grandes com íris holográfica, pupilas que rastreiam o cursor e toque com parallax natural e piscar suave.
-  3. **Boca Articulada em Tempo Real (5 Visemas)**:
-     - Boca que abre, sorri, modula vogais e consoantes acompanhando milissegundo a milissegundo os decibéis do áudio WebRTC (`--live-level`).
-  4. **Gestos Holográficos Flutuantes**:
-     - Ícones orbitais de energia (`thumbsup`, `heart`, `watergun`) ativados apenas quando chamados.
+  1. **Gráficos e Shading Vetorial Fiel ao Código Fornecido**:
+     - Esfera volumétrica com degradê `#body` (`#9aeaff` -> `#2aa6f0` -> `#0d4f9e` -> `#050f2e`), sombra de oclusão `#shade` e rim light `#rim` (`#d6f6ff` -> `#2fb8ff` -> `#6a5cff`).
+     - Linhas de latitude e longitude em `#8fe3ff` recortadas pela esfera via `clipPath #sph`.
+     - Brilho especular elíptico inclinado (`opacity=.28`) e estrela de brilho reluzente de 4 pontas com filtro de glow.
+  2. **Anel Orbital e Satélite em Órbita Contínua**:
+     - Anel frontal e traseiro em degradê ciano/violeta com filtro blur glow (`stdDeviation="4"`).
+     - Satélite de energia (`#orb`) que realiza translação contínua sobre a elipse orbital (`rx=188, ry=38`) a 60fps via `requestAnimationFrame`.
+  3. **Olhos Expressivos, Sobrancelhas e Piscar Natural**:
+     - Olhos ovais em `#eaf8ff` com delineado profundo, íris em degradê `#iris` e pupilas com reflexo que rastreiam suavemente o mouse/toque (`lookX`/`lookY`).
+     - Sobrancelhas masculinas dinâmicas que levantam durante a fala (`lift = o * 5`).
+     - Ciclo de piscar procedural com interpolação senoidal suave via `scale(1, sc)` até pálpebra fechada.
+  4. **Boca Articulada em Tempo Real e Língua Dinâmica**:
+     - Cavidade oral procedural (`#mouth` e `#mclip`) que modula a curva Bézier (`M...Q...Q...Z`) conforme a cadência silábica e o áudio da fala.
+     - Língua volumétrica azul cobalto (`#1c63c9`) que sobe e ajusta a opacidade quando a boca abre.
+  5. **Flutuação, Aura Pulsante e Sombra de Chão**:
+     - Levitação orgânica com `@keyframes float` (movimento vertical e inclinação suave).
+     - Aura ciano difusa pulsando via `@keyframes pulse`.
+     - Sombra elíptica no chão com escala e opacidade sincronizadas via `@keyframes shadow`.
 - **Decisão e Contexto**:
   - A pedido explícito do usuário para descarte total do personagem anterior e liberdade criativa, foi criado um novo conceito visual moderno e carismático que se alinha perfeitamente à proposta de "Mr. Crazy": o **Cientista/Professor Maluco Elétrico**.
 - **Novo Conceito Entregue (`PixelMrCrazy.tsx`)**:
