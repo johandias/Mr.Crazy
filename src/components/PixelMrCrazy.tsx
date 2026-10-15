@@ -66,23 +66,32 @@ export function PixelMrCrazy({
     targetGest,
     burstKey
   });
-  stateRef.current = {
-    voiceState,
-    phoneme,
-    lookX,
-    lookY,
-    isBlinking,
-    targetGest,
-    burstKey
-  };
+  useEffect(() => {
+    stateRef.current = {
+      voiceState,
+      phoneme,
+      lookX,
+      lookY,
+      isBlinking,
+      targetGest,
+      burstKey
+    };
+  }, [voiceState, phoneme, lookX, lookY, isBlinking, targetGest, burstKey]);
 
   useEffect(() => {
     const cv = canvasRef.current;
     if (!cv) return;
     const ctx = cv.getContext("2d");
     if (!ctx) return;
+    type Paint = string | CanvasGradient | CanvasPattern;
 
-    const S = 5;
+    const deviceInfo = navigator as Navigator & { deviceMemory?: number };
+    const lowPowerDevice =
+      (typeof deviceInfo.deviceMemory === "number" && deviceInfo.deviceMemory <= 4) ||
+      (typeof deviceInfo.hardwareConcurrency === "number" && deviceInfo.hardwareConcurrency <= 4);
+    const S = lowPowerDevice ? 4 : 5;
+    cv.width = 96 * S;
+    cv.height = 120 * S;
     const K = {
       br: "#8c6a49",
       brL: "#b48c62",
@@ -112,7 +121,7 @@ export function PixelMrCrazy({
       return g;
     };
 
-    const E = (x: number, y: number, rx: number, ry: number, f: any, s?: any, w = 0.5) => {
+    const E = (x: number, y: number, rx: number, ry: number, f: Paint, s?: Paint, w = 0.5) => {
       ctx.beginPath();
       ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, 7);
       ctx.fillStyle = f;
@@ -124,7 +133,7 @@ export function PixelMrCrazy({
       }
     };
 
-    const RR = (x: number, y: number, w: number, h: number, r: number, f: any) => {
+    const RR = (x: number, y: number, w: number, h: number, r: number, f: Paint) => {
       ctx.beginPath();
       if (typeof ctx.roundRect === "function") {
         ctx.roundRect(x, y, w, h, r);
@@ -135,7 +144,7 @@ export function PixelMrCrazy({
       ctx.fill();
     };
 
-    const P = (p: [number, number][], f: any, s?: any, w = 0.5) => {
+    const P = (p: [number, number][], f: Paint, s?: Paint, w = 0.5) => {
       ctx.beginPath();
       p.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
       ctx.closePath();
@@ -149,7 +158,7 @@ export function PixelMrCrazy({
       }
     };
 
-    const L_ = (p: [number, number][], w: number, c: any) => {
+    const L_ = (p: [number, number][], w: number, c: Paint) => {
       ctx.beginPath();
       p.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
       ctx.lineWidth = w;
@@ -169,7 +178,7 @@ export function PixelMrCrazy({
       return p;
     };
 
-    const Q = (d: string, f?: any, s?: any, w = 0.6) => {
+    const Q = (d: string, f?: Paint | null, s?: Paint | null, w = 0.6) => {
       if (typeof Path2D !== "undefined") {
         const p = getPath(d);
         if (f) {
@@ -194,7 +203,7 @@ export function PixelMrCrazy({
       ctx.restore();
     };
 
-    const star = (x: number, y: number, r: number, c: any) => {
+    const star = (x: number, y: number, r: number, c: Paint) => {
       ctx.beginPath();
       for (let i = 0; i < 10; i++) {
         const a = -Math.PI / 2 + (i * Math.PI) / 5;
@@ -221,7 +230,7 @@ export function PixelMrCrazy({
       ctx.fillRect(x, y, w, h);
     };
 
-    const shE = (x: number, y: number, rx: number, ry: number, f: any, l = 0.2, d = 0.36) => {
+    const shE = (x: number, y: number, rx: number, ry: number, f: Paint, l = 0.2, d = 0.36) => {
       E(x, y, rx, ry, f);
       ctx.save();
       ctx.beginPath();
@@ -231,7 +240,7 @@ export function PixelMrCrazy({
       ctx.restore();
     };
 
-    const shQ = (d: string, f: any, x: number, y: number, w: number, h: number, l = 0.2, dk = 0.36) => {
+    const shQ = (d: string, f: Paint, x: number, y: number, w: number, h: number, l = 0.2, dk = 0.36) => {
       Q(d, f);
       if (typeof Path2D !== "undefined") {
         ctx.save();
@@ -270,22 +279,21 @@ export function PixelMrCrazy({
       crazy: { br: 1, wide: 1 }
     };
 
-    let cur = { L: [0.18, 0], R: [0.18, 0] };
-    let F = { blink: 0, br: 0, wide: 0, sq: 0, open: 0 };
-    let look = [0, 0];
-    let mouse = [0, 0];
-    let talk = 0;
+    const cur = { L: [0.18, 0], R: [0.18, 0] };
+    const F = { blink: 0, br: 0, wide: 0, sq: 0, open: 0 };
+    const look = [0, 0];
+    const mouse = [0, 0];
     let nextBlink = 2;
     let blinkT = 0;
     let last = 0;
     let lastPaint = 0;
-    const paintInterval = 1000 / 30;
+    const paintInterval = 1000 / (lowPowerDevice ? 24 : 30);
     let spawn = 0;
     let clA = 0;
     let clV = 0;
     let ruf = 0;
     let rufT = 6;
-    let sac = [0, 0];
+    const sac = [0, 0];
     let sacT = 1;
     let TT = 0;
     let lean = 0;
@@ -296,7 +304,7 @@ export function PixelMrCrazy({
     let hatV = 0;
     let nodV = 0;
     let mouthT = 0;
-    let lastBurstKey = burstKey;
+    let lastBurstKey = stateRef.current.burstKey;
     let burstEnergy = 0;
     let burstRing = 0;
     const burstParticles: Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; color: string }> = [];
@@ -398,7 +406,6 @@ export function PixelMrCrazy({
 
       // Modulação de boca durante fala
       if (speakingNow) {
-        talk = 0.2;
         const phonemeMap = [0.95, 0.62, 0.8, 0.45, 0.02];
         const pLevel = phonemeMap[stateRef.current.phoneme] ?? 0.5;
         mouthT = 0.25 + 0.55 * Math.abs(Math.sin(t * 11)) * pLevel;
@@ -407,7 +414,9 @@ export function PixelMrCrazy({
       }
 
       const tgt = { br: ex.br || 0, wide: ex.wide || 0, sq: ex.sq || 0 };
-      for (const n in tgt) (F as any)[n] = lerp((F as any)[n], (tgt as any)[n], 0.2);
+      F.br = lerp(F.br, tgt.br, 0.2);
+      F.wide = lerp(F.wide, tgt.wide, 0.2);
+      F.sq = lerp(F.sq, tgt.sq, 0.2);
       F.open = lerp(F.open, mouthT, 0.45);
       F.blink = blinkT > 0 || stateRef.current.isBlinking ? 1 : 0;
 
@@ -454,8 +463,8 @@ export function PixelMrCrazy({
       ctx.beginPath();
       ctx.ellipse(48, 82, 24, 28, 0, 0, 7);
       ctx.clip();
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 5; c++) {
+      for (let r = 0; r < (lowPowerDevice ? 3 : 4); r++) {
+        for (let c = 0; c < (lowPowerDevice ? 4 : 5); c++) {
           const x = 26 + c * 6.8 + (r % 2) * 3.4;
           const y = 61 + r * 8.5;
           const v = (r * 7 + c * 13) % 5;
@@ -476,8 +485,8 @@ export function PixelMrCrazy({
       ctx.beginPath();
       ctx.ellipse(48, 73, 15, 13, 0, 0, 7);
       ctx.clip();
-      for (let r = 0; r < 3; r++) {
-        for (let c = 0; c < 5; c++) {
+      for (let r = 0; r < (lowPowerDevice ? 2 : 3); r++) {
+        for (let c = 0; c < (lowPowerDevice ? 4 : 5); c++) {
           const x = 35.5 + c * 3.4 + (r % 2) * 1.7;
           const y = 65.5 + r * 4.6;
           E(x, y, 2.3, 1.9, lg(x, y - 2, x, y + 2, [[0, "#fffaf0"], [1, "#e8d4ae"]]));
@@ -638,8 +647,8 @@ export function PixelMrCrazy({
       ctx.beginPath();
       ctx.ellipse(48, 42, 26, 22, 0, 0, 7);
       ctx.clip();
-      for (let r = 0; r < 3; r++) {
-        for (let x = 25 + (r % 2) * 2.4; x < 74; x += 7.2) {
+      for (let r = 0; r < (lowPowerDevice ? 2 : 3); r++) {
+        for (let x = 25 + (r % 2) * 2.4; x < 74; x += lowPowerDevice ? 8.8 : 7.2) {
           Q(`M${x} ${22 + r * 5}q2.4 2.8 4.8 0`, null, "rgba(70,45,28,.3)", 0.5);
         }
       }
@@ -792,7 +801,7 @@ export function PixelMrCrazy({
       ctx.restore();
 
       // Letras mágicas saindo do bico durante a fala
-      if (speakingNow && (spawn -= dt) < 0) {
+      if (speakingNow && parts.length < 16 && (spawn -= dt) < 0) {
         spawn = 0.14;
         parts.push({
           ch: "ABCDEFGHIJKLMNOPQRSTUVWXYZ?!"[(Math.random() * 28) | 0],
@@ -882,6 +891,11 @@ export function PixelMrCrazy({
 
     let rafId: number;
     const loop = (ms: number) => {
+      if (document.visibilityState === "hidden") {
+        last = ms / 1000;
+        rafId = requestAnimationFrame(loop);
+        return;
+      }
       if (ms - lastPaint < paintInterval) {
         rafId = requestAnimationFrame(loop);
         return;

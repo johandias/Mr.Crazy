@@ -1501,3 +1501,229 @@
     line-height: 1.2;
   }
 }
+
+/* Desktop wide final contract: three balanced zones, with the voice dock
+ * contained by the center column so it never sits over the avatar. */
+@media (min-width: 1440px) {
+  .app-shell:has(.practice-main.clean-layout) .practice-main.clean-layout .clean-stage.history-is-closed {
+    display: grid !important;
+    grid-template-columns: minmax(230px, 280px) minmax(0, 1fr) minmax(230px, 280px);
+    align-items: stretch;
+    gap: 18px;
+    width: min(1380px, calc(100vw - 48px));
+    max-width: 1380px;
+    min-height: clamp(540px, calc(100dvh - 230px), 760px);
+    padding: 0;
+  }
+
+  .app-shell:has(.practice-main.clean-layout) .clean-stage.history-is-closed > .desktop-support-rail {
+    display: flex !important;
+    width: 100%;
+    min-width: 0;
+    align-self: stretch;
+  }
+
+  .app-shell:has(.practice-main.clean-layout) .clean-stage.history-is-closed > .character-column {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .app-shell:has(.practice-main.clean-layout) .clean-stage.history-is-closed > .desktop-support-left {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app-shell:has(.practice-main.clean-layout) .clean-stage.history-is-closed > .desktop-support-right {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .app-shell:has(.practice-main.clean-layout) .clean-stage.history-is-closed .desktop-support-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .app-shell:has(.practice-main.clean-layout) .clean-stage.history-is-closed .character-stage {
+    width: clamp(300px, 22vw, 380px);
+    height: clamp(300px, 22vw, 380px);
+  }
+
+  .app-shell:has(.practice-main.clean-layout) .clean-stage.history-is-closed .practice-voice-hub {
+    width: min(100%, 380px) !important;
+  }
+}
+
+/* Keep expensive decorative layers out of the paint tree when they are not
+ * visible, without changing the avatar's interactive layout. */
+.practice-ambient-scene,
+.character-glow {
+  contain: paint;
+}
+
+/* Voice dock: clear hierarchy and a compact status surface below the avatar. */
+.voice-hub-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 2px 2px 7px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.voice-hub-heading-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.voice-hub-kicker {
+  color: #94a3b8;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.voice-hub-heading strong {
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-hub-connection-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  color: #cbd5e1;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.voice-hub-connection-status > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.voice-hub-connection-status.is-connected {
+  border-color: rgba(52, 211, 153, 0.28);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+}
+
+.voice-hub-connection-status.is-connected > span {
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.75);
+}
+
+.voice-hub-connection-status.is-connecting {
+  border-color: rgba(250, 204, 21, 0.28);
+  background: rgba(234, 179, 8, 0.1);
+  color: #fde68a;
+}
+
+.voice-hub-connection-status.is-connecting > span {
+  background: #facc15;
+  animation: voice-hub-status-pulse 1s ease-in-out infinite;
+}
+
+.voice-hub-connection-status.is-failed {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+.voice-hub-connection-status.is-failed > span {
+  background: #f87171;
+}
+
+@keyframes voice-hub-status-pulse {
+  50% { opacity: 0.35; transform: scale(0.7); }
+}
+
+@media (min-width: 769px) {
+  .practice-main.clean-layout .practice-voice-hub {
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 12px 16px 10px !important;
+    border: 1px solid rgba(96, 165, 250, 0.22) !important;
+    border-radius: 20px !important;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(12, 25, 45, 0.82)) !important;
+    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .practice-main.clean-layout .voice-input-control,
+  .practice-main.clean-layout .voice-action-badge {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .practice-main.clean-layout .mic-btn-row {
+    min-height: 68px;
+  }
+
+  .practice-main.clean-layout .voice-action-badge {
+    justify-content: center;
+    min-height: 32px;
+  }
+
+  .practice-main.clean-layout .voice-dock-actions-row {
+    padding-top: 8px;
+    margin-top: 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.14);
+  }
+
+  .practice-main.clean-layout .dock-action-pill-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 34px;
+  }
+}
+
+@media (max-width: 768px) {
+  .practice-main.clean-layout .voice-hub-heading {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .mobile-nav:has(.mobile-nav-item.is-admin) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .mobile-nav .mobile-nav-item.is-admin {
+    color: #fbbf24;
+  }
+
+  .mobile-nav .mobile-nav-item.is-admin.active {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fde68a;
+  }
+}
+
+@media (min-width: 769px) {
+  .top-nav a.is-active {
+    border-color: rgba(56, 189, 248, 0.28);
+    background: rgba(56, 189, 248, 0.12);
+    color: #f8fafc;
+  }
+
+  .top-nav .admin-nav-item.is-active {
+    border-color: rgba(245, 158, 11, 0.34);
+    background: rgba(245, 158, 11, 0.16);
+    color: #fde68a;
+  }
+}

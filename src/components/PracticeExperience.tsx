@@ -1799,8 +1799,15 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
     // Conectar enquanto a tela de entrada/mapa ainda está aberta faz o navegador
     // bloquear getUserMedia fora de uma ação e deixa a aula aparentemente muda.
     if (!storageReady || isPracticeIntro || isSelectingModule || hasAutoConnectedRef.current) return;
-    hasAutoConnectedRef.current = true;
-    void connectSession(undefined, true);
+    let cancelled = false;
+    void isMicrophoneAlreadyGranted().then((granted) => {
+      if (cancelled || !granted || hasAutoConnectedRef.current) return;
+      hasAutoConnectedRef.current = true;
+      void connectSession(undefined, true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [storageReady, isPracticeIntro, isSelectingModule, connectSession]);
 
   useEffect(() => {
@@ -1955,12 +1962,16 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
       }
       return;
     }
-    pendingMicEnableRef.current = true;
-    if (connectAbortRef.current && isConnectingRef.current) {
-      connectAbortRef.current.abort();
-      connectAbortRef.current = null;
-      isConnectingRef.current = false;
+
+    // Preserva o handshake atual. Abortar ao tocar novamente fazia o navegador
+    // abrir o microfone e negociar o WebRTC duas vezes.
+    if (realtimeStatus === "connecting" || isConnectingRef.current) {
+      pendingMicEnableRef.current = true;
+      setIsCharacterAwake(true);
+      return;
     }
+
+    pendingMicEnableRef.current = true;
     void connectSession(undefined, false);
   }
 
@@ -2553,6 +2564,25 @@ export function PracticeExperience({ isAdmin }: { isAdmin?: boolean } = {}) {
 
             {/* Hub de Voz Central: Barrinhas de Áudio Responsivas + Botão de Microfone Animado */}
             <div className="practice-voice-hub">
+              <div className="voice-hub-heading">
+                <div className="voice-hub-heading-copy">
+                  <span className="voice-hub-kicker">CONTROLE DE FALA</span>
+                  <strong>
+                    {realtimeStatus === "connected"
+                      ? microphoneEnabled
+                        ? "Microfone ativo"
+                        : "Pronto para falar"
+                      : realtimeStatus === "connecting"
+                        ? "Conectando ao tutor..."
+                        : "Fale com o Mr.Crazy"}
+                  </strong>
+                </div>
+                <span className={`voice-hub-connection-status is-${realtimeStatus}`}>
+                  <span aria-hidden="true" />
+                  {realtimeStatus === "connected" ? "Online" : realtimeStatus === "connecting" ? "Aguarde" : "Offline"}
+                </span>
+              </div>
+
               {/* Formulário de Digitação Rápida (quando ativado pelo botão de teclado) */}
               {isQuickInputOpen && (
                 <form

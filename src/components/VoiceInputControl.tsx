@@ -382,7 +382,7 @@ export function VoiceInputControl({
 
       {/* Instrução em destaque alto contraste para o usuário não ficar confuso */}
       <div
-        className={`voice-action-badge ${active ? "is-active" : ""} ${readyToTalk ? "is-ready" : ""} ${speaking ? "is-speaking" : ""} ${error ? "has-error" : ""}`}
+        className={`voice-action-badge ${active ? "is-active" : ""} ${readyToTalk ? "is-ready" : ""} ${connecting ? "is-connecting" : ""} ${speaking ? "is-speaking" : ""} ${error ? "has-error" : ""}`}
         role="status"
         onClick={() => { if (!active) onToggle(); }}
       >

@@ -1,10 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Mic, TrendingUp, Sparkles, Settings } from "lucide-react";
+import { Mic, TrendingUp, Sparkles, Settings, ShieldCheck } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-const items = [
+type MobileNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  badge?: string;
+  isBeta?: boolean;
+  isConversationGroup?: boolean;
+  isAdmin?: boolean;
+};
+
+const items: MobileNavItem[] = [
   {
     href: "/practice",
     label: "Praticar",
@@ -31,12 +42,15 @@ const items = [
   }
 ];
 
-export function MobileNav() {
+export function MobileNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const visibleItems: MobileNavItem[] = isAdmin
+    ? [...items, { href: "/admin", label: "Supervisor", icon: ShieldCheck, isAdmin: true }]
+    : items;
 
   return (
     <nav className="mobile-nav" aria-label="Navegação rápida do aplicativo">
-      {items.map((item) => {
+      {visibleItems.map((item) => {
         const Icon = item.icon;
         const active =
           item.href === "/practice"
@@ -47,7 +61,7 @@ export function MobileNav() {
           <Link
             href={item.href}
             key={item.href}
-            className={`mobile-nav-item ${active ? "active" : ""} ${item.isBeta ? "is-beta" : ""} ${
+            className={`mobile-nav-item ${active ? "active" : ""} ${item.isBeta ? "is-beta" : ""} ${item.isAdmin ? "is-admin" : ""} ${
               item.isConversationGroup ? "in-conversation-group" : ""
             }`}
             aria-current={active ? "page" : undefined}

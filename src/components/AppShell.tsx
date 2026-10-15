@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Settings, TimerReset, Flame, ShieldCheck, User, LogOut, ArrowLeftRight, TrendingUp, ChevronDown } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 
@@ -23,6 +24,8 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
   const [userData, setUserData] = useState<UserHeaderData | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const isNavActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -83,13 +86,13 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
           <span className="brand-title-text">Mr.Crazy</span>
         </Link>
         <nav className="top-nav" aria-label="Navegação principal">
-          <Link href="/practice">Praticar</Link>
-          <Link href="/conversation" className="beta-top-nav-link">Modo Beta</Link>
-          <Link href="/progress">Progresso</Link>
-          <Link href="/history">Histórico</Link>
+          <Link href="/practice" className={isNavActive("/practice") ? "is-active" : undefined} aria-current={isNavActive("/practice") ? "page" : undefined}>Praticar</Link>
+          <Link href="/conversation" className={`beta-top-nav-link ${isNavActive("/conversation") ? "is-active" : ""}`} aria-current={isNavActive("/conversation") ? "page" : undefined}>Modo Beta</Link>
+          <Link href="/progress" className={isNavActive("/progress") ? "is-active" : undefined} aria-current={isNavActive("/progress") ? "page" : undefined}>Progresso</Link>
+          <Link href="/history" className={isNavActive("/history") ? "is-active" : undefined} aria-current={isNavActive("/history") ? "page" : undefined}>Histórico</Link>
           {isAdmin ? (
-            <Link className="admin-nav-item" href="/admin">
-              <ShieldCheck size={14} /> Admin
+            <Link className={`admin-nav-item ${isNavActive("/admin") ? "is-active" : ""}`} href="/admin" aria-current={isNavActive("/admin") ? "page" : undefined}>
+              <ShieldCheck size={14} /> Supervisor
             </Link>
           ) : null}
         </nav>
@@ -182,7 +185,7 @@ export function AppShell({ children, isAdmin: initialIsAdmin }: AppShellProps) {
       </header>
       {children}
       <Suspense fallback={null}>
-        <MobileNav />
+        <MobileNav isAdmin={isAdmin} />
       </Suspense>
     </div>
   );

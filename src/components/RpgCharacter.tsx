@@ -59,7 +59,7 @@ export const RpgCharacter = memo(function RpgCharacter({
     const previousEmotion = previousEmotionRef.current;
     previousEmotionRef.current = emotion;
     if (previousEmotion && previousEmotion !== emotion && emotion !== "calm") {
-      setBurstKey(Date.now());
+      setBurstKey((key) => key + 1);
     }
   }, [emotion]);
 
@@ -133,11 +133,12 @@ export const RpgCharacter = memo(function RpgCharacter({
 
   // Articulação labial e movimento reativo ao som durante a fala do professor
   useEffect(() => {
+    const container = containerRef.current;
     if (voiceState !== "speaking") {
       setPhoneme(4);
-      if (containerRef.current) {
-        containerRef.current.style.setProperty("--live-level", "0");
-        containerRef.current.style.setProperty("--live-head-bob", "0px");
+      if (container) {
+        container.style.setProperty("--live-level", "0");
+        container.style.setProperty("--live-head-bob", "0px");
       }
       return;
     }
@@ -209,9 +210,9 @@ export const RpgCharacter = memo(function RpgCharacter({
     rafId = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(rafId);
-      if (containerRef.current) {
-        containerRef.current.style.setProperty("--live-level", "0");
-        containerRef.current.style.setProperty("--live-head-bob", "0px");
+      if (container) {
+        container.style.setProperty("--live-level", "0");
+        container.style.setProperty("--live-head-bob", "0px");
       }
     };
   }, [voiceState, audioMetricsRef]);
